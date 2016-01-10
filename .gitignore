@@ -279,3 +279,10 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.exe
+*.txt
+*.vcxproj
+*.user
+*.filters
+Debug/*
+Release/*
