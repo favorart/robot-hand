@@ -66,13 +66,15 @@
 #include <boost/geometry/geometries/point_xy.hpp>
 typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 
-#include <boost/range/algorithm/permutation.hpp>
-//#include <boost/lambda>
+// #include <boost/range/algorithm/permutation.hpp>
+// #include <boost/lambda>
 
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/version.hpp>
-#include <boost/serialization/bitset.hpp>
 #include <boost/serialization/access.hpp>
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/map.hpp>
+// #include <boost/serialization/bitset.hpp>
+
 // a portable text archive
 #include <boost/archive/text_oarchive.hpp> // saving
 #include <boost/archive/text_iarchive.hpp> // loading

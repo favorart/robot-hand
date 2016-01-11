@@ -28,10 +28,23 @@ namespace HandMoves
       // ----------------------------------------
       uint_t    moves_count_;
       Hand::MusclesEnum  muscles_;
-      
-      uint_t   times_start_[maxMovesCount];
-      uint_t   times_stop_ [maxMovesCount];
       // bitset_t  controls_;
+      
+      std::map<Hand::MusclesEnum, std::pair<uint_t, uint_t>> times_;
+
+      // uint_t   times_start_[maxMovesCount];
+      // uint_t   times_stop_ [maxMovesCount];
+      // struct move_t
+      // {
+      //   Hand::MusclesEnum  muscle_;
+      //   uint_t start_;
+      //   uint_t stop_;
+      // 
+      //   for (auto m : Hand::muscles)
+      //     if ( muscle & m )
+      //       index
+      // };
+      // move_t times_;
 
       Point     aim_;
       Point     hand_;
@@ -46,7 +59,8 @@ namespace HandMoves
       template <class Archive>
       void  save (Archive & ar, const unsigned int version) const
       { ar << aim_ << hand_ << muscles_ << moves_count_;
-        ar << times_start_  << times_stop_ << distance_ << elegance_;
+        // ar << times_start_  << times_stop_; <<
+        ar << times_ << distance_ << elegance_;
       }
       
       template <class Archive>
@@ -55,8 +69,9 @@ namespace HandMoves
         ar >> hand_;
         ar >> muscles_;
         ar >> moves_count_;
-        ar >> times_start_;
-        ar >> times_stop_;
+        ar >> times_;
+        //ar >> times_start_;
+        //ar >> times_stop_;
         ar >> distance_;
         ar >> elegance_;
       }
@@ -90,21 +105,28 @@ namespace HandMoves
 
     Record (const Point        &aim,
             const Point        &hand,
-            Hand::MusclesEnum   muscles,
+            Hand::MusclesEnum  *muscles,
             const uint_t       *times_start,
-            const uint_t       *times_stop);
+            const uint_t       *times_stop,
+            uint_t              moves_count);
 
-    Record (const Record &rec):
-      Record (rec.aim_, rec.hand_, rec.muscles_, 
-              rec.times_start_, rec.times_stop_)
-    {}
+    // Record (const Point        &aim,
+    //         const Point        &hand,
+    //         Hand::MusclesEnum   muscles,
+    //         const uint_t       *times_start,
+    //         const uint_t       *times_stop);
+
+    //Record (const Record &rec):
+    //  Record (rec.aim_, rec.hand_, rec.muscles_, 
+    //          //rec.times_start_, rec.times_stop_)
+    //{}
 
     const Record& operator=(const Record& rec)
     {
       if ( &rec != this )
       {
-        // this->~Record ();
-        // this = new ();
+        this->~Record ();
+        new (this) Record (rec);
       }
       return *this;
     }
@@ -117,7 +139,9 @@ namespace HandMoves
     __declspec(property(get = get_aim)) Point aim;
     const Point& get_aim () const { return aim_; }
 
-    void  make_move (Hand &hand)
+    bool  validateMusclesTimes ();
+
+    void  makeMove (Hand &hand, const Point &aim)
     {
       for ( size_t i = 0; i < moves_count_; ++i )
       {
@@ -125,12 +149,8 @@ namespace HandMoves
       }
     }
 
-    
-
   };
-  //BOOST_CLASS_VERSION (HandMoveRecord, 1)
-  
-  
+
 using namespace boost::multi_index;
 //------------------------------------------------------------------
 typedef boost::multi_index_container
@@ -143,39 +163,41 @@ typedef boost::multi_index_container
                                                   >
                                    >,
                 ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::aim_x> >,
-                ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> >,
-                random_access      <> // доступ, как у вектору
+                ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> > //,
+                // random_access      <> // доступ, как у вектору
               >
 > Store;
-  
   //------------------------------------------------------------------------------
-  // bool hit (const Point* ptg, const Point* p) const
-  // { return (!ptg->hit (*p, 1e-3) && *ptg < *p); }
-  
+  // прямоугольная окрестность точки
+  template<typename T>
+  uint_t  adjacencyRectPoints (Store &store,
+                               std::back_insert_iterator<T> &range_it,
+                               const boost::tuple<double, double> &left_down,
+                               const boost::tuple<double, double> &right_up,
+                               bool  pointer_type = false);
 
-  // void  store_init (const Store &store, std::list<Point> target);
+  // круглая окрестность точки
+  template<typename T>
+  uint_t  adjacencyPoints (Store &store,
+                           std::back_insert_iterator<T> &range_it,
+                           const boost_point2_t &center,
+                           double radius,
+                           bool   pointer_type = false);
 
-  // const Point&  store_search (const Store &store, const Point  &aim);
-  
-  // template <Archive>
-  // void  store_save (Archive & ar, const Store &store);
-  // template <Archive>
-  // void  store_load (Archive & ar, Store       &store);
+  void  adjacencyYsByXPoints (Store &store, std::list<Record> &range,
+                              double x, double up=0., double down=0.);
+
+  void  adjacencyXsByYPoints (Store &store, std::list<Record> &range,
+                              double y, double left=0., double right=0.);
   //------------------------------------------------------------------------------
-
-  Hand::MusclesEnum  switch_move (uint_t choose);
-  
+  void  storeSave (const Store& store, const TCHAR *filename=_T("moves.bin"));
+  void  storeLoad (      Store& store, const TCHAR *filename=_T("moves.bin"));
+  //------------------------------------------------------------------------------
   void  test_random (Store &store, Hand &hand, uint_t  tries=1000U);
-  void  test_cover  (Store &store, Hand &hand, double radius, 
+  void  test_cover  (Store &store, Hand &hand, 
                      std::list< std::list<Point> > &trajectories,
-                     int number);
-  
-  
-  // 
-  // void createRectTarget ()
-  // {
-  // 
-  // 
-  // }
+                     int nesting=2);
 }
+BOOST_CLASS_VERSION (HandMoves::Record, 1)
+
 #endif // _HAND_MOVES_H_

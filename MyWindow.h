@@ -29,4 +29,10 @@ Point  logic_coord (win_point* coord);
 // Процедуры обработки сообщений
 LRESULT CALLBACK  WndProc (HWND, UINT, WPARAM, LPARAM);
 //-------------------------------------------------------------------------------
+/* Return TRUE if file 'fileName' exists */
+inline bool  isFileExists (const TCHAR *fileName)
+{ DWORD  fileAttr = GetFileAttributes (fileName);
+  return (0xFFFFFFFF != fileAttr);
+}
+//-------------------------------------------------------------------------------
 #endif // _WINDOW_H_

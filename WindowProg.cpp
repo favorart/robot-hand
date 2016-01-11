@@ -47,20 +47,24 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
   const uint_t  tgRowsCount = 35U;
   const uint_t  tgColsCount = 30U;
-  const uchar_t jointPercent[] = { 0U, 0U, 100U };
 
   static RecTarget  T (tgColsCount, tgRowsCount, -0.70, 0.90, 0.90, -0.99);
   static Hand       hand;
 
   static HandMoves::Store store; // (&T)
+  static std::list<std::shared_ptr<HandMoves::Record>> found_points;
+  
+  static std::list< std::list<Point> >  testing_trajectories;
+  // static bool                           testing_trajectories_show;
+  static bool                           testing_no_show;
+  static int                            iter;
+  static bool                           show;
 
-  static bool print_trajectories;
-  static std::list< std::list<Point> > trajectories;
-
-  static std::list<Point> last_trajectory;
-  static ulong_t last;
-  static Hand::MusclesEnum mv;
-
+  static bool               last_trajectory_show;
+  static std::list<Point>   last_trajectory;
+  static ulong_t            last_trajectory_lasts;
+  static Hand::MusclesEnum  last_trajectory_move;
+  
   static int   fm, fn;
   static int  p_x, p_y;
   //------------------------------------------------------------------------------
@@ -76,8 +80,6 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
         myRect.bottom = Rect.bottom;
         myRect.right  = Rect.left + (Rect.bottom - Rect.top);
         
-        print_trajectories = false;
-
         // Create a Static Label control
         hLabCanv = CreateWindow (_T ("STATIC"),					 	/* The name of the static control's class */
                                  _T ("Canvas  "),							                      /* Label's Text */
@@ -139,8 +141,15 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       p_x = 0; p_y = 0; fm = 0; fn = 0;
       random_input (0U);
 
-      // Hm.gain ();
-      hand.set (jointPercent);
+      hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0., 0., 100. });
+      //=======================
+      // testing_trajectories_show = false;
+      last_trajectory_show = false;
+      testing_no_show = false;
+      iter = 1;
+      show = false;
+      //=======================
+      HandMoves::storeLoad (store);
       //=======================
       break;
     }
@@ -150,6 +159,9 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       HBITMAP     hBmp;
       HDC         hdc, hCmpDC;
       HPEN        hPen_red, hPen_grn;
+
+      if (store.size())
+        SetWindowText (hWnd, boost::str (boost::wformat (_T ("Store size %1%")) % store.size ()).c_str ());
       
       hdc = BeginPaint (hWnd, &ps);
       //-------------------------------------------
@@ -175,22 +187,46 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       // Здесь рисуем на контексте hCmpDC
       draw_decards_coordinates (hCmpDC);
       
-      // Отрисовка фигуры
       T.draw (hCmpDC, hPen_grn);
-      hand.draw (hCmpDC, hPen_red);
-
-      draw_trajectory (hCmpDC, last_trajectory, hPen_red /* hPen_blu */);
-
-      if ( print_trajectories )
+      // Отрисовка фигуры
+      if ( !testing_no_show )
       {
-        int i = 0;
-        for ( auto trajectory : trajectories )
+        hand.draw (hCmpDC, hPen_red);
+        if ( !last_trajectory.empty () )
         {
+          HPEN hPen = CreatePen (PS_SOLID, 2, RGB (000, 000, 155));
+          draw_trajectory (hCmpDC, last_trajectory, hPen);
+          DeleteObject (hPen);
+        }
+
+        
+        // if ( testing_trajectories_show )
+        if ( !testing_trajectories.empty() )
+        {
+          int i = 0;
           HPEN hPen_blu = CreatePen (PS_SOLID, 2, RGB (000, 000, 255));
-          draw_trajectory (hCmpDC, trajectory, hPen_blu);
+          HBRUSH hBrush = (HBRUSH) SelectObject (hCmpDC, (HBRUSH) GetStockObject (WHITE_BRUSH));
+          // for ( auto t : testing_trajectories )
+          auto t = testing_trajectories.begin ();
+          for ( int i = 0; i < testing_trajectories.size (); ++i )
+          {
+            if ( i == iter ) break;
+            
+            draw_trajectory (hCmpDC, *t, hPen_blu);
+
+            auto fin = t->back ();
+            Ellipse (hCmpDC, Tx (-0.01 + fin.x), Ty ( 0.01 + fin.y),
+                             Tx ( 0.01 + fin.x), Ty (-0.01 + fin.y));
+            ++t;
+          }
           DeleteObject (hPen_blu);
+          DeleteObject (SelectObject (hCmpDC, hBrush));
         }
       }
+
+      for ( auto p : found_points )
+      { SetPixel (hCmpDC, Tx (p->aim.x), Ty (p->aim.y), RGB (000, 000, 255)); }
+
       //-------------------------------------
       // Копируем изображение из теневого контекста на экран
       SetStretchBltMode (hdc, COLORONCOLOR);
@@ -228,7 +264,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
       //=======================
-      //Hm.Dump ();
+      HandMoves::storeSave (store);
       //=======================
       PostQuitMessage (0);
       break;
@@ -273,15 +309,27 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
     case WM_TIMER:
     { //=======================
-      last--;
-      if ( !last )
+      if ( !testing_no_show )
       {
-        hand.step (mv);
+        if ( last_trajectory_show )
+        {
+          last_trajectory_lasts--;
+          if ( !last_trajectory_lasts )
+          {
+            hand.step (last_trajectory_move);
+            
+          }
+        }
+
+        hand.step ();
+        if ( last_trajectory_show )
+          last_trajectory.push_back (hand.position);
       }
-
-      hand.step ();
-      last_trajectory.push_back (hand.position);
-
+      
+      if (show)
+      {
+        ++iter;
+      }
       InvalidateRect (hWnd, &myRect, TRUE);
       //=======================
       break;
@@ -294,6 +342,23 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
           SendMessage (hWnd, WM_QUIT, 0, 0);
           break;
       }
+      break;
+    }
+
+    case WM_LBUTTONDOWN: // Если был щелчок левой кнопкой
+    {	// узнаём координаты
+      coord.x = LOWORD (lParam);
+      coord.y = HIWORD (lParam);
+      
+      Point aim = logic_coord (&coord);
+      double radius = 0.1;
+      // HandMoves::adjacencyRectPoints<decltype(found_points)>
+      //  (store,  std::back_inserter (found_points), { 0.1, 0.1 }, { 0.4, 0.3 });
+
+      //HandMoves::adjacencyPoints //<decltype(found_points)>
+      //  (store, std::back_inserter (found_points), aim, radius, true);
+
+      InvalidateRect (hWnd, &myRect, 0);
       break;
     }
 
@@ -316,8 +381,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
         case 't':
         { //========================================
-          uchar_t jointPercent[] = { 50U, 50U, 50U };
-          hand.set  (jointPercent);
+          hand.set  (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
 
           //test_random (Hm, H, 100U); // 10001000100
 
@@ -330,33 +394,60 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
         case 'o':
         {
-          // hand.reset ();
-          uchar_t jointPercent[] = { 50U, 50U, 50U };
-          hand.set (jointPercent);
+          hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
           last_trajectory.clear ();
           
-          // mv   = HandMoves::switch_move (random_input (26UL));
-          // last = random_input (hand.maxElbowMoveFrames, hand.minJStopMoveFrames);
+          last_trajectory_show = true;
+          last_trajectory_move  = selectHandMove ( random_input (HandMovesCount) );
+          last_trajectory_lasts = random_input (hand.maxElbowMoveFrames,
+                                                hand.minJStopMoveFrames);
 
-          //hand.move ()
-          hand.step (mv);
+          hand.step (last_trajectory_move);
           last_trajectory.push_back (hand.position);
+          break;
         }
+        
 
         case 'p':
         {
-          // hand.reset ();
-          // uchar_t jointPercent[] = { 50U, 50U, 50U };
-          // hand.set (jointPercent);
-          
-          trajectories.clear ();
+          iter = 0;
+          testing_no_show = true;
+          testing_trajectories.clear ();
 
-          HandMoves::test_cover (store, hand, 0., trajectories, 1);
-          print_trajectories = true;
-          //hand.move ()
-          //hand.step (mv);
-          //last_trajectory.push_back (hand.position);
+          HandMoves::test_cover (store, hand, testing_trajectories, 1);
+
+          // hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
+          show = true;
+          testing_no_show = false;
+
+
+          std::wstring mess;
+          for ( auto t : testing_trajectories )
+          {
+            auto fin = t.back ();
+
+            mess += std::wstring (fin) + std::wstring (_T("\n"));
+          }
+          MessageBox (hWnd, mess.c_str (),
+                      boost::str (boost::wformat (_T ("CoverTest %1%")) % testing_trajectories.size()).c_str(),
+                      MB_OK);
+          break;
         }
+        
+
+        case 'l':
+        {
+          show = false;
+          testing_no_show = false;
+          last_trajectory_show = false;
+          testing_trajectories.clear ();
+          last_trajectory.clear ();
+          break;
+        }
+        
+        case 'u':
+          found_points.clear ();
+          break;
 
         //=====================
         // clavicle

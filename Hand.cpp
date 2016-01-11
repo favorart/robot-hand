@@ -169,19 +169,24 @@ void  Hand::muscle     (uint_t no, bool control)
 //-------------------------------------------------------
 }
 
-      Hand::Hand (): // joints  { Clvcl, Shldr, Elbow },
+Hand::Hand (const Point &hand, const Point &arm,
+            const Point &sholder, const Point &clavicle): // joints  { Clvcl, Shldr, Elbow },
                      // muscles { ClvclOpn, ClvclCls, ShldrOpn,
                      //           ShldrCls, ElbowOpn, ElbowCls },
-                     minJStopMoveFrames (5U),
-                     maxClvclMoveFrames (15U),
-                     maxShldrMoveFrames (30U),
-                     maxElbowMoveFrames (35U),
-                     maxWristMoveFrames (15U),
-                     maxClvclShift (0.40),
-                     maxShldrAngle ( 85U),
-                     maxElbowAngle (145U)//,
-                     // timeBgn2OpenHyd_ (0), // TODO: !!!
-                     // timeEnd2OpenHyd_ (0)  // TODO: !!! 
+            minJStopMoveFrames (5U),
+            maxClvclMoveFrames (15U),
+            maxShldrMoveFrames (30U),
+            maxElbowMoveFrames (35U),
+            maxWristMoveFrames (15U),
+            maxClvclShift (0.40),
+            maxShldrAngle ( 85U),
+            maxElbowAngle (145U),
+            // timeBgn2OpenHyd_ (0), // TODO: !!!
+            // timeEnd2OpenHyd_ (0)  // TODO: !!! 
+            hand_(hand),
+            arm_(arm),
+            sholder_ (sholder),
+            clavicle_ (clavicle)
 { ulong_t frames[musclesCount] = { (ulong_t)maxClvclMoveFrames, (ulong_t)maxClvclMoveFrames,
                                    (ulong_t)maxShldrMoveFrames, (ulong_t)maxShldrMoveFrames,
                                    (ulong_t)maxElbowMoveFrames, (ulong_t)maxElbowMoveFrames };
@@ -306,12 +311,13 @@ void  Hand::draw (const HDC  &hdc, const HPEN &hPen) const
 												 
 void  Hand::reset ()
 { time_ = 0ULL;
+
 	flagMovEnd_ = false;
 	//-----------------------------------------------------------------
-		  hand_.x = -0.3;     hand_.y = 0.9;
-	     arm_.x =  0.3;      arm_.y = 0.6;
-	 sholder_.x =  0.8;  sholder_.y = 0.1;
-  clavicle_.x =  0.8; clavicle_.y = 0.1;
+	// 	   hand_.x = -0.3;     hand_.y = 0.9;
+	//      arm_.x =  0.3;      arm_.y = 0.6;
+	//  sholder_.x =  0.8;  sholder_.y = 0.1;
+  // clavicle_.x =  0.8; clavicle_.y = 0.1;
 	//-----------------------------------------------------------------
   std::memset (timeBgn2OpenHyd_, 0, sizeof (*timeBgn2OpenHyd_) * musclesCount);
   std::memset (timeEnd2OpenHyd_, 0, sizeof (*timeEnd2OpenHyd_) * musclesCount);
@@ -322,25 +328,72 @@ void  Hand::reset ()
 	//-----------------------------------------------------------------
 	shiftClvcl_ = angleElbow_ = angleShldr_ = 0.0;
 }
-void  Hand::set   (const uchar_t jOp[jointsCount])
-{ reset ();
-	//----------------------------------------------
-  shiftClvcl_ = (jOp[0] > 100) ? 100.0 : jOp[0];
-  angleShldr_ = (jOp[1] > 100) ? 100.0 : jOp[1];
-  angleElbow_ = (jOp[2] > 100) ? 100.0 : jOp[2];
-  //----------------------------------------------
-  angleElbow_ = angleElbow_ / 100.0 * maxElbowAngle;
-	angleShldr_ = angleShldr_ / 100.0 * maxShldrAngle;
-  shiftClvcl_ = shiftClvcl_ / 100.0 * maxClvclShift;
+//void  Hand::set   (const uchar_t jOp[jointsCount])
+//{ reset ();
+//	//----------------------------------------------
+//  shiftClvcl_ = (jOp[0] > 100) ? 100.0 : jOp[0];
+//  angleShldr_ = (jOp[1] > 100) ? 100.0 : jOp[1];
+//  angleElbow_ = (jOp[2] > 100) ? 100.0 : jOp[2];
+//  //----------------------------------------------
+//  angleElbow_ = angleElbow_ / 100.0 * maxElbowAngle;
+//	angleShldr_ = angleShldr_ / 100.0 * maxShldrAngle;
+//  shiftClvcl_ = shiftClvcl_ / 100.0 * maxClvclShift;
+//
+//  curPosShldr_.x -= shiftClvcl_;
+//  curPosArm_  .x -= shiftClvcl_;
+//  curPosHand_ .x -= shiftClvcl_; 
+//
+//	curPosArm_ .rotate (curPosShldr_, angleShldr_);
+//	curPosHand_.rotate (curPosShldr_, angleShldr_);
+//	curPosHand_.rotate (curPosArm_,   angleElbow_);
+//  //----------------------------------------------
+//}
+/* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
+void  Hand::set (JointsEnum joint, const std::array<double, 3> &jOp)
+{
+  if ( joint )
+  {
+    int index = 0;
+    double shiftClvcl, angleShldr, angleElbow;
+    //----------------------------------------------
+    if ( joint & Clvcl )
+    {
+      shiftClvcl = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      shiftClvcl = shiftClvcl / 100.0 * maxClvclShift;
+      ++index;
+    }
+    else shiftClvcl = shiftClvcl_;
 
-  curPosShldr_.x -= shiftClvcl_;
-  curPosArm_  .x -= shiftClvcl_;
-  curPosHand_ .x -= shiftClvcl_; 
+    if ( joint & Shldr )
+    {
+      angleShldr = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      angleShldr = angleShldr / 100.0 * maxShldrAngle;
+      ++index;
+    }
+    else angleShldr = angleShldr_;
 
-	curPosArm_ .rotate (curPosShldr_, angleShldr_);
-	curPosHand_.rotate (curPosShldr_, angleShldr_);
-	curPosHand_.rotate (curPosArm_,   angleElbow_);
-  //----------------------------------------------
+    if ( joint & Elbow )
+    {
+      angleElbow = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      angleElbow = angleElbow / 100.0 * maxElbowAngle;
+      ++index;
+    }
+    else angleElbow = angleElbow_;
+
+    reset ();
+    //----------------------------------------------
+    curPosShldr_.x -= shiftClvcl;
+      curPosArm_.x -= shiftClvcl;
+     curPosHand_.x -= shiftClvcl;
+
+    curPosArm_ .rotate (curPosShldr_, angleShldr);
+    curPosHand_.rotate (curPosShldr_, angleShldr);
+    curPosHand_.rotate (curPosArm_,   angleElbow);
+    //----------------------------------------------
+    shiftClvcl_ = shiftClvcl;
+    angleShldr_ = angleShldr;
+    angleElbow_ = angleElbow;
+  }
 }
 void  Hand::set   (MusclesEnum muscle, uint_t frame)
 {
@@ -388,6 +441,8 @@ double  Hand::stepFrame (MusclesEnum hydNo, ulong_t time, bool atStop) const
 	return frame;
 }
 //--------------------------------------------------------------------------------
+
+
 bool  muscleValidAtOnce (Hand::MusclesEnum muscle)
 {
   if ( !muscle
@@ -399,7 +454,7 @@ bool  muscleValidAtOnce (Hand::MusclesEnum muscle)
   { return false; }
   return true;
 }
-
+//--------------------------------------------------------------------------------
 //size_t  nextMuscleIndex (Hand::MusclesEnum  muscle, size_t li=0U)
 //{
 //  size_t index = li;
@@ -412,35 +467,101 @@ bool  muscleValidAtOnce (Hand::MusclesEnum muscle)
 //  }
 //  return  Hand::musclesCount;
 //}
-
 size_t  Hand::muscleIndex (Hand::MusclesEnum  muscle)
 {
+  if ( !muscle ) return musclesCount;
   for ( auto m : Hand::muscles )
+  {
     if ( m & muscle )
       switch ( muscle )
       {
-        case Hand::ClvclOpn : return 0U;
-        case Hand::ClvclCls : return 1U;
-        case Hand::ShldrOpn : return 2U;
-        case Hand::ShldrCls : return 3U;
-        case Hand::ElbowOpn : return 4U;
-        case Hand::ElbowCls : return 5U;
-        case Hand::WristOpn : return 6U;
-        case Hand::WristCls : return 7U;
-        default : return musclesCount;
+        case Hand::ClvclOpn: return 0U;
+        case Hand::ClvclCls: return 1U;
+        case Hand::ShldrOpn: return 2U;
+        case Hand::ShldrCls: return 3U;
+        case Hand::ElbowOpn: return 4U;
+        case Hand::ElbowCls: return 5U;
+        case Hand::WristOpn: return 6U;
+        case Hand::WristCls: return 7U;
+        default: return musclesCount;
       }
+  }
+  return musclesCount;
 }
-Hand::MusclesEnum  Hand::muscleByJoint (Hand::JointsEnum joint, bool open)
-{
+//--------------------------------------------------------------------------------
+Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum joint, bool open)
+{ if ( !joint ) return Hand::EmptyMov;
+  
   for ( auto j : Hand::joints )
+  {
     if ( j & joint )
       switch ( j )
       {
-        case Hand::Clvcl : return (open) ? Hand::ClvclOpn : Hand::ClvclCls;
-        case Hand::Shldr : return (open) ? Hand::ShldrOpn : Hand::ShldrCls;
-        case Hand::Elbow : return (open) ? Hand::ElbowOpn : Hand::ElbowCls;
-        case Hand::Wrist : return (open) ? Hand::WristOpn : Hand::WristCls;
-        default :          return Hand::EmptyMov;
+        case Hand::Clvcl: return (open) ? Hand::ClvclOpn : Hand::ClvclCls;
+        case Hand::Shldr: return (open) ? Hand::ShldrOpn : Hand::ShldrCls;
+        case Hand::Elbow: return (open) ? Hand::ElbowOpn : Hand::ElbowCls;
+        case Hand::Wrist: return (open) ? Hand::WristOpn : Hand::WristCls;
+        default:          return Hand::EmptyMov;
       }
+  }
+  return Hand::EmptyMov;
 }
+Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle)
+{
+  if ( !muscle ) return Hand::Empty;
 
+  for ( auto m : Hand::muscles )
+  {
+    if ( m & muscle )
+      switch ( m )
+      {
+        default:             return Hand::Empty;
+        case Hand::ClvclOpn:
+        case Hand::ClvclCls: return Hand::Clvcl;
+        case Hand::ShldrOpn:
+        case Hand::ShldrCls: return Hand::Shldr;
+        case Hand::ElbowOpn:
+        case Hand::ElbowCls: return Hand::Elbow;
+        case Hand::WristOpn:
+        case Hand::WristCls: return Hand::Wrist;
+      }
+  }
+  return Hand::Empty;
+}
+//--------------------------------------------------------------------------------
+Hand::MusclesEnum  selectHandMove (uint_t choose)
+{
+  Hand::MusclesEnum  muscles;
+  switch ( choose )
+  {
+    default: muscles = Hand::EmptyMov;                                   break;
+    case  0: muscles = Hand::ClvclOpn;                                   break;
+    case  1: muscles = Hand::ShldrOpn;                                   break;
+    case  2: muscles = Hand::ElbowOpn;                                   break;
+    case  3: muscles = Hand::ClvclCls;                                   break;
+    case  4: muscles = Hand::ShldrCls;                                   break;
+    case  5: muscles = Hand::ElbowCls;                                   break;
+    case  6: muscles = Hand::ClvclOpn | Hand::ShldrOpn;                  break;
+    case  7: muscles = Hand::ClvclOpn | Hand::ElbowOpn;                  break;
+    case  8: muscles = Hand::ShldrOpn | Hand::ElbowOpn;                  break;
+    case  9: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowOpn; break;
+    case 10: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowCls; break;
+    case 11: muscles = Hand::ClvclCls | Hand::ShldrOpn;                  break;
+    case 12: muscles = Hand::ClvclCls | Hand::ElbowOpn;                  break;
+    case 13: muscles = Hand::ShldrCls | Hand::ElbowOpn;                  break;
+    case 14: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowOpn; break;
+    case 15: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowCls; break;
+    case 16: muscles = Hand::ClvclOpn | Hand::ShldrCls;                  break;
+    case 17: muscles = Hand::ClvclOpn | Hand::ElbowCls;                  break;
+    case 18: muscles = Hand::ShldrOpn | Hand::ElbowCls;                  break;
+    case 19: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowOpn; break;
+    case 20: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowCls; break;
+    case 21: muscles = Hand::ClvclCls | Hand::ShldrCls;                  break;
+    case 22: muscles = Hand::ClvclCls | Hand::ElbowCls;                  break;
+    case 23: muscles = Hand::ShldrCls | Hand::ElbowCls;                  break;
+    case 24: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowOpn; break;
+    case 25: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowCls; break;
+  }
+  return muscles;
+}
+//--------------------------------------------------------------------------------

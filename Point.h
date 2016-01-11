@@ -25,6 +25,8 @@ public:
     return *this;
   }
 
+  operator std::wstring () const
+  { return  boost::str (boost::wformat (_T("pt<x=%1%, y=%2%>")) % x % y); }
   //-----------------------------------------
   /* internal functions */
   void  rotate (const Point &center, double angle);

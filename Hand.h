@@ -56,8 +56,6 @@ public:
 
   static size_t muscleIndex   (MusclesEnum  muscle);
 
-  static MusclesEnum  muscleByJoint (JointsEnum joint, bool open);
-
   const uint_t  minJStopMoveFrames; // USING IN TESTS
   const uint_t  maxClvclMoveFrames; // USING IN TESTS
   const uint_t  maxShldrMoveFrames; // USING IN TESTS
@@ -93,26 +91,31 @@ protected:
 	const uint_t  maxElbowAngle;
   
 	//----------------------------------------------------  
-  virtual double  stepFrame (MusclesEnum hydNo, ulong_t time, bool atStop) const;
+  double  stepFrame (MusclesEnum hydNo, ulong_t time, bool atStop) const;
   //----------------------------------------------------
   void  muscle     (uint_t no, bool control);
 	bool  muscleMove (MusclesEnum hydNo, ulong_t time, bool atStop = false);
 
 public:
   //----------------------------------------------------
-	Hand ();
+	//Hand ();
+  Hand (const Point &hand = { -0.3, 0.9 }, const Point &arm = { 0.3, 0.6 },
+        const Point &sholder = { 0.8, 0.1 } , const Point &clavicle = { 0.8, 0.1 });
 
-	virtual void  draw (const HDC &hdc, const HPEN &hPen) const;
-  virtual void  move (MusclesEnum muscle, ulong_t last);              // ????PROGRESS
-  virtual void  move (MusclesEnum muscle, ulong_t last, std::list<Point> &visited);
-  virtual void  step (MusclesEnum muscle=EmptyMov);
-	virtual void  step (const bool control[musclesCount]);
+	void  draw (const HDC &hdc, const HPEN &hPen) const;
+  void  move (MusclesEnum muscle, ulong_t last);              // ????PROGRESS
+  void  move (MusclesEnum muscle, ulong_t last, std::list<Point> &visited);
+  void  step (MusclesEnum muscle=EmptyMov);
+	void  step (const bool control[musclesCount]);
 
-	virtual void  reset (); /* clear, drop - сбрасывать */
-  virtual void  set   (const uchar_t jointOpenPercent[jointsCount]); // ??PARAMETERS
-  virtual void  set   (MusclesEnum muscle, uint_t frame); // ?????
+	void  reset (); /* clear, drop - сбрасывать */
+  //void  set   (const uchar_t jointOpenPercent[jointsCount]); // ??PARAMETERS
 
-	        bool  isMoveEnd () const { return flagMovEnd_; }
+  /* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
+  void  set (JointsEnum joint, const std::array<double,3> &jOp);
+  void  set (MusclesEnum muscle, uint_t frame); // ?????
+
+	bool  isMoveEnd () const { return flagMovEnd_; }
 
   /* Microsoft specific: C++ properties */
   __declspec(property(get = get_pos)) const Point& position;
@@ -126,8 +129,6 @@ public:
   } ps_;
   // const Circle& direction () const { return ps_.lastDirection_; }
   //----------------------------------------------------
-  virtual ~Hand () {}
-  //----------------------------------------------------
 };
 
 Hand::MusclesEnum  operator| (Hand::MusclesEnum m, Hand::MusclesEnum k);
@@ -140,6 +141,13 @@ std::ostream&  operator<< (std::ostream &out, Hand::JointsEnum  j);
 // std::istream&  operator>> (std::ostream &in, Hand::JointsEnum  j);
 //------------------------------------------------------------------------------
 bool  muscleValidAtOnce (Hand::MusclesEnum muscle);
+
+const uint_t  HandMovesCount = 26UL;
+Hand::MusclesEnum  selectHandMove (uint_t choose);
+
+Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
+Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
+
 
 /*
 * hand
