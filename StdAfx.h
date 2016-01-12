@@ -7,7 +7,6 @@
 
 #ifndef  _HEADER_H_
 #define  _HEADER_H_
-
 //-------------------------------------------------------------------------------
 #pragma warning (disable: 4996) // allow ANSI C functions
 // #pragma warning (disable: 4244) // allow conversion from 'double' to 'int'
@@ -22,8 +21,6 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
-
-
 //--------------------------------
 #include <set>
 #include <list>
@@ -106,8 +103,7 @@ typedef unsigned char  uchar_t;
 typedef uint32_t        uint_t;
 typedef uint64_t       ulong_t;
 //--------------------------------
-
-#include "error.h"
+// #include "error.h"
 #include "Point.h"
 
 #include "resource.h"

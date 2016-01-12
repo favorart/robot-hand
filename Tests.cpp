@@ -1,15 +1,13 @@
 ﻿#include "StdAfx.h"
-#include "Draw.h"
+// #include "Draw.h"
+// #include "MyWindow.h"
 #include "Hand.h"
-#include "target.h"
-#include "MyWindow.h"
 #include "HandMovesStore.h"
 
 
+using namespace std;
 using namespace HandMoves;
-
-
-
+//------------------------------------------------------------------------------
 bool  insert (std::list< std::list<Point> > &trajectories, std::list<Point> &trajectory)
 {
   auto back = boost_point2_t(trajectory.back ());
@@ -25,20 +23,32 @@ bool  insert (std::list< std::list<Point> > &trajectories, std::list<Point> &tra
 //------------------------------------------------------------------------------
 void  HandMoves::test_random (Store &store, Hand &hand, uint_t tries)
 {
-  for ( uint_t j = 0; j < tries; ++j )
+  for ( uint_t i = 0U; i < tries; ++i )
   {
-    Hand::MusclesEnum  hyd[Record::maxMovesCount] = {};
-    ulong_t           last[Record::maxMovesCount] = {};
+    trajectory_t visited;
+    Record::muscles_array   muscles;
+    // Record::times_array    lasts;
+    Record::times_array times_start;
+    Record::times_array times_stop;
+    size_t moves_count = random (1U, Record::maxMovesCount);
 
-    //uint_t count_moves = random_input<uint_t> (Record::maxMovesCount, 1U);
-    //for ( uint_t i = 0U; i <= count_moves / 2U; ++i )
-    //{
-      //hyd[i] = HandMoves::switch_move (random_input<uint_t> (26U));
-      //last[i] = random_input (hand.maxElbowMoveFrames, hand.minJStopMoveFrames);
-      //hand.move (hyd[i], last[i]);
-    //}
+    hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50, 50, 50 });
+    for ( uint_t j = 0U; j <= moves_count; ++j )
+    {
+      auto muscle = selectHandMove ( random (1U, HandMovesCount) );
+      auto last   = random ( hand.timeMuscleWorking (muscle) );
+      hand.move (muscle, last, visited);
 
-    // store.insert (hand.position, count_moves, hyd, last);
+      muscles[j] = muscle;
+      times_start[j] = (j) ? last : 0;
+      times_stop[j]  = (j) ? (times_stop[j - 1] + last) : last;
+    }
+
+    const Point &aim = hand.position;
+    store.insert (Record (aim, aim, muscles,
+                          times_start, times_stop,
+                          moves_count, visited)
+                 );
   }
 }
 void  HandMoves::test_cover (Store &store, Hand &hand, 
@@ -58,9 +68,9 @@ void  HandMoves::test_cover (Store &store, Hand &hand,
       hand.move (muscle_i, last_i, trajectory);
       {
         const Point &aim = hand.position;
-        uint_t starts[] = { 0 }, stops[] = { last_i };
-        Hand::MusclesEnum ms[] = { muscle_i };
-        Record rec (aim, aim, ms, starts, stops, 1U);
+        Record rec (aim, aim,
+                    { muscle_i }, { 0 }, { last_i },
+                    1U, trajectory);
         store.insert (rec);
       }
 
@@ -83,13 +93,19 @@ void  HandMoves::test_cover (Store &store, Hand &hand,
             hand.move (muscle_j, last_j, trajectory);
             {
               const Point &aim = hand.position;
-              uint_t starts[] = { 0, last_i }, stops[] = { last_i, last_i + last_j };
-              Hand::MusclesEnum ms[] = { muscle_i, muscle_j };
-              store.insert (Record (aim, aim, ms, starts, stops, 2U));
+              store.insert (Record (aim, aim, 
+                                    { muscle_i, muscle_j }, 
+                                    { 0, last_i },
+                                    { last_i, last_i + last_j },
+                                    2U,
+                                    trajectory)
+                            );
             }
 
             // std::cout << muscles[j] << ' ' << hj << ' ' << last_j << std::endl;
             ++tail_j;
+
+            // std::list::splice () allows you to concatenate two std::list's in constant time.
             insert (trajectories, trajectory);
             //=================================================
             if ( nesting > 2 )
@@ -106,10 +122,13 @@ void  HandMoves::test_cover (Store &store, Hand &hand,
                   hand.move (muscle_k, last_k, trajectory);
                   {
                     const Point &aim = hand.position;
-                    uint_t starts[] = { 0, last_i, last_i + last_j }, 
-                            stops[] = { last_i, last_i + last_j, last_i + last_j + last_k };
-                    Hand::MusclesEnum ms[] = { muscle_i, muscle_j, muscle_k };
-                    store.insert (Record (aim, aim, ms, starts, stops, 3U));
+                    store.insert (Record (aim, aim, 
+                                         { muscle_i, muscle_j, muscle_k },
+                                         { 0, last_i, last_i + last_j },
+                                         { last_i, last_i + last_j, last_i + last_j + last_k },
+                                         3U,
+                                         trajectory)
+                                  );
                   }
           
                   // std::cout << muscles[k] << ' ' << hk << ' ' << last_k << std::endl;
@@ -190,47 +209,5 @@ void  HandMoves::test_cover (Store &store, Hand &hand,
 //    hand.reset ();
 //  }
 //
-//}
-//void  HandMoves::test_cover1 (/* hm &Hm, */ Hand &hand, double radius)
-//{
-  /* Покрывающий тест */
-  /*
-     fixate (step_of_measure)
-
-     for each muscle_of_hand
-         total_time_of_muscle_opening = full_open (muscle_of_hand)
-         saveDB (point_of_hand)
-
-         tries = total_time_of_muscle_opening / step_of_measure
-         for each time = step_of_measure * tries
-             open (muscle_of_hand)
-             saveDB (point_of_hand)
-
-         for other muscle_of_hand
-
-
-  */
-  // using namespace boost;
-  // int i = 0;
-  // 
-  // typedef std::vector< int > element_range_type;
-  // typedef std::list< int > index_type;
-  // 
-  // 
-  // static const int muscle_opn_cmd_size = 3U;
-  // static const int index_size = 4U;
-  // 
-  // std::vector<Hand::MusclesEnum> muscle_opn_cmd = { Hand::ClvclOpn, Hand::ShldrOpn, Hand::ElbowOpn };
-  // std::vector<Hand::MusclesEnum> muscle_cls_cmd = { Hand::ClvclCls, Hand::ShldrCls, Hand::ElbowCls };
-  // 
-  // do
-  // {
-  //   std::cout << myints[0] << ' ' << myints[1] << ' ' << myints[2] << '\n';
-  // } while ( std::next_permutation (myints, myints + 3) );
-  // 
-  // std::cout << "After loop: " << myints[0] << ' ' << myints[1] << ' ' << myints[2] << '\n';
-
-
-//  return;
 //}
 //------------------------------------------------------------------------------

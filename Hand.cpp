@@ -2,6 +2,7 @@
 #include "MyWindow.h"
 #include "Hand.h"
 
+
 const double  Hand::REllipse = 0.03;
 const double  Hand::WSholder = 0.01;
 
@@ -11,6 +12,9 @@ const Hand::MusclesEnum  Hand::muscles[musclesCount] = { ClvclOpn, ClvclCls, Shl
 //------------------------------------------------------------------------------
 Hand::JointsEnum   operator| (Hand::JointsEnum  j, Hand::JointsEnum  k)
 { return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) | static_cast<uchar_t> (k)); }
+Hand::JointsEnum   operator& (Hand::JointsEnum  j, Hand::JointsEnum  k)
+{ return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) & static_cast<uchar_t> (k)); }
+
 Hand::MusclesEnum  operator| (Hand::MusclesEnum h, Hand::MusclesEnum k)
  { return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (h) | static_cast<uchar_t> (k)); }
 Hand::MusclesEnum  operator& (Hand::MusclesEnum h, Hand::MusclesEnum k)
@@ -83,8 +87,8 @@ uint_t  Hand::timeMuscleWorking (MusclesEnum muscle)
   }
   return last;
 }
-
-bool  Hand::muscleMove (MusclesEnum hydNo, ulong_t time, bool atStop)
+//--------------------------------------------------------------------------------
+bool  Hand::muscleMove (MusclesEnum hydNo, time_t time, bool atStop)
 { double frame = stepFrame (hydNo, time, atStop);
 
   double shiftClvcl = 0.0;
@@ -93,7 +97,7 @@ bool  Hand::muscleMove (MusclesEnum hydNo, ulong_t time, bool atStop)
 	double angleWrist = 0.0;
   
   switch (hydNo)
-  { default: SetError_ (ERR_NO);	   			                                      break;
+  { // default: SetError_ (ERR_NO);	   			                                      break;
     case ClvclOpn :	shiftClvcl = (shiftClvcl_ < 0.0           ) ? 0.0 : -frame; break;
 		case ClvclCls : shiftClvcl = (shiftClvcl_ > maxClvclShift ) ? 0.0 :  frame; break;
 		case ShldrOpn : angleShldr = (angleShldr_ > maxShldrAngle ) ? 0.0 :  frame; break;
@@ -168,7 +172,7 @@ void  Hand::muscle     (uint_t no, bool control)
   } // end if
 //-------------------------------------------------------
 }
-
+//--------------------------------------------------------------------------------
 Hand::Hand (const Point &hand, const Point &arm,
             const Point &sholder, const Point &clavicle): // joints  { Clvcl, Shldr, Elbow },
                      // muscles { ClvclOpn, ClvclCls, ShldrOpn,
@@ -208,7 +212,7 @@ void  Hand::step (MusclesEnum hydNo)
   for (uint_t i = 0U; i<musclesCount; ++i)
     muscle (i, ((hydNo & (1U<<i)) != 0U) );  
 }
-void  Hand::move (MusclesEnum hydNo, ulong_t last, std::list<Point> &visited)
+void  Hand::move (MusclesEnum hydNo, time_t last, std::list<Point> &visited)
 {
   /* START! */
   step (hydNo);
@@ -233,7 +237,7 @@ void  Hand::move (MusclesEnum hydNo, ulong_t last, std::list<Point> &visited)
   }
 
 }
-void  Hand::move (MusclesEnum hydNo, ulong_t last) // !simultaniusly
+void  Hand::move (MusclesEnum hydNo, time_t last) // !simultaniusly
 { step (hydNo);
  	while (last--)
    step ();
@@ -243,10 +247,10 @@ void  Hand::move (MusclesEnum hydNo, ulong_t last) // !simultaniusly
  	while ( !flagMovEnd_ )
    step ();
 }
-void  Hand::draw (const HDC  &hdc, const HPEN &hPen) const
+void  Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
 { //-----------------------------------------------------------------
-  HPEN hPen_old = (HPEN)   SelectObject (hdc, hPen);
-  HBRUSH hBrush = (HBRUSH) SelectObject (hdc, (HBRUSH) GetStockObject (WHITE_BRUSH));
+  HPEN   hPen_old   = (HPEN)   SelectObject (hdc, hPen);
+  HBRUSH hBrush_old = (HBRUSH) SelectObject (hdc, hBrush);
   //-----------------------------------------------------------------
   Point c (clavicle_),  s (curPosShldr_),
         a (curPosArm_), h (curPosHand_);
@@ -306,7 +310,7 @@ void  Hand::draw (const HDC  &hdc, const HPEN &hPen) const
   //------------------------------------------------------------------
   // отменяем ручку
   SelectObject (hdc, hPen_old);
-  DeleteObject (SelectObject (hdc, hBrush));
+  SelectObject (hdc, hBrush_old);
 }
 												 
 void  Hand::reset ()
@@ -349,7 +353,7 @@ void  Hand::reset ()
 //  //----------------------------------------------
 //}
 /* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
-void  Hand::set (JointsEnum joint, const std::array<double, 3> &jOp)
+void  Hand::set (JointsEnum joint, const std::array<double,Hand::jointsCount> &jOp)
 {
   if ( joint )
   {
@@ -395,14 +399,14 @@ void  Hand::set (JointsEnum joint, const std::array<double, 3> &jOp)
     angleElbow_ = angleElbow;
   }
 }
-void  Hand::set   (MusclesEnum muscle, uint_t frame)
+void  Hand::set (MusclesEnum muscle, uint_t frame)
 {
   double res = 0.;
   for ( auto i : boost::irange (0U, frame) )
     res += stepFrame (muscle, (ulong_t)i, false);
 }
 //--------------------------------------------------------------------------------
-double  Hand::stepFrame (MusclesEnum hydNo, ulong_t time, bool atStop) const
+double  Hand::stepFrame (MusclesEnum hydNo, time_t time, bool atStop) const
 { double  frame;
   //-----------------------------------------------
 	const double c_frames[] = { 0.01, 0.01, 0.02, 0.02, 0.02,
@@ -443,6 +447,7 @@ double  Hand::stepFrame (MusclesEnum hydNo, ulong_t time, bool atStop) const
 //--------------------------------------------------------------------------------
 
 
+//--------------------------------------------------------------------------------
 bool  muscleValidAtOnce (Hand::MusclesEnum muscle)
 {
   if ( !muscle

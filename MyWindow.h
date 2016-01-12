@@ -8,9 +8,7 @@
 #define   WIDTH      950
 #define   HIGHT      600
 //--------------------------------------------------------------------------------
-
-typedef struct win_point_ win_point;
-struct win_point_ { uint_t x, y; };
+struct win_point { uint_t x, y; };
 
 // глобальные переменные - хранят актуальные размеры окна
 win_point*  WindowSize (void);
@@ -34,5 +32,39 @@ inline bool  isFileExists (const TCHAR *fileName)
 { DWORD  fileAttr = GetFileAttributes (fileName);
   return (0xFFFFFFFF != fileAttr);
 }
+//-------------------------------------------------------------------------------
+template <typename T>
+T  random (T max)
+{ return  (T (rand ()) % (max + 1)); }
+template <typename T>
+T  random (T min, T max)
+{ return  (min + T (rand ()) % (max + 1)); }
+//-------------------------------------------------------------------------------
+class MyWindowData;
+//-------------------------------------------------------------------------------
+void OnWindowCreate (HWND &hWnd, RECT &myRect,
+                     HWND &hLabCanv, HWND &hLabHelp);
+void OnWindowSize   (HWND &hWnd, RECT &myRect,
+                     HWND &hLabCanv, HWND &hLabHelp);
+
+void OnPaintMyLogic (HDC hdc,
+                     MyWindowData &params);
+void OnWindowPaint  (HWND &hWnd, RECT &myRect,
+                     MyWindowData &wd);
+
+void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
+                      WPARAM wParam, LPARAM lParam,
+                      MyWindowData &wd);
+//-------------------------------------------------------------------------------
+void  OnWindowTimer (MyWindowData &wd);
+void  OnWindowMouse (MyWindowData &wd);
+
+void  OnRandomTest  (MyWindowData &wd);
+void  OnCoverTest   (MyWindowData &wd);
+
+void  OnShowTrajectory (MyWindowData &wd);
+
+void  OnShowDBPoints       (MyWindowData &wd);
+void  OnShowDBTrajectories (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 #endif // _WINDOW_H_

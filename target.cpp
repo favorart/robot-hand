@@ -2,28 +2,7 @@
 #include "target.h"
 
 //------------------------------------------------------------------------------
-// Point*   Target::HitH (const Point &h) const
-// { set_t::iterator it = coords_.find (h);
-// 	return ( it == coords_.end () ) ? NULL : (Point*)&(*it); // !!!
-// }
-
-// flann::Matrix<double>  RecTarget::Generate ()
-// { double r_step = (top - btm) / (c_rows - 1U);
-//   double c_step = (rgh - lft) / (c_cols - 1U);
-// 
-// 		for(double i=lft; i<=rgh; i+=c_step)
-// 			for(double j=btm; j<=top; j+=r_step)
-// 			{ Point p (i,j);
-// 		   coords_.insert (p);
-// 			}
-// 
-//   average_distance_ = MIN (c_step, r_step);
-//   
-//   flann::Matrix<double> m;
-//   return m;
-// }
-
-void  RecTarget::draw (const HDC &hdc, const HPEN &hPen) const // matrix 80*80
+void  RecTarget::draw (HDC hdc, HPEN hPen) const // matrix 80 * 80
 { const double  REllipse = 0.007;
  
   HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
@@ -51,6 +30,11 @@ void  RecTarget::draw (const HDC &hdc, const HPEN &hPen) const // matrix 80*80
 	// отменяем ручку
 	SelectObject (hdc, hPen_old);
 }
+//------------------------------------------------------------------------------
+//void insertTargetToHandMovesStore (Target &T, HandMoves::Store &store)
+//{ for ( auto it = T.coords_.begin (); it != T.coords_.end (); ++it )
+//  { store.insert ( (*it), (*it), /* ... list */ ); }
+//}
 //------------------------------------------------------------------------------
 
 

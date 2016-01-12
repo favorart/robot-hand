@@ -18,53 +18,52 @@ namespace HandMoves
   // !!!!
   // compare (x1 < x2 & y1 < y2)
   
+  typedef std::list<Point> trajectory_t;
+
   class Record
   {
-    public:
-      const static uint_t  maxMovesCount = 4U;
-      // typedef std::bitset< maxMovesCount * Hand::musclesCount >  bitset_t;
+    const static size_t  arrays_size = 4U;
+  public:
+    const static size_t  maxMovesCount = 2U;
 
-    private:
-      // ----------------------------------------
-      uint_t    moves_count_;
-      Hand::MusclesEnum  muscles_;
-      // bitset_t  controls_;
-      
-      std::map<Hand::MusclesEnum, std::pair<uint_t, uint_t>> times_;
+    typedef std::array<Hand::time_t, arrays_size> times_array;
+    typedef std::array<Hand::MusclesEnum, arrays_size> muscles_array;
 
-      // uint_t   times_start_[maxMovesCount];
-      // uint_t   times_stop_ [maxMovesCount];
-      // struct move_t
-      // {
-      //   Hand::MusclesEnum  muscle_;
-      //   uint_t start_;
-      //   uint_t stop_;
-      // 
-      //   for (auto m : Hand::muscles)
-      //     if ( muscle & m )
-      //       index
-      // };
-      // move_t times_;
+  private:
+    typedef uint_t time_t;
+    typedef std::map < Hand::MusclesEnum, 
+                       std::pair<time_t, time_t> 
+                     > muscle_times_t;
 
-      Point     aim_;
-      Point     hand_;
-      
-      // ----- calc -----------------------------
-      double    distance_;
-      double    elegance_;
-      // ----------------------------------------
-      friend class boost::serialization::access;
-      BOOST_SERIALIZATION_SPLIT_MEMBER ()
-      
-      template <class Archive>
-      void  save (Archive & ar, const unsigned int version) const
+    // ----------------------------------------
+    size_t             moves_count_;
+
+    Hand::MusclesEnum  muscles_;
+    trajectory_t       visited_;
+
+    muscle_times_t     times_;    
+    // times_array   times_start_;
+    // times_array   times_stop_ ;
+
+    Point     aim_;
+    Point     hand_;
+    
+    // ----- calc -----------------------------
+    double    distance_;
+    double    elegance_;
+    // ----------------------------------------
+    friend class boost::serialization::access;
+    BOOST_SERIALIZATION_SPLIT_MEMBER ()
+    
+    template <class Archive>
+    void  save (Archive & ar, const unsigned int version) const
       { ar << aim_ << hand_ << muscles_ << moves_count_;
         // ar << times_start_  << times_stop_; <<
         ar << times_ << distance_ << elegance_;
       }
-      
-      template <class Archive>
-      void  load (Archive & ar, const unsigned int version)
+    
+    template <class Archive>
+    void  load (Archive & ar, const unsigned int version)
       { ar >> aim_;
         ar >> hand_;
         ar >> muscles_;
@@ -76,13 +75,12 @@ namespace HandMoves
         ar >> elegance_;
       }
 
-      // template<class Archive>
-      // void serialize (Archive & ar, const unsigned int version)
-      // { ar & moves_count_ & /* controls_ & */ start_times_ & distance_ & elegance_ & hand_ & aim_; }
-      // ----------------------------------------
+    // template<class Archive>
+    // void serialize (Archive & ar, const unsigned int version)
+    // { ar & moves_count_ & /* controls_ & */ start_times_ & distance_ & elegance_ & hand_ & aim_; }
+    // ----------------------------------------
 
-      double  Elegance ()
-      { return 0.; }
+    double  Elegance ();
 
   public:
     // ----------------------------------------
@@ -103,96 +101,71 @@ namespace HandMoves
     // ----------------------------------------
     Record () {}
 
-    Record (const Point        &aim,
-            const Point        &hand,
-            Hand::MusclesEnum  *muscles,
-            const uint_t       *times_start,
-            const uint_t       *times_stop,
-            uint_t              moves_count);
-
-    // Record (const Point        &aim,
-    //         const Point        &hand,
-    //         Hand::MusclesEnum   muscles,
-    //         const uint_t       *times_start,
-    //         const uint_t       *times_stop);
-
-    //Record (const Record &rec):
-    //  Record (rec.aim_, rec.hand_, rec.muscles_, 
-    //          //rec.times_start_, rec.times_stop_)
-    //{}
-
-    const Record& operator=(const Record& rec)
-    {
-      if ( &rec != this )
-      {
-        this->~Record ();
-        new (this) Record (rec);
-      }
-      return *this;
-    }
-
+    Record (const Point         &aim,
+            const Point         &hand,
+            const muscles_array &muscles,
+            const times_array   &times_start,
+            const times_array   &times_stop,
+            size_t               moves_count,
+            const trajectory_t  &visited);
     
-    operator  std::string () const
-    { return  str (boost::format ("rec<x=%1%, y=%2%>") % aim_.x % aim_.y); }
-  
+    // ----------------------------------------
+    operator  std::wstring () const
+    { return  str (boost::wformat (_T("rec<x=%1%, y=%2%>")) % aim.x % aim.y); }
+
+    // ----------------------------------------
     /* Microsoft specific: C++ properties */
-    __declspec(property(get = get_aim)) Point aim;
-    const Point& get_aim () const { return aim_; }
+    __declspec(property(get = get_aim)) const Point &aim;
+    const Point&  get_aim () const { return aim_; }
 
+    __declspec(property(get = get_traj)) const trajectory_t &trajectory;
+    const trajectory_t&  get_traj () const { return visited_; }
+    // ----------------------------------------
+    void  makeHandMove (Hand &hand, const Point &aim);
     bool  validateMusclesTimes ();
-
-    void  makeMove (Hand &hand, const Point &aim)
-    {
-      for ( size_t i = 0; i < moves_count_; ++i )
-      {
-      
-      }
-    }
-
   };
 
-using namespace boost::multi_index;
-//------------------------------------------------------------------
-typedef boost::multi_index_container
-< Record,
-  indexed_by <
-                ordered_unique    < tag<Record::ByP>,
-                                    composite_key < Record,
-                                                    const_mem_fun<Record, double, &Record::aim_x>, //.get_x
-                                                    const_mem_fun<Record, double, &Record::aim_y>  //.get_y
-                                                  >
-                                   >,
-                ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::aim_x> >,
-                ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> > //,
-                // random_access      <> // доступ, как у вектору
-              >
-> Store;
+  using namespace boost::multi_index;
+  //------------------------------------------------------------------
+  typedef boost::multi_index_container
+  < Record,
+    indexed_by <
+                  ordered_unique    < tag<Record::ByP>,
+                                      composite_key < Record,
+                                                      const_mem_fun<Record, double, &Record::aim_x>, //.get_x
+                                                      const_mem_fun<Record, double, &Record::aim_y>  //.get_y
+                                                    >
+                                     >,
+                  ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::aim_x> >,
+                  ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> > //,
+                  // random_access      <> // доступ, как у вектору
+                >
+  > Store;
   //------------------------------------------------------------------------------
-  // прямоугольная окрестность точки
-  template<typename T>
-  uint_t  adjacencyRectPoints (Store &store,
-                               std::back_insert_iterator<T> &range_it,
-                               const boost::tuple<double, double> &left_down,
-                               const boost::tuple<double, double> &right_up,
-                               bool  pointer_type = false);
+  /* прямоугольная окрестность точки */
+  size_t  adjacencyRectPoints (Store &store, std::list<Record> &range,
+                               const Point &left_down, const Point &right_up);
+  size_t  adjacencyRectPoints (Store &store, std::list<std::shared_ptr<Record>> &range,
+                               const Point &left_down, const Point &right_up);
 
-  // круглая окрестность точки
-  template<typename T>
-  uint_t  adjacencyPoints (Store &store,
-                           std::back_insert_iterator<T> &range_it,
-                           const boost_point2_t &center,
-                           double radius,
-                           bool   pointer_type = false);
+  /* круглая окрестность точки */
+  // size_t  adjacencyPoints (Store &store, std::list<Record> &range,
+  //                          const Point &center, double radius);
 
+  size_t  adjacencyPoints (Store &store, std::list<std::shared_ptr<Record>> &range,
+                           const Point &center, double radius);
+  
+  /* Все точки с данным x | y */
   void  adjacencyYsByXPoints (Store &store, std::list<Record> &range,
-                              double x, double up=0., double down=0.);
-
+                              double x, double up = 0., double down = 0.);
   void  adjacencyXsByYPoints (Store &store, std::list<Record> &range,
                               double y, double left=0., double right=0.);
   //------------------------------------------------------------------------------
+  /* сериализация */
   void  storeSave (const Store& store, const TCHAR *filename=_T("moves.bin"));
   void  storeLoad (      Store& store, const TCHAR *filename=_T("moves.bin"));
   //------------------------------------------------------------------------------
+  /* тестовые движения рукой */
   void  test_random (Store &store, Hand &hand, uint_t  tries=1000U);
   void  test_cover  (Store &store, Hand &hand, 
                      std::list< std::list<Point> > &trajectories,

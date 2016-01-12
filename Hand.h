@@ -6,23 +6,13 @@
 #define  _HAND_H_
 //------------------------------------------------------------------------------
 class Hand
-{ //---internal phisical parameters---------------------
-  ulong_t  time_;                            // descrete time
-  Point    hand_, arm_, sholder_, clavicle_; // base position
-
-	//---current position---------------------------------
-	Point  curPosHand_,  curPosArm_, curPosShldr_;
-  double angleElbow_, angleShldr_,  shiftClvcl_;
-	bool   flagMovEnd_;
-
-  //---draw constants-----------------------------------
-	const static double  REllipse;
-  const static double  WSholder;
-
+{ 
 public:
   //----------------------------------------------------
   const static uint_t   jointsCount = 3U;
 	const static uint_t  musclesCount = 6U;
+
+  typedef ulong_t time_t;
 
   typedef enum : ::uchar_t
   { EmptyMov = 0,
@@ -64,7 +54,22 @@ public:
 
   uint_t timeMuscleWorking (MusclesEnum muscle=EmptyMov);
 
-protected:
+  typedef ulong_t time_t;
+
+private:
+  //---internal phisical parameters---------------------
+  time_t  time_;                            // descrete time
+  Point   hand_, arm_, sholder_, clavicle_; // base position
+
+                                            //---current position---------------------------------
+  Point  curPosHand_, curPosArm_, curPosShldr_;
+  double angleElbow_, angleShldr_, shiftClvcl_;
+  bool   flagMovEnd_;
+
+  //---draw constants-----------------------------------
+  const static double  REllipse;
+  const static double  WSholder;
+
  	//---parameters of hydraulic force--------------------
   typedef union
   { /* Microsoft specific:  Allow to declare
@@ -81,9 +86,9 @@ protected:
     uchar_t raw;
   } joint_flags_t;
 
-	ulong_t  timeBgn2OpenHyd_[musclesCount];
-  ulong_t  timeEnd2OpenHyd_[musclesCount];
-  ulong_t  tFrames2OpenHyd_[musclesCount];
+  time_t  timeBgn2OpenHyd_[musclesCount];
+  time_t  timeEnd2OpenHyd_[musclesCount];
+  time_t  tFrames2OpenHyd_[musclesCount];
 
   //---angle limits-------------------------------------
 	const double  maxClvclShift;
@@ -91,10 +96,10 @@ protected:
 	const uint_t  maxElbowAngle;
   
 	//----------------------------------------------------  
-  double  stepFrame (MusclesEnum hydNo, ulong_t time, bool atStop) const;
+  double  stepFrame (MusclesEnum hydNo, time_t time, bool atStop) const;
   //----------------------------------------------------
   void  muscle     (uint_t no, bool control);
-	bool  muscleMove (MusclesEnum hydNo, ulong_t time, bool atStop = false);
+	bool  muscleMove (MusclesEnum hydNo, time_t time, bool atStop = false);
 
 public:
   //----------------------------------------------------
@@ -102,9 +107,9 @@ public:
   Hand (const Point &hand = { -0.3, 0.9 }, const Point &arm = { 0.3, 0.6 },
         const Point &sholder = { 0.8, 0.1 } , const Point &clavicle = { 0.8, 0.1 });
 
-	void  draw (const HDC &hdc, const HPEN &hPen) const;
-  void  move (MusclesEnum muscle, ulong_t last);              // ????PROGRESS
-  void  move (MusclesEnum muscle, ulong_t last, std::list<Point> &visited);
+	void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
+  void  move (MusclesEnum muscle, time_t last);              // ????PROGRESS
+  void  move (MusclesEnum muscle, time_t last, std::list<Point> &visited);
   void  step (MusclesEnum muscle=EmptyMov);
 	void  step (const bool control[musclesCount]);
 
@@ -112,7 +117,7 @@ public:
   //void  set   (const uchar_t jointOpenPercent[jointsCount]); // ??PARAMETERS
 
   /* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
-  void  set (JointsEnum joint, const std::array<double,3> &jOp);
+  void  set (JointsEnum joint, const std::array<double,Hand::jointsCount> &jOp);
   void  set (MusclesEnum muscle, uint_t frame); // ?????
 
 	bool  isMoveEnd () const { return flagMovEnd_; }
