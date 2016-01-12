@@ -1,6 +1,4 @@
 ﻿#include "StdAfx.h"
-// #include "Draw.h"
-// #include "MyWindow.h"
 #include "Hand.h"
 #include "HandMovesStore.h"
 

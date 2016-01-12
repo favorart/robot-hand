@@ -132,8 +132,8 @@ namespace HandMoves
     indexed_by <
                   ordered_unique    < tag<Record::ByP>,
                                       composite_key < Record,
-                                                      const_mem_fun<Record, double, &Record::aim_x>, //.get_x
-                                                      const_mem_fun<Record, double, &Record::aim_y>  //.get_y
+                                                      const_mem_fun<Record, double, &Record::aim_x>,
+                                                      const_mem_fun<Record, double, &Record::aim_y>
                                                     >
                                      >,
                   ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::aim_x> >,
@@ -149,8 +149,8 @@ namespace HandMoves
                                const Point &left_down, const Point &right_up);
 
   /* круглая окрестность точки */
-  // size_t  adjacencyPoints (Store &store, std::list<Record> &range,
-  //                          const Point &center, double radius);
+  size_t  adjacencyPoints (Store &store, std::list<Record> &range,
+                           const Point &center, double radius);
 
   size_t  adjacencyPoints (Store &store, std::list<std::shared_ptr<Record>> &range,
                            const Point &center, double radius);

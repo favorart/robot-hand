@@ -286,4 +286,6 @@ $RECYCLE.BIN/
 *.filters
 Debug/*
 Release/*
+excluded/*
 *.bin
+*.ipch

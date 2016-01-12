@@ -103,9 +103,7 @@ typedef unsigned char  uchar_t;
 typedef uint32_t        uint_t;
 typedef uint64_t       ulong_t;
 //--------------------------------
-// #include "error.h"
 #include "Point.h"
-
 #include "resource.h"
 //-------------------------------------
 #endif // _HEADER_H_
