@@ -8,6 +8,7 @@
 #include "Hand.h"
 #include "MyWindow.h"
 
+
 namespace HandMoves
 {
   // !!! tree types of point !!! ????
@@ -31,9 +32,9 @@ namespace HandMoves
 
   private:
     typedef uint_t time_t;
-    typedef std::map < Hand::MusclesEnum, 
-                       std::pair<time_t, time_t> 
-                     > muscle_times_t;
+    typedef std::/*hash_*/map < Hand::MusclesEnum, 
+                            std::pair<time_t, time_t> 
+                          > muscle_times_t;
 
     // ----------------------------------------
     size_t             moves_count_;
@@ -166,10 +167,10 @@ namespace HandMoves
   void  storeLoad (      Store& store, const TCHAR *filename=_T("moves.bin"));
   //------------------------------------------------------------------------------
   /* тестовые движения рукой */
-  void  test_random (Store &store, Hand &hand, uint_t  tries=1000U);
-  void  test_cover  (Store &store, Hand &hand, 
-                     std::list< std::list<Point> > &trajectories,
-                     int nesting=2);
+  void  test_random (Store &store, Hand &hand, size_t tries);
+  void  test_cover  (Store &store, Hand &hand,
+                     // std::list< std::list<Point> > &trajectories,
+                     size_t nesting /* 1, 2, 3 */);
 }
 BOOST_CLASS_VERSION (HandMoves::Record, 1)
 

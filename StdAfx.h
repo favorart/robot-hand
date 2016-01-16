@@ -23,6 +23,7 @@
 #include <cstdlib>
 //--------------------------------
 #include <set>
+#include <map>
 #include <list>
 #include <limits>
 #include <bitset>
@@ -30,9 +31,10 @@
 #include <vector>
 #include <memory>
 #include <utility>
-#include <iterator>
 #include <fstream>
 #include <iostream>
+#include <hash_map>
+#include <iterator>
 #include <algorithm>
 #include <functional>
 
@@ -59,6 +61,10 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/assign.hpp>
 
+#include <boost/thread.hpp>
+#include <boost/atomic/atomic.hpp>
+#include <boost/date_time.hpp>
+
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
@@ -70,6 +76,7 @@ typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/map.hpp>
+#include <boost/serialization/hash_map.hpp>
 // #include <boost/serialization/bitset.hpp>
 
 // a portable text archive

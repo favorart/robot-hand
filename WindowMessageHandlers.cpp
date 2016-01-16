@@ -33,7 +33,9 @@ Point  logic_coord (win_point* coord)
 }
 //-------------------------------------------------------------------------------
 void OnWindowCreate (HWND &hWnd, RECT &myRect,
-                     HWND &hLabCanv, HWND &hLabHelp)
+                     HWND &hLabCanv, HWND &hLabHelp,
+                     HWND &hLabMAim, HWND &hLabTest,
+                     HWND &hLabStat, LabelsPositions &lp)
 {
   RECT Rect;
 
@@ -43,35 +45,93 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   myRect.bottom = Rect.bottom;
   myRect.right = Rect.left + (Rect.bottom - Rect.top);
 
-  // Create a Static Label control
-  hLabCanv = CreateWindow (_T ("STATIC"),					 	/* The name of the static control's class */
-                           _T ("Canvas  "),							                      /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT,            /* Styles (continued) */
-                           Rect.bottom - Rect.top,                          /* X co-ordinates */
-                           Rect.top,                                        /* Y co-ordinates */
-                           Rect.right - (Rect.bottom - Rect.top),                    /* Width */
-                           25,                                                      /* Height */
-                           hWnd,                                               /* Parent HWND */
-                           (HMENU) IDL_CANVAS,											     		/* The Label's ID */
-                           NULL,                             /* The HINSTANCE of your program */
-                           NULL);                               /* Parameters for main window */
-  if ( !hLabCanv )
-    MessageBox (hWnd, _T ("Could not create Label1."), _T ("Error"), MB_OK | MB_ICONERROR);
+  lp.LabelsLeft    = Rect.bottom - Rect.top;
+  lp.LabelsWidth   = Rect.right - (Rect.bottom - Rect.top);
+  lp.LabCanvTop    = Rect.top;
+  lp.LabCanvHeight = 24U;
+  lp.LabHelpTop    = Rect.top + 25U;
+  lp.LabHelpHeight = (Rect.bottom - Rect.top) * 2U / 3U - 1U;
+  lp.LabMAimTop    = Rect.top +  25U + (Rect.bottom - Rect.top) * 2U / 3U;
+  lp.LabMAimHeight = 49U;
+  lp.LabTestTop    = Rect.top +  75U + (Rect.bottom - Rect.top) * 2U / 3U;
+  lp.LabTestHeight = 49U;
+  lp.LabStatTop    = Rect.top + 125U + (Rect.bottom - Rect.top) * 2U / 3U;
+  lp.LabStatHeight = Rect.bottom - ((Rect.bottom - Rect.top) * 2U / 3U - 125U);
 
   // Create a Static Label control
-  hLabHelp = CreateWindow (_T ("STATIC"),						/* The name of the static control's class */
-                           _T ("Help"),								 				                /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT,            /* Styles (continued) */
-                           Rect.bottom - Rect.top,                          /* X co-ordinates */
-                           Rect.top + 25,                                   /* Y co-ordinates */
-                           Rect.right - (Rect.bottom - Rect.top),                    /* Width */
-                           Rect.bottom - Rect.top - 25,                             /* Height */
-                           hWnd,                                               /* Parent HWND */
-                           (HMENU) IDL_HELP,						     				     		/* The Label's ID */
-                           NULL,                             /* The HINSTANCE of your program */
-                           NULL);                               /* Parameters for main window */
+  hLabCanv = CreateWindow (_T ("STATIC"),			       /* The name of the static control's class */
+                           _T ("Canvas  "),							                       /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,       /* Styles (continued) */
+                           lp.LabelsLeft,                                    /* X co-ordinates */
+                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabelsWidth,                                            /* Width */
+                           lp.LabCanvHeight,                                         /* Height */
+                           hWnd,                                                /* Parent HWND */
+                           (HMENU) IDL_CANVAS,							                 /* The Label's ID */
+                           NULL,                              /* The HINSTANCE of your program */
+                           NULL);                                /* Parameters for main window */
+  if ( !hLabCanv )
+    MessageBox (hWnd, _T ("Could not create hLabCanv."), _T ("Error"), MB_OK | MB_ICONERROR);
+
+  // Create a Static Label control
+  hLabHelp = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
+                           _T ("Help"),								 				                 /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+                           lp.LabelsLeft,                                    /* X co-ordinates */
+                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabelsWidth,                                            /* Width */
+                           lp.LabCanvHeight,                                         /* Height */
+                           hWnd,                                                /* Parent HWND */
+                           (HMENU) IDL_HELP,						     				      	 /* The Label's ID */
+                           NULL,                              /* The HINSTANCE of your program */
+                           NULL);                                /* Parameters for main window */
   if ( !hLabHelp )
-    MessageBox (hWnd, _T ("Could not create Label2."), _T ("Error"), MB_OK | MB_ICONERROR);
+    MessageBox (hWnd, _T ("Could not create hLabHelp."), _T ("Error"), MB_OK | MB_ICONERROR);
+
+  // Create a Static Label control
+  hLabMAim = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
+                           _T (" "),								 		  		                 /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+                           lp.LabelsLeft,                                    /* X co-ordinates */
+                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabelsWidth,                                            /* Width */
+                           lp.LabCanvHeight,                                         /* Height */
+                           hWnd,                                                /* Parent HWND */
+                           (HMENU) IDL_HELP,						     				         /* The Label's ID */
+                           NULL,                              /* The HINSTANCE of your program */
+                           NULL);                                /* Parameters for main window */
+  if ( !hLabMAim )
+    MessageBox (hWnd, _T ("Could not create hLabMAim."), _T ("Error"), MB_OK | MB_ICONERROR);
+
+  // Create a Static Label control
+  hLabTest = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
+                           _T (" "),								 		  		                 /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+                           lp.LabelsLeft,                                    /* X co-ordinates */
+                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabelsWidth,                                            /* Width */
+                           lp.LabCanvHeight,                                         /* Height */
+                           hWnd,                                                /* Parent HWND */
+                           (HMENU) IDL_HELP,						     				         /* The Label's ID */
+                           NULL,                              /* The HINSTANCE of your program */
+                           NULL);                                /* Parameters for main window */
+  if ( !hLabTest )
+    MessageBox (hWnd, _T ("Could not create hLabTest."), _T ("Error"), MB_OK | MB_ICONERROR);
+
+  // Create a Static Label control
+  hLabStat = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
+                           _T (" "),								 		  		                 /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+                           lp.LabelsLeft,                                    /* X co-ordinates */
+                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabelsWidth,                                            /* Width */
+                           lp.LabCanvHeight,                                         /* Height */
+                           hWnd,                                                /* Parent HWND */
+                           (HMENU) IDL_HELP,						     				         /* The Label's ID */
+                           NULL,                              /* The HINSTANCE of your program */
+                           NULL);                                /* Parameters for main window */
+  if ( !hLabStat )
+    MessageBox (hWnd, _T ("Could not create hLabStat."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Generate the help string
   { TCHAR string_help[1024];
@@ -98,12 +158,14 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
 
   SetTimer (hWnd,							 /* Handle to main window */
             IDT_TIMER,         /* timer identifier 			*/
-            100,               /* 1-second interval 		*/
+            50,         // sec/2      /* 1-second interval 		*/
             (TIMERPROC) NULL); /* no timer callback			*/
 }
 
 void OnWindowSize (HWND &hWnd, RECT &myRect,
-                   HWND &hLabCanv, HWND &hLabHelp)
+                   HWND &hLabCanv, HWND &hLabHelp,
+                   HWND &hLabMAim, HWND &hLabTest,
+                   HWND &hLabStat, LabelsPositions &lp)
 {
   RECT Rect;
 
@@ -117,20 +179,54 @@ void OnWindowSize (HWND &hWnd, RECT &myRect,
                  Rect.bottom - Rect.top,
                  Rect.bottom - Rect.top);
 
+  lp.LabelsLeft = Rect.bottom - Rect.top;
+  lp.LabelsWidth = Rect.right - (Rect.bottom - Rect.top);
+  lp.LabCanvTop = Rect.top;
+  lp.LabCanvHeight = 24U;
+  lp.LabHelpTop = Rect.top + 25U;
+  lp.LabHelpHeight = (Rect.bottom - Rect.top) * 2U / 3U - 1U;
+  lp.LabMAimTop = Rect.top + 25U + (Rect.bottom - Rect.top) * 2U / 3U;
+  lp.LabMAimHeight = 49U;
+  lp.LabTestTop = Rect.top + 75U + (Rect.bottom - Rect.top) * 2U / 3U;
+  lp.LabTestHeight = 49U;
+  lp.LabStatTop = Rect.top + 125U + (Rect.bottom - Rect.top) * 2U / 3U;
+  lp.LabStatHeight = Rect.bottom - ((Rect.bottom - Rect.top) * 2U / 3U - 125U);
+
   /* Set position noCanvas label */
   SetWindowPos (hLabCanv, NULL,
-                Rect.bottom - Rect.top,                   /* X co-ordinates */
-                Rect.top,                                 /* Y co-ordinates */
-                Rect.right - (Rect.bottom - Rect.top),            /*  Width */
-                25,                                               /* Height */
+                lp.LabelsLeft,     /* X co-ordinates */
+                lp.LabCanvTop,     /* Y co-ordinates */
+                lp.LabelsWidth,             /* Width */
+                lp.LabCanvHeight,          /* Height */
+                (UINT) NULL);   
+  /* Set position help label */ 
+  SetWindowPos (hLabHelp, NULL, 
+                lp.LabelsLeft,     /* X co-ordinates */
+                lp.LabHelpTop,     /* Y co-ordinates */
+                lp.LabelsWidth,             /* Width */
+                lp.LabHelpHeight,          /* Height */
+                (UINT) NULL);   
+  /* Set position help label */ 
+  SetWindowPos (hLabMAim, NULL, 
+                lp.LabelsLeft,     /* X co-ordinates */
+                lp.LabMAimTop,     /* Y co-ordinates */
+                lp.LabelsWidth,             /* Width */
+                lp.LabMAimHeight,          /* Height */
                 (UINT) NULL);
   /* Set position help label */
-  SetWindowPos (hLabHelp, NULL,
-                Rect.bottom - Rect.top,                   /* X co-ordinates */
-                Rect.top + 25,                            /* Y co-ordinates */
-                Rect.right - (Rect.bottom - Rect.top),            /* Width  */
-                Rect.bottom - Rect.top - 25,                      /* Height */
-                (UINT) NULL);
+  SetWindowPos (hLabTest, NULL, 
+                lp.LabelsLeft,     /* X co-ordinates */
+                lp.LabTestTop,     /* Y co-ordinates */
+                lp.LabelsWidth,             /* Width */
+                lp.LabTestHeight,          /* Height */
+                (UINT) NULL);   
+  /* Set position help label */ 
+  SetWindowPos (hLabStat, NULL, 
+                lp.LabelsLeft,     /* X co-ordinates */
+                lp.LabStatTop,     /* Y co-ordinates */
+                lp.LabelsWidth,             /* Width */
+                lp.LabStatHeight,          /* Height */
+                (UINT) NULL);   
 }
 
 void OnWindowPaint (HWND &hWnd, RECT &myRect,
@@ -195,8 +291,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     case 't':
     { //========================================
       OnRandomTest (wd);
-      MessageBox (hWnd, _T ("Done\n"), 
-                  _T ("RandomTest"), MB_OK);
+      // MessageBox (hWnd, _T ("Done\n"), 
+      //             _T ("RandomTest"), MB_OK);
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
@@ -250,6 +346,24 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames_show = false;
       wd.testing_trajectories.clear ();
       wd.trajectory_frames.clear ();
+
+      /* Setting the Label's text */
+      SendMessage (wd.hLabTest,      /* Label   */
+                   WM_SETTEXT,       /* Message */
+                   (WPARAM) NULL,    /* Unused  */
+                   (LPARAM) _T (" "));
+
+      /* Setting the Label's text */
+      SendMessage (wd.hLabMAim,      /* Label   */
+                   WM_SETTEXT,       /* Message */
+                   (WPARAM) NULL,    /* Unused  */
+                   (LPARAM) _T (" "));
+
+      /* Setting the Label's text */
+      SendMessage (wd.hLabStat,      /* Label   */
+                   WM_SETTEXT,       /* Message */
+                   (WPARAM) NULL,    /* Unused  */
+                   (LPARAM) _T (" "));
       break;
     //========================================
     // case 'm': if ( !fn ) fm = 1; break;

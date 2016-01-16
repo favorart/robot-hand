@@ -50,18 +50,19 @@ public:
   const uint_t  maxClvclMoveFrames; // USING IN TESTS
   const uint_t  maxShldrMoveFrames; // USING IN TESTS
   const uint_t  maxElbowMoveFrames; // USING IN TESTS
-  const uint_t  maxWristMoveFrames; // USING IN TESTS
+  // const uint_t  maxWristMoveFrames; // USING IN TESTS
 
   uint_t timeMuscleWorking (MusclesEnum muscle=EmptyMov);
 
-  typedef ulong_t time_t;
+  // typedef ulong_t time_t;
+ //  typedef unsigned int time_t;
 
 private:
   //---internal phisical parameters---------------------
   time_t  time_;                            // descrete time
   Point   hand_, arm_, sholder_, clavicle_; // base position
 
-                                            //---current position---------------------------------
+  //---current position---------------------------------
   Point  curPosHand_, curPosArm_, curPosShldr_;
   double angleElbow_, angleShldr_, shiftClvcl_;
   bool   flagMovEnd_;
@@ -90,12 +91,19 @@ private:
   time_t  timeEnd2OpenHyd_[musclesCount];
   time_t  tFrames2OpenHyd_[musclesCount];
 
+public:
+
   //---angle limits-------------------------------------
 	const double  maxClvclShift;
 	const uint_t  maxShldrAngle;
 	const uint_t  maxElbowAngle;
   
-	//----------------------------------------------------  
+	//----------------------------------------------------
+  mutable double current_velosity;
+
+  std::vector<double>  c_frames, s_frames, e_frames;
+  std::vector<double>  c_frstop, s_frstop, e_frstop;
+
   double  stepFrame (MusclesEnum hydNo, time_t time, bool atStop) const;
   //----------------------------------------------------
   void  muscle     (uint_t no, bool control);
@@ -108,13 +116,12 @@ public:
         const Point &sholder = { 0.8, 0.1 } , const Point &clavicle = { 0.8, 0.1 });
 
 	void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
-  void  move (MusclesEnum muscle, time_t last);              // ????PROGRESS
+  void  move (MusclesEnum muscle, time_t last);              // ??? PROGRESS
   void  move (MusclesEnum muscle, time_t last, std::list<Point> &visited);
   void  step (MusclesEnum muscle=EmptyMov);
 	void  step (const bool control[musclesCount]);
 
 	void  reset (); /* clear, drop - сбрасывать */
-  //void  set   (const uchar_t jointOpenPercent[jointsCount]); // ??PARAMETERS
 
   /* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
   void  set (JointsEnum joint, const std::array<double,Hand::jointsCount> &jOp);

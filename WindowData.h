@@ -9,7 +9,6 @@
 #include "Hand.h"
 #include "HandMovesStore.h"
 #include "target.h"
-
 //------------------------------------------------------------------------------
 class MyWindowData
 {
@@ -17,7 +16,7 @@ public:
   HPEN   hPen_red, hPen_grn, hPen_blue, hPen_cian;
   HBRUSH hBrush_white, hBrush_null;
 
-  win_point  user_coords;
+  // win_point  user_coords;
   /* координаты мыши в пикселях */
   bool      mouse_haved;
   win_point mouse_coords;
@@ -37,8 +36,11 @@ public:
   std::list<std::shared_ptr<HandMoves::trajectory_t>> trajectoriesDB;
   // ---------------------------------
 
+  const uint_t  targetRowsCount = 35U;
+  const uint_t  targetColsCount = 30U;
   RecTarget  target;
 
+  // ---------------------------------
   Hand hand;
   HandMoves::Store store;
 
@@ -50,18 +52,17 @@ public:
   
   size_t  testing_trajectories_animation_num_iteration = 1;
   bool    testing_trajectories_animation_show = false;
-  // ---------------------------------
 
-  // boost::thread WorkerThread;
+  boost::thread *pWorkerThread;
+  // ---------------------------------
 
   /* Набор пользователем чисел */
   // static int  flag_m, flag_n;
   // static int  p_x, p_y;
+  // ---------------------------------
+  HWND hLabMAim, hLabTest, hLabStat;
 
-  const uint_t  targetRowsCount = 35U;
-  const uint_t  targetColsCount = 30U;
-
-  MyWindowData ();
+  MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat);
  ~MyWindowData ();
 };
 

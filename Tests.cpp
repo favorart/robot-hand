@@ -15,25 +15,26 @@ bool  insert (std::list< std::list<Point> > &trajectories, std::list<Point> &tra
     if ( boost::geometry::distance (fin, back) < 0.001 )
       return false;
   }
+  // trajectories.splice (it, trajectory);
   trajectories.push_back (trajectory);
   return true;
 }
 //------------------------------------------------------------------------------
-void  HandMoves::test_random (Store &store, Hand &hand, uint_t tries)
+void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
 {
   for ( uint_t i = 0U; i < tries; ++i )
   {
     trajectory_t visited;
-    Record::muscles_array   muscles;
+    Record::muscles_array   muscles = {};
     // Record::times_array    lasts;
-    Record::times_array times_start;
-    Record::times_array times_stop;
+    Record::times_array times_start = {};
+    Record::times_array times_stop  = {};
     size_t moves_count = random (1U, Record::maxMovesCount);
 
     hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50, 50, 50 });
-    for ( uint_t j = 0U; j <= moves_count; ++j )
+    for ( uint_t j = 0U; j < moves_count; ++j )
     {
-      auto muscle = selectHandMove ( random (1U, HandMovesCount) );
+      auto muscle = selectHandMove ( random (1U, HandMovesCount - 1U) );
       auto last   = random ( hand.timeMuscleWorking (muscle) );
       hand.move (muscle, last, visited);
 
@@ -43,16 +44,23 @@ void  HandMoves::test_random (Store &store, Hand &hand, uint_t tries)
     }
 
     const Point &aim = hand.position;
-    store.insert (Record (aim, aim, muscles,
-                          times_start, times_stop,
-                          moves_count, visited)
-                 );
+
+    try
+    { auto rec = Record (aim, aim, muscles,
+                         times_start, times_stop,
+                         moves_count, visited);
+      store.insert (rec);
+    }
+    catch(...)
+    { continue; }
+
   }
 }
-void  HandMoves::test_cover (Store &store, Hand &hand, 
-                             std::list< std::list<Point> > &trajectories,
-                             int nesting)
+void  HandMoves::test_cover  (Store &store, Hand &hand, 
+                              // std::list< std::list<Point> > &trajectories,
+                              size_t nesting)
 {
+  std::list<std::list<Point>> trajectories;
   /* Create the tree of possible passes */
   // for ( auto i = 0U; i < Hand::musclesCount; ++i )
   for ( Hand::MusclesEnum  muscle_i : Hand::muscles )
@@ -75,7 +83,7 @@ void  HandMoves::test_cover (Store &store, Hand &hand,
       // std::cout << muscle_i << ' ' << hi << ' ' << last_i << std::endl;
       insert (trajectories, trajectory);
 
-      if (nesting > 1)
+      if ( nesting > 1U )
         for ( Hand::MusclesEnum  muscle_j : Hand::muscles )
         {
           if ( (muscle_i == muscle_j) || !muscleValidAtOnce (muscle_i | muscle_j) )
@@ -106,7 +114,7 @@ void  HandMoves::test_cover (Store &store, Hand &hand,
             // std::list::splice () allows you to concatenate two std::list's in constant time.
             insert (trajectories, trajectory);
             //=================================================
-            if ( nesting > 2 )
+            if ( nesting > 2U )
               for ( Hand::MusclesEnum muscle_k : Hand::muscles )
               {
                 if ( (muscle_i == muscle_k || muscle_k == muscle_j) 

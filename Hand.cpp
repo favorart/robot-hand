@@ -81,8 +81,8 @@ uint_t  Hand::timeMuscleWorking (MusclesEnum muscle)
         case ShldrCls: last = max (last, maxShldrMoveFrames); break;
         case ElbowOpn: last = max (last, maxElbowMoveFrames); break;
         case ElbowCls: last = max (last, maxElbowMoveFrames); break;
-        case WristOpn: last = max (last, maxWristMoveFrames); break;
-        case WristCls: last = max (last, maxWristMoveFrames); break;
+        // case WristOpn: last = max (last, maxWristMoveFrames); break;
+        // case WristCls: last = max (last, maxWristMoveFrames); break;
       }
   }
   return last;
@@ -98,15 +98,19 @@ bool  Hand::muscleMove (MusclesEnum hydNo, time_t time, bool atStop)
   
   switch (hydNo)
   { // default: SetError_ (ERR_NO);	   			                                      break;
-    case ClvclOpn :	shiftClvcl = (shiftClvcl_ < 0.0           ) ? 0.0 : -frame; break;
-		case ClvclCls : shiftClvcl = (shiftClvcl_ > maxClvclShift ) ? 0.0 :  frame; break;
-		case ShldrOpn : angleShldr = (angleShldr_ > maxShldrAngle ) ? 0.0 :  frame; break;
-		case ShldrCls :	angleShldr = (angleShldr_ < 1.0           ) ? 0.0 : -frame; break;
-		case ElbowOpn :	angleElbow = (angleElbow_ > maxElbowAngle ) ? 0.0 :  frame; break;
-		case ElbowCls :	angleElbow = (angleElbow_ < 1.0           ) ? 0.0 : -frame; break;
-		case WristOpn :	angleWrist = (angleWrist  < 0.0           ) ? 0.0 :  frame; break; // TODO: !!! 
-		case WristCls :	angleWrist = (angleWrist  < 0.0           ) ? 0.0 : -frame;	break; // TODO: !!! 
+    case ClvclOpn :	shiftClvcl = (shiftClvcl_ - frame < 0.0          ) ? (          0.0 - shiftClvcl_ /*+ EPS*/) : -frame; break;
+		case ClvclCls : shiftClvcl = (shiftClvcl_ + frame > maxClvclShift) ? (maxClvclShift - shiftClvcl_ /*- EPS*/) :  frame; break;
+    case ShldrOpn : angleShldr = (angleShldr_ + frame > maxShldrAngle) ? (maxShldrAngle - angleShldr_ /*- EPS*/) :  frame; break;
+    case ShldrCls :	angleShldr = (angleShldr_ - frame < 1.0          ) ? (          1.0 - angleShldr_ /*+ EPS*/) : -frame; break;
+    case ElbowOpn :	angleElbow = (angleElbow_ + frame > maxElbowAngle) ? (maxElbowAngle - angleElbow_ /*- EPS*/) :  frame; break;
+    case ElbowCls :	angleElbow = (angleElbow_ - frame < 1.0          ) ? (          1.0 - angleElbow_ /*- EPS*/) : -frame; break;
+		// case WristOpn :	angleWrist = (angleWrist  < 0.0           ) ? 0.0 :  frame; break;
+		// case WristCls :	angleWrist = (angleWrist  < 0.0           ) ? 0.0 : -frame;	break;
   }
+
+  // if ( shiftClvcl_ > maxClvclShift ) shiftClvcl_ = maxClvclShift;
+  // if ( shiftClvcl_ < 0.0 ) shiftClvcl_ = 0.0;
+
 
   curPosShldr_.x -= shiftClvcl;
   curPosArm_  .x -= shiftClvcl;
@@ -173,15 +177,41 @@ void  Hand::muscle     (uint_t no, bool control)
 //-------------------------------------------------------
 }
 //--------------------------------------------------------------------------------
+
+// ?? min velosity???
+std::vector<double>  generateFrames (double a, double b, size_t n)
+{
+  std::vector<double> frames (n--);
+  for ( size_t i = 0U; i <= n; ++i )
+  { frames[i] = (a + b + (a - b)*cos (i * M_PI / n)) / 2.; }
+  return frames;
+}
+
+// current velosity ??
+std::vector<double>  generateStopFrames (double a, double b, size_t n)
+{
+  std::vector<double> frames (n--); // 2 * n);
+
+  // m = n / 2;
+  // (n - m) * 2;
+  for ( size_t i = 0U; i <= n; ++i )
+  { frames[i] = (a + b + (a - b)*cos ( ((n / 2. + (i+1) / 2.) * M_PI) / n)) / 2.; }
+
+  // for ( size_t i = n; i >= n; ++i )
+  // { frames[i] = frames[0]; }
+
+  return frames;// | boost::adaptors::sliced (n / 2, n);
+}
+
 Hand::Hand (const Point &hand, const Point &arm,
             const Point &sholder, const Point &clavicle): // joints  { Clvcl, Shldr, Elbow },
                      // muscles { ClvclOpn, ClvclCls, ShldrOpn,
                      //           ShldrCls, ElbowOpn, ElbowCls },
-            minJStopMoveFrames (5U),
-            maxClvclMoveFrames (15U),
-            maxShldrMoveFrames (30U),
-            maxElbowMoveFrames (35U),
-            maxWristMoveFrames (15U),
+            minJStopMoveFrames (5U),  // (5U),
+            maxClvclMoveFrames (135U), // (15U),
+            maxShldrMoveFrames (145U), // (30U),
+            maxElbowMoveFrames (145U), // (35U),
+            // maxWristMoveFrames (15U), // (15U),
             maxClvclShift (0.40),
             maxShldrAngle ( 85U),
             maxElbowAngle (145U),
@@ -195,8 +225,20 @@ Hand::Hand (const Point &hand, const Point &arm,
                                    (ulong_t)maxShldrMoveFrames, (ulong_t)maxShldrMoveFrames,
                                    (ulong_t)maxElbowMoveFrames, (ulong_t)maxElbowMoveFrames };
 
+
+  c_frames = generateFrames (EPS, maxClvclShift, maxClvclMoveFrames);
+  s_frames = generateFrames (EPS, maxShldrAngle, maxShldrMoveFrames);
+  e_frames = generateFrames (EPS, maxElbowAngle, maxElbowMoveFrames);
+
+  // 10% от общего пробега
+  c_frstop = generateStopFrames (EPS, maxClvclShift * 0.01, minJStopMoveFrames);
+  s_frstop = generateStopFrames (EPS, maxShldrAngle * 0.01, minJStopMoveFrames);
+  e_frstop = generateStopFrames (EPS, maxElbowAngle * 0.01, minJStopMoveFrames);
+
+  current_velosity = 0.;
+
   // tFrames2OpenHyd_ = frames;                                             // TODO: !!!
-  std::memmove (tFrames2OpenHyd_, frames, sizeof (ulong_t) * musclesCount); // TODO: !!! 
+  std::memmove (tFrames2OpenHyd_, frames, sizeof (time_t) * musclesCount); // TODO: !!! 
 
   reset ();
 }
@@ -408,40 +450,65 @@ void  Hand::set (MusclesEnum muscle, uint_t frame)
 //--------------------------------------------------------------------------------
 double  Hand::stepFrame (MusclesEnum hydNo, time_t time, bool atStop) const
 { double  frame;
+
+  // //-----------------------------------------------
+	// const double c_frames[] = { 0.01, 0.01, 0.02, 0.02, 0.02,
+	//                             0.04, 0.04, 0.08, 0.04, 0.04,    
+	//                             0.02, 0.02, 0.02, 0.01, 0.01 };
+	// const double s_frames[] = { 1.00, 1.00, 1.00, 1.00, 1.00,
+	// 	                           3.00, 3.00, 3.00, 3.00, 3.00, 
+	//                             5.00, 5.00, 5.00, 5.00, 5.00,
+	// 													   5.00, 5.00, 5.00, 5.00, 5.00,
+	//                             3.00, 3.00, 3.00, 3.00, 3.00,
+	// 													   1.00, 1.00, 1.00, 1.00, 1.00 };
+	// const double e_frames[] = { 2.00, 2.00, 2.00, 2.00, 2.00,
+	// 	                           4.00, 4.00, 4.00, 4.00, 4.00,
+	// 	                           6.00, 6.00, 6.00, 6.00, 6.00,
+	// 												 	   6.00, 6.00, 6.00, 6.00, 6.00,
+	// 												  	 6.00, 6.00, 6.00, 6.00, 6.00,
+	//                             4.00, 4.00, 4.00, 4.00, 4.00,
+	// 														 2.00, 2.00, 2.00, 2.00, 2.00 };
+	// const double w_frames[] = { 1.00, 1.00, 1.00, 1.00, 2.00,
+	//                             2.00, 2.00, 3.00, 2.00, 2.00,    
+	//                             2.00, 1.00, 1.00, 1.00, 1.00 };
+  // //-----------------------------------------------
+	// const double c_frstop[] = { 0.04, 0.02, 0.02, 0.01, 0.01 };
+	// const double s_frstop[] = { 5.00, 3.00, 3.00, 1.00, 1.00 };
+	// const double e_frstop[] = { 6.00, 4.00, 4.00, 2.00, 2.00 };
+	// const double w_frstop[] = { 2.00, 1.00, 1.00, 1.00, 1.00 };
+  // //-----------------------------------------------
+  // switch (hydNo)
+	// { default:		               		frame = 0.0;                                        break;
+	// 	case ClvclOpn: case ClvclCls: frame = (atStop) ? c_frstop[time] : c_frames[time]; break;
+	// 	case ShldrOpn: case ShldrCls: frame = (atStop) ? s_frstop[time] : s_frames[time]; break;
+	// 	case ElbowOpn: case ElbowCls: frame = (atStop) ? e_frstop[time] : e_frames[time]; break;
+	//   // case WristOpn: case WristCls: frame = (atStop) ? w_frstop[time] : w_frames[time]; break;
+  // }
+
   //-----------------------------------------------
-	const double c_frames[] = { 0.01, 0.01, 0.02, 0.02, 0.02,
-	                            0.04, 0.04, 0.08, 0.04, 0.04,    
-	                            0.02, 0.02, 0.02, 0.01, 0.01 };
-	const double s_frames[] = { 1.00, 1.00, 1.00, 1.00, 1.00,
-		                          3.00, 3.00, 3.00, 3.00, 3.00, 
-	                            5.00, 5.00, 5.00, 5.00, 5.00,
-														  5.00, 5.00, 5.00, 5.00, 5.00,
-	                            3.00, 3.00, 3.00, 3.00, 3.00,
-														  1.00, 1.00, 1.00, 1.00, 1.00 };
-	const double e_frames[] = { 2.00, 2.00, 2.00, 2.00, 2.00,
-		                          4.00, 4.00, 4.00, 4.00, 4.00,
-		                          6.00, 6.00, 6.00, 6.00, 6.00,
-															6.00, 6.00, 6.00, 6.00, 6.00,
-															6.00, 6.00, 6.00, 6.00, 6.00,
-	                            4.00, 4.00, 4.00, 4.00, 4.00,
-															2.00, 2.00, 2.00, 2.00, 2.00 };
-	const double w_frames[] = { 1.00, 1.00, 1.00, 1.00, 2.00,
-	                            2.00, 2.00, 3.00, 2.00, 2.00,    
-	                            2.00, 1.00, 1.00, 1.00, 1.00 };
-  //-----------------------------------------------
-	const double c_frstop[] = { 0.04, 0.02, 0.02, 0.01, 0.01 };
-	const double s_frstop[] = { 5.00, 3.00, 3.00, 1.00, 1.00 };
-	const double e_frstop[] = { 6.00, 4.00, 4.00, 2.00, 2.00 };
-	const double w_frstop[] = { 2.00, 1.00, 1.00, 1.00, 1.00 };
-  //-----------------------------------------------
-	switch (hydNo)
-	{ default:		               		frame = 0.0;                                        break;
-		case ClvclOpn: case ClvclCls: frame = (atStop) ? c_frstop[time] : c_frames[time]; break;
-		case ShldrOpn: case ShldrCls: frame = (atStop) ? s_frstop[time] : s_frames[time]; break;
-		case ElbowOpn: case ElbowCls: frame = (atStop) ? e_frstop[time] : e_frames[time]; break;
-		case WristOpn: case WristCls: frame = (atStop) ? w_frstop[time] : w_frames[time]; break;
+  const std::vector<double> *frames = NULL;
+  switch ( hydNo )
+  {
+    // default:		               		frame = 0.0;                                        break;
+    case ClvclOpn: case ClvclCls: frames = (atStop) ? &c_frstop : &c_frames; break;
+    case ShldrOpn: case ShldrCls: frames = (atStop) ? &s_frstop : &s_frames; break;
+    case ElbowOpn: case ElbowCls: frames = (atStop) ? &e_frstop : &e_frames; break;
   }
-  //-----------------------------------------------
+
+  frame = (*frames)[time];
+  // if ( atStop )
+  // {
+  //   double velosity = (time) ? ((*frames)[time] - (*frames)[time - 1U]) : ((*frames)[time]);
+  //   while ( current_velosity < velosity )
+  //   { 
+  //     if ( time >= frames->size () )
+  //     { current_velosity = frame = 0.; }
+  //     ++time;
+  //     velosity = (time) ? ((*frames)[time] - (*frames)[time - 1U]) : ((*frames)[time]);
+  //   }
+  //   frame = (*frames)[time]; // velosity;
+  // }
+  // current_velosity = (time) ? ((*frames)[time] - (*frames)[time - 1U]) : ((*frames)[time]);
 	return frame;
 }
 //--------------------------------------------------------------------------------
@@ -454,7 +521,7 @@ bool  muscleValidAtOnce (Hand::MusclesEnum muscle)
       || ((Hand::ClvclOpn & muscle) && (Hand::ClvclCls & muscle))
       || ((Hand::ShldrOpn & muscle) && (Hand::ShldrCls & muscle))
       || ((Hand::ElbowOpn & muscle) && (Hand::ElbowCls & muscle))
-      || ((Hand::WristOpn & muscle) && (Hand::WristCls & muscle))
+    //  || ((Hand::WristOpn & muscle) && (Hand::WristCls & muscle))
       )
   { return false; }
   return true;

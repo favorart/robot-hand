@@ -10,8 +10,8 @@ using namespace HandMoves;
 //------------------------------------------------------------------------------
 LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 {
-  static HWND  hLabHelp;
-  static HWND  hLabCanv; // Canvas
+  static HWND  hLabHelp, hLabCanv /* Canvas */, hLabMAim, hLabTest, hLabStat;
+  static LabelsPositions lp;
   static RECT    myRect;
   //------------------------------------------------------------------------------
   static MyWindowData  *wd;
@@ -20,19 +20,27 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
   {
     case WM_CREATE:
     { //=======================
-      OnWindowCreate (hWnd, myRect, hLabCanv, hLabHelp);
+      OnWindowCreate (hWnd, myRect, hLabCanv, hLabHelp,
+                          hLabMAim, hLabTest, hLabStat, lp);
 
-      wd = new MyWindowData ();
+      wd = new MyWindowData (hLabMAim, hLabTest, hLabStat);
       //=======================
       break;
     }
 
     case WM_PAINT:
     { 
-      if ( wd->store.size () )
-        SetWindowText (hWnd, 
-                       boost::str (boost::wformat (_T ("Store size = %1%")) 
-                       % wd->store.size ()).c_str ());
+      // if ( wd->store.size () )
+      {
+        std::wstringstream buffer;
+        buffer << boost::wformat (_T ("Store size %1%  ")) % wd->store.size ();
+
+        /* Setting the Label's text */
+        SendMessage (hLabStat,         /* Label Stat */
+                     WM_SETTEXT,       /* Message    */
+                     (WPARAM) NULL,    /* Unused     */
+                     (LPARAM) buffer.str ().c_str () );
+      }
       //=======================
       OnWindowPaint (hWnd, myRect, *wd);
       //=======================
@@ -60,7 +68,8 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
     case WM_MOVE:
     case WM_SIZE:
-      OnWindowSize (hWnd, myRect, hLabCanv, hLabHelp);
+      OnWindowSize (hWnd, myRect, hLabCanv, hLabHelp, 
+                        hLabMAim, hLabTest, hLabStat, lp);
       break;
 
     case WM_GETMINMAXINFO:

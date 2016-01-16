@@ -35,17 +35,37 @@ inline bool  isFileExists (const TCHAR *fileName)
 //-------------------------------------------------------------------------------
 template <typename T>
 T  random (T max)
-{ return  (T (rand ()) % (max + 1)); }
+{ return  (T (rand ()) % (max)); }
 template <typename T>
 T  random (T min, T max)
-{ return  (min + T (rand ()) % (max + 1)); }
+{ return  (min + T (rand ()) % (max)); }
 //-------------------------------------------------------------------------------
 class MyWindowData;
 //-------------------------------------------------------------------------------
+struct LabelsPositions
+{
+  size_t LabelsLeft;
+  size_t LabelsWidth;
+  size_t LabCanvTop;
+  size_t LabCanvHeight;
+  size_t LabHelpTop;
+  size_t LabHelpHeight;
+  size_t LabMAimTop;
+  size_t LabMAimHeight;
+  size_t LabTestTop;
+  size_t LabTestHeight;
+  size_t LabStatTop;
+  size_t LabStatHeight;
+};
+
 void OnWindowCreate (HWND &hWnd, RECT &myRect,
-                     HWND &hLabCanv, HWND &hLabHelp);
+                     HWND &hLabCanv, HWND &hLabHelp,
+                     HWND &hLabMAim, HWND &hLabTest,
+                     HWND &hLabStat, LabelsPositions &lp);
 void OnWindowSize   (HWND &hWnd, RECT &myRect,
-                     HWND &hLabCanv, HWND &hLabHelp);
+                     HWND &hLabCanv, HWND &hLabHelp,
+                     HWND &hLabMAim, HWND &hLabTest,
+                     HWND &hLabStat, LabelsPositions &lp);
 
 void OnPaintMyLogic (HDC hdc,
                      MyWindowData &params);

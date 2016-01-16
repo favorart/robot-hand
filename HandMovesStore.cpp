@@ -15,6 +15,8 @@ Record::Record (const Point         &aim,
   aim_ (aim), hand_ (hand), muscles_(Hand::EmptyMov),
   moves_count_ (moves_count), visited_(visited)
 {
+  auto emp = !times_.empty ();
+
   if ( moves_count_ > maxMovesCount )
     throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ??
 
@@ -22,7 +24,7 @@ Record::Record (const Point         &aim,
   {
     muscles_ = muscles_ | muscles[i];
     times_[muscles[i]] = std::make_pair (static_cast<time_t>(times_start[i] - times_start[0]),
-                                         static_cast<time_t>(times_stop[i] - times_stop[0]));
+                                         static_cast<time_t>(times_stop [i] - times_start[0]));
   }
 
   if ( !validateMusclesTimes () )
@@ -46,18 +48,33 @@ void  Record::makeHandMove (Hand &hand, const Point &aim)
 
 bool  Record::validateMusclesTimes ()
 {
-  for ( auto j : Hand::joints )
+  if ( times_.size () > 1U )
   {
-    Hand::MusclesEnum  Opn = muscleByJoint (j, true);
-    Hand::MusclesEnum  Сls = muscleByJoint (j, false);
-    /* Одновременно работающие мышцы */
-    if ( (Opn & muscles_) && (Сls & muscles_) )
-    {
-      if ( ((times_[Opn].first <= times_[Сls].first) && (times_[Opn].second >= times_[Сls].first))
-        || ((times_[Сls].first <= times_[Opn].first) && (times_[Сls].second >= times_[Opn].first)) )
-        return false;
-    }
-  }
+    /* Каждый с каждым - n^2 !!! TODO !!!  */
+    for ( muscle_times_t::iterator iti = times_.begin (); iti != times_.end (); ++iti )
+      for ( muscle_times_t::iterator itj = std::next (iti); itj != times_.end (); ++itj )
+        /* Если есть перекрытие по времени */
+        if ( ((iti->second.first <= itj->second.first) && (iti->second.second >= itj->second.first))
+          || ((itj->second.first <= iti->second.first) && (itj->second.second >= iti->second.first)) )
+        {
+          for ( auto j : Hand::joints )
+          {
+            Hand::MusclesEnum  Opn = muscleByJoint (j, true);
+            Hand::MusclesEnum  Сls = muscleByJoint (j, false);
+            /* Одновременно работающие противоположные мышцы */
+            if ( (Opn & iti->first) && (Сls & itj->first) )
+            { return false; } // end if
+          } // end for
+        } // end if
+  } //end if
+    
+  // if ( (Opn & muscles_) && (Сls & muscles_) )
+  // {
+  //   if ( ((times_[Opn].first <= times_[Сls].first) && (times_[Opn].second >= times_[Сls].first))
+  //     || ((times_[Сls].first <= times_[Opn].first) && (times_[Сls].second >= times_[Opn].first)) )
+  //     return false;
+  // }
+  
   return true;
 }
 //---------------------------------------------------------

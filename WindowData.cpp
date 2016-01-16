@@ -2,18 +2,18 @@
 #include "WindowData.h"
 #include "Draw.h"
 
-// #include <thread>
-// #include <atomic>
-// #include <chrono>
-#include <boost/thread.hpp>
-
 using namespace std;
 using namespace HandMoves;
 //-------------------------------------------------------------------------------
-MyWindowData:: MyWindowData () : target (35U, 30U, // (-0.39, 0.62, -0.01, -0.99);
-                                                      -0.70, 0.90,  0.90, -0.99)
+MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
+  pWorkerThread(nullptr), 
+  hLabMAim (hLabMAim),
+  hLabTest (hLabTest),
+  hLabStat (hLabStat),
+  target (35U, 30U, // (-0.39, 0.62, -0.01, -0.99);
+                        -0.70, 0.90,  0.90, -0.99)
 {
-  std::srand ((ulong_t) std::clock ());
+  std::srand ((unsigned int) clock ());
 
   testing = false;
 
@@ -44,6 +44,13 @@ MyWindowData::~MyWindowData ()
 
   DeleteObject (hBrush_white);
   DeleteObject (hBrush_null);
+    
+  if ( pWorkerThread )
+  {
+    // pWorkerThread->interrupt ();
+    delete pWorkerThread;
+    pWorkerThread = nullptr;
+  }
   //=======================
   HandMoves::storeSave (store);
   //=======================
@@ -55,17 +62,13 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
   draw_trajectory (hdc, wd.trajectory_frames, wd.hPen_cian);
 
-  // if ( testing_trajectories_show )
-  if ( !wd.testing && !wd.testing_trajectories.empty () )
+  if ( !wd.testing && !wd.testing_trajectories.empty () && 
+        wd.testing_trajectories_animation_show )
   {
-    int i = 0;
-
     // for ( auto t : wd.testing_trajectories )
     auto it = wd.testing_trajectories.begin ();
-
-    for ( auto i = 0U; i < wd.testing_trajectories.size (); ++i )
+    for ( auto i = 0U; i < wd.testing_trajectories_animation_num_iteration; ++i )
     {
-      // if ( i == iter ) break;
       draw_trajectory (hdc, (*(*it)), wd.hPen_blue);
 
       auto fin = (*(*it)).back ();
@@ -96,9 +99,9 @@ void  OnWindowTimer (MyWindowData &wd)
 {
   if ( !wd.testing )
   {
+    /* Auto-drawing trajectory animation */
     if ( wd.trajectory_frames_show )
-    {
-      --wd.trajectory_frames_lasts;
+    { --wd.trajectory_frames_lasts;
       if ( !wd.trajectory_frames_lasts )
         wd.hand.step (wd.trajectory_frames_muscle);
     }
@@ -106,18 +109,49 @@ void  OnWindowTimer (MyWindowData &wd)
     wd.hand.step ();
     // ============
     if ( wd.trajectory_frames_show )
+    {
       wd.trajectory_frames.push_back (wd.hand.position);
-  }
+      if ( wd.hand.isMoveEnd () )
+      {
+        auto aim = wd.hand.position;
+        auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
+                           { 0U }, { wd.trajectory_frames.size() },
+                           1U, wd.trajectory_frames);
+        wd.store.insert (rec);
+      }
 
-  // if ( show )
-  // {
-  //   ++iter;
-  // }
+    }
+
+    /* Trajectoriaes animation */
+    if ( wd.testing_trajectories_animation_show && 
+         wd.testing_trajectories_animation_num_iteration >= 
+         wd.testing_trajectories.size () )
+    { ++wd.testing_trajectories_animation_num_iteration; }
+  }
+  else  if ( wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
+  { /* joined */
+    delete wd.pWorkerThread;
+    wd.pWorkerThread = nullptr;
+
+    wd.testing = false;
+
+    /* Setting the Label's text */
+    SendMessage (wd.hLabTest,         /* Label   */
+                 WM_SETTEXT,       /* Message */
+                 (WPARAM) NULL,    /* Unused  */
+                 (LPARAM) _T (" "));
+  }
 }
 void  OnWindowMouse (MyWindowData &wd)
 {
   wd.mouse_haved = true;
   wd.mouse_aim = logic_coord (&wd.mouse_coords);
+
+  /* Setting the Label's text */
+  SendMessage (wd.hLabMAim,      /* Label   */
+               WM_SETTEXT,       /* Message */
+               (WPARAM) NULL,    /* Unused  */
+               (LPARAM) wstring (wd.mouse_aim).c_str () );
   
   OnShowDBPoints (wd);
 
@@ -130,48 +164,79 @@ void  OnWindowMouse (MyWindowData &wd)
 //-------------------------------------------------------------------------------
 void  OnRandomTest (MyWindowData &wd)
 {
-  // wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
-
-  // ??? Thread
   if ( !wd.testing )
   {
+    // ?wd.testing_trajectories ???.clear ();
+
     wd.testing = true;
+    /* Setting the Label's text */
+    SendMessage (wd.hLabTest,         /* Label   */
+                 WM_SETTEXT,       /* Message */
+                 (WPARAM) NULL,    /* Unused  */
+                 (LPARAM) _T ("\n *** testing ***  "));
 
-    boost::thread  WorkingThread (HandMoves::test_random,
-                                  std::ref (wd.store),
-                                  wd.hand,
-                                  1000U);
+    const size_t repeats = 1000U;
+    wd.pWorkerThread = new boost::thread (HandMoves::test_random,
+                                         std::ref (wd.store),
+                                         wd.hand, /* copy */
+                                         repeats);
 
+    // wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
     // test_random (wd.store, wd.hand, 1000U);
 
-    WorkingThread.join ();
-    wd.testing = false;
+    if ( wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
+    { /* joined */
+      delete wd.pWorkerThread;
+      wd.pWorkerThread = nullptr;
+
+      wd.testing = false;
+      /* Setting the Label's text */
+      SendMessage (wd.hLabTest,      /* Label   */
+                   WM_SETTEXT,       /* Message */
+                   (WPARAM) NULL,    /* Unused  */
+                   (LPARAM) _T (" "));
+    } // end if
   }
 
   
 }
 void  OnCoverTest  (MyWindowData &wd)
-{
-  //iter = 1;
+{ 
   if ( !wd.testing )
   {
     wd.testing = true;
     wd.testing_trajectories.clear ();
 
-    // boost::thread  WorkingThread (HandMoves::test_cover,
-    //                               std::ref (wd.store),
-    //                               wd.hand,
-    //                               std::ref (wd.testing_trajectories),
-    //                               2);
+    /* Setting the Label's text */
+    SendMessage (wd.hLabTest,      /* Label   */
+                 WM_SETTEXT,       /* Message */
+                 (WPARAM) NULL,    /* Unused  */
+                 (LPARAM) _T("\n *** testing ***  "));
+
+    const size_t nested = 2U;
+    wd.pWorkerThread = new boost::thread (HandMoves::test_cover,
+                                          std::ref (wd.store),
+                                          wd.hand,  /* copy */
+                                          // std::ref (wd.testing_trajectories),
+                                          nested);
 
     // hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
     // HandMoves::test_cover (wd.store, wd.hand, wd.testing_trajectories, 2);
 
-    // if ( WorkingThread.try_join_for (boost::chrono::milliseconds (10)) )
-    {
+    if ( wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
+    { /* joined */
+      delete wd.pWorkerThread;
+      wd.pWorkerThread = nullptr;
+
       wd.testing = false;
       wd.testing_trajectories_animation_num_iteration = 1;
       wd.testing_trajectories_animation_show = true;
+
+      /* Setting the Label's text */
+      SendMessage (wd.hLabTest,      /* Label   */
+                   WM_SETTEXT,       /* Message */
+                   (WPARAM) NULL,    /* Unused  */
+                   (LPARAM) _T (" "));
     } // end if
   } // end if
 }
@@ -184,7 +249,7 @@ void  OnShowTrajectory (MyWindowData &wd)
   wd.trajectory_frames_show = true;
   wd.trajectory_frames_muscle = selectHandMove ( random (HandMovesCount) );
   wd.trajectory_frames_lasts = random ( wd.hand.timeMuscleWorking (wd.trajectory_frames_muscle) );
-
+  
   wd.hand.step (wd.trajectory_frames_muscle);
   wd.trajectory_frames.push_back (wd.hand.position);
 }
@@ -202,20 +267,41 @@ void  draw_adjacency (HDC hdc, const Point &pt, double r, figure_t figure, HPEN 
   SelectObject (hdc, hPen_old);
 }
 
+void  MakeHandMove (MyWindowData &wd);
 void  OnShowDBPoints (MyWindowData &wd)
 {
   if ( !wd.testing )
-  {
-    // boost::thread workerThread (workerFunc);
+  { 
     if ( wd.mouse_haved )
     {
       wd.pointsDB.clear ();
-      HandMoves::adjacencyPoints (wd.store, wd.pointsDB,
-                                  wd.mouse_aim, wd.radius);
 
-      // ?? figure_t
+      // ?? figure_t ???
+
+      wd.testing = true;
+      wd.pWorkerThread = new boost::thread (MakeHandMove,
+                                            std::ref (wd));
+
+      // typedef size_t  (*func_type) (Store&,std::list<std::shared_ptr<Record>>&,const Point&,double);
+      // wd.pWorkerThread = new boost::thread ( (func_type) (&HandMoves::adjacencyPoints),
+      //                                        std::ref (wd.store),
+      //                                        std::ref (wd.pointsDB),
+      //                                        std::ref (wd.mouse_aim),
+      //                                        wd.radius );
+
+      // HandMoves::adjacencyPoints (wd.store, std::back_inserter (wd.pointsDB),
+      //                             wd.mouse_aim, wd.radius);
+
       // HandMoves::adjacencyRectPoints (wd.store, std::back_inserter (wd.pointsDB),
-      //                                 wd.mouse_aim, wd.radius, true);
+      //                                 wd.mouse_aim, wd.radius);
+
+      if ( wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (1)) )
+      { /* joined */
+        delete wd.pWorkerThread;
+        wd.pWorkerThread = nullptr;
+
+        wd.testing = false;
+      } // end if
     }
     else
     {
@@ -233,3 +319,44 @@ void  OnShowDBTrajectories (MyWindowData &wd)
   }
 }
 //-------------------------------------------------------------------------------
+void  MakeHandMove (MyWindowData &wd)
+{
+  
+  HandMoves::adjacencyPoints (wd.store, wd.pointsDB,
+                              wd.mouse_aim, wd.radius);
+
+  // std::sort ( wd.pointsDB.begin (), wd.pointsDB.end (),
+  //             [m_aim](const shared_ptr<Record> &a, 
+  //                     const shared_ptr<Record> &b) -> bool
+  //             { boost_point2_t aim = m_aim;
+  //               boost_point2_t a_p = a->aim;
+  //               boost_point2_t b_p = b->aim;
+  //               double  d1 = boost::geometry::distance (aim, a_p);
+  //               double  d2 = boost::geometry::distance (aim, b_p);
+  //               return (d1 < d2);
+  //             }
+  //           );
+
+  auto m_aim = wd.mouse_aim;
+  wd.pointsDB.sort ([m_aim](const shared_ptr<Record> &a,
+                            const shared_ptr<Record> &b)
+                    { boost_point2_t aim = m_aim;
+                      boost_point2_t a_p = a->aim;
+                      boost_point2_t b_p = b->aim;
+                      double  d1 = boost::geometry::distance (aim, a_p);
+                      double  d2 = boost::geometry::distance (aim, b_p);
+                      return (d1 > d2);
+                    });
+
+  std::wstringstream buffer;
+  for ( auto p : wd.pointsDB )
+  {
+    buffer << p << std::endl;
+  }
+  /* Setting the Label's text */
+  SendMessage ( wd.hLabStat,      /* Label   */
+                WM_SETTEXT,       /* Message */
+                (WPARAM) NULL,    /* Unused  */
+                (LPARAM) buffer.str ().c_str ()
+              );
+}
