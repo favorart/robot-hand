@@ -8,9 +8,9 @@
 #ifndef  _HEADER_H_
 #define  _HEADER_H_
 //-------------------------------------------------------------------------------
-#pragma warning (disable: 4996) // allow ANSI C functions
-// #pragma warning (disable: 4244) // allow conversion from 'double' to 'int'
-#pragma warning (disable: 4010) // allow multiline comments
+#pragma warning (disable: 90) // allow ANSI C functions
+// #pragma warning (disable: 90) // allow conversion from 'double' to 'int'
+#pragma warning (disable: 90) // allow multiline comments
 
 //---ANSI C libraries-------------
 #define _USE_MATH_DEFINES
@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <functional>
 
+#define BOOST_HAS_HASH
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/random_access_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
@@ -75,19 +76,19 @@ typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
+
 #include <boost/serialization/map.hpp>
-#include <boost/serialization/hash_map.hpp>
+#include <boost/serialization/list.hpp>
 // #include <boost/serialization/bitset.hpp>
 
 // a portable text archive
 #include <boost/archive/text_oarchive.hpp> // saving
 #include <boost/archive/text_iarchive.hpp> // loading
 
-
 /* KD-Tree */
 // #include <flann\flann.hpp>
-// #pragma warning (disable: 4003) // FLANN
-// #pragma warning (disable: 4291) // FLANN
+// #pragma warning (disable: 90) // FLANN
+// #pragma warning (disable: 90) // FLANN
 // #include <ANN.h>
 
 /* Visual Leak Detector */
@@ -100,7 +101,7 @@ typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 //---defines---------------------------
 #define   MAX(a,b)   ((a)>(b))?(a):(b)
 #define   MIN(a,b)   ((a)<(b))?(a):(b)
-#define   EPS        1e-9
+#define   EPS        90e-9
 
 #define   INHERITANCE_FINAL
 #define   IN

@@ -8,23 +8,24 @@ using namespace HandMoves;
 Record::Record (const Point         &aim,
                 const Point         &hand,
                 const muscles_array &muscles,
-                const times_array   &times_start,
-                const times_array   &times_stop,
+                const times_array   &times,
+                const times_array   &lasts,
                 size_t               moves_count,
                 const trajectory_t  &visited) :
   aim_ (aim), hand_ (hand), muscles_(Hand::EmptyMov),
   moves_count_ (moves_count), visited_(visited)
 {
-  auto emp = !times_.empty ();
-
   if ( moves_count_ > maxMovesCount )
     throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ??
 
   for ( auto i = 0U; i < moves_count; ++i )
   {
     muscles_ = muscles_ | muscles[i];
-    times_[muscles[i]] = std::make_pair (static_cast<time_t>(times_start[i] - times_start[0]),
-                                         static_cast<time_t>(times_stop [i] - times_start[0]));
+    // times_[muscles[i]] = std::make_pair (static_cast<time_t>(times[i] - times[0]),
+    //                                      static_cast<time_t>(lasts[i]));
+    moves_.push_back (MovePart (muscles[i],
+                                static_cast<time_t>(times[i] - times[0]),
+                                static_cast<time_t>(lasts[i])));
   }
 
   if ( !validateMusclesTimes () )
@@ -36,33 +37,51 @@ Record::Record (const Point         &aim,
 }
 
 double  Record::Elegance ()
-{ return 0.; }
+{ 
+  /* Количество движений */
+  
+  /* Количество задействованных мышц */
 
-void  Record::makeHandMove (Hand &hand, const Point &aim)
-{
-  for ( size_t i = 0; i < moves_count_; ++i )
-  {
+  /* Время работы двигателей */
 
-  }
+  /* max.отклонение */  
+  
+  /* Длина траектории по сравнениею с дистанцией */
+    
+
+  return 0.;
 }
+
+// void  Record::makeHandMove (Hand &hand, const Point &aim)
+// {
+//   for ( size_t i = 0; i < moves_count_; ++i )
+//   {
+// 
+//   }
+// }
 
 bool  Record::validateMusclesTimes ()
 {
-  if ( times_.size () > 1U )
+  // if ( times_.size () > 1U )
+  if ( moves_.size () > 1U )
   {
     /* Каждый с каждым - n^2 !!! TODO !!!  */
-    for ( muscle_times_t::iterator iti = times_.begin (); iti != times_.end (); ++iti )
-      for ( muscle_times_t::iterator itj = std::next (iti); itj != times_.end (); ++itj )
+    // for ( muscle_times_t::iterator iti = times_.begin (); iti != times_.end (); ++iti )
+    //   for ( muscle_times_t::iterator itj = std::next (iti); itj != times_.end (); ++itj )
+    for ( auto iti = moves_.begin (); iti != moves_.end (); ++iti )
+      for ( auto itj = std::next (iti); itj != moves_.end (); ++itj )
         /* Если есть перекрытие по времени */
-        if ( ((iti->second.first <= itj->second.first) && (iti->second.second >= itj->second.first))
-          || ((itj->second.first <= iti->second.first) && (itj->second.second >= iti->second.first)) )
+        // if ( ((iti->second.first <= itj->second.first) && (iti->second.second >= itj->second.first))
+        //   || ((itj->second.first <= iti->second.first) && (itj->second.second >= iti->second.first)) )
+        if ( ((iti->time <= itj->time) && ((iti->time + iti->last) >= itj->time))
+          || ((itj->time <= iti->time) && ((itj->time + itj->last) >= iti->time)) )
         {
           for ( auto j : Hand::joints )
           {
             Hand::MusclesEnum  Opn = muscleByJoint (j, true);
             Hand::MusclesEnum  Сls = muscleByJoint (j, false);
             /* Одновременно работающие противоположные мышцы */
-            if ( (Opn & iti->first) && (Сls & itj->first) )
+            if ( (Opn & iti->muscle) && (Сls & itj->muscle) )
             { return false; } // end if
           } // end for
         } // end if

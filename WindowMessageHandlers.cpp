@@ -137,11 +137,13 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   { TCHAR string_help[1024];
 
   _stprintf (string_help,
-             _T ("Клавиши управления:  \r\rEsc - выход  \rEnter - авто-тест  \rR - сбросить  \r")
+             _T ("Клавиши управления:  \r\rEsc - выход  \r\rR - сбросить всё  \r\r") // Enter - авто-тест  \r
              _T ("Z - двинуть ключицей вправо  \rX - сомкнуть плечо  \rС - сомкнуть локоть  \r")
-             _T ("A - двинуть ключицей влево   \rS - раскрыть плечо  \rD - раскрыть локоть  \r\r")
+             _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \rD - раскрыть локоть  \r\r")
              _T ("Повторное нажатие на кнопку во время движения  \rостанавливает соответствующее движение.  \r\r")
-             _T ("T - для продолжения обучения  \r\rКвадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
+             _T ("U - нарисовать рабочую область руки  \rO - нарисовать случайную траекторию  \r\r")
+             _T ("P - Cover Test  \rT - Random Test  \r\r")
+             //_T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
              //_T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r, где 0 <= !no! - номер строки/столбца"),
              //tgRowsCount,
              //tgColsCount
@@ -300,7 +302,28 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'o':
     { //========================================
-      OnShowTrajectory (wd);
+      // OnShowTrajectory (wd);
+      
+      wd.trajectory_frames.clear ();
+      wd.hand.SET_DEFAULT;
+
+      wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
+      wd.trajectory_frames_lasts = random (wd.hand.timeMuscleWorking (wd.trajectory_frames_muscle));
+
+      // wd.trajectory_frames_muscle = Hand::ShldrCls;
+      // wd.trajectory_frames_lasts = 25U;
+
+      wd.hand.move (wd.trajectory_frames_muscle, wd.trajectory_frames_lasts, wd.trajectory_frames);
+
+      auto aim = wd.hand.position;
+      auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
+                         { 0U }, { wd.trajectory_frames_lasts },
+                         1U, wd.trajectory_frames);
+      wd.store.insert (rec);
+
+      wd.trajectory_frames.clear ();
+      wd.trajectory_frames_muscle = Hand::EmptyMov;
+      wd.trajectory_frames_lasts = 0;
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
@@ -324,6 +347,51 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
+    case 'q':
+    { //========================================
+      OnShowDBPoints (wd);
+      //========================================
+      InvalidateRect (hWnd, &myRect, FALSE);
+      break;
+    }
+
+    case 'i':
+    { int muscle, last;
+      cin >> muscle >> last;
+      wd.hand.move ((Hand::MusclesEnum)muscle, (Hand::time_t)last);
+      InvalidateRect (hWnd, &myRect, FALSE);
+      break;
+    }
+
+    case 'u':
+    {
+
+      Hand::MusclesEnum muscle;
+      wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0.,0.,0. });
+
+      muscle = Hand::ClvclOpn;
+      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+
+      muscle = Hand::ShldrCls;
+      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      
+      muscle = Hand::ClvclCls;
+      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+
+      muscle = Hand::ElbowCls;
+      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      
+      muscle = Hand::ShldrOpn;
+      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+       
+      muscle = Hand::ElbowOpn;
+      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      
+      wd.hand.SET_DEFAULT;
+      InvalidateRect (hWnd, &myRect, FALSE);
+      break;
+    }
+
     //========================================
     /* Clavicle */
     case 'z': wd.hand.step (Hand::ClvclCls); break; /* двинуть ключицей вправо */
@@ -336,8 +404,10 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     case 'd': wd.hand.step (Hand::ElbowOpn); break;
     /* Reset */
     case 'r': 
-      wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
+      wd.hand.SET_DEFAULT;
       
+      wd.reach = false;
+
       wd.pointsDB.clear ();
       wd.trajectoriesDB.clear ();
 

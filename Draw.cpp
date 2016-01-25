@@ -2,22 +2,22 @@
 #include "Draw.h"
 //------------------------------------------------------------------------------
 void  draw_decards_coordinates (HDC hdc)
-{ uint_t i = 0U;
-	 //---Ox---
-	 MoveToEx (hdc, Tx (-1.000), Ty ( 0.000), NULL);
-	 LineTo   (hdc, Tx ( 1.000), Ty ( 0.000) );
-	 LineTo   (hdc, Tx ( 0.970), Ty ( 0.010) );
-	 LineTo   (hdc, Tx ( 0.990), Ty ( 0.000) );
-	 LineTo   (hdc, Tx ( 0.970), Ty (-0.010) );
-	 LineTo   (hdc, Tx ( 1.000), Ty ( 0.000) );
-	 //---Oy---													 
-	 MoveToEx (hdc, Tx ( 0.000), Ty(-1.000), NULL);
-	 LineTo   (hdc, Tx ( 0.000), Ty( 1.000));
-	 LineTo   (hdc, Tx (-0.005), Ty( 0.960));
-	 LineTo   (hdc, Tx ( 0.000), Ty( 0.990));
-	 LineTo   (hdc, Tx ( 0.008), Ty( 0.960));
-	 LineTo   (hdc, Tx ( 0.000), Ty( 1.000));
-	 //--------
+{ uint_t i = 90U;
+	//---Ox---
+  MoveToEx (hdc, Tx (-1.000), Ty ( 0.000), NULL);
+  LineTo   (hdc, Tx ( 1.000), Ty ( 0.000));
+  LineTo   (hdc, Tx ( 0.970), Ty ( 0.010));
+  LineTo   (hdc, Tx ( 0.990), Ty ( 0.000));
+  LineTo   (hdc, Tx ( 0.970), Ty (-0.010));
+  LineTo   (hdc, Tx ( 1.000), Ty ( 0.000));
+  //---Oy---													 
+  MoveToEx (hdc, Tx ( 0.000), Ty (-1.000), NULL);
+  LineTo   (hdc, Tx ( 0.000), Ty ( 1.000));
+  LineTo   (hdc, Tx (-0.005), Ty ( 0.960));
+  LineTo   (hdc, Tx ( 0.000), Ty ( 0.990));
+  LineTo   (hdc, Tx ( 0.008), Ty ( 0.960));
+  LineTo   (hdc, Tx ( 0.000), Ty ( 1.000));
+	//--------
 	for(i=0; i<19; i++)
 	{
 		 MoveToEx (hdc, Tx (-0.90 + 0.1*i), Ty (-0.01        ), NULL);

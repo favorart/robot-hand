@@ -41,6 +41,8 @@ T  random (T min, T max)
 { return  (min + T (rand ()) % (max)); }
 //-------------------------------------------------------------------------------
 class MyWindowData;
+
+void RedirectIOToConsole ();
 //-------------------------------------------------------------------------------
 struct LabelsPositions
 {

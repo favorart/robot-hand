@@ -98,19 +98,18 @@ bool  Hand::muscleMove (MusclesEnum hydNo, time_t time, bool atStop)
   
   switch (hydNo)
   { // default: SetError_ (ERR_NO);	   			                                      break;
-    case ClvclOpn :	shiftClvcl = (shiftClvcl_ - frame < 0.0          ) ? (          0.0 - shiftClvcl_ /*+ EPS*/) : -frame; break;
-		case ClvclCls : shiftClvcl = (shiftClvcl_ + frame > maxClvclShift) ? (maxClvclShift - shiftClvcl_ /*- EPS*/) :  frame; break;
-    case ShldrOpn : angleShldr = (angleShldr_ + frame > maxShldrAngle) ? (maxShldrAngle - angleShldr_ /*- EPS*/) :  frame; break;
-    case ShldrCls :	angleShldr = (angleShldr_ - frame < 1.0          ) ? (          1.0 - angleShldr_ /*+ EPS*/) : -frame; break;
-    case ElbowOpn :	angleElbow = (angleElbow_ + frame > maxElbowAngle) ? (maxElbowAngle - angleElbow_ /*- EPS*/) :  frame; break;
-    case ElbowCls :	angleElbow = (angleElbow_ - frame < 1.0          ) ? (          1.0 - angleElbow_ /*- EPS*/) : -frame; break;
+    case ClvclOpn :	shiftClvcl = (shiftClvcl_ + frame > maxClvclShift) ? (maxClvclShift - shiftClvcl_ /*- EPS*/) :  frame; break; 
+		case ClvclCls : shiftClvcl = (shiftClvcl_ - frame < 0.0          ) ? (          0.0 - shiftClvcl_ /*+ EPS*/) : -frame; break;
+    case ShldrOpn : angleShldr = (angleShldr_ - frame < 1.0          ) ? (          1.0 - angleShldr_ /*+ EPS*/) : -frame; break;
+    case ShldrCls :	angleShldr = (angleShldr_ + frame > maxShldrAngle) ? (maxShldrAngle - angleShldr_ /*- EPS*/) :  frame; break;
+    case ElbowOpn :	angleElbow = (angleElbow_ - frame < 1.0          ) ? (          1.0 - angleElbow_ /*- EPS*/) : -frame; break; 
+    case ElbowCls :	angleElbow = (angleElbow_ + frame > maxElbowAngle) ? (maxElbowAngle - angleElbow_ /*- EPS*/) :  frame; break;
 		// case WristOpn :	angleWrist = (angleWrist  < 0.0           ) ? 0.0 :  frame; break;
 		// case WristCls :	angleWrist = (angleWrist  < 0.0           ) ? 0.0 : -frame;	break;
   }
 
   // if ( shiftClvcl_ > maxClvclShift ) shiftClvcl_ = maxClvclShift;
   // if ( shiftClvcl_ < 0.0 ) shiftClvcl_ = 0.0;
-
 
   curPosShldr_.x -= shiftClvcl;
   curPosArm_  .x -= shiftClvcl;
@@ -128,7 +127,7 @@ bool  Hand::muscleMove (MusclesEnum hydNo, time_t time, bool atStop)
 }
 void  Hand::muscle     (uint_t no, bool control)
 {
-  ulong_t  time;
+  time_t  time;
   //-------------------------------------------------------
   if ( !control && !timeBgn2OpenHyd_[no]
                 && !timeEnd2OpenHyd_[no] )
@@ -145,18 +144,20 @@ void  Hand::muscle     (uint_t no, bool control)
     timeBgn2OpenHyd_[no] = time_;
   }
   else if ( control &&  timeBgn2OpenHyd_[no] )
-  { // остановка движения
+  { // остановка движения - по сигналу
     timeBgn2OpenHyd_[no] = 0ULL;
     timeEnd2OpenHyd_[no] = time_;
   }
   else if ( time == tFrames2OpenHyd_[no] )
-  {
+  { // остановка движения - по истечении доступных фреймов
     flagMovEnd_ = true;
     timeBgn2OpenHyd_[no] = 0ULL;
     timeEnd2OpenHyd_[no] = 0ULL;
   }
-  else if ( time < tFrames2OpenHyd_[no] )
-  { // time %= tFrames2OpenHyd_[no];
+  else if ( timeBgn2OpenHyd_[no] && time < tFrames2OpenHyd_[no] )
+  { // продолжение движения
+    
+    // time %= tFrames2OpenHyd_[no];
     if ( !muscleMove ((MusclesEnum) (1U << no), time, false) )
     {
       flagMovEnd_ = true;
@@ -182,39 +183,61 @@ void  Hand::muscle     (uint_t no, bool control)
 std::vector<double>  generateFrames (double a, double b, size_t n)
 {
   std::vector<double> frames (n--);
+
+  double  sum = 0.;
   for ( size_t i = 0U; i <= n; ++i )
-  { frames[i] = (a + b + (a - b)*cos (i * M_PI / n)) / 2.; }
+  { 
+    // frames[i] = (a + (b - a) * (atan (tan ((i / n - 0.5) / M_PI * 10.) * 7.) / M_PI + 0.5));
+    // frames[i] = (a + b + (a - b) * cos (i * M_PI / n)) / 2.;
+
+    frames[i] = (1. - cos (i * M_PI / n)) * 0.5;
+    sum += frames[i];
+  }
+
+  for ( size_t i = 0U; i <= n; ++i )
+  {
+    frames[i] = frames[i] * (b - a) / sum + a;
+  }
+  // frames.back () = (b - EPS);
+
   return frames;
 }
 
 // current velosity ??
 std::vector<double>  generateStopFrames (double a, double b, size_t n)
 {
-  std::vector<double> frames (n--); // 2 * n);
+  std::vector<double> frames (n--);
 
-  // m = n / 2;
-  // (n - m) * 2;
+  double  sum = 0.;
   for ( size_t i = 0U; i <= n; ++i )
-  { frames[i] = (a + b + (a - b)*cos ( ((n / 2. + (i+1) / 2.) * M_PI) / n)) / 2.; }
+  { 
+    // frames[i] = (a + b + (a - b)*cos ( ((n / 2. + (i+1) / 2.) * M_PI) / n)) / 2.;
+    double d = double (i) / n;
+    frames[i] = ( 1. - cos ((d + 1.) * M_PI) ) * 0.5;
+    sum += frames[i];
+  }
 
-  // for ( size_t i = n; i >= n; ++i )
-  // { frames[i] = frames[0]; }
+  for ( size_t i = 0U; i <= n; ++i )
+  {
+    frames[i] = frames[i] * (b - a) / sum + a;
+  }
+  // frames.back () = (b - EPS);
 
-  return frames;// | boost::adaptors::sliced (n / 2, n);
+  return frames;
 }
 
 Hand::Hand (const Point &hand, const Point &arm,
             const Point &sholder, const Point &clavicle): // joints  { Clvcl, Shldr, Elbow },
                      // muscles { ClvclOpn, ClvclCls, ShldrOpn,
                      //           ShldrCls, ElbowOpn, ElbowCls },
-            minJStopMoveFrames (5U),  // (5U),
-            maxClvclMoveFrames (135U), // (15U),
-            maxShldrMoveFrames (145U), // (30U),
-            maxElbowMoveFrames (145U), // (35U),
+            minJStopMoveFrames (15U),  // (5U),
+            maxClvclMoveFrames (30U), // (15U),
+            maxShldrMoveFrames (60U), // (30U),
+            maxElbowMoveFrames (55U), // (35U),
             // maxWristMoveFrames (15U), // (15U),
             maxClvclShift (0.40),
-            maxShldrAngle ( 85U),
-            maxElbowAngle (145U),
+            maxShldrAngle (105U),
+            maxElbowAngle (135U),
             // timeBgn2OpenHyd_ (0), // TODO: !!!
             // timeEnd2OpenHyd_ (0)  // TODO: !!! 
             hand_(hand),
@@ -237,7 +260,7 @@ Hand::Hand (const Point &hand, const Point &arm,
 
   current_velosity = 0.;
 
-  // tFrames2OpenHyd_ = frames;                                             // TODO: !!!
+  // tFrames2OpenHyd_ = frames;                                            // TODO: !!!
   std::memmove (tFrames2OpenHyd_, frames, sizeof (time_t) * musclesCount); // TODO: !!! 
 
   reset ();
@@ -252,40 +275,46 @@ void  Hand::step (MusclesEnum hydNo)
 { time_++;
 
   for (uint_t i = 0U; i<musclesCount; ++i)
-    muscle (i, ((hydNo & (1U<<i)) != 0U) );  
+    muscle (i, ((hydNo & (1U<<i)) != 0U) );
+
 }
-void  Hand::move (MusclesEnum hydNo, time_t last, std::list<Point> &visited)
+void  Hand::move (MusclesEnum muscle, time_t last, std::list<Point> &visited)
 {
+  std::wcout << std::endl;
   /* START! */
-  step (hydNo);
+  step (muscle);
   visited.push_back (position);
+  std::wcout << std::wstring (position) << std::endl;
 
   while ( last-- )
   { /* moving */
     step ();
     visited.push_back (position);
+    std::wcout << std::wstring (position) << std::endl;
   }
 
   if ( !flagMovEnd_ )
   { /* STOP! */
-    step (hydNo);
+    step (muscle);
     visited.push_back (position);
+    std::wcout << L"end " << std::wstring(position) << std::endl;
   }
 
   while ( !flagMovEnd_ )
   { /* coming to a stop */
     step ();
     visited.push_back (position);
+    std::wcout << std::wstring (position) << std::endl;
   }
 
 }
-void  Hand::move (MusclesEnum hydNo, time_t last) // !simultaniusly
-{ step (hydNo);
- 	while (last--)
+void  Hand::move (MusclesEnum muscle, time_t last) // !simultaniusly
+{ step (muscle);
+ 	while ( last-- )
    step ();
  	
   if( !flagMovEnd_ )
-   step (hydNo);
+   step (muscle);
  	while ( !flagMovEnd_ )
    step ();
 }
@@ -448,7 +477,7 @@ void  Hand::set (MusclesEnum muscle, uint_t frame)
     res += stepFrame (muscle, (ulong_t)i, false);
 }
 //--------------------------------------------------------------------------------
-double  Hand::stepFrame (MusclesEnum hydNo, time_t time, bool atStop) const
+double  Hand::stepFrame (MusclesEnum muscle, time_t time, bool atStop) const
 { double  frame;
 
   // //-----------------------------------------------
@@ -487,15 +516,20 @@ double  Hand::stepFrame (MusclesEnum hydNo, time_t time, bool atStop) const
 
   //-----------------------------------------------
   const std::vector<double> *frames = NULL;
-  switch ( hydNo )
+  switch ( muscle )
   {
     // default:		               		frame = 0.0;                                        break;
     case ClvclOpn: case ClvclCls: frames = (atStop) ? &c_frstop : &c_frames; break;
     case ShldrOpn: case ShldrCls: frames = (atStop) ? &s_frstop : &s_frames; break;
     case ElbowOpn: case ElbowCls: frames = (atStop) ? &e_frstop : &e_frames; break;
   }
-
   frame = (*frames)[time];
+  
+  // double cum_sum = 0.;
+  // for ( auto i = 0U; i <= time; ++i )
+  //   cum_sum += (*frames)[time];
+  // std::wcout << time << ' ' << (*frames)[time] << ' ' << cum_sum << std::endl;
+
   // if ( atStop )
   // {
   //   double velosity = (time) ? ((*frames)[time] - (*frames)[time - 1U]) : ((*frames)[time]);

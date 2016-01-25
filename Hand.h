@@ -91,7 +91,7 @@ private:
   time_t  timeEnd2OpenHyd_[musclesCount];
   time_t  tFrames2OpenHyd_[musclesCount];
 
-public:
+  public:
 
   //---angle limits-------------------------------------
 	const double  maxClvclShift;
@@ -112,8 +112,8 @@ public:
 public:
   //----------------------------------------------------
 	//Hand ();
-  Hand (const Point &hand = { -0.3, 0.9 }, const Point &arm = { 0.3, 0.6 },
-        const Point &sholder = { 0.8, 0.1 } , const Point &clavicle = { 0.8, 0.1 });
+  Hand (const Point &hand    = { -0.35, 1.0  }, const Point &arm      = { 0.25, 0.7 },
+        const Point &sholder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 });
 
 	void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
   void  move (MusclesEnum muscle, time_t last);              // ??? PROGRESS
@@ -160,6 +160,8 @@ Hand::MusclesEnum  selectHandMove (uint_t choose);
 Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
 Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
 
+
+#define SET_DEFAULT set(Hand::Clvcl|Hand::Shldr|Hand::Elbow,{0,0,70})
 
 /*
 * hand

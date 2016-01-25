@@ -1,14 +1,27 @@
 #include "StdAfx.h"
 #include "target.h"
 
+
+void  RecTarget::generate ()
+{
+  double r_step = (top - btm) / (c_rows - 1U);
+  double c_step = (rgh - lft) / (c_cols - 1U);
+
+  for ( uint_t i = 0U; i < c_rows; ++i )
+  { for ( uint_t j = 0U; j < c_cols; ++j )
+    { coords_.push_back (Point (lft + j * c_step,
+                                btm + i * r_step));
+    }
+  }
+}
 //------------------------------------------------------------------------------
-void  RecTarget::draw (HDC hdc, HPEN hPen) const // matrix 80 * 80
+void  RecTarget::draw (HDC hdc, HPEN hPen) const
 { const double  REllipse = 0.007;
  
   HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
 	//---target--------------------------------------------------------
-	double r = (top - btm) / (c_rows-1U);
-	double c = (rgh - lft) / (c_cols-1U);
+	double r = (top - btm) / (c_rows - 1U);
+	double c = (rgh - lft) / (c_cols - 1U);
 
 	Rectangle (hdc, Tx (lft - c/2.0), Ty (top + r/2.0),
                   Tx (rgh + c/2.0), Ty (btm - r/2.0));
@@ -22,10 +35,11 @@ void  RecTarget::draw (HDC hdc, HPEN hPen) const // matrix 80 * 80
 			LineTo (hdc, Tx (rgh + c/2.0), Ty (btm + i*r - r/2.0)  );
 	}
 
-	for( set_t::const_iterator it  = coords_.cbegin ();
-                             it != coords_.cend   (); ++it)
-	 Ellipse (hdc, Tx (it->x - REllipse), Ty (it->y + REllipse),
-                 Tx (it->x + REllipse), Ty (it->y - REllipse));
+	for( auto p : coords_ )
+  {
+	 Ellipse (hdc, Tx (p.x - REllipse), Ty (p.y + REllipse),
+                 Tx (p.x + REllipse), Ty (p.y - REllipse));
+  }
 	//-----------------------------------------------------------------
 	// отменяем ручку
 	SelectObject (hdc, hPen_old);

@@ -2,7 +2,6 @@
 #include "Hand.h"
 #include "HandMovesStore.h"
 
-
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
@@ -22,16 +21,19 @@ bool  insert (std::list< std::list<Point> > &trajectories, std::list<Point> &tra
 //------------------------------------------------------------------------------
 void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
 {
+  /* Для нового потока нужно снова переинициализировать rand */
+  std::srand ((unsigned int) clock ());
+
   for ( uint_t i = 0U; i < tries; ++i )
   {
     trajectory_t visited;
-    Record::muscles_array   muscles = {};
-    // Record::times_array    lasts;
-    Record::times_array times_start = {};
-    Record::times_array times_stop  = {};
+    Record::muscles_array  muscles = {};
+    Record::times_array    lasts = {};
+    Record::times_array    times = {};
+    // Record::times_array times_stop  = {};
     size_t moves_count = random (1U, Record::maxMovesCount);
 
-    hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50, 50, 50 });
+    hand.SET_DEFAULT;
     for ( uint_t j = 0U; j < moves_count; ++j )
     {
       auto muscle = selectHandMove ( random (1U, HandMovesCount - 1U) );
@@ -39,15 +41,17 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
       hand.move (muscle, last, visited);
 
       muscles[j] = muscle;
-      times_start[j] = (j) ? last : 0;
-      times_stop[j]  = (j) ? (times_stop[j - 1] + last) : last;
+      times[j] = (j) ? lasts[j - 1] : 0;
+      lasts[j] = last;
+
+      // times_stop[j]  = (j) ? (times_stop[j - 1] + last) : last;
     }
 
     const Point &aim = hand.position;
 
     try
     { auto rec = Record (aim, aim, muscles,
-                         times_start, times_stop,
+                         times, lasts,
                          moves_count, visited);
       store.insert (rec);
     }
@@ -65,7 +69,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
   // for ( auto i = 0U; i < Hand::musclesCount; ++i )
   for ( Hand::MusclesEnum  muscle_i : Hand::muscles )
   {
-    hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
+    hand.SET_DEFAULT;
     // auto h = hand.position;
 
     for ( uint_t last_i = 1U; last_i < hand.timeMuscleWorking (muscle_i) / 2; ++last_i )
@@ -102,7 +106,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
               store.insert (Record (aim, aim, 
                                     { muscle_i, muscle_j }, 
                                     { 0, last_i },
-                                    { last_i, last_i + last_j },
+                                    { last_i, last_j },
                                     2U,
                                     trajectory)
                             );
@@ -131,7 +135,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
                     store.insert (Record (aim, aim, 
                                          { muscle_i, muscle_j, muscle_k },
                                          { 0, last_i, last_i + last_j },
-                                         { last_i, last_i + last_j, last_i + last_j + last_k },
+                                         { last_i, last_j, last_k },
                                          3U,
                                          trajectory)
                                   );
@@ -142,31 +146,32 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
                   insert (trajectories, trajectory);
                   trajectory.erase (tail_k, trajectory.end ());
 
-                  hand.set (jointByMuscle (muscle_k), { 50. });
+                  hand.set (jointByMuscle (muscle_k), { (jointByMuscle (muscle_k) == Hand::Elbow) ? 70. : 0. });
                 }
               }
             //=================================================
             trajectory.erase (tail_j, trajectory.end ());
             //a.insert (a.end (), b.begin (), b.end ());
 
-            hand.set (jointByMuscle (muscle_j), { 50. });
+            hand.set (jointByMuscle (muscle_j), { (jointByMuscle (muscle_j) == Hand::Elbow) ? 70. : 0. });
           }
       }
-      hand.set (jointByMuscle (muscle_i), { 50. });
+      hand.set (jointByMuscle (muscle_i), { (jointByMuscle (muscle_i) == Hand::Elbow) ? 70. : 0. });
     }
   }
-  hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 50., 50., 50. });
+  hand.SET_DEFAULT;
 }
-//void  /*HandMoves::*/ test_cover2 (Store &store, Hand &hand, double radius,
-//                                   std::list< std::list<Point> > &trajectories)
-//{
+
+//------------------------------------------------------------------------------
+void  /*HandMoves::*/ test_cover2 (Store &store, Hand &hand, double radius,
+                                   std::list< std::list<Point> > &trajectories)
+{
 //
 //  typedef std::vector<Hand::MusclesEnum> vector_muscles_t;
 //  vector_muscles_t  muscle_opn_cmds = { Hand::ClvclOpn, Hand::ShldrOpn, Hand::ElbowOpn };
 //  vector_muscles_t  muscle_cls_cmds = { Hand::ClvclCls, Hand::ShldrCls, Hand::ElbowCls };
 //
-//  uchar_t js[] = { 0, 0, 0 };
-//  hand.set (js);
+//  hand.SET_DEFAULT;
 //
 //  auto muscles = muscle_opn_cmds;
 //  for ( auto i = 0U; i < muscles.size (); ++i )
@@ -214,6 +219,14 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
 //    }
 //    hand.reset ();
 //  }
-//
-//}
+}
+//------------------------------------------------------------------------------
+#include "target.h"
+void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &target)
+{
+
+
+
+
+}
 //------------------------------------------------------------------------------

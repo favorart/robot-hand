@@ -8,7 +8,6 @@
 #include "Hand.h"
 #include "MyWindow.h"
 
-
 namespace HandMoves
 {
   // !!! tree types of point !!! ????
@@ -30,11 +29,27 @@ namespace HandMoves
     typedef std::array<Hand::time_t, arrays_size> times_array;
     typedef std::array<Hand::MusclesEnum, arrays_size> muscles_array;
 
+    struct MovePart
+    {
+      Hand::MusclesEnum  muscle;
+      time_t             time;
+      time_t             last;
+
+      MovePart () : muscle (Hand::EmptyMov), time (0), last (0) {}
+
+      MovePart (Hand::MusclesEnum  muscle, time_t time, time_t last) :
+        muscle (muscle), time (time), last (last) {}
+
+      template<class Archive>
+      void serialize (Archive & ar, const unsigned int version)
+      { ar & muscle & time & last; }
+    };
+
   private:
     typedef uint_t time_t;
-    typedef std::/*hash_*/map < Hand::MusclesEnum, 
-                            std::pair<time_t, time_t> 
-                          > muscle_times_t;
+    // typedef std::/*unordered_*/ map < Hand::MusclesEnum,
+    //                              std::pair<time_t, time_t> 
+    //                            > muscle_times_t;
 
     // ----------------------------------------
     size_t             moves_count_;
@@ -42,7 +57,8 @@ namespace HandMoves
     Hand::MusclesEnum  muscles_;
     trajectory_t       visited_;
 
-    muscle_times_t     times_;    
+    // muscle_times_t     times_;
+    std::list<MovePart>   moves_;
     // times_array   times_start_;
     // times_array   times_stop_ ;
 
@@ -52,6 +68,7 @@ namespace HandMoves
     // ----- calc -----------------------------
     double    distance_;
     double    elegance_;
+
     // ----------------------------------------
     friend class boost::serialization::access;
     BOOST_SERIALIZATION_SPLIT_MEMBER ()
@@ -60,7 +77,9 @@ namespace HandMoves
     void  save (Archive & ar, const unsigned int version) const
       { ar << aim_ << hand_ << muscles_ << moves_count_;
         // ar << times_start_  << times_stop_; <<
-        ar << times_ << distance_ << elegance_;
+        // ar << times_ << visited_;
+        ar << moves_ << visited_;
+        ar << distance_ << elegance_;
       }
     
     template <class Archive>
@@ -69,7 +88,9 @@ namespace HandMoves
         ar >> hand_;
         ar >> muscles_;
         ar >> moves_count_;
-        ar >> times_;
+        // ar >> times_;
+        ar >> moves_;
+        ar >> visited_;
         //ar >> times_start_;
         //ar >> times_stop_;
         ar >> distance_;
@@ -105,8 +126,8 @@ namespace HandMoves
     Record (const Point         &aim,
             const Point         &hand,
             const muscles_array &muscles,
-            const times_array   &times_start,
-            const times_array   &times_stop,
+            const times_array   &times,
+            const times_array   &lasts,
             size_t               moves_count,
             const trajectory_t  &visited);
     
@@ -122,8 +143,9 @@ namespace HandMoves
     __declspec(property(get = get_traj)) const trajectory_t &trajectory;
     const trajectory_t&  get_traj () const { return visited_; }
     // ----------------------------------------
-    void  makeHandMove (Hand &hand, const Point &aim);
     bool  validateMusclesTimes ();
+
+    void makeHandMove (MyWindowData &wd);
   };
 
   using namespace boost::multi_index;

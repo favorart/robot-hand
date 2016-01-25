@@ -13,16 +13,17 @@
 class MyWindowData
 {
 public:
-  HPEN   hPen_red, hPen_grn, hPen_blue, hPen_cian;
-  HBRUSH hBrush_white, hBrush_null;
+  HWND    hLabMAim, hLabTest, hLabStat;
+  HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
+  HBRUSH  hBrush_white, hBrush_null;
 
   // win_point  user_coords;
   /* координаты мыши в пикселях */
-  bool      mouse_haved;
-  win_point mouse_coords;
-  Point     mouse_aim;
+  bool       mouse_haved;
+  win_point  mouse_coords;
+  Point      mouse_aim;
 
-  const double radius = 0.1;
+  const double  radius = 0.1;
 
   // --- show_frames_trajectory ------
   std::list<Point>   trajectory_frames;
@@ -46,6 +47,7 @@ public:
 
   // ---------------------------------
   bool testing;
+  bool reach;
 
   std::list<std::shared_ptr<HandMoves::trajectory_t>>  testing_trajectories;
   bool testing_trajectories_show; // ?? CheckBox
@@ -60,15 +62,14 @@ public:
   // static int  flag_m, flag_n;
   // static int  p_x, p_y;
   // ---------------------------------
-  HWND hLabMAim, hLabTest, hLabStat;
 
   MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat);
  ~MyWindowData ();
 };
 
-void  OnShowTrajectory (MyWindowData &wd);
-void  OnShowDBPoints (MyWindowData &wd);
-void  OnShowDBTrajectories (MyWindowData &wd);
+void  OnShowTrajectory      (MyWindowData &wd);
+void  OnShowDBPoints        (MyWindowData &wd);
+void  OnShowDBTrajectories  (MyWindowData &wd);
 
 typedef enum { ellipse = 1, rectangle } figure_t;
 void  draw_adjacency (HDC hdc, const Point &pt, double r, figure_t figure, HPEN hPen_cian);
