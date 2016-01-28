@@ -132,31 +132,31 @@ size_t  HandMoves::adjacencyRectPoints (Store &store, std::list<std::shared_ptr<
 }
 //---------------------------------------------------------
 /* круглая окрестность точки */
-//size_t  HandMoves::adjacencyPoints (Store &store, std::list<Record> &range,
-//                                    const Point &center, double radius)
-//{
-//  typedef Store::index<Record::ByP>::type::const_iterator StorePcIter;
-//  Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
-//
-//  StorePcIter itFirstLower = index.lower_bound (boost::make_tuple (center.x - radius,
-//                                                                   center.y - radius));
-//  StorePcIter itFirstUpper = index.upper_bound (boost::make_tuple (center.x + radius,
-//                                                                   center.y + radius));
-//  
-//  // auto range_it = std::back_inserter (range);
-//  size_t count = 0U;
-//  for ( auto it = itFirstLower; it != itFirstUpper; ++it )
-//  {
-//    if ( boost::geometry::distance (boost_point2_t (center),
-//                                    boost_point2_t (it->aim)) <= radius )
-//    {
-//      range.push_back (*it);
-//      // *range_it = (pointer_type) ? (make_shared<Record> (*it)) : (*it); ++range_it;
-//      ++count;
-//    }
-//  }
-//  return count;
-//}
+size_t  HandMoves::adjacencyPoints (Store &store, std::list<Record> &range,
+                                    const Point &center, double radius)
+{
+  typedef Store::index<Record::ByP>::type::const_iterator StorePcIter;
+  Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
+
+  StorePcIter itFirstLower = index.lower_bound (boost::make_tuple (center.x - radius,
+                                                                   center.y - radius));
+  StorePcIter itFirstUpper = index.upper_bound (boost::make_tuple (center.x + radius,
+                                                                   center.y + radius));
+  
+  // auto range_it = std::back_inserter (range);
+  size_t count = 0U;
+  for ( auto it = itFirstLower; it != itFirstUpper; ++it )
+  {
+    if ( boost::geometry::distance (boost_point2_t (center),
+                                    boost_point2_t (it->aim)) <= radius )
+    {
+      range.push_back (*it);
+      // *range_it = (pointer_type) ? (make_shared<Record> (*it)) : (*it); ++range_it;
+      ++count;
+    }
+  }
+  return count;
+}
 size_t  HandMoves::adjacencyPoints (Store &store, std::list<std::shared_ptr<HandMoves::Record>> &range,
                                     const Point &center, double radius)
 {

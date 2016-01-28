@@ -62,6 +62,10 @@ MyWindowData::~MyWindowData ()
 //-------------------------------------------------------------------------------
 void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
 {
+  auto fin = wd.target.coords ()[45];
+  Ellipse (hdc, Tx (-0.01 + fin.x), Ty ( 0.01 + fin.y),
+                Tx ( 0.01 + fin.x), Ty (-0.01 + fin.y));
+
   // ----- Отрисовка фигуры ------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
   draw_trajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
@@ -122,7 +126,7 @@ void  OnWindowTimer (MyWindowData &wd)
 
       // wd.trajectory_frames.push_back (wd.hand.position);
 
-      if ( wd.hand.isMoveEnd () )
+      if ( wd.hand.moveEnd )
       {
         // auto aim = wd.hand.position;
         // auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
@@ -289,9 +293,8 @@ void  OnShowDBPoints (MyWindowData &wd)
     if ( wd.mouse_haved )
     {
       wd.pointsDB.clear ();
-
-
-     
+      wd.testing_trajectories.clear ();
+      wd.trajectory_frames.clear ();
 
       // ?? figure_t ???
 
@@ -346,10 +349,13 @@ void  UncoveredTargetPoints (Store &store, const RecTarget &t, std::list<Point> 
   std::list<std::shared_ptr<Record>> range;
   adjacencyRectPoints (store, range, t.Min (), t.Max ());
 
-  for ( auto p : range )
+  typedef Store::index<Record::ByP>::type::const_iterator StorePcIter;
+  Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
+
+  for ( auto p : t.coords () ) //.cbegin (); it != cend (); )
   {
-    // if ( p not in t )
-    // { uncovered.push_back (p); }
+    if ( index.find (boost::tuple<double, double> (p)) == index.end () )
+    { uncovered.push_back (p); }
   }
 }
 
@@ -370,21 +376,21 @@ void  MakeHandMove (MyWindowData &wd)
                               return (d1 > d2);
                             });
 
-  wd.testing_trajectories.clear ();
+  // wd.testing_trajectories.clear ();
 
-  std::wstringstream buffer;
-  for ( auto pRec : wd.pointsDB )
-  {
-    buffer << pRec << std::endl;
-
-    wd.testing_trajectories.push_back (make_shared<HandMoves::trajectory_t> (pRec->trajectory));
-  }
-  /* Setting the Label's text */
-  SendMessage (wd.hLabStat,      /* Label   */
-               WM_SETTEXT,       /* Message */
-               (WPARAM) NULL,    /* Unused  */
-               (LPARAM) buffer.str ().c_str ()
-               );
+  // std::wstringstream buffer;
+  // for ( auto pRec : wd.pointsDB )
+  // {
+  //   buffer << pRec << std::endl;
+  // 
+  //   wd.testing_trajectories.push_back (make_shared<HandMoves::trajectory_t> (pRec->trajectory));
+  // }
+  // /* Setting the Label's text */
+  // SendMessage (wd.hLabStat,      /* Label   */
+  //              WM_SETTEXT,       /* Message */
+  //              (WPARAM) NULL,    /* Unused  */
+  //              (LPARAM) buffer.str ().c_str ()
+  //              );
 
   if ( !wd.pointsDB.empty () )
   {
@@ -398,10 +404,9 @@ void  Record::makeHandMove (MyWindowData &wd)
   wd.hand.reset ();
   wd.hand.SET_DEFAULT;
   std::list<Point> visited;
-  for ( auto mp : moves_ ) // !!! TIME ORDER ???
+  for ( auto mp : moves_ )
   {
-    wd.hand.move (mp.muscle, mp.last, visited);
-    
+    wd.hand.move (mp.muscle, mp.last); // , visited);
   }
 
   // for ( auto p : visited )

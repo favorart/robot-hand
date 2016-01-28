@@ -224,8 +224,197 @@ void  /*HandMoves::*/ test_cover2 (Store &store, Hand &hand, double radius,
 #include "target.h"
 void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &target)
 {
+  hand.SET_DEFAULT;
+  // std::list<std::list<Point>> trajectories;
+  
+  /* Fixate the aim point */
+  boost_point2_t  aim = target.coords ()[45];
+  double prev_distance = boost::geometry::distance (aim, hand.pos);
 
+  double             best_distance = prev_distance;
+  Hand::MusclesEnum  best_muscle = Hand::EmptyMov;
+  Hand::time_t       best_last;
 
+  // while ( aim.y () < hand.position.y )
+  {
+    /* Try each muscle */
+    for ( auto i : boost::irange (1U, 25U) )
+    {
+      auto muscle = selectHandMove (i);
+      auto last = hand.timeMuscleWorking (muscle);
+
+      hand.step (muscle);
+      hand.step ();
+      /* Find the best muscle by distance */
+      double cur_distance = boost::geometry::distance (hand.pos, aim);
+      if ( cur_distance < best_distance )
+      {
+        best_muscle = muscle;
+        best_last = last;
+        best_distance = cur_distance;
+      }
+
+      hand.reset ();
+      hand.SET_DEFAULT;
+    }
+
+    hand.step (best_muscle);
+    // while ( last-- )
+    prev_distance = best_distance;
+    double cur_distance = best_distance;
+    auto last_ = 1U;
+
+    do
+      // for ( auto last_ = 1U; (prev_distance >= cur_distance) && (last_ <= best_last); ++last_ )
+    {
+      prev_distance = cur_distance;
+      //-----------
+      hand.step ();
+      //-----------
+      cur_distance = boost::geometry::distance (hand.pos, aim);
+      ++last_;
+    } while ( (prev_distance >= cur_distance) && (last_ <= best_last) );
+
+    if ( !hand.moveEnd )
+      hand.step (best_muscle);
+
+    while ( !hand.moveEnd )
+      hand.step ();
+  }
+  //=========================================================================
+  // // const to target
+  // const boost_point2_t  tlu (target.Min ().x, target.Max ().y),
+  //                       tld (target.Min ().x, target.Min ().y),
+  //                       trd (target.Max ().x, target.Min ().y),
+  //                       tru (target.Max ().x, target.Max ().y);
+  // 
+  // const array<boost_point2_t, 4> target_corners = { tlu, tld, trd, tru };
+  // const boost_point2_t *t_closest;
+  // double distance = 0.;
+
+  /* Create the tree of possible passes */
+  //for ( Hand::MusclesEnum muscle_i : Hand::muscles )
+  //{
+  //  // auto h = hand.position;
+
+  //  for ( uint_t last_i = 1U; last_i < hand.timeMuscleWorking (muscle_i); ++last_i )
+  //  {
+  //    std::list<Point> trajectory;
+  //    
+  //    
+  //    const boost_point2_t pos = hand.position;
+  //    t_closest = &target_corners[0];
+  //    distance = boost::geometry::distance (t_closest, pos);
+  //    for ( size_t i = 1U; i < target_corners.size (); ++i )
+  //    {
+  //      double d = boost::geometry::distance (target_corners[i], pos);
+  //      if ( distance > d )
+  //      {
+  //        distance = d;
+  //        t_closest = &target_corners[i];
+  //      }
+  //    }
+
+  //    // hand.move (muscle_i, last_i, trajectory);
+  //    hand.step (muscle_i);
+  //    // while ( last-- )
+  //    for ( auto last_ = 1U; last_ <= last_i; ++last_ )
+  //    {
+  //      hand.step ();
+
+  //      const boost_point2_t pos = hand.position;
+  //      double d = boost::geometry::distance (pos, t_closest);
+  //    }
+  //    if ( !hand.isMoveEnd () )
+  //      hand.step (muscle_i);
+
+  //    while ( !hand.isMoveEnd () )
+  //      hand.step ();
+
+      //{
+      //  const Point &aim = hand.position;
+      //  Record rec (aim, aim,
+      //              { muscle_i }, { 0 }, { last_i },
+      //              1U, trajectory);
+      //  store.insert (rec);
+      //}
+  //=========================================================================
+      //// std::cout << muscle_i << ' ' << hi << ' ' << last_i << std::endl;
+      //insert (trajectories, trajectory);
+
+      //if ( nesting > 1U )
+      //  for ( Hand::MusclesEnum muscle_j : Hand::muscles )
+      //  {
+      //    if ( (muscle_i == muscle_j) || !muscleValidAtOnce (muscle_i | muscle_j) )
+      //      // if ( j == i )
+      //      continue;
+
+      //    Point cur1 = hand.position;
+
+      //    for ( uint_t last_j = 1U; last_j < hand.timeMuscleWorking (muscle_j) / 2; ++last_j )
+      //    {
+      //      std::list<Point>::iterator tail_j = trajectory.end (); --tail_j;
+
+      //      hand.move (muscle_j, last_j, trajectory);
+      //      {
+      //        const Point &aim = hand.position;
+      //        store.insert (Record (aim, aim,
+      //        { muscle_i, muscle_j },
+      //        { 0, last_i },
+      //        { last_i, last_j },
+      //                      2U,
+      //                      trajectory)
+      //                      );
+      //      }
+
+      //      // std::cout << muscles[j] << ' ' << hj << ' ' << last_j << std::endl;
+      //      ++tail_j;
+
+      //      // std::list::splice () allows you to concatenate two std::list's in constant time.
+      //      insert (trajectories, trajectory);
+      //      //=================================================
+      //      if ( nesting > 2U )
+      //        for ( Hand::MusclesEnum muscle_k : Hand::muscles )
+      //        {
+      //          if ( (muscle_i == muscle_k || muscle_k == muscle_j)
+      //              || !muscleValidAtOnce (muscle_i | muscle_j | muscle_k) )
+      //            // if ( k == i || k == j )
+      //            continue;
+
+      //          for ( auto last_k = 1U; last_k < hand.timeMuscleWorking (muscle_k) / 2; ++last_k )
+      //          {
+      //            std::list<Point>::iterator tail_k = trajectory.end (); --tail_k;
+      //            hand.move (muscle_k, last_k, trajectory);
+      //            {
+      //              const Point &aim = hand.position;
+      //              store.insert (Record (aim, aim,
+      //              { muscle_i, muscle_j, muscle_k },
+      //              { 0, last_i, last_i + last_j },
+      //              { last_i, last_j, last_k },
+      //                            3U,
+      //                            trajectory)
+      //                            );
+      //            }
+
+      //            // std::cout << muscles[k] << ' ' << hk << ' ' << last_k << std::endl;
+      //            ++tail_k;
+      //            insert (trajectories, trajectory);
+      //            trajectory.erase (tail_k, trajectory.end ());
+
+      //            hand.set (jointByMuscle (muscle_k), { (jointByMuscle (muscle_k) == Hand::Elbow) ? 70. : 0. });
+      //          }
+      //        }
+      //      //=================================================
+      //      trajectory.erase (tail_j, trajectory.end ());
+      //      //a.insert (a.end (), b.begin (), b.end ());
+
+      //      hand.set (jointByMuscle (muscle_j), { (jointByMuscle (muscle_j) == Hand::Elbow) ? 70. : 0. });
+      //    }
+      //  }
+  //     hand.set (jointByMuscle (muscle_i), { (jointByMuscle (muscle_i) == Hand::Elbow) ? 70. : 0. });
+  //   }
+  // }
+  //hand.SET_DEFAULT;
 
 
 }

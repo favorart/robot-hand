@@ -25,6 +25,8 @@ public:
 
   const double  radius = 0.1;
 
+  size_t store_size;
+
   // --- show_frames_trajectory ------
   std::list<Point>   trajectory_frames;
   Hand::MusclesEnum  trajectory_frames_muscle;

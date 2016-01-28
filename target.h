@@ -32,7 +32,8 @@ public:
     c_rows (r), c_cols (c), lft (lft), rgh (rgh), top (top), btm (btm),
     coords_ (c_rows * c_cols) { generate (); }
   // ---------------------------------
-  uint_t  coordsCount () const { return coords_.size (); }
+  size_t  coordsCount () const { return coords_.size (); }
+  const vec_t& coords () const { return coords_; }
 
   void  draw (HDC hdc, HPEN hPen) const;
 
@@ -41,8 +42,8 @@ public:
   bool  isOnTarget (const Point &p)
   { return  (p.x >= lft && p.x <= rgh && p.y >= btm && p.y <= top); }
 
-  const Point&  Min () const { return  Point (lft, btm); }
-  const Point&  Max () const { return  Point (rgh, top); }
+  Point  Min () const { return  Point (lft, btm); }
+  Point  Max () const { return  Point (rgh, top); }
   // ---------------------------------
 };
 //------------------------------------------------------------------------------

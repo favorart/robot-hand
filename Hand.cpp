@@ -234,7 +234,7 @@ Hand::Hand (const Point &hand, const Point &arm,
             maxClvclMoveFrames (30U), // (15U),
             maxShldrMoveFrames (60U), // (30U),
             maxElbowMoveFrames (55U), // (35U),
-            // maxWristMoveFrames (15U), // (15U),
+            // maxWristMoveFrames (15U),
             maxClvclShift (0.40),
             maxShldrAngle (105U),
             maxElbowAngle (135U),
@@ -247,7 +247,6 @@ Hand::Hand (const Point &hand, const Point &arm,
 { ulong_t frames[musclesCount] = { (ulong_t)maxClvclMoveFrames, (ulong_t)maxClvclMoveFrames,
                                    (ulong_t)maxShldrMoveFrames, (ulong_t)maxShldrMoveFrames,
                                    (ulong_t)maxElbowMoveFrames, (ulong_t)maxElbowMoveFrames };
-
 
   c_frames = generateFrames (EPS, maxClvclShift, maxClvclMoveFrames);
   s_frames = generateFrames (EPS, maxShldrAngle, maxShldrMoveFrames);
@@ -280,31 +279,31 @@ void  Hand::step (MusclesEnum hydNo)
 }
 void  Hand::move (MusclesEnum muscle, time_t last, std::list<Point> &visited)
 {
-  std::wcout << std::endl;
+  // std::wcout << std::endl;
   /* START! */
   step (muscle);
   visited.push_back (position);
-  std::wcout << std::wstring (position) << std::endl;
+  // std::wcout << std::wstring (position) << std::endl;
 
   while ( last-- )
   { /* moving */
     step ();
     visited.push_back (position);
-    std::wcout << std::wstring (position) << std::endl;
+    // std::wcout << std::wstring (position) << std::endl;
   }
 
   if ( !flagMovEnd_ )
   { /* STOP! */
     step (muscle);
     visited.push_back (position);
-    std::wcout << L"end " << std::wstring(position) << std::endl;
+    // std::wcout << L"end " << std::wstring(position) << std::endl;
   }
 
   while ( !flagMovEnd_ )
   { /* coming to a stop */
     step ();
     visited.push_back (position);
-    std::wcout << std::wstring (position) << std::endl;
+    // std::wcout << std::wstring (position) << std::endl;
   }
 
 }

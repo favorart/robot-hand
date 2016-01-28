@@ -278,6 +278,8 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   EndPaint (hWnd, &ps);
 }
 //-------------------------------------------------------------------------------
+void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &target);
+
 void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                       WPARAM wParam, LPARAM lparam,
                       MyWindowData &wd)
@@ -344,6 +346,12 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                   MB_OK);
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
+      break;
+    }
+
+    case 'y':
+    {
+      testCoverTarget (wd.store, wd.hand, wd.target);
       break;
     }
 

@@ -6,7 +6,7 @@
 using namespace std;
 // maximum mumber of lines the output console should have
 
-static const WORD MAX_CONSOLE_LINES = 90;
+static const WORD MAX_CONSOLE_LINES = 150U;
 
 #ifdef _DEBUG
 

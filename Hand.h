@@ -127,13 +127,19 @@ public:
   void  set (JointsEnum joint, const std::array<double,Hand::jointsCount> &jOp);
   void  set (MusclesEnum muscle, uint_t frame); // ?????
 
-	bool  isMoveEnd () const { return flagMovEnd_; }
+  /* Microsoft specific: C++ properties */
+  __declspec(property(get = get_mend)) bool moveEnd;
+  bool  get_mend () const { return flagMovEnd_; }
 
   /* Microsoft specific: C++ properties */
-  __declspec(property(get = get_pos)) const Point& position;
-  const Point&  get_pos () const { return curPosHand_; }
+  __declspec(property(get = get_posit)) const Point& position;
+  const Point&  get_posit () const { return curPosHand_; }
+
+  /* Microsoft specific: C++ properties */
+  __declspec(property(get = get_pos)) boost_point2_t pos;
+  boost_point2_t  get_pos () const { return curPosHand_; }
     
-    struct PositionSensor
+  struct PositionSensor
   { const static uint_t  amountAppliedPositions = 3U;
 
     Point   positions_[amountAppliedPositions];

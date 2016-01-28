@@ -7,6 +7,8 @@ using namespace std;
 using namespace HandMoves;
 
 #define  WM_USER_TIMER  WM_USER+3
+#define  WM_USER_STORE  WM_USER+4
+
 //------------------------------------------------------------------------------
 LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 {
@@ -31,20 +33,11 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_PAINT:
-    { 
-      // std::wstringstream buffer;
-      // buffer << boost::wformat (_T ("Storage size %1%  ")) % wd->store.size ();
-
-      auto str_size = str (boost::wformat (_T ("Storage size %1%  ")) % wd->store.size ());
-
-      /* Setting the Label's text */
-      SendMessage (hLabStat,         /* Label Stat */
-                   WM_SETTEXT,       /* Message    */
-                   (WPARAM) NULL,    /* Unused     */
-                   (LPARAM) str_size.c_str ()); // buffer.str ().c_str ());
-      //=======================
+    { //=======================
       OnWindowPaint (hWnd, myRect, *wd);
       //=======================
+      if ( wd->store_size != wd->store.size () )
+        SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
       break;
     }
 
@@ -90,6 +83,23 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       break;
     }
 
+    case WM_USER_STORE:
+    {//=======================
+     // std::wstringstream buffer;
+     // buffer << boost::wformat (_T ("Storage size %1%  ")) % wd->store.size ();
+
+      wd->store_size = wd->store.size ();
+      auto str_size = str (boost::wformat (_T ("Storage size %1%  ")) % wd->store_size);
+
+      /* Setting the Label's text */
+      SendMessage (hLabStat,         /* Label Stat */
+                   WM_SETTEXT,       /* Message    */
+                   (WPARAM) NULL,    /* Unused     */
+                   (LPARAM) str_size.c_str ()); // buffer.str ().c_str ());
+      //=======================
+      break;
+    }
+
     case WM_HOTKEY:
       switch ( wParam )
       { case HK_EXIT:
@@ -103,7 +113,11 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       wd->mouse_coords.x = LOWORD (lParam);
       wd->mouse_coords.y = HIWORD (lParam);
       //=======================
-      OnWindowMouse (*wd);
+      if ( (LONG) wd->mouse_coords.x > myRect.left
+        && (LONG) wd->mouse_coords.x < myRect.right
+        && (LONG) wd->mouse_coords.y > myRect.top
+        && (LONG) wd->mouse_coords.y < myRect.bottom )
+      { OnWindowMouse (*wd); }
       //=======================
       InvalidateRect (hWnd, &myRect, 0);
       break;
