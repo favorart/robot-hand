@@ -6,7 +6,7 @@
 #define HK_EXIT                          90
 #define HK_OPEN                          90
 #define HK_SAVE                          90
-#define HK_COLOR                        	109
+#define HK_COLOR                         109
 
 #define IDD_COMBOC                      90
 #define IDL_HELP                        90

@@ -27,14 +27,14 @@ void  Point::rotate (const Point &center, double angle)
   double  tmp, Angle = angle * M_PI / 180.;
 
   x_ -= center.x_;
-	y_ -= center.y_;
+ y_ -= center.y_;
 
-	tmp = (x_ * cos (Angle)) - (y_ * sin (Angle));
-	y_  = (x_ * sin (Angle)) + (y_ * cos (Angle));
-	x_  =  tmp;		
+ tmp = (x_ * cos (Angle)) - (y_ * sin (Angle));
+ y_  = (x_ * sin (Angle)) + (y_ * cos (Angle));
+ x_  =  tmp;  
 
-	x_ += center.x_;
-	y_ += center.y_;
+ x_ += center.x_;
+ y_ += center.y_;
 }
 //--------------------------------------------------------------------------------
 std::istream&  operator>> (std::istream &in,        Point &p)

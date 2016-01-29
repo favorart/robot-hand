@@ -109,7 +109,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       break;
       
     case WM_LBUTTONDOWN: /* Если был щелчок левой кнопкой */
-    {	/* узнаём координаты */
+    { /* узнаём координаты */
       wd->mouse_coords.x = LOWORD (lParam);
       wd->mouse_coords.y = HIWORD (lParam);
       //=======================

@@ -76,7 +76,7 @@ bool  Record::validateMusclesTimes ()
         if ( ((iti->time <= itj->time) && ((iti->time + iti->last) >= itj->time))
           || ((itj->time <= iti->time) && ((itj->time + itj->last) >= iti->time)) )
         {
-          for ( auto j : Hand::joints )
+          for ( auto j : joints )
           {
             Hand::MusclesEnum  Opn = muscleByJoint (j, true);
             Hand::MusclesEnum  Сls = muscleByJoint (j, false);

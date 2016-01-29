@@ -10,9 +10,13 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   hLabMAim (hLabMAim),
   hLabTest (hLabTest),
   hLabStat (hLabStat),
-  target (32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
-                    //  -0.70,  0.90,  0.90, -0.99)
-                        -0.39,  0.41, -0.05, -0.85)
+  target ( 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
+                     //  -0.70,  0.90,  0.90, -0.99)
+                     -0.41,  0.46, -0.05, -0.90
+                     // -0.39, -0.41, -0.05, -0.85
+
+                     // 200U, 200U, -1., 1., -1., 1.
+          )
 {
   std::srand ((unsigned int) clock ());
 
@@ -33,7 +37,7 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   // p_x = 0; p_y = 0;
   // fm = 0; fn = 0;
   //=======================
-  hand.SET_DEFAULT;
+  hand.set (Hand::Shldr | Hand::Elbow, {0.,50.});
   HandMoves::storeLoad (store);
   //=======================
 }
@@ -60,11 +64,37 @@ MyWindowData::~MyWindowData ()
   //=======================
 }
 //-------------------------------------------------------------------------------
+void  OnPaintScaleLetters (HDC hdc, Point &pos)
+{
+  LOGFONTW lf = { 0 };
+  lf.lfEscapement = 2700;  // 90 degreees rotated text
+  lf.lfOrientation = 2700;
+  lf.lfHeight = 20;
+  lf.lfWeight = FW_NORMAL;
+  lstrcpy (lf.lfFaceName, _T ("Tahoma"));
+
+  SetBkMode (hdc, TRANSPARENT);
+
+  HFONT newFont = CreateFontIndirect (&lf);
+  HFONT oldFont = (HFONT) SelectObject (hdc, newFont);
+  TextOut (hdc,
+           Tx (pos.x), Ty (pos.y), /* Location of the text */
+           _T ("30 sm."), /* Text to print */
+           _tcsclen (_T ("30 sm.")) /* Size of the text */
+           );
+  SelectObject (hdc, oldFont);
+
+}
+
 void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
 {
-  auto fin = wd.target.coords ()[45];
-  Ellipse (hdc, Tx (-0.01 + fin.x), Ty ( 0.01 + fin.y),
-                Tx ( 0.01 + fin.x), Ty (-0.01 + fin.y));
+
+  OnPaintScaleLetters (hdc, Point { 0.57, -0.4 });
+
+  /* Target to achive */
+  // auto fin = wd.target.coords ()[45];
+  // Ellipse (hdc, Tx (-0.01 + fin.x), Ty ( 0.01 + fin.y),
+  //               Tx ( 0.01 + fin.x), Ty (-0.01 + fin.y));
 
   // ----- Отрисовка фигуры ------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
@@ -265,7 +295,7 @@ void  OnShowTrajectory (MyWindowData &wd)
 
   wd.trajectory_frames_show = true;
   wd.trajectory_frames_muscle = selectHandMove ( random (HandMovesCount) );
-  wd.trajectory_frames_lasts = random ( wd.hand.timeMuscleWorking (wd.trajectory_frames_muscle) );
+  wd.trajectory_frames_lasts = random ( wd.hand.maxMuscleLast (wd.trajectory_frames_muscle) );
   
   wd.hand.step (wd.trajectory_frames_muscle);
   wd.trajectory_frames.push_back (wd.hand.position);

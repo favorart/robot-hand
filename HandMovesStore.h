@@ -5,7 +5,11 @@
 
 #pragma once
 
-#include "Hand.h"
+//#include "Hand.h"
+//using namespace OldHand;
+#include "NewHand.h"
+using namespace NewHand;
+
 #include "MyWindow.h"
 
 namespace HandMoves
@@ -22,6 +26,8 @@ namespace HandMoves
 
   class Record
   {
+    typedef uint32_t times_t;
+
     const static size_t  arrays_size = 4U;
   public:
     const static size_t  maxMovesCount = 2U;
@@ -32,12 +38,13 @@ namespace HandMoves
     struct MovePart
     {
       Hand::MusclesEnum  muscle;
-      time_t             time;
-      time_t             last;
+
+      times_t  time;
+      times_t  last;
 
       MovePart () : muscle (Hand::EmptyMov), time (0), last (0) {}
 
-      MovePart (Hand::MusclesEnum  muscle, time_t time, time_t last) :
+      MovePart (Hand::MusclesEnum  muscle, times_t time, times_t last) :
         muscle (muscle), time (time), last (last) {}
 
       template<class Archive>
@@ -46,7 +53,6 @@ namespace HandMoves
     };
 
   private:
-    typedef uint_t time_t;
     // typedef std::/*unordered_*/ map < Hand::MusclesEnum,
     //                              std::pair<time_t, time_t> 
     //                            > muscle_times_t;

@@ -1,8 +1,10 @@
 ﻿#include "StdAfx.h"
 #include "WindowData.h"
 #include "Draw.h"
-#include "target.h"
-#pragma warning (disable: 4996)
+
+
+#pragma warning (disable: 4996) // allow ANSI C functions
+#define _CRT_SECURE_NO_WARNINGS
 
 using namespace std;
 using namespace HandMoves;
@@ -59,75 +61,75 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   lp.LabStatHeight = Rect.bottom - ((Rect.bottom - Rect.top) * 2U / 3U - 125U);
 
   // Create a Static Label control
-  hLabCanv = CreateWindow (_T ("STATIC"),			       /* The name of the static control's class */
-                           _T ("Canvas  "),							                       /* Label's Text */
+  hLabCanv = CreateWindow (_T ("STATIC"),          /* The name of the static control's class */
+                           _T ("Canvas  "),                              /* Label's Text */
                            WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,       /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_CANVAS,							                 /* The Label's ID */
+                           (HMENU) IDL_CANVAS,                        /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabCanv )
     MessageBox (hWnd, _T ("Could not create hLabCanv."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Create a Static Label control
-  hLabHelp = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
-                           _T ("Help"),								 				                 /* Label's Text */
+  hLabHelp = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
+                           _T ("Help"),                              /* Label's Text */
                            WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,						     				      	 /* The Label's ID */
+                           (HMENU) IDL_HELP,                       /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabHelp )
     MessageBox (hWnd, _T ("Could not create hLabHelp."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Create a Static Label control
-  hLabMAim = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
-                           _T (" "),								 		  		                 /* Label's Text */
+  hLabMAim = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
+                           _T (" "),                                /* Label's Text */
                            WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,						     				         /* The Label's ID */
+                           (HMENU) IDL_HELP,                        /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabMAim )
     MessageBox (hWnd, _T ("Could not create hLabMAim."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Create a Static Label control
-  hLabTest = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
-                           _T (" "),								 		  		                 /* Label's Text */
+  hLabTest = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
+                           _T (" "),                                /* Label's Text */
                            WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,						     				         /* The Label's ID */
+                           (HMENU) IDL_HELP,                        /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabTest )
     MessageBox (hWnd, _T ("Could not create hLabTest."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Create a Static Label control
-  hLabStat = CreateWindow (_T ("STATIC"),					   /* The name of the static control's class */
-                           _T (" "),								 		  		                 /* Label's Text */
+  hLabStat = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
+                           _T (" "),                                /* Label's Text */
                            WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,						     				         /* The Label's ID */
+                           (HMENU) IDL_HELP,                        /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabStat )
@@ -156,12 +158,12 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
                (LPARAM) string_help);
   }
 
-  RegisterHotKey (hWnd, HK_EXIT, (UINT) NULL, 0x1B); // 'Esc'							
+  RegisterHotKey (hWnd, HK_EXIT, (UINT) NULL, 0x1B); // 'Esc'       
 
-  SetTimer (hWnd,							 /* Handle to main window */
-            IDT_TIMER,         /* timer identifier 			*/
-            50,         // sec/2      /* 1-second interval 		*/
-            (TIMERPROC) NULL); /* no timer callback			*/
+  SetTimer (hWnd,        /* Handle to main window */
+            IDT_TIMER,         /* timer identifier    */
+            50,         // sec/2      /* 1-second interval   */
+            (TIMERPROC) NULL); /* no timer callback   */
 }
 
 void OnWindowSize (HWND &hWnd, RECT &myRect,
@@ -310,7 +312,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.hand.SET_DEFAULT;
 
       wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
-      wd.trajectory_frames_lasts = random (wd.hand.timeMuscleWorking (wd.trajectory_frames_muscle));
+      wd.trajectory_frames_lasts = random (wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
 
       // wd.trajectory_frames_muscle = Hand::ShldrCls;
       // wd.trajectory_frames_lasts = 25U;
@@ -378,22 +380,22 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0.,0.,0. });
 
       muscle = Hand::ClvclOpn;
-      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
 
       muscle = Hand::ShldrCls;
-      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
       
       muscle = Hand::ClvclCls;
-      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
 
       muscle = Hand::ElbowCls;
-      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
       
       muscle = Hand::ShldrOpn;
-      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
        
       muscle = Hand::ElbowOpn;
-      wd.hand.move (muscle, wd.hand.timeMuscleWorking (muscle), wd.trajectory_frames);
+      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
       
       wd.hand.SET_DEFAULT;
       InvalidateRect (hWnd, &myRect, FALSE);

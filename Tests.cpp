@@ -37,7 +37,7 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
     for ( uint_t j = 0U; j < moves_count; ++j )
     {
       auto muscle = selectHandMove ( random (1U, HandMovesCount - 1U) );
-      auto last   = random ( hand.timeMuscleWorking (muscle) );
+      auto last   = random ( hand.maxMuscleLast (muscle) );
       hand.move (muscle, last, visited);
 
       muscles[j] = muscle;
@@ -67,12 +67,12 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
   std::list<std::list<Point>> trajectories;
   /* Create the tree of possible passes */
   // for ( auto i = 0U; i < Hand::musclesCount; ++i )
-  for ( Hand::MusclesEnum  muscle_i : Hand::muscles )
+  for ( Hand::MusclesEnum  muscle_i : hand.muscles_ )
   {
     hand.SET_DEFAULT;
     // auto h = hand.position;
 
-    for ( uint_t last_i = 1U; last_i < hand.timeMuscleWorking (muscle_i) / 2; ++last_i )
+    for ( uint_t last_i = 1U; last_i < hand.maxMuscleLast (muscle_i) / 2; ++last_i )
     {
       std::list<Point> trajectory;
       hand.move (muscle_i, last_i, trajectory);
@@ -88,7 +88,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
       insert (trajectories, trajectory);
 
       if ( nesting > 1U )
-        for ( Hand::MusclesEnum  muscle_j : Hand::muscles )
+        for ( Hand::MusclesEnum  muscle_j : hand.muscles_ )
         {
           if ( (muscle_i == muscle_j) || !muscleValidAtOnce (muscle_i | muscle_j) )
             // if ( j == i )
@@ -96,7 +96,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
 
           Point cur1 = hand.position;
 
-          for ( uint_t last_j = 1U; last_j < hand.timeMuscleWorking (muscle_j) / 2; ++last_j )
+          for ( uint_t last_j = 1U; last_j < hand.maxMuscleLast (muscle_j) / 2; ++last_j )
           {
             std::list<Point>::iterator tail_j = trajectory.end (); --tail_j;
 
@@ -119,14 +119,14 @@ void  HandMoves::test_cover  (Store &store, Hand &hand,
             insert (trajectories, trajectory);
             //=================================================
             if ( nesting > 2U )
-              for ( Hand::MusclesEnum muscle_k : Hand::muscles )
+              for ( Hand::MusclesEnum muscle_k : hand.muscles_ )
               {
                 if ( (muscle_i == muscle_k || muscle_k == muscle_j) 
                   || !muscleValidAtOnce (muscle_i | muscle_j | muscle_k) )
                   // if ( k == i || k == j )
                   continue;
 
-                for ( auto last_k = 1U; last_k < hand.timeMuscleWorking (muscle_k) / 2; ++last_k )
+                for ( auto last_k = 1U; last_k < hand.maxMuscleLast (muscle_k) / 2; ++last_k )
                 {
                   std::list<Point>::iterator tail_k = trajectory.end (); --tail_k;
                   hand.move (muscle_k, last_k, trajectory);
@@ -179,7 +179,7 @@ void  /*HandMoves::*/ test_cover2 (Store &store, Hand &hand, double radius,
 //    Point h = hand.position;
 //    store.insert (h);
 //
-//    for ( auto last_i = 1U; last_i < hand.timeMuscleWorking (muscles[i]); ++last_i )
+//    for ( auto last_i = 1U; last_i < hand.maxMuscleLast (muscles[i]); ++last_i )
 //    {
 //      hand.move (muscles[i], 1); // last_i);
 //      Point hi = hand.position;
@@ -222,6 +222,14 @@ void  /*HandMoves::*/ test_cover2 (Store &store, Hand &hand, double radius,
 }
 //------------------------------------------------------------------------------
 #include "target.h"
+
+
+void  getTargetCenter (Hand &hand)
+{
+
+
+}
+
 void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &target)
 {
   hand.SET_DEFAULT;
@@ -241,7 +249,7 @@ void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &targ
     for ( auto i : boost::irange (1U, 25U) )
     {
       auto muscle = selectHandMove (i);
-      auto last = hand.timeMuscleWorking (muscle);
+      auto last = hand.maxMuscleLast (muscle);
 
       hand.step (muscle);
       hand.step ();
@@ -297,7 +305,7 @@ void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &targ
   //{
   //  // auto h = hand.position;
 
-  //  for ( uint_t last_i = 1U; last_i < hand.timeMuscleWorking (muscle_i); ++last_i )
+  //  for ( uint_t last_i = 1U; last_i < hand.maxMuscleLast (muscle_i); ++last_i )
   //  {
   //    std::list<Point> trajectory;
   //    
@@ -351,7 +359,7 @@ void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &targ
 
       //    Point cur1 = hand.position;
 
-      //    for ( uint_t last_j = 1U; last_j < hand.timeMuscleWorking (muscle_j) / 2; ++last_j )
+      //    for ( uint_t last_j = 1U; last_j < hand.maxMuscleLast (muscle_j) / 2; ++last_j )
       //    {
       //      std::list<Point>::iterator tail_j = trajectory.end (); --tail_j;
 
@@ -381,7 +389,7 @@ void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &targ
       //            // if ( k == i || k == j )
       //            continue;
 
-      //          for ( auto last_k = 1U; last_k < hand.timeMuscleWorking (muscle_k) / 2; ++last_k )
+      //          for ( auto last_k = 1U; last_k < hand.maxMuscleLast (muscle_k) / 2; ++last_k )
       //          {
       //            std::list<Point>::iterator tail_k = trajectory.end (); --tail_k;
       //            hand.move (muscle_k, last_k, trajectory);

@@ -5,10 +5,9 @@
 #ifndef  _WINDOW_DATA_H_
 #define  _WINDOW_DATA_H_
 
-#include "MyWindow.h"
-#include "Hand.h"
 #include "HandMovesStore.h"
 #include "target.h"
+
 //------------------------------------------------------------------------------
 class MyWindowData
 {
