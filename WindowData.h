@@ -7,6 +7,7 @@
 
 #include "HandMovesStore.h"
 #include "target.h"
+#include "DrawLetters.h"
 
 //------------------------------------------------------------------------------
 class MyWindowData
@@ -38,10 +39,9 @@ public:
   std::list<std::shared_ptr<HandMoves::trajectory_t>> trajectoriesDB;
   // ---------------------------------
 
-  const uint_t  targetRowsCount = 35U;
-  const uint_t  targetColsCount = 30U;
   RecTarget  target;
-
+  CanvasScaleLetters scaleLetters;
+  
   // ---------------------------------
   Hand hand;
   HandMoves::Store store;

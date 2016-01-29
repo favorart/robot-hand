@@ -40,6 +40,11 @@ double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t &frame, bool at
   //             && ++frame < this->minStopFrames[index] );
   //   return Frame;
   // };
+
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // WIND
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   switch ( muscle )
   {
     default: Frame = 0.; break;
@@ -228,7 +233,8 @@ std::vector<double>  NewHand::generateStopFrames (double a, double b, size_t n)
   return frames;
 }
 
-NewHand::Hand::Hand (const Point &hand,
+NewHand::Hand::Hand (const Point &palm,
+                     const Point &hand,
                      const Point &arm,
                      const Point &sholder,
                      const Point &clavicle,
@@ -248,7 +254,8 @@ NewHand::Hand::Hand (const Point &hand,
                      joints_ (joints), muscles_ (muscles),
                      jointsCount (joints.size ()),
                      musclesCount (muscles.size ()),
-                     hand_ (hand), arm_ (arm), sholder_ (sholder), clavicle_ (clavicle)
+                     palm_ (palm), hand_ (hand), arm_ (arm),
+                     sholder_ (sholder), clavicle_ (clavicle)
 { // 
   // std::copy ( joints.begin (),  joints.end (), std::begin( joints_));
   // std::copy (muscles.begin (), muscles.end (), std::begin(muscles_));
@@ -352,9 +359,11 @@ void  NewHand::Hand::move (MusclesEnum muscle, frames_t last) // !simultaniusly
 void  NewHand::Hand::reset ()
 {
   //-----------------------------------------------------------------
+  hs.curPosClvcl_ = clavicle_;
   hs.curPosShldr_ = sholder_;
   hs.curPosArm_   = arm_;
   hs.curPosHand_  = hand_;
+  hs.curPosPalm_  = palm_;
   //-----------------------------------------------------------------
   hs.shiftClvcl_ = hs.angleShldr_ = 0.;
   hs.angleElbow_ = hs.angleWrist_ = 0.;
@@ -536,5 +545,22 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   SelectObject (hdc, hBrush_old);
 }
 //--------------------------------------------------------------------------------
+std::vector<const Point*>  NewHand::Hand::points () const
+{
+  std::vector<const Point*> vec;
 
-
+  vec.push_back (&hs.curPosClvcl_);
+  for ( auto j : joints_ )
+  {
+    if ( j == Clvcl )
+      vec.push_back (&(hs.curPosShldr_));
+    else if ( j == Shldr )
+      vec.push_back (&(hs.curPosArm_));
+    else if ( j == Elbow )
+      vec.push_back (&(hs.curPosHand_));
+    else if ( j == Wrist )
+      vec.push_back (&(hs.curPosPalm_));
+  }
+  return vec;
+}
+//--------------------------------------------------------------------------------

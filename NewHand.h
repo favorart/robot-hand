@@ -82,29 +82,25 @@ namespace NewHand
     struct HandStatus
     {
       //---current position---------------------------------
-      Point  curPosHand_, curPosArm_, curPosShldr_;
+      Point  curPosPalm_, curPosHand_, curPosArm_,
+             curPosShldr_, curPosClvcl_;
 
-      double angleElbow_, angleShldr_, shiftClvcl_, angleWrist_;
+      double angleWrist_, angleElbow_,
+             angleShldr_, shiftClvcl_;
 
       bool   moveEnd_;
 
       //---parameters of hydraulic force--------------------
-      // std::array<size_t, JointsCount> curMoveFrame;
-      // std::array<size_t, JointsCount> curStopFrame;
-
       std::array<frames_t, JointsCount> lastsMove;
       std::array<frames_t, JointsCount> lastsStop;
       std::array<frames_t, JointsCount> lasts_;
 
-      // size_t ElbowLast_, ShldrLast_;
-      // size_t lasts;
-      // std::array<frames_t, jointsCount> lastMove;
       MusclesEnum  musclesMove_;
       //----------------------------------------------------
       std::array<double, JointsCount> prevFrame_;
-      // double  velosity;
+      //----------------------------------------------------
+      double  velosity;
     };
-
     HandStatus hs;
 
     //---internal phisical parameters---------------------
@@ -121,7 +117,7 @@ namespace NewHand
     const uint_t  maxWristAngle;
     
     //---base position------------------------------------
-    Point   hand_, arm_, sholder_, clavicle_;
+    Point   palm_, hand_, arm_, sholder_, clavicle_;
 
     //----------------------------------------------------
     double   nextFrame (MusclesEnum muscle, frames_t &frame, bool atStop);
@@ -132,10 +128,11 @@ namespace NewHand
 
   public:
     //----------------------------------------------------
-    Hand (const Point &hand    = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
+    Hand (const Point &palm    = { -0.70, 1.00 },
+          const Point &hand    = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
           const Point &sholder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
-          const std::vector<JointsEnum /*, JointsCount */>  joints  = { Shldr, Elbow },
-          const std::vector<MusclesEnum/*, MusclesCount*/>  muscles = { ShldrOpn, ShldrCls, ElbowOpn, ElbowCls }
+          const std::vector<JointsEnum >  joints  = { Shldr, Elbow },
+          const std::vector<MusclesEnum>  muscles = { ShldrOpn, ShldrCls, ElbowOpn, ElbowCls }
          );
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
@@ -149,6 +146,8 @@ namespace NewHand
     // void  set (MusclesEnum muscle, frames_t frame);
     void  reset ();
 
+    std::vector<const Point*>  points () const;
+    
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_mend)) bool moveEnd;
     bool  get_mend () const { return hs.moveEnd_; }

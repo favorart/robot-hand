@@ -12,11 +12,11 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   hLabStat (hLabStat),
   target ( 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
                      //  -0.70,  0.90,  0.90, -0.99)
-                     -0.41,  0.46, -0.05, -0.90
-                     // -0.39, -0.41, -0.05, -0.85
-
+                      -0.41,  0.46, -0.05, -0.90
+                     // -0.39, 0.41, -0.05, -0.85
                      // 200U, 200U, -1., 1., -1., 1.
-          )
+          ),
+  scaleLetters (target.Min (), target.Max ())
 {
   std::srand ((unsigned int) clock ());
 
@@ -64,32 +64,9 @@ MyWindowData::~MyWindowData ()
   //=======================
 }
 //-------------------------------------------------------------------------------
-void  OnPaintScaleLetters (HDC hdc, Point &pos)
-{
-  LOGFONTW lf = { 0 };
-  lf.lfEscapement = 2700;  // 90 degreees rotated text
-  lf.lfOrientation = 2700;
-  lf.lfHeight = 20;
-  lf.lfWeight = FW_NORMAL;
-  lstrcpy (lf.lfFaceName, _T ("Tahoma"));
-
-  SetBkMode (hdc, TRANSPARENT);
-
-  HFONT newFont = CreateFontIndirect (&lf);
-  HFONT oldFont = (HFONT) SelectObject (hdc, newFont);
-  TextOut (hdc,
-           Tx (pos.x), Ty (pos.y), /* Location of the text */
-           _T ("30 sm."), /* Text to print */
-           _tcsclen (_T ("30 sm.")) /* Size of the text */
-           );
-  SelectObject (hdc, oldFont);
-
-}
-
 void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
 {
-
-  OnPaintScaleLetters (hdc, Point { 0.57, -0.4 });
+  // OnPaintScaleLetters (hdc, Point { 0.57, -0.4 });
 
   /* Target to achive */
   // auto fin = wd.target.coords ()[45];
@@ -131,6 +108,8 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
   }
   SelectObject (hdc, hPen_old);
   // --------------------------------------------------------------
+  if ( wd.scaleLetters.show )
+   wd.scaleLetters.draw (hdc, wd.hand.points (), &wd.hand.position);
 }
 //-------------------------------------------------------------------------------
 void  OnWindowTimer (MyWindowData &wd)

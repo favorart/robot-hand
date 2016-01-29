@@ -35,10 +35,10 @@ inline bool  isFileExists (const TCHAR *fileName)
 //-------------------------------------------------------------------------------
 template <typename T>
 T  random (T max)
-{ return  (T (rand ()) % (max)); }
+{ return  (max) ? (T (rand ()) % (max)) : (max); }
 template <typename T>
 T  random (T min, T max)
-{ return  (min + T (rand ()) % (max)); }
+{ return  (max) ? (min + T (rand ()) % (max)) : (max); }
 //-------------------------------------------------------------------------------
 class MyWindowData;
 

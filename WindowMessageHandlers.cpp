@@ -145,6 +145,7 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
              _T ("Повторное нажатие на кнопку во время движения  \rостанавливает соответствующее движение.  \r\r")
              _T ("U - нарисовать рабочую область руки  \rO - нарисовать случайную траекторию  \r\r")
              _T ("P - Cover Test  \rT - Random Test  \r\r")
+             _T ("Y - TargetCoverTest  \r\rF - Show scales  \r\r")
              //_T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
              //_T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r, где 0 <= !no! - номер строки/столбца"),
              //tgRowsCount,
@@ -401,6 +402,10 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
+
+    case 'f':
+      wd.scaleLetters.show = !wd.scaleLetters.show;
+      break;
 
     //========================================
     /* Clavicle */
