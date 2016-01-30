@@ -138,7 +138,7 @@ namespace HandMoves
             const trajectory_t  &visited);
     
     // ----------------------------------------
-    operator  std::wstring () const
+    operator  tstring () const
     { return  str (boost::wformat (_T("rec<x=%1%, y=%2%>")) % aim.x % aim.y); }
 
     // ----------------------------------------

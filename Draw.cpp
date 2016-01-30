@@ -1,7 +1,7 @@
 ﻿#include "StdAfx.h"
 #include "Draw.h"
 //------------------------------------------------------------------------------
-void  draw_decards_coordinates (HDC hdc)
+void  DrawDecardsCoordinates (HDC hdc)
 { uint_t i = 90U;
  //---Ox---
   MoveToEx (hdc, Tx (-1.000), Ty ( 0.000), NULL);
@@ -29,7 +29,7 @@ void  draw_decards_coordinates (HDC hdc)
 //------------------------------------------------------------------------------
 //#include <gdiplus.h>
 /* Drawing the trajectory, where we got ... */
-void  draw_trajectory (HDC hdc, std::list<Point> &trajectory, HPEN hPen)
+void  DrawTrajectory (HDC hdc, std::list<Point> &trajectory, HPEN hPen)
 {
   if ( !trajectory.empty () )
   {
@@ -44,6 +44,20 @@ void  draw_trajectory (HDC hdc, std::list<Point> &trajectory, HPEN hPen)
     // отменяем ручку
     SelectObject (hdc, hPen_old);
   }
+}
+
+void  DrawAdjacency (HDC hdc, const Point &center, double radius,
+                     figure_t figure, HPEN hPen_cian)
+{
+  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen_cian);
+  switch ( figure )
+  {
+    case ellipse:     Ellipse (hdc, Tx (center.x - radius), Ty (center.y + radius),
+                                    Tx (center.x + radius), Ty (center.y - radius)); break;
+    case rectangle: Rectangle (hdc, Tx (center.x - radius), Ty (center.y + radius),
+                                    Tx (center.x + radius), Ty (center.y - radius)); break;
+  }
+  SelectObject (hdc, hPen_old);
 }
 //------------------------------------------------------------------------------
 

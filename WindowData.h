@@ -34,9 +34,15 @@ public:
   bool               trajectory_frames_show;
   // ---------------------------------
 
+  bool working_space_show;
+  HandMoves::trajectory_t  working_space;
+
   // --- adjacency -------------------
-  std::list<std::shared_ptr<HandMoves::Record>> pointsDB;
-  std::list<std::shared_ptr<HandMoves::trajectory_t>> trajectoriesDB;
+
+  bool allPointsDB_show;
+
+  std::list<std::shared_ptr<HandMoves::Record>>           adjPointsDB;
+  std::list<std::shared_ptr<HandMoves::trajectory_t>>  trajectoriesDB;
   // ---------------------------------
 
   RecTarget  target;
@@ -71,9 +77,5 @@ public:
 void  OnShowTrajectory      (MyWindowData &wd);
 void  OnShowDBPoints        (MyWindowData &wd);
 void  OnShowDBTrajectories  (MyWindowData &wd);
-
-typedef enum { ellipse = 1, rectangle } figure_t;
-void  draw_adjacency (HDC hdc, const Point &pt, double r, figure_t figure, HPEN hPen_cian);
-
 //------------------------------------------------------------------------------
 #endif // _WINDOW_DATA_H_

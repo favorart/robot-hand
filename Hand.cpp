@@ -281,27 +281,27 @@ void  Hand::move (MusclesEnum muscle, time_t last, std::list<Point> &visited)
   /* START! */
   step (muscle);
   visited.push_back (position);
-  // std::wcout << std::wstring (position) << std::endl;
+  // std::wcout << tstring (position) << std::endl;
 
   while ( last-- )
   { /* moving */
     step ();
     visited.push_back (position);
-    // std::wcout << std::wstring (position) << std::endl;
+    // std::wcout << tstring (position) << std::endl;
   }
 
   if ( !flagMovEnd_ )
   { /* STOP! */
     step (muscle);
     visited.push_back (position);
-    // std::wcout << L"end " << std::wstring(position) << std::endl;
+    // std::wcout << L"end " << tstring(position) << std::endl;
   }
 
   while ( !flagMovEnd_ )
   { /* coming to a stop */
     step ();
     visited.push_back (position);
-    // std::wcout << std::wstring (position) << std::endl;
+    // std::wcout << tstring (position) << std::endl;
   }
 
 }

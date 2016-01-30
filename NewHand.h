@@ -1,6 +1,4 @@
 #include "StdAfx.h"
-// #include "circle.h"
-// #pragma once
 
 #ifndef  _NEW_HAND_H_
 #define  _NEW_HAND_H_
@@ -66,14 +64,11 @@ namespace NewHand
     typedef std::array< JointsEnum,  JointsCount> j_array;
     typedef std::array<MusclesEnum, MusclesCount> m_array;
 
-    // std::array< JointsEnum,  JointsCount>   joints_;
-    // std::array<MusclesEnum, MusclesCount>  muscles_;
-
     std::vector< JointsEnum>  joints_;
     std::vector<MusclesEnum>  muscles_;
 
-    MusclesIndexEnum   muscleIndex (MusclesEnum  muscle);
-     JointsIndexEnum    jointIndex ( JointsEnum   joint);
+    MusclesIndexEnum   muscleIndex (MusclesEnum  muscle) const;
+     JointsIndexEnum    jointIndex ( JointsEnum   joint) const;
 
     frames_t  maxMuscleLast (MusclesEnum  muscle);
 
@@ -84,9 +79,11 @@ namespace NewHand
       //---current position---------------------------------
       Point  curPosPalm_, curPosHand_, curPosArm_,
              curPosShldr_, curPosClvcl_;
+      // TODO: make array
 
       double angleWrist_, angleElbow_,
              angleShldr_, shiftClvcl_;
+      // TODO: make array
 
       bool   moveEnd_;
 
@@ -99,7 +96,7 @@ namespace NewHand
       //----------------------------------------------------
       std::array<double, JointsCount> prevFrame_;
       //----------------------------------------------------
-      double  velosity;
+      double  velosity_;
     };
     HandStatus hs;
 
@@ -115,15 +112,21 @@ namespace NewHand
     const uint_t  maxShldrAngle;
     const uint_t  maxElbowAngle;
     const uint_t  maxWristAngle;
+    // TODO: make array
     
     //---base position------------------------------------
     Point   palm_, hand_, arm_, sholder_, clavicle_;
+    // TODO: make array
 
     //----------------------------------------------------
-    double   nextFrame (MusclesEnum muscle, frames_t &frame, bool atStop);
-    bool   muscleFrame (MusclesEnum muscle, frames_t &frame, bool atStop);
+    double    nextFrame (MusclesEnum muscle, frames_t frame, bool atStop);
+    bool    muscleFrame (MusclesEnum muscle, frames_t frame, bool atStop);
 
-    void   muscleMove (JointsIndexEnum jointIndex, MusclesEnum muscle, frames_t last, bool control);
+    void    muscleFinal (JointsIndexEnum jointIndex);
+    void    muscleBrake (JointsIndexEnum jointIndex);
+
+    void    muscleMove  (JointsIndexEnum jointIndex, MusclesEnum muscle,
+                         frames_t last, bool control);
     //----------------------------------------------------
 
   public:
@@ -141,9 +144,8 @@ namespace NewHand
     void  move (MusclesEnum muscle, frames_t last, std::list<Point> &visited);
     void  step (MusclesEnum muscle=EmptyMov, frames_t last=0U);
 
-    /* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
+    /* jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 % */
     void  set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jointsOpenPercent);
-    // void  set (MusclesEnum muscle, frames_t frame);
     void  reset ();
 
     std::vector<const Point*>  points () const;

@@ -4,6 +4,20 @@
 #ifndef  _DRAW_LETTERS_H_
 #define  _DRAW_LETTERS_H_
 //------------------------------------------------------------------------------
+// class StringMaker
+// {
+//   tstringstream ss_;
+// 
+//   void push ()
+//   {
+//   
+//   }
+// 
+//   tstring  pop ()
+//   {}
+// };
+
+
 class CanvasScaleLetters
 {
   LOGFONTW lf_ = {};
@@ -12,7 +26,7 @@ class CanvasScaleLetters
   Point targetMin_;
   Point targetMax_;
 
-  std::wstringstream ss_;
+  tstringstream ss_;
 
 public:
   
@@ -21,9 +35,9 @@ public:
   double RealScale;
   double NormScale;
 
-  std::wstring txtTargetScale;
-  std::wstring txtXScale;
-  std::wstring txtYScale;
+  tstring txtTargetScale;
+  tstring txtXScale;
+  tstring txtYScale;
 
    CanvasScaleLetters (const Point &RecTargetMinPos,
                        const Point &RecTargetMaxPos);

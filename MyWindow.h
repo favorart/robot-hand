@@ -33,12 +33,17 @@ inline bool  isFileExists (const TCHAR *fileName)
   return (0xFFFFFFFF != fileAttr);
 }
 //-------------------------------------------------------------------------------
-template <typename T>
-T  random (T max)
-{ return  (max) ? (T (rand ()) % (max)) : (max); }
-template <typename T>
-T  random (T min, T max)
-{ return  (max) ? (min + T (rand ()) % (max)) : (max); }
+template <typename INTEGER>
+INTEGER  random (INTEGER max)
+{ return  (max) ? (static_cast<INTEGER> (rand ()) % (max)) : (max); }
+template <typename INTEGER>
+INTEGER  random (INTEGER min, INTEGER max)
+{ return  (max) ? (static_cast<INTEGER> (rand ()) % (max) + min) : (max); }\
+
+inline double  random (double max)
+{ return  (static_cast<double> (rand ()) / RAND_MAX) * max; }
+inline double  random (double min, double max)
+{ return  (static_cast<double> (rand ()) / RAND_MAX) * (max - min) + min; }
 //-------------------------------------------------------------------------------
 class MyWindowData;
 
@@ -88,5 +93,10 @@ void  OnShowTrajectory (MyWindowData &wd);
 
 void  OnShowDBPoints       (MyWindowData &wd);
 void  OnShowDBTrajectories (MyWindowData &wd);
+//-------------------------------------------------------------------------------
+inline void  DrawCircle (HDC hdc, const Point &center, double radius)
+{ Ellipse (hdc, Tx (-radius + center.x), Ty ( radius + center.y),
+                Tx ( radius + center.x), Ty (-radius + center.y));
+}
 //-------------------------------------------------------------------------------
 #endif // _WINDOW_H_

@@ -260,7 +260,7 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   // SetBkMode (hCmpDC, TRANSPARENT);
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
-  draw_decards_coordinates (hCmpDC);
+  DrawDecardsCoordinates (hCmpDC);
   wd.target.draw (hCmpDC, wd.hPen_grn);
 
   OnPaintMyLogic (hCmpDC, wd);
@@ -339,14 +339,14 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       //========================================
       OnCoverTest (wd);
 
-      std::wstring message;
+      tstring message;
       for ( auto t : wd.testing_trajectories )
-        message += std::wstring (t->back ()) + std::wstring (_T ("\n"));
+        message += tstring (t->back ()) + tstring (_T ("\n"));
 
-      MessageBox (hWnd, message.c_str (),
-                  str (boost::wformat (_T ("CoverTest %1%")) %
-                  wd.testing_trajectories.size ()).c_str (),
-                  MB_OK);
+      // MessageBox (hWnd, message.c_str (),
+      //             str (boost::wformat (_T ("CoverTest %1%")) %
+      //             wd.testing_trajectories.size ()).c_str (),
+      //             MB_OK);
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
@@ -359,52 +359,60 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     }
 
     case 'q':
-    { //========================================
-      OnShowDBPoints (wd);
+    { 
+      //========================================
+      // OnShowDBPoints (wd);
+      wd.allPointsDB_show = !wd.allPointsDB_show;
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
 
     case 'i':
-    { int muscle, last;
-      cin >> muscle >> last;
-      wd.hand.move ((Hand::MusclesEnum)muscle, (Hand::time_t)last);
+    { // int muscle, last;
+      // cin >> muscle >> last;
+      // wd.hand.move ((Hand::MusclesEnum)muscle, (Hand::time_t)last);
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
 
     case 'u':
     {
+      if ( !wd.working_space.size () )
+      {
+        Hand::MusclesEnum muscle;
+        wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0.,0.,0. });
 
-      Hand::MusclesEnum muscle;
-      wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0.,0.,0. });
+        muscle = Hand::ClvclOpn;
+        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
 
-      muscle = Hand::ClvclOpn;
-      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
+        muscle = Hand::ShldrCls;
+        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
 
-      muscle = Hand::ShldrCls;
-      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
-      
-      muscle = Hand::ClvclCls;
-      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
+        muscle = Hand::ClvclCls;
+        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
 
-      muscle = Hand::ElbowCls;
-      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
-      
-      muscle = Hand::ShldrOpn;
-      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
-       
-      muscle = Hand::ElbowOpn;
-      wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.trajectory_frames);
-      
-      wd.hand.SET_DEFAULT;
+        muscle = Hand::ElbowCls;
+        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
+
+        muscle = Hand::ShldrOpn;
+        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
+
+        muscle = Hand::ElbowOpn;
+        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
+
+        wd.hand.SET_DEFAULT;
+      }
+      wd.working_space_show = !wd.working_space_show;
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
 
     case 'f':
+      //========================================
       wd.scaleLetters.show = !wd.scaleLetters.show;
+      //========================================
+      InvalidateRect (hWnd, &myRect, FALSE);
       break;
 
     //========================================
@@ -423,7 +431,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       
       wd.reach = false;
 
-      wd.pointsDB.clear ();
+      wd.adjPointsDB.clear ();
       wd.trajectoriesDB.clear ();
 
       wd.mouse_haved = false;
@@ -433,19 +441,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames.clear ();
 
       /* Setting the Label's text */
-      SendMessage (wd.hLabTest,      /* Label   */
-                   WM_SETTEXT,       /* Message */
-                   (WPARAM) NULL,    /* Unused  */
-                   (LPARAM) _T (" "));
-
-      /* Setting the Label's text */
       SendMessage (wd.hLabMAim,      /* Label   */
-                   WM_SETTEXT,       /* Message */
-                   (WPARAM) NULL,    /* Unused  */
-                   (LPARAM) _T (" "));
-
-      /* Setting the Label's text */
-      SendMessage (wd.hLabStat,      /* Label   */
                    WM_SETTEXT,       /* Message */
                    (WPARAM) NULL,    /* Unused  */
                    (LPARAM) _T (" "));

@@ -16,17 +16,17 @@ CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
 
   ss_ << NormScale << _T (" sm");
   txtTargetScale = ss_.str ();
-  ss_.str (std::wstring ());
+  ss_.str (tstring ());
   ss_.clear ();
 
   ss_ << 0.1 * NormScale / RealScale << _T (" sm");
   txtXScale = ss_.str ();
-  ss_.str (std::wstring ());
+  ss_.str (tstring ());
   ss_.clear ();
 
   ss_ << 0.1 * NormScale / RealScale << _T (" sm");
   txtYScale = ss_.str ();
-  ss_.str (std::wstring ());
+  ss_.str (tstring ());
   ss_.clear ();
 
   lf_.lfHeight = 15;
@@ -96,8 +96,8 @@ void  CanvasScaleLetters::draw (HDC hdc, const std::vector<const Point*> &handJo
                                                 boost_point2_t (**next)) / RealScale * NormScale;
 
       ss_ << Scale << _T (" sm");
-      std::wstring strHandScale = ss_.str ();
-      ss_.str (std::wstring ());
+      tstring strHandScale = ss_.str ();
+      ss_.str (tstring ());
       ss_.clear ();
 
       // Calculate angle
@@ -127,9 +127,9 @@ void  CanvasScaleLetters::draw (HDC hdc, const std::vector<const Point*> &handJo
   //---------------------------------------------------------------
   if ( handPos )
   {
-    ss_ << std::wstring (*handPos);
-    std::wstring strHandPos = ss_.str ();
-    ss_.str (std::wstring ());
+    ss_ << tstring (*handPos);
+    tstring strHandPos = ss_.str ();
+    ss_.str (tstring ());
     ss_.clear ();
 
     oldFont = (HFONT) SelectObject (hdc, Font_000);

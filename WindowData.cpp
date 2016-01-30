@@ -23,6 +23,9 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   testing = false;
   reach   = false;
 
+  working_space_show = false;
+  allPointsDB_show = false;
+
   /* создаем ручки */
   hPen_grn  = CreatePen (PS_SOLID, 1, RGB (100, 180, 050));
   hPen_red  = CreatePen (PS_SOLID, 2, RGB (255, 000, 000));
@@ -66,16 +69,20 @@ MyWindowData::~MyWindowData ()
 //-------------------------------------------------------------------------------
 void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
 {
-  // OnPaintScaleLetters (hdc, Point { 0.57, -0.4 });
-
+  const double CircleRadius = 0.01;
+  // --------------------------------------------------------------
   /* Target to achive */
-  // auto fin = wd.target.coords ()[45];
-  // Ellipse (hdc, Tx (-0.01 + fin.x), Ty ( 0.01 + fin.y),
-  //               Tx ( 0.01 + fin.x), Ty (-0.01 + fin.y));
 
-  // ----- Отрисовка фигуры ------------------------
+  // auto fin = wd.target.coords ()[45];
+  // DrawCircle (hdc, fin, REllipse);
+
+  if ( wd.working_space_show )
+    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
+
+  // ----- Отрисовка фигуры ---------------------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
-  draw_trajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
+  DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
+  // --------------------------------------------------------------
 
   if ( !wd.testing && !wd.testing_trajectories.empty () && 
         wd.testing_trajectories_animation_show )
@@ -84,65 +91,101 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
     auto it = wd.testing_trajectories.begin ();
     for ( auto i = 0U; i < wd.testing_trajectories_animation_num_iteration; ++i )
     {
-      draw_trajectory (hdc, (*(*it)), wd.hPen_blue);
+      DrawTrajectory (hdc, (**it), wd.hPen_blue);
 
-      auto fin = (*(*it)).back ();
-      Ellipse (hdc, Tx (-0.01 + fin.x), Ty (0.01 + fin.y),
-               Tx (0.01 + fin.x), Ty (-0.01 + fin.y));
+      DrawCircle(hdc, (**it).back (), CircleRadius);
       ++it;
     } // end for
   } // end if
 
-  if ( wd.mouse_haved )
+  // --------------------------------------------------------------
+  if ( wd.allPointsDB_show && !wd.store.empty () )
   {
-    draw_adjacency (hdc, wd.mouse_aim, wd.radius, ellipse, wd.hPen_cian);
+    HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
+    for ( auto rec : wd.store )
+      DrawCircle (hdc, rec.aim, CircleRadius);
+    SelectObject (hdc, hPen_old);
   }
 
-  // --------------------------------------------------------------
-  HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
-  for ( auto p : wd.pointsDB )
+  // ----- Отрисовка точек БД -------------------------------------
+  if ( !wd.adjPointsDB.empty () )
   {
-    Ellipse (hdc, Tx (-0.01 + p->aim.x), Ty ( 0.01 + p->aim.y),
-                  Tx ( 0.01 + p->aim.x), Ty (-0.01 + p->aim.y));
-    // SetPixel (hdc, Tx (p->aim.x), Ty (p->aim.y), RGB (000, 000, 255));
+    HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
+    for ( auto p : wd.adjPointsDB )
+    {
+      DrawCircle (hdc, p->aim, CircleRadius);
+      // SetPixel (hdc, Tx (p->aim.x), Ty (p->aim.y), RGB (000, 000, 255));
+    }
+    SelectObject (hdc, hPen_old);
   }
-  SelectObject (hdc, hPen_old);
+  // --------------------------------------------------------------
+  if ( wd.mouse_haved )
+   DrawAdjacency (hdc, wd.mouse_aim, wd.radius, ellipse, wd.hPen_cian);
   // --------------------------------------------------------------
   if ( wd.scaleLetters.show )
    wd.scaleLetters.draw (hdc, wd.hand.points (), &wd.hand.position);
+  // --------------------------------------------------------------
 }
 //-------------------------------------------------------------------------------
+void  TryJoinWorkerThread (MyWindowData &wd)
+{
+  if ( wd.pWorkerThread && wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
+  { /* joined */
+    delete wd.pWorkerThread;
+    wd.pWorkerThread = nullptr;
+
+    wd.testing = false;
+    wd.testing_trajectories_animation_num_iteration = 1;
+    wd.testing_trajectories_animation_show = true;
+
+    /* Setting the Label's text */
+    SendMessage (wd.hLabTest,      /* Label   */
+                 WM_SETTEXT,       /* Message */
+                 (WPARAM) NULL,    /* Unused  */
+                 (LPARAM) _T (" "));
+  } // end if
+}
+
+
 void  OnWindowTimer (MyWindowData &wd)
 {
   if ( !wd.testing && !wd.reach )
   {
     /* Auto-drawing trajectory animation */
-    if ( wd.trajectory_frames_show )
-    { --wd.trajectory_frames_lasts;
-      if ( !wd.trajectory_frames_lasts )
-      {
-        std::wcout << L"end " << std::wstring (wd.hand.position) << std::endl;
-        wd.hand.step (wd.trajectory_frames_muscle);
-      }
-    }
+
+    /* !!! WORKING ONLY FOR NEW_HAND !!! */
+
+    // if ( wd.trajectory_frames_show )
+    // { --wd.trajectory_frames_lasts;
+    //   if ( !wd.trajectory_frames_lasts )
+    //   {
+    //     // std::wcout << L"end " << tstring (wd.hand.position) << std::endl;
+    //     wd.hand.step (wd.trajectory_frames_muscle);
+    //   }
+    // }
+
     // ============
     wd.hand.step ();
     // ============
     if ( wd.trajectory_frames_show )
-    {
-       // ???????
-      // std::wcout << std::wstring (wd.hand.position) << std::endl;
-
-      // wd.trajectory_frames.push_back (wd.hand.position);
-
+    { 
+      
+      /* !!! WORKING ONLY FOR NEW_HAND !!! */
       if ( wd.hand.moveEnd )
       {
-        // auto aim = wd.hand.position;
-        // auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
-        //                    { 0U }, { wd.trajectory_frames.size() /* !!!!!! */ },
-        //                    1U, wd.trajectory_frames);
-        // wd.store.insert (rec);
+        auto aim = wd.hand.position;
+        wd.trajectory_frames.push_back (aim);
+
+        auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
+                           { 0U }, { wd.trajectory_frames_lasts },
+                           1U, wd.trajectory_frames);
+        wd.store.insert (rec);
+
+        wd.trajectory_frames_lasts = 0U;
+        wd.trajectory_frames_muscle = Hand::EmptyMov;
       }
+      else if ( wd.trajectory_frames_lasts )
+      { wd.trajectory_frames.push_back (wd.hand.position); }
 
     }
 
@@ -152,19 +195,9 @@ void  OnWindowTimer (MyWindowData &wd)
          wd.testing_trajectories.size () )
     { ++wd.testing_trajectories_animation_num_iteration; }
   }
-  else  if ( wd.pWorkerThread && wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
-  { /* joined */
-    delete wd.pWorkerThread;
-    wd.pWorkerThread = nullptr;
 
-    wd.testing = false;
-
-    /* Setting the Label's text */
-    SendMessage (wd.hLabTest,         /* Label   */
-                 WM_SETTEXT,       /* Message */
-                 (WPARAM) NULL,    /* Unused  */
-                 (LPARAM) _T (" "));
-  }
+  else
+  { TryJoinWorkerThread (wd); }
 }
 void  OnWindowMouse (MyWindowData &wd)
 {
@@ -175,23 +208,15 @@ void  OnWindowMouse (MyWindowData &wd)
   SendMessage (wd.hLabMAim,      /* Label   */
                WM_SETTEXT,       /* Message */
                (WPARAM) NULL,    /* Unused  */
-               (LPARAM) wstring (wd.mouse_aim).c_str () );
+               (LPARAM) tstring (wd.mouse_aim).c_str () );
   
   OnShowDBPoints (wd);
-
-  // HandMoves::adjacencyRectPoints<decltype(found_points)>
-  //  (store,  std::back_inserter (found_points), { 0.1, 0.1 }, { 0.4, 0.3 });
-
-  //HandMoves::adjacencyPoints //<decltype(found_points)>
-  //  (store, std::back_inserter (found_points), aim, radius, true);
 }
 //-------------------------------------------------------------------------------
 void  OnRandomTest (MyWindowData &wd)
 {
   if ( !wd.testing )
   {
-    // ?wd.testing_trajectories ???.clear ();
-
     wd.testing = true;
     /* Setting the Label's text */
     SendMessage (wd.hLabTest,         /* Label   */
@@ -208,62 +233,29 @@ void  OnRandomTest (MyWindowData &wd)
     // wd.hand.SET_DEFAULT;
     // test_random (wd.store, wd.hand, 1000U);
 
-    if ( wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
-    { /* joined */
-      delete wd.pWorkerThread;
-      wd.pWorkerThread = nullptr;
-
-      wd.testing = false;
-      /* Setting the Label's text */
-      SendMessage (wd.hLabTest,      /* Label   */
-                   WM_SETTEXT,       /* Message */
-                   (WPARAM) NULL,    /* Unused  */
-                   (LPARAM) _T (" "));
-    } // end if
+    TryJoinWorkerThread (wd);
   }
-
-  
 }
 void  OnCoverTest  (MyWindowData &wd)
 { 
   if ( !wd.testing )
   {
-    // wd.testing = true;
-    wd.testing_trajectories.clear ();
-
+    wd.testing = true;
     /* Setting the Label's text */
     SendMessage (wd.hLabTest,      /* Label   */
                  WM_SETTEXT,       /* Message */
                  (WPARAM) NULL,    /* Unused  */
                  (LPARAM) _T("\n *** testing ***  "));
 
-    const size_t nested = 1U;
-    // wd.pWorkerThread = new boost::thread (HandMoves::test_cover,
-    //                                       std::ref (wd.store),
-    //                                       wd.hand,  /* copy */
-    //                                       // std::ref (wd.testing_trajectories),
-    //                                       nested);
-
-
-
+    const size_t nested = 2U;
+    wd.pWorkerThread = new boost::thread (HandMoves::test_cover,
+                                          std::ref (wd.store),
+                                          wd.hand,  /* copy */
+                                          nested);
     // hand.SET_DEFAULT;
-    HandMoves::test_cover (wd.store, wd.hand, nested);
+    // HandMoves::test_cover (wd.store, wd.hand, nested);
 
-    if ( wd.pWorkerThread && wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
-    { /* joined */
-      delete wd.pWorkerThread;
-      wd.pWorkerThread = nullptr;
-
-      wd.testing = false;
-      wd.testing_trajectories_animation_num_iteration = 1;
-      wd.testing_trajectories_animation_show = true;
-
-      /* Setting the Label's text */
-      SendMessage (wd.hLabTest,      /* Label   */
-                   WM_SETTEXT,       /* Message */
-                   (WPARAM) NULL,    /* Unused  */
-                   (LPARAM) _T (" "));
-    } // end if
+    TryJoinWorkerThread (wd);
   } // end if
 }
 //-------------------------------------------------------------------------------
@@ -280,74 +272,48 @@ void  OnShowTrajectory (MyWindowData &wd)
   wd.trajectory_frames.push_back (wd.hand.position);
 }
 //-------------------------------------------------------------------------------
-void  draw_adjacency (HDC hdc, const Point &pt, double r, figure_t figure, HPEN hPen_cian)
-{
-  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen_cian);
-  switch ( figure )
-  {
-    case ellipse:     Ellipse (hdc, Tx(pt.x - r), Ty(pt.y + r),
-                                    Tx(pt.x + r), Ty(pt.y - r)); break;
-    case rectangle: Rectangle (hdc, Tx(pt.x - r), Ty(pt.y + r),
-                                    Tx(pt.x + r), Ty(pt.y - r)); break;
-  }
-  SelectObject (hdc, hPen_old);
-}
-
-
 void  MakeHandMove (MyWindowData &wd);
 void  OnShowDBPoints (MyWindowData &wd)
 {
-  if ( !wd.testing )
-  { 
-    if ( wd.mouse_haved )
-    {
-      wd.pointsDB.clear ();
-      wd.testing_trajectories.clear ();
-      wd.trajectory_frames.clear ();
+  if ( !wd.testing && wd.mouse_haved )
+  {
+    wd.adjPointsDB.clear ();
+    wd.testing_trajectories.clear ();
+    wd.trajectory_frames.clear ();
 
-      // ?? figure_t ???
+    // ?? figure_t ???
 
-      wd.reach = true;
-      MakeHandMove (wd);
-      // wd.testing = false;
-      // typedef void  (*func_type) (MyWindowData &wd);
+    wd.reach = true;
+    MakeHandMove (wd);
+
+    // wd.testing = false;
+    // typedef void  (*func_type) (MyWindowData &wd);
 
 
-      // wd.pWorkerThread = new boost::thread (MakeHandMove,
-      //                                       std::ref (wd));
+    // wd.pWorkerThread = new boost::thread (MakeHandMove,
+    //                                       std::ref (wd));
 
-      // typedef size_t  (*func_type) (Store&,std::list<std::shared_ptr<Record>>&,const Point&,double);
-      // wd.pWorkerThread = new boost::thread ( (func_type) (&HandMoves::adjacencyPoints),
-      //                                        std::ref (wd.store),
-      //                                        std::ref (wd.pointsDB),
-      //                                        std::ref (wd.mouse_aim),
-      //                                        wd.radius );
+    // typedef size_t  (*func_type) (Store&,std::list<std::shared_ptr<Record>>&,const Point&,double);
+    // wd.pWorkerThread = new boost::thread ( (func_type) (&HandMoves::adjacencyPoints),
+    //                                        std::ref (wd.store),
+    //                                        std::ref (wd.pointsDB),
+    //                                        std::ref (wd.mouse_aim),
+    //                                        wd.radius );
 
-      // HandMoves::adjacencyPoints (wd.store, std::back_inserter (wd.pointsDB),
-      //                             wd.mouse_aim, wd.radius);
+    // HandMoves::adjacencyPoints (wd.store, std::back_inserter (wd.pointsDB),
+    //                             wd.mouse_aim, wd.radius);
 
-      // HandMoves::adjacencyRectPoints (wd.store, std::back_inserter (wd.pointsDB),
-      //                                 wd.mouse_aim, wd.radius);
+    // HandMoves::adjacencyRectPoints (wd.store, std::back_inserter (wd.pointsDB),
+    //                                 wd.mouse_aim, wd.radius);
 
-      // if ( wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (1)) )
-      // { /* joined */
-      //   delete wd.pWorkerThread;
-      //   wd.pWorkerThread = nullptr;
-      // 
-      //   wd.testing = false;
-      // } // end if
-    }
-    else
-    {
-      for ( auto rec : wd.store )
-      { wd.pointsDB.push_back (make_shared<Record> (rec)); }
-    } // end else
-  }
+    // TryJoinWorkerThread (wd);
+
+  } // end if
 }
 //-------------------------------------------------------------------------------
 void  OnShowDBTrajectories (MyWindowData &wd)
 {
-  for ( auto rec : wd.pointsDB )
+  for ( auto rec : wd.adjPointsDB )
   { 
     wd.trajectoriesDB.push_back ( make_shared<trajectory_t> (rec->trajectory) );
   }
@@ -372,22 +338,22 @@ void  UncoveredTargetPoints (Store &store, const RecTarget &t, std::list<Point> 
 void  MakeHandMove (MyWindowData &wd)
 {
 
-  HandMoves::adjacencyPoints (wd.store, wd.pointsDB,
+  HandMoves::adjacencyPoints (wd.store, wd.adjPointsDB,
                               wd.mouse_aim, wd.radius);
 
   boost_point2_t m_aim = wd.mouse_aim;
-  wd.pointsDB.sort ([m_aim](const shared_ptr<Record> &a,
-                            const shared_ptr<Record> &b)
-                            { boost_point2_t a_p = a->aim;
-                              boost_point2_t b_p = b->aim;
-                              double  d1 = boost::geometry::distance (m_aim, a_p);
-                              double  d2 = boost::geometry::distance (m_aim, b_p);
-                              return (d1 > d2);
-                            });
+  wd.adjPointsDB.sort ([m_aim](const shared_ptr<Record> &a,
+                               const shared_ptr<Record> &b)
+                               { boost_point2_t a_p = a->aim;
+                                 boost_point2_t b_p = b->aim;
+                                 double  d1 = boost::geometry::distance (m_aim, a_p);
+                                 double  d2 = boost::geometry::distance (m_aim, b_p);
+                                 return (d1 > d2);
+                               });
 
   // wd.testing_trajectories.clear ();
 
-  // std::wstringstream buffer;
+  // tstringstream buffer;
   // for ( auto pRec : wd.pointsDB )
   // {
   //   buffer << pRec << std::endl;
@@ -401,9 +367,9 @@ void  MakeHandMove (MyWindowData &wd)
   //              (LPARAM) buffer.str ().c_str ()
   //              );
 
-  if ( !wd.pointsDB.empty () )
+  if ( !wd.adjPointsDB.empty () )
   {
-    Record &Rec = (*(*wd.pointsDB.begin ()));
+    Record &Rec = (*(*wd.adjPointsDB.begin ()));
     Rec.makeHandMove (wd);
   }
 }

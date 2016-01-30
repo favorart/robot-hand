@@ -39,7 +39,7 @@ public:
   operator boost::geometry::model::d2::point_xy<double> () const
   { return boost::geometry::model::d2::point_xy<double> (x, y); }
 
-  operator std::wstring () const
+  operator tstring () const
   { return  boost::str (boost::wformat (_T ("pt<x=%1%, y=%2%>")) % x % y); }
   //-----------------------------------------
 private:

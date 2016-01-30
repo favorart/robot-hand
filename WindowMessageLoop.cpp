@@ -25,10 +25,11 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       OnWindowCreate (hWnd, myRect, hLabCanv, hLabHelp,
                       hLabMAim, hLabTest, hLabStat, lp);
       //=======================
-      RedirectIOToConsole ();
+      // RedirectIOToConsole ();
       //=======================
       wd = new MyWindowData (hLabMAim, hLabTest, hLabStat);
       //=======================
+      SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
       break;
     }
 
@@ -36,8 +37,6 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
     { //=======================
       OnWindowPaint (hWnd, myRect, *wd);
       //=======================
-      if ( wd->store_size != wd->store.size () )
-        SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
       break;
     }
 
@@ -79,23 +78,28 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
     { //=======================
       OnWindowTimer (*wd);
       //=======================
+      if ( wd->store_size != wd->store.size () )
+        SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
+
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
     case WM_USER_STORE:
-    {//=======================
-     // std::wstringstream buffer;
-     // buffer << boost::wformat (_T ("Storage size %1%  ")) % wd->store.size ();
+    { //=======================
+      {
+        // tstringstream buffer;
+        // buffer << _T ("Storage size ") << wd->store.size () << _T("  ");
 
-      wd->store_size = wd->store.size ();
-      auto str_size = str (boost::wformat (_T ("Storage size %1%  ")) % wd->store_size);
+        wd->store_size = wd->store.size ();
+        tstring str_size = str (boost::wformat (_T ("Storage size %1%  ")) % wd->store_size);
 
-      /* Setting the Label's text */
-      SendMessage (hLabStat,         /* Label Stat */
-                   WM_SETTEXT,       /* Message    */
-                   (WPARAM) NULL,    /* Unused     */
-                   (LPARAM) str_size.c_str ()); // buffer.str ().c_str ());
+        /* Setting the Label's text */
+        SendMessage (hLabStat,         /* Label Stat */
+                     WM_SETTEXT,       /* Message    */
+                     (WPARAM) NULL,    /* Unused     */
+                     (LPARAM) str_size.c_str ()); // buffer.str ().c_str ());
+      }
       //=======================
       break;
     }

@@ -5,9 +5,11 @@
 
 #include "MyWindow.h"
 //------------------------------------------------------------------------------
-void  draw_decards_coordinates (HDC hdc);
-void  draw_simple_hand_moving  (HDC hdc   /* контекст, куда отрисовывать */, 
-                               ulong_t time /* номер кадра */ );
-void  draw_trajectory (HDC hdc, std::list<Point> &walk_through, HPEN hPen);
+void  DrawDecardsCoordinates (HDC hdc);
+void  DrawTrajectory (HDC hdc, std::list<Point> &walk_through, HPEN hPen);
+
+typedef enum { ellipse = 1, rectangle } figure_t;
+void  DrawAdjacency (HDC hdc, const Point &center, double radius,
+                     figure_t figure, HPEN hPen_cian);
 //------------------------------------------------------------------------------
 #endif // _DRAW_H_

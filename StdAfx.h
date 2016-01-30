@@ -84,11 +84,18 @@ typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 #include <boost/archive/text_iarchive.hpp> // loading
 
 /* Visual Leak Detector */
-// #include <vld.h>
+#include <vld.h>
 
 /* Windows */
 #include <windows.h>
 #include <tchar.h>
+
+// TCHAR based std::string
+typedef std::basic_string<TCHAR> tstring;
+// TCHAR based std::fstream;
+typedef std::basic_fstream<TCHAR> tfstream;
+// TCHAR based std::stringstream
+typedef std::basic_stringstream<TCHAR> tstringstream;
 
 //---defines---------------------------
 #define   MAX(a,b)   ((a)>(b))?(a):(b)
