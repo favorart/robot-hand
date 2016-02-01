@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+
 #ifndef  _NEW_HAND_H_
 #define  _NEW_HAND_H_
 //------------------------------------------------------------------------------
@@ -66,7 +67,7 @@ namespace NewHand
 
     std::vector< JointsEnum>  joints_;
     std::vector<MusclesEnum>  muscles_;
-
+    
     MusclesIndexEnum   muscleIndex (MusclesEnum  muscle) const;
      JointsIndexEnum    jointIndex ( JointsEnum   joint) const;
 
@@ -128,6 +129,12 @@ namespace NewHand
     void    muscleMove  (JointsIndexEnum jointIndex, MusclesEnum muscle,
                          frames_t last, bool control);
     //----------------------------------------------------
+    std::vector<MusclesEnum>  controls;
+    void  createControls ();
+    void  recursiveControlsAppend (MusclesEnum  muscles,
+                                   JointsEnum   joints,
+                                   size_t       cur_deep,
+                                   size_t       max_deep);
 
   public:
     //----------------------------------------------------
@@ -140,15 +147,21 @@ namespace NewHand
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
 
-    void  move (MusclesEnum muscle, frames_t last);
-    void  move (MusclesEnum muscle, frames_t last, std::list<Point> &visited);
-    void  step (MusclesEnum muscle=EmptyMov, frames_t last=0U);
+    frames_t  move (IN MusclesEnum muscle, IN frames_t last);
+    frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited);
+
+    void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
 
     /* jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 % */
     void  set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jointsOpenPercent);
     void  reset ();
 
     std::vector<const Point*>  points () const;
+
+    MusclesEnum  selectControl (size_t choose)
+    { return  (choose < controls.size ()) ? controls[choose] : Hand::EmptyMov; }
+    MusclesEnum  selectControl ();
+    // { return  controls[random (controls.size ())]; }
     
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_mend)) bool moveEnd;
@@ -157,6 +170,8 @@ namespace NewHand
     const Point&  get_posit () const { return hs.curPosHand_; }
     __declspec(property(get = get_pos)) boost_point2_t pos;
     boost_point2_t  get_pos () const { return hs.curPosHand_; }
+    __declspec(property(get = get_n_controls)) size_t controlsCount;
+    size_t  get_n_controls () const { return controls.size (); }
     //----------------------------------------------------
   };
 
@@ -184,13 +199,14 @@ namespace NewHand
   //------------------------------------------------------------------------------
   bool  muscleValidAtOnce (Hand::MusclesEnum muscle);
 
-  const size_t  HandMovesCount = 26UL;
-  Hand::MusclesEnum  selectHandMove (size_t choose);
+  // const size_t  HandMovesCount = 26UL;
+  // Hand::MusclesEnum  selectHandMove (size_t choose);
 
   Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
   Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
 
 #define SET_DEFAULT set(NewHand::Hand::Shldr | NewHand::Hand::Elbow, { 0., 70. })
+#define HAND_NAME   _T("NewHand")
 };
 //------------------------------------------------------------------------------
 #endif // _HAND_H_

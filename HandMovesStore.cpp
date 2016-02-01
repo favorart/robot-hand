@@ -262,15 +262,15 @@ void  store_test ()
 }
 
 //------------------------------------------------------------------------------
-void  HandMoves::storeSave (const Store& store, const TCHAR *filename)
+void  HandMoves::storeSave (const Store& store, tstring filename)
 {
   ofstream  ofs (filename);
   boost::archive::text_oarchive oa (ofs);
   oa << store;
 }
-void  HandMoves::storeLoad (      Store& store, const TCHAR *filename)
+void  HandMoves::storeLoad (      Store& store, tstring filename)
 {
-  if ( isFileExists (filename) )
+  if ( isFileExists (filename.c_str ()) )
   {
     ifstream  ifs (filename);
     boost::archive::text_iarchive ia (ifs);

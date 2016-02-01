@@ -32,6 +32,11 @@ inline bool  isFileExists (const TCHAR *fileName)
 { DWORD  fileAttr = GetFileAttributes (fileName);
   return (0xFFFFFFFF != fileAttr);
 }
+
+tstring   OpenFileDialog (HWND hWnd);
+tstring   SaveFileDialog (HWND hWnd);
+
+tstring   CurrentTimeToString (tstring format, std::time_t *the_time=NULL);
 //-------------------------------------------------------------------------------
 template <typename INTEGER>
 INTEGER  random (INTEGER max)

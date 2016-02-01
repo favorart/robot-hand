@@ -144,8 +144,9 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
              _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \rD - раскрыть локоть  \r\r")
              _T ("Повторное нажатие на кнопку во время движения  \rостанавливает соответствующее движение.  \r\r")
              _T ("U - нарисовать рабочую область руки  \rO - нарисовать случайную траекторию  \r\r")
-             _T ("P - Cover Test  \rT - Random Test  \r\r")
+             _T ("P - Cover Test  \rT - Random Test  \r")
              _T ("Y - TargetCoverTest  \r\rF - Show scales  \r\r")
+             _T ("Ctrl+O - OpenFile  \rCtrl+S - SaveFile  \r\r")
              //_T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
              //_T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r, где 0 <= !no! - номер строки/столбца"),
              //tgRowsCount,
@@ -159,6 +160,8 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
                (LPARAM) string_help);
   }
 
+  RegisterHotKey (hWnd, HK_OPEN, MOD_CONTROL, 0x4f); // 'O'
+  RegisterHotKey (hWnd, HK_SAVE, MOD_CONTROL, 0x53); // 'S'
   RegisterHotKey (hWnd, HK_EXIT, (UINT) NULL, 0x1B); // 'Esc'       
 
   SetTimer (hWnd,        /* Handle to main window */
@@ -312,7 +315,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames.clear ();
       wd.hand.SET_DEFAULT;
 
-      wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
+      // wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
+      wd.trajectory_frames_muscle = wd.hand.selectControl ();
       wd.trajectory_frames_lasts = random (wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
 
       // wd.trajectory_frames_muscle = Hand::ShldrCls;
@@ -460,5 +464,82 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       //========================================
       break;
   }
+}
+//-------------------------------------------------------------------------------
+tstring   OpenFileDialog (HWND hWnd)
+{
+  /* common dialog box structure */
+  OPENFILENAME  OpenFileName = {};
+  TCHAR         szFilePath[MAX_PATH];  /* buffer for file name */
+  TCHAR         szFileName[MAX_PATH];
+
+  /* Initialize OpenFileName */
+  OpenFileName.lStructSize = sizeof (OPENFILENAME);
+  OpenFileName.hwndOwner = hWnd;
+
+  OpenFileName.lpstrFileTitle = szFileName;
+  OpenFileName.nMaxFileTitle = sizeof (szFileName);
+  OpenFileName.lpstrFile = szFilePath;
+  OpenFileName.nMaxFile = sizeof (szFilePath);
+
+  /*  GetOpenFileName does not use the
+  *  contents to initialize itself.
+  */
+  OpenFileName.lpstrFile[0] = '\0';
+  OpenFileName.lpstrFileTitle[0] = '\0';
+
+  OpenFileName.lpstrDefExt = _T ("bin");
+  OpenFileName.lpstrFilter = _T ("Binary\0*.bin\0All\0*.*\0");
+  OpenFileName.nFilterIndex = 1;
+  OpenFileName.lpstrInitialDir = NULL;
+  OpenFileName.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
+
+  // Display the Open dialog box. 
+  if ( !GetOpenFileName (&OpenFileName) )
+  { return  _T (""); }
+  return  OpenFileName.lpstrFile;
+}
+tstring   SaveFileDialog (HWND hWnd)
+{
+  OPENFILENAME  SaveFileName = {};
+  TCHAR         szFileName[MAX_PATH] = {};
+  TCHAR         szFilePath[MAX_PATH] = {};
+
+  SaveFileName.lStructSize = sizeof (OPENFILENAME);
+  SaveFileName.hwndOwner = hWnd;
+  
+  SaveFileName.lpstrFile = szFilePath;
+  SaveFileName.nMaxFile = sizeof (szFilePath);
+  SaveFileName.lpstrFileTitle = szFileName;
+  SaveFileName.nMaxFileTitle = sizeof (szFileName);
+
+  SaveFileName.lpstrFile[0] = '\0';
+  SaveFileName.lpstrFileTitle[0] = '\0';
+
+  SaveFileName.lpstrDefExt = _T ("bin");
+  SaveFileName.lpstrFilter = _T ("Binary\0*.bin\0All\0*.*\0");
+  SaveFileName.nFilterIndex = 1;
+  SaveFileName.lpstrInitialDir = NULL;
+
+  SaveFileName.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
+
+  // Display the Open dialog box. 
+  if ( GetSaveFileName (&SaveFileName) )
+  { return _T(""); }
+  return SaveFileName.lpstrFile;
+}
+//-------------------------------------------------------------------------------
+tstring   CurrentTimeToString (tstring format, std::time_t *the_time)
+{
+  std::time_t rawtime;
+  if ( !the_time )
+  { rawtime = std::time (nullptr); }
+  else
+  { rawtime = *the_time; }
+  struct tm  *TimeInfo = std::localtime (&rawtime);
+
+  tstringstream ss;
+  ss << std::put_time (TimeInfo, format.c_str ());
+  return ss.str ();
 }
 //-------------------------------------------------------------------------------

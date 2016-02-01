@@ -176,6 +176,7 @@ uint_t:3;  /* unused */
 
 
 #define SET_DEFAULT set(Hand::Clvcl|Hand::Shldr|Hand::Elbow,{0,0,70})
+#define HAND_NAME   _T("OldHand")
 };
 /*
  * hand

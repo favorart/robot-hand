@@ -191,8 +191,8 @@ namespace HandMoves
                               double y, double left=0., double right=0.);
   //------------------------------------------------------------------------------
   /* сериализация */
-  void  storeSave (const Store& store, const TCHAR *filename=_T("moves.bin"));
-  void  storeLoad (      Store& store, const TCHAR *filename=_T("moves.bin"));
+  void  storeSave (const Store& store, tstring  filename=_T("moves.bin"));
+  void  storeLoad (      Store& store, tstring  filename=_T("moves.bin"));
   //------------------------------------------------------------------------------
   /* тестовые движения рукой */
   void  test_random (Store &store, Hand &hand, size_t tries);

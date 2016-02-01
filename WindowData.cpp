@@ -40,8 +40,12 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   // p_x = 0; p_y = 0;
   // fm = 0; fn = 0;
   //=======================
-  hand.set (Hand::Shldr | Hand::Elbow, {0.,50.});
-  HandMoves::storeLoad (store);
+  // hand.set (Hand::Shldr | Hand::Elbow, {0.,50.});
+  hand.SET_DEFAULT;
+
+  // HandMoves::storeLoad (store);
+  WorkerThreadRunStore (*this, _T ("  *** loading ***  "),
+                        storeLoad, CurFileName);
   //=======================
 }
 MyWindowData::~MyWindowData ()
@@ -63,7 +67,7 @@ MyWindowData::~MyWindowData ()
     pWorkerThread = nullptr;
   }
   //=======================
-  HandMoves::storeSave (store);
+  HandMoves::storeSave (store, CurFileName);
   //=======================
 }
 //-------------------------------------------------------------------------------
@@ -127,7 +131,19 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
   // --------------------------------------------------------------
 }
 //-------------------------------------------------------------------------------
-void  TryJoinWorkerThread (MyWindowData &wd)
+//template<typename T, typename... Args>
+//void  WorkerThreadStart   (MyWindowData &wd, tstring &message, T func, Args... args)
+//{
+//  wd.testing = true;
+//  /* Setting the Label's text */
+//  SendMessage (wd.hLabTest,      /* Label   */
+//               WM_SETTEXT,       /* Message */
+//               (WPARAM) NULL,    /* Unused  */
+//               (LPARAM) message.c_str ());
+//
+//  wd.pWorkerThread = new boost::thread (func, args...);
+//}
+void  WorkerThreadTryJoin (MyWindowData &wd)
 {
   if ( wd.pWorkerThread && wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
   { /* joined */
@@ -176,11 +192,13 @@ void  OnWindowTimer (MyWindowData &wd)
         auto aim = wd.hand.position;
         wd.trajectory_frames.push_back (aim);
 
-        auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
-                           { 0U }, { wd.trajectory_frames_lasts },
-                           1U, wd.trajectory_frames);
-        wd.store.insert (rec);
-
+        if ( !wd.testing )
+        {
+          auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
+          { 0U }, { wd.trajectory_frames_lasts },
+                             1U, wd.trajectory_frames);
+          wd.store.insert (rec);
+        }
         wd.trajectory_frames_lasts = 0U;
         wd.trajectory_frames_muscle = Hand::EmptyMov;
       }
@@ -197,7 +215,7 @@ void  OnWindowTimer (MyWindowData &wd)
   }
 
   else
-  { TryJoinWorkerThread (wd); }
+  { WorkerThreadTryJoin (wd); }
 }
 void  OnWindowMouse (MyWindowData &wd)
 {
@@ -233,7 +251,7 @@ void  OnRandomTest (MyWindowData &wd)
     // wd.hand.SET_DEFAULT;
     // test_random (wd.store, wd.hand, 1000U);
 
-    TryJoinWorkerThread (wd);
+    WorkerThreadTryJoin (wd);
   }
 }
 void  OnCoverTest  (MyWindowData &wd)
@@ -255,7 +273,7 @@ void  OnCoverTest  (MyWindowData &wd)
     // hand.SET_DEFAULT;
     // HandMoves::test_cover (wd.store, wd.hand, nested);
 
-    TryJoinWorkerThread (wd);
+    WorkerThreadTryJoin (wd);
   } // end if
 }
 //-------------------------------------------------------------------------------
@@ -265,7 +283,8 @@ void  OnShowTrajectory (MyWindowData &wd)
   wd.trajectory_frames.clear ();
 
   wd.trajectory_frames_show = true;
-  wd.trajectory_frames_muscle = selectHandMove ( random (HandMovesCount) );
+  // wd.trajectory_frames_muscle = selectHandMove ( random (HandMovesCount) );
+  wd.trajectory_frames_muscle = wd.hand.selectControl ();
   wd.trajectory_frames_lasts = random ( wd.hand.maxMuscleLast (wd.trajectory_frames_muscle) );
   
   wd.hand.step (wd.trajectory_frames_muscle);

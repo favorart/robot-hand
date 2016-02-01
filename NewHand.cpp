@@ -246,9 +246,11 @@ NewHand::Hand::Hand (const Point &palm,
   framesStop[ShldrIndex] = generateStopFrames (EPS, maxShldrAngle * 0.02, minStopFrames[ShldrIndex]);
   framesStop[ElbowIndex] = generateStopFrames (EPS, maxElbowAngle * 0.02, minStopFrames[ElbowIndex]);
   
+  createControls ();
+
   reset ();
 }
-void  NewHand::Hand::step (MusclesEnum muscle, frames_t last)
+void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t last)
 {
   if ( muscle )
   {
@@ -279,8 +281,10 @@ void  NewHand::Hand::step (MusclesEnum muscle, frames_t last)
       }
     }
 }
-void  NewHand::Hand::move (MusclesEnum muscle, frames_t last, std::list<Point> &visited)
+NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited)
 {
+  frames_t  actual_last = 0U;
+  /* simultaniusly moving */
   if ( last )
   {
     MusclesEnum ms = Hand::EmptyMov;
@@ -297,12 +301,15 @@ void  NewHand::Hand::move (MusclesEnum muscle, frames_t last, std::list<Point> &
       step ();
       visited.push_back (position);
       // std::wcout << tstring (position) << std::endl;
+      ++actual_last;
     }
-
   }
+  return  actual_last;
 }
-void  NewHand::Hand::move (MusclesEnum muscle, frames_t last) // !simultaniusly
-{
+NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last)
+{ 
+  frames_t  actual_last = 0U;
+  /* simultaniusly moving */
   if ( last )
   {
     /* Исключить незадействованные двигатели */
@@ -311,10 +318,14 @@ void  NewHand::Hand::move (MusclesEnum muscle, frames_t last) // !simultaniusly
     muscle = ms & muscle;
 
     step (muscle, last);
+    
     /* Что-то должно двигаться, иначе беск.цикл */
     while ( muscle && !hs.moveEnd_ )
-      step ();
-  }
+    { step ();
+      ++actual_last;
+    }
+  } // end if
+  return actual_last;
 }
 
 void  NewHand::Hand::reset ()
@@ -523,4 +534,43 @@ std::vector<const Point*>  NewHand::Hand::points () const
   }
   return vec;
 }
+//--------------------------------------------------------------------------------
+void  NewHand::Hand::recursiveControlsAppend (NewHand::Hand::MusclesEnum  muscles,
+                                              NewHand::Hand::JointsEnum   joints,
+                                              size_t cur_deep, size_t max_deep)
+{
+  for ( auto j : joints_ )
+  {
+    if ( !(j & joints) && (j > joints) )
+    {
+      if ( cur_deep == max_deep )
+      {
+        controls.push_back (muscles | muscleByJoint (j, true ));
+        controls.push_back (muscles | muscleByJoint (j, false));
+      }
+      else
+      {
+        recursiveControlsAppend (muscles | muscleByJoint (j, true ), j | joints, cur_deep + 1U, max_deep);
+        recursiveControlsAppend (muscles | muscleByJoint (j, false), j | joints, cur_deep + 1U, max_deep);
+      } // end else
+    } // end if
+  } // emd for
+};
+void  NewHand::Hand::createControls ()
+{
+  // std::copy (muscles_.begin (), muscles_.end (), controls.begin ());
+  
+  for ( auto m : muscles_ )
+  { controls.push_back (m); }
+
+  /* 1 << 0,1,2,3,4,5,6,7 */
+  /* Impossible (0 & 1) (2 & 3) (4 & 5) (6 & 7) */
+
+  size_t  maxSimultMoves = joints_.size ();
+  for ( size_t SimultMoves = 1U; SimultMoves < maxSimultMoves; ++SimultMoves )
+    recursiveControlsAppend (Hand::EmptyMov, Hand::Empty, 0U, SimultMoves);
+}
+
+NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl ()
+{ return  controls[random (controls.size ())]; }
 //--------------------------------------------------------------------------------

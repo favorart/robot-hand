@@ -69,7 +69,7 @@ bool  NewHand::muscleValidAtOnce (NewHand::Hand::MusclesEnum muscle)
   return true;
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesEnum  NewHand::muscleByJoint (NewHand::Hand::JointsEnum joint, bool open)
+NewHand::Hand::MusclesEnum  NewHand::muscleByJoint (NewHand::Hand:: JointsEnum joint, bool open)
 {
   if ( !joint ) return Hand::EmptyMov;
 
@@ -87,7 +87,7 @@ NewHand::Hand::MusclesEnum  NewHand::muscleByJoint (NewHand::Hand::JointsEnum jo
   }
   return Hand::EmptyMov;
 }
-NewHand::Hand::JointsEnum   NewHand::jointByMuscle (NewHand::Hand::MusclesEnum muscle)
+NewHand::Hand:: JointsEnum  NewHand::jointByMuscle (NewHand::Hand::MusclesEnum muscle)
 {
   if ( !muscle ) return Hand::Empty;
 
@@ -110,39 +110,40 @@ NewHand::Hand::JointsEnum   NewHand::jointByMuscle (NewHand::Hand::MusclesEnum m
   return Hand::Empty;
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesEnum  NewHand::selectHandMove (size_t choose)
-{
-  Hand::MusclesEnum  muscles;
-  switch ( choose )
-  {
-    default: muscles = Hand::EmptyMov;                                   break;
-    case  0: muscles = Hand::ClvclOpn;                                   break;
-    case  1: muscles = Hand::ShldrOpn;                                   break;
-    case  2: muscles = Hand::ElbowOpn;                                   break;
-    case  3: muscles = Hand::ClvclCls;                                   break;
-    case  4: muscles = Hand::ShldrCls;                                   break;
-    case  5: muscles = Hand::ElbowCls;                                   break;
-    case  6: muscles = Hand::ClvclOpn | Hand::ShldrOpn;                  break;
-    case  7: muscles = Hand::ClvclOpn | Hand::ElbowOpn;                  break;
-    case  8: muscles = Hand::ShldrOpn | Hand::ElbowOpn;                  break;
-    case  9: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowOpn; break;
-    case 10: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowCls; break;
-    case 11: muscles = Hand::ClvclCls | Hand::ShldrOpn;                  break;
-    case 12: muscles = Hand::ClvclCls | Hand::ElbowOpn;                  break;
-    case 13: muscles = Hand::ShldrCls | Hand::ElbowOpn;                  break;
-    case 14: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowOpn; break;
-    case 15: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowCls; break;
-    case 16: muscles = Hand::ClvclOpn | Hand::ShldrCls;                  break;
-    case 17: muscles = Hand::ClvclOpn | Hand::ElbowCls;                  break;
-    case 18: muscles = Hand::ShldrOpn | Hand::ElbowCls;                  break;
-    case 19: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowOpn; break;
-    case 20: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowCls; break;
-    case 21: muscles = Hand::ClvclCls | Hand::ShldrCls;                  break;
-    case 22: muscles = Hand::ClvclCls | Hand::ElbowCls;                  break;
-    case 23: muscles = Hand::ShldrCls | Hand::ElbowCls;                  break;
-    case 24: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowOpn; break;
-    case 25: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowCls; break;
-  }
-  return muscles;
-}
+//NewHand::Hand::MusclesEnum  NewHand::selectHandMove (size_t choose)
+//{
+//  Hand::MusclesEnum  muscles;
+//  switch ( choose )
+//  {
+//    default: muscles = Hand::EmptyMov;                                   break;
+//    case  0: muscles = Hand::ClvclOpn;                                   break;
+//    case  1: muscles = Hand::ShldrOpn;                                   break;
+//    case  2: muscles = Hand::ElbowOpn;                                   break;
+//    case  3: muscles = Hand::ClvclCls;                                   break;
+//    case  4: muscles = Hand::ShldrCls;                                   break;
+//    case  5: muscles = Hand::ElbowCls;                                   break;
+//    case  6: muscles = Hand::ClvclOpn | Hand::ShldrOpn;                  break;
+//    case  7: muscles = Hand::ClvclOpn | Hand::ElbowOpn;                  break;
+//    case  8: muscles = Hand::ShldrOpn | Hand::ElbowOpn;                  break;
+//    case  9: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowOpn; break;
+//    case 10: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowCls; break;
+//    case 11: muscles = Hand::ClvclCls | Hand::ShldrOpn;                  break;
+//    case 12: muscles = Hand::ClvclCls | Hand::ElbowOpn;                  break;
+//    case 13: muscles = Hand::ShldrCls | Hand::ElbowOpn;                  break;
+//    case 14: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowOpn; break;
+//    case 15: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowCls; break;
+//    case 16: muscles = Hand::ClvclOpn | Hand::ShldrCls;                  break;
+//    case 17: muscles = Hand::ClvclOpn | Hand::ElbowCls;                  break;
+//    case 18: muscles = Hand::ShldrOpn | Hand::ElbowCls;                  break;
+//    case 19: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowOpn; break;
+//    case 20: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowCls; break;
+//    case 21: muscles = Hand::ClvclCls | Hand::ShldrCls;                  break;
+//    case 22: muscles = Hand::ClvclCls | Hand::ElbowCls;                  break;
+//    case 23: muscles = Hand::ShldrCls | Hand::ElbowCls;                  break;
+//    case 24: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowOpn; break;
+//    case 25: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowCls; break;
+//  }
+//  return muscles;
+//}
+
 //--------------------------------------------------------------------------------

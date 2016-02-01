@@ -106,9 +106,60 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
     case WM_HOTKEY:
       switch ( wParam )
-      { case HK_EXIT:
+      {
+        case HK_EXIT:
           SendMessage (hWnd, WM_QUIT, 0, 0);
           break;
+
+        case HK_OPEN: // open input text file
+        { 
+          tstring  FileName = OpenFileDialog (hWnd);
+          if ( !FileName.empty () )
+          {
+            WorkerThreadRunStoreO (*wd, _T ("  *** loading ***  "),
+                                   [](HandMoves::Store &store, tstring FileName, tstring DefaultName)
+            {
+              if ( !store.empty () )
+              { storeSave (store, DefaultName);
+                store.clear ();
+              }
+              storeLoad (store, FileName);
+
+            }, FileName, wd->CurFileName);
+
+            wd->CurFileName = FileName;
+          }
+          break;
+        }
+
+        case HK_SAVE:
+        { 
+          // tstring  FileName = SaveFileDialog (hWnd);
+          if ( !wd->store.empty () )
+          {
+            // if ( wd->CurFileName.empty () )
+            // {
+            //   tstringstream ss;
+            //   ss << _T ("HAND_NAME") 
+            //      << CurrentTimeToString (_T ("%d-%m-%Y %I:%M:%S")) 
+            //      << _T ("_moves.bin");
+            //   wd->CurFileName = ss.str ();
+            // }
+            // WorkerThreadRunTask (*wd, _T ("  *** loading ***  "),
+            //                      storeSave, std::ref (wd->store), wd->CurFileName.c_str ());
+            //                      // [&]() { storeSave (wd->store, wd->CurFileName.c_str ()); });
+
+            tstringstream ss;
+            ss << HAND_NAME
+               << CurrentTimeToString (_T ("_%d-%m-%Y_%I-%M-%S")) 
+               << _T ("_moves.bin");
+
+            WorkerThreadRunStore (*wd, _T ("  *** loading ***  "),
+                                  storeSave, ss.str ());
+          }
+          break;
+        }
+        
       }
       break;
       
