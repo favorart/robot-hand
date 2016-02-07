@@ -497,7 +497,7 @@ void littleTest (MyWindowData &wd, double radius)
 Strategies:
  + findBest
  + 
-
+ */
 void  /*HandMoves::*/ testLittleCorrectives (Store &store, Hand &hand, RecTarget &target,
                                              double radius, /* minimal distance between 2 neighbour points of target */
                                              double epsilont)

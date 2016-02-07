@@ -267,33 +267,81 @@ void OnWindowSize (HWND &hWnd, RECT &myRect,
 void OnWindowPaint (HWND &hWnd, RECT &myRect,
                     MyWindowData &wd)
 {
-  PAINTSTRUCT ps;
-  HBITMAP     hBmp;
-  HDC         hdc, hCmpDC;
-
-  hdc = BeginPaint (hWnd, &ps);
+  PAINTSTRUCT ps = {};
+  
+  HDC  hdc = BeginPaint (hWnd, &ps);
   //-------------------------------------------
+  if ( wd.hStaticBitmapChanged )
+  {
+    /* Создание ещё одного теневого контекста
+     * для отрисовки неизменной и
+     * (в некоторых случаях ресурсоёмкой)
+     * части картинки единожды.
+     */
+    if ( !wd.hStaticDC )
+    { wd.hStaticDC = CreateCompatibleDC (hdc);
+      if ( !wd.hStaticDC )
+      { MessageBox (hWnd, GetLastErrorToString ().c_str (),
+                    _T ("ERROR"), MB_OK | MB_ICONERROR);
+      } 
+    }
+
+    /* Удаляем старый объект */
+    if ( wd.hStaticBitmap )
+    { DeleteObject (wd.hStaticBitmap);
+      wd.hStaticBitmap = NULL;
+    }
+    /* Создаём новый растровый холст */
+    wd.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
+                                                    myRect.bottom - myRect.top);
+    if ( !wd.hStaticBitmap )
+    { MessageBox (hWnd, GetLastErrorToString ().c_str (),
+                  _T ("ERROR"), MB_OK | MB_ICONERROR);
+    }
+    SelectObject (wd.hStaticDC, wd.hStaticBitmap);
+
+    /* Рисуем всё заново */
+    //======================================
+    /* Закраска фона рабочей области */
+    FillRect (wd.hStaticDC, &myRect, wd.hBrush_back);
+    /* set transparent brush to fill shapes */
+    SelectObject (wd.hStaticDC, wd.hBrush_null);
+       SetBkMode (wd.hStaticDC, TRANSPARENT);
+    //-------------------------------------
+    /* Здесь рисуем на контексте hCmpDC */
+    OnPaintStaticFigures (wd.hStaticDC, wd);
+    wd.hStaticBitmapChanged = false;
+    //======================================
+  }
+  //-------------------------------------
   /* Создание теневого контекста для двойной буфферизации */
-  hCmpDC = CreateCompatibleDC (hdc);
+  HDC   hCmpDC = CreateCompatibleDC (hdc);
   if ( !hCmpDC )
   { MessageBox (hWnd, GetLastErrorToString ().c_str (),
-                _T("ERROR"), MB_OK | MB_ICONERROR); }
+                _T ("ERROR"), MB_OK | MB_ICONERROR);
+  }
 
-  hBmp = CreateCompatibleBitmap (hdc, myRect.right - myRect.left,
-                                      myRect.bottom - myRect.top);
+  HBITMAP  hBmp = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
+                                               myRect.bottom - myRect.top);
+  if ( !hBmp )
+  { MessageBox (hWnd, GetLastErrorToString ().c_str (),
+                _T ("ERROR"), MB_OK | MB_ICONERROR);
+  }
   SelectObject (hCmpDC, hBmp);
-  /* Закраска фона рабочей области */
-  FillRect (hCmpDC, &myRect, wd.hBrush_back);
-
+  //-------------------------------------
+  SetStretchBltMode (hCmpDC, COLORONCOLOR);
+  BitBlt (hCmpDC, 0, 0,
+          myRect.right - myRect.left,
+          myRect.bottom - myRect.top,
+          wd.hStaticDC, 0, 0,
+          SRCCOPY);
+  //-------------------------------------
   /* set transparent brush to fill shapes */
   SelectObject (hCmpDC, wd.hBrush_null);
      SetBkMode (hCmpDC, TRANSPARENT);
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
-  DrawDecardsCoordinates (hCmpDC);
-  wd.target.draw (hCmpDC, wd.hPen_grn);
-
-  OnPaintMyLogic (hCmpDC, wd);
+  OnPainDynamicFigures (hCmpDC, wd);
   //-------------------------------------
   /* Копируем изображение из теневого контекста на экран */
   SetStretchBltMode (hdc, COLORONCOLOR);
@@ -306,7 +354,6 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   /* Удаляем ненужные системные объекты */
   DeleteDC (hCmpDC);
   DeleteObject (hBmp);
-  hCmpDC = NULL;
   //---------------------------------------------
   EndPaint (hWnd, &ps);
 }
@@ -394,6 +441,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       //========================================
       // OnShowDBPoints (wd);
       wd.allPointsDB_show = !wd.allPointsDB_show;
+      wd.hStaticBitmapChanged = true;
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
@@ -441,11 +489,12 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
         wd.hand.SET_DEFAULT;
       }
       wd.working_space_show = !wd.working_space_show;
+      wd.hStaticBitmapChanged = true;
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
 
-    case 'f':
+    case 'g':
       //========================================
       wd.scaleLetters.show = !wd.scaleLetters.show;
       //========================================
@@ -462,6 +511,9 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     /* Elbow */
     case 'c': wd.hand.step (Hand::ElbowCls); break;
     case 'd': wd.hand.step (Hand::ElbowOpn); break;
+    /* Wrist */
+    case 'v': wd.hand.step (Hand::WristCls); break;
+    case 'f': wd.hand.step (Hand::WristOpn); break;
     /* Reset */
     case 'r': 
       wd.hand.SET_DEFAULT;

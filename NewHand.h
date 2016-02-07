@@ -1,4 +1,5 @@
 #include "StdAfx.h"
+#include "HandMotionLaw.h"
 
 
 #ifndef  _NEW_HAND_H_
@@ -72,7 +73,7 @@ namespace NewHand
      JointsIndexEnum    jointIndex ( JointsEnum   joint) const;
 
     frames_t  maxMuscleLast (MusclesEnum  muscle);
-
+    
   private:
 
     struct HandStatus
@@ -101,23 +102,27 @@ namespace NewHand
     };
     HandStatus hs;
 
+    bool drawPalm_;
+    //---base position------------------------------------
+    Point   palm_, hand_, arm_, sholder_, clavicle_;
+    // TODO: make array
+
+    //---angle limits-------------------------------------
+    // const double  maxClvclShift;
+    // const uint_t  maxShldrAngle;
+    // const uint_t  maxElbowAngle;
+    // const uint_t  maxWristAngle;
+
+    // TODO: make array
+    const std::array<size_t, JointsCount> maxJointAngles;
+    const double  StopDistaceRatio;
+
     //---internal phisical parameters---------------------
     const std::array<uint_t, JointsCount>  maxMoveFrames;
     const std::array<uint_t, JointsCount>  minStopFrames;
 
     std::array<std::vector<double>, JointsCount>  framesMove;
     std::array<std::vector<double>, JointsCount>  framesStop;
-
-    //---angle limits-------------------------------------
-    const double  maxClvclShift;
-    const uint_t  maxShldrAngle;
-    const uint_t  maxElbowAngle;
-    const uint_t  maxWristAngle;
-    // TODO: make array
-    
-    //---base position------------------------------------
-    Point   palm_, hand_, arm_, sholder_, clavicle_;
-    // TODO: make array
 
     //----------------------------------------------------
     double    nextFrame (MusclesEnum muscle, frames_t frame, bool atStop);
@@ -138,12 +143,16 @@ namespace NewHand
 
   public:
     //----------------------------------------------------
-    Hand (const Point &palm    = { -0.70, 1.00 },
+    Hand (const Point &palm    = { -0.75, 1.05 },
           const Point &hand    = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
           const Point &sholder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
-          const std::vector<JointsEnum >  joints  = { Shldr, Elbow },
-          const std::vector<MusclesEnum>  muscles = { ShldrOpn, ShldrCls, ElbowOpn, ElbowCls }
-         );
+          const std::vector<JointsEnum>  &joints={ Elbow, Shldr }, // , Wrist, Clvcl 
+          const std::vector<MotionLaws::MotionLaw> &genMoveFrames = 
+          { MotionLaws::generateJointMoveFrames,
+            MotionLaws::generateJointMoveFrames },
+          const std::vector<MotionLaws::MotionLaw> &genStopFrames = 
+          { MotionLaws::generateJointStopFrames,
+            MotionLaws::generateJointStopFrames });
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
 
@@ -167,46 +176,17 @@ namespace NewHand
     __declspec(property(get = get_mend)) bool moveEnd;
     bool  get_mend () const { return hs.moveEnd_; }
     __declspec(property(get = get_posit)) const Point& position;
-    const Point&  get_posit () const { return hs.curPosHand_; }
+    const Point&  get_posit () const { return (drawPalm_) ? hs.curPosPalm_ : hs.curPosHand_; }
     __declspec(property(get = get_pos)) boost_point2_t pos;
-    boost_point2_t  get_pos () const { return hs.curPosHand_; }
+    boost_point2_t  get_pos () const { return (drawPalm_) ? hs.curPosPalm_ : hs.curPosHand_; }
     __declspec(property(get = get_n_controls)) size_t controlsCount;
     size_t  get_n_controls () const { return controls.size (); }
     //----------------------------------------------------
   };
-
-  static const Hand::j_array   joints = { Hand::Clvcl, Hand::Shldr,
-                                          Hand::Elbow, Hand::Wrist };
-
-  static const Hand::m_array  muscles = { Hand::ClvclOpn, Hand::ClvclCls,
-                                          Hand::ShldrOpn, Hand::ShldrCls,
-                                          Hand::ElbowOpn, Hand::ElbowCls,
-                                          Hand::WristOpn, Hand::WristCls };
-                                          
-  std::vector<double>  generateMoveFrames (double a, double b, size_t n);
-  std::vector<double>  generateStopFrames (double a, double b, size_t n);
   //------------------------------------------------------------------------------
-  Hand::MusclesEnum  operator| (Hand::MusclesEnum m, Hand::MusclesEnum k);
-  Hand::MusclesEnum  operator& (Hand::MusclesEnum m, Hand::MusclesEnum k);
-  Hand::MusclesEnum  operator^ (Hand::MusclesEnum m, Hand::MusclesEnum k);
-
-  Hand::JointsEnum   operator| (Hand::JointsEnum  j, Hand::JointsEnum  k);
-  Hand::JointsEnum   operator& (Hand::JointsEnum  j, Hand::JointsEnum  k);
-  Hand::JointsEnum   operator^ (Hand::JointsEnum  j, Hand::JointsEnum  k);
-
-  std::ostream&  operator<< (std::ostream &out, Hand::MusclesEnum m);
-  std::ostream&  operator<< (std::ostream &out, Hand::JointsEnum  j);
+  const tstring  HAND_NAME = _T ("NewHand");
+#define SET_DEFAULT set(NewHand::Hand::Shldr|NewHand::Hand::Elbow,{0.,70.});
   //------------------------------------------------------------------------------
-  bool  muscleValidAtOnce (Hand::MusclesEnum muscle);
-
-  // const size_t  HandMovesCount = 26UL;
-  // Hand::MusclesEnum  selectHandMove (size_t choose);
-
-  Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
-  Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
-
-#define SET_DEFAULT set(NewHand::Hand::Shldr | NewHand::Hand::Elbow, { 0., 70. })
-#define HAND_NAME   _T("NewHand")
 };
 //------------------------------------------------------------------------------
 #endif // _HAND_H_

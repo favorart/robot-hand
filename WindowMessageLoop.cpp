@@ -22,12 +22,16 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
   {
     case WM_CREATE:
     { 
-      OnWindowCreate (hWnd, myRect, hLabCanv, hLabHelp,
-                      hLabMAim, hLabTest, hLabStat, lp);
-      //=======================
       // RedirectIOToConsole ();
       //=======================
       wd = new MyWindowData (hLabMAim, hLabTest, hLabStat);
+
+      // wd->hDC = GetDC (hWnd);
+      // wd->hStaticDC = CreateCompatibleDC (wd->hDC);
+      //=======================
+      OnWindowCreate (hWnd, myRect, hLabCanv, hLabHelp,
+                      hLabMAim, hLabTest, hLabStat, lp);
+
       //=======================
       SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
       break;
@@ -63,6 +67,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
       OnWindowSize (hWnd, myRect, hLabCanv, hLabHelp,
                     hLabMAim, hLabTest, hLabStat, lp);
+      wd->hStaticBitmapChanged = true;
       break;
 
     case WM_GETMINMAXINFO:
@@ -79,8 +84,9 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       OnWindowTimer (*wd);
       //=======================
       if ( wd->store_size != wd->store.size () )
-        SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
-
+      { SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
+        if ( !wd->testing )  wd->hStaticBitmapChanged = true;
+      }
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }

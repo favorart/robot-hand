@@ -1,6 +1,8 @@
 #include "StdAfx.h"
 #include "MyWindow.h"
 #include "NewHand.h"
+#define HAND_VER 2
+#include "HandMuscles.h"
 
 #include <boost/algorithm/cxx11/none_of.hpp>
 //--------------------------------------------------------------------------------
@@ -25,6 +27,8 @@ NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (MusclesEnum  muscle)
   return last;
 }
 //--------------------------------------------------------------------------------
+// ??? min velosity
+// ??? current velosity
 /* ??? Коэффициент взаимодействия приводов */
 double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atStop)
 {
@@ -70,26 +74,38 @@ bool    NewHand::Hand::muscleFrame (MusclesEnum muscle, frames_t frame, bool atS
   double angleElbow = 0.;
   double angleWrist = 0.;
 
+  double maxClvclShift = static_cast<double>(maxJointAngles[ClvclIndex]) / 100.;
+  auto   maxShldrAngle = maxJointAngles[ShldrIndex];
+  auto   maxElbowAngle = maxJointAngles[ElbowIndex];
+  auto   maxWristAngle = maxJointAngles[WristIndex];
+
   switch ( muscle )
   { 
-    case ClvclOpn: shiftClvcl = (hs.shiftClvcl_ + Frame > maxClvclShift ) ? (maxClvclShift - hs.shiftClvcl_) :  Frame; break;
-    case ClvclCls: shiftClvcl = (hs.shiftClvcl_ - Frame < 0.0           ) ? (          0.0 - hs.shiftClvcl_) : -Frame; break;
-    case ShldrOpn: angleShldr = (hs.angleShldr_ - Frame < 1.0           ) ? (          1.0 - hs.angleShldr_) : -Frame; break;
-    case ShldrCls: angleShldr = (hs.angleShldr_ + Frame > maxShldrAngle ) ? (maxShldrAngle - hs.angleShldr_) :  Frame; break;
-    case ElbowOpn: angleElbow = (hs.angleElbow_ - Frame < 1.0           ) ? (          1.0 - hs.angleElbow_) : -Frame; break;
-    case ElbowCls: angleElbow = (hs.angleElbow_ + Frame > maxElbowAngle ) ? (maxElbowAngle - hs.angleElbow_) :  Frame; break;
-    case WristOpn: angleWrist = (hs.angleWrist_ - Frame < 1.0           ) ? (          1.0 - hs.angleWrist_) : -Frame; break;
-    case WristCls: angleWrist = (hs.angleWrist_ + Frame > maxWristAngle ) ? (maxWristAngle - hs.angleWrist_) :  Frame; break;
+    case ClvclOpn: shiftClvcl = (hs.shiftClvcl_ + Frame > maxClvclShift) ? (maxClvclShift - hs.shiftClvcl_) :  Frame; break;
+    case ClvclCls: shiftClvcl = (hs.shiftClvcl_ - Frame < 0.0          ) ? (          0.0 - hs.shiftClvcl_) : -Frame; break;
+    case ShldrOpn: angleShldr = (hs.angleShldr_ - Frame < 1.0          ) ? (          1.0 - hs.angleShldr_) : -Frame; break;
+    case ShldrCls: angleShldr = (hs.angleShldr_ + Frame > maxShldrAngle) ? (maxShldrAngle - hs.angleShldr_) :  Frame; break;
+    case ElbowOpn: angleElbow = (hs.angleElbow_ - Frame < 1.0          ) ? (          1.0 - hs.angleElbow_) : -Frame; break;
+    case ElbowCls: angleElbow = (hs.angleElbow_ + Frame > maxElbowAngle) ? (maxElbowAngle - hs.angleElbow_) :  Frame; break;
+    case WristOpn: angleWrist = (hs.angleWrist_ - Frame < 1.0          ) ? (          1.0 - hs.angleWrist_) : -Frame; break;
+    case WristCls: angleWrist = (hs.angleWrist_ + Frame > maxWristAngle) ? (maxWristAngle - hs.angleWrist_) :  Frame; break;
   }
 
   hs.curPosShldr_.x -= shiftClvcl;
   hs.curPosArm_.x   -= shiftClvcl;
   hs.curPosHand_.x  -= shiftClvcl;
+  hs.curPosPalm_.x  -= shiftClvcl;
 
   hs.curPosArm_ .rotate (hs.curPosShldr_, angleShldr);
+
   hs.curPosHand_.rotate (hs.curPosShldr_, angleShldr);
   hs.curPosHand_.rotate (hs.curPosArm_,   angleElbow);
 
+  hs.curPosPalm_.rotate (hs.curPosShldr_, angleShldr);
+  hs.curPosPalm_.rotate (hs.curPosArm_,   angleElbow);
+  hs.curPosPalm_.rotate (hs.curPosHand_,  angleWrist);
+
+  hs.angleWrist_ += angleWrist;
   hs.angleElbow_ += angleElbow;
   hs.angleShldr_ += angleShldr;
   hs.shiftClvcl_ += shiftClvcl;
@@ -120,7 +136,7 @@ void    NewHand::Hand::muscleBrake (JointsIndexEnum jointIndex)
 {
   hs.lastsMove[jointIndex] = 0U;
   hs.lastsStop[jointIndex] = minStopFrames[jointIndex];
-  hs.lasts_[jointIndex] = 0U;
+  hs.lasts_   [jointIndex] = 0U;
 }
 void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum muscle, frames_t last, bool control)
 {
@@ -171,83 +187,54 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
   ++hs.lasts_[jointIndex];
 }
 //--------------------------------------------------------------------------------
-// ?? min velosity???
-// current velosity ??
-
-std::vector<double>  NewHand::generateMoveFrames (double a, double b, size_t n)
-{
-  std::vector<double> frames (n--);
-
-  double  sum = 0.;
-  for ( size_t i = 0U; i <= n; ++i )
-  { /* diff velosity on start and end */
-    frames[i] = (1. - cos (i * M_PI / n)) * 0.5;
-    sum += frames[i]; /* get normalization */
-  }
-
-  /* apply normalization */
-  for ( size_t i = 0U; i <= n; ++i )
-  { frames[i] = frames[i] * (b - a) / sum + a; }
-
-  return frames;
-}
-std::vector<double>  NewHand::generateStopFrames (double a, double b, size_t n)
-{
-  std::vector<double> frames (n--);
-
-  double  sum = 0.;
-  for ( size_t i = 0U; i <= n; ++i )
-  {
-    // frames[i] = (a + b + (a - b)*cos ( ((n / 2. + (i+1) / 2.) * M_PI) / n)) / 2.;
-    double d = double (i) / n;
-    frames[i] = (1. - cos ((d + 1.) * M_PI)) * 0.5;
-    sum += frames[i];
-  }
-
-  for ( size_t i = 0U; i <= n; ++i )
-  {
-    frames[i] = frames[i] * (b - a) / sum + a;
-  }
-
-  return frames;
-}
-
 NewHand::Hand::Hand (const Point &palm,
                      const Point &hand, const Point &arm,
                      const Point &sholder, const Point &clavicle,
-                     const std::vector< JointsEnum>  joints,
-                     const std::vector<MusclesEnum> muscles
-                    ) :
-                     maxClvclShift (0.40),
-                     maxShldrAngle (105U),
-                     maxElbowAngle (135U),
-                     maxWristAngle (100U),
+                     const std::vector<JointsEnum>  &joints,
+                     const std::vector<MotionLaws::MotionLaw> &genMoveFrames,
+                     const std::vector<MotionLaws::MotionLaw> &genStopFrames ) :
+                     // maxClvclShift (0.40),
+                     // maxShldrAngle (105U),
+                     // maxElbowAngle (135U),
+                     // maxWristAngle (100U),
+                     maxJointAngles ({ 40U, 105U, 135U, 100U}),
+                     StopDistaceRatio (0.02), // 20% от общего пробега
                      
-                     maxMoveFrames ({ 30U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
-                                      55U /* ElbowIndex */ , 30U /* WristIndex */ }),
-                     minStopFrames ({ 15U /* ClvclIndex */ , 15U /* ShldrIndex */ , 
-                                      15U /* ElbowIndex */ , 15U /* WristIndex */ }),
+                     maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
+                                       55U /* ElbowIndex */ , 30U /* WristIndex */ }),
+                     minStopFrames ({  35U /* ClvclIndex */ , 25U /* ShldrIndex */ , 
+                                       15U /* ElbowIndex */ , 25U /* WristIndex */ }),
 
-                     joints_ (joints), muscles_ (muscles),
-                     jointsCount (joints.size ()),
-                     musclesCount (muscles.size ()),
                      palm_ (palm), hand_ (hand), arm_ (arm),
-                     sholder_ (sholder), clavicle_ (clavicle)
-{ // 
-  // std::copy ( joints.begin (),  joints.end (), std::begin( joints_));
-  // std::copy (muscles.begin (), muscles.end (), std::begin(muscles_));
-
-  framesMove[ClvclIndex] = generateMoveFrames (EPS, maxClvclShift, maxMoveFrames[ClvclIndex]);
-  framesMove[ShldrIndex] = generateMoveFrames (EPS, maxShldrAngle, maxMoveFrames[ShldrIndex]);
-  framesMove[ElbowIndex] = generateMoveFrames (EPS, maxElbowAngle, maxMoveFrames[ElbowIndex]);
-
-  // 20% от общего пробега
-  framesStop[ClvclIndex] = generateStopFrames (EPS, maxClvclShift * 0.02, minStopFrames[ClvclIndex]);
-  framesStop[ShldrIndex] = generateStopFrames (EPS, maxShldrAngle * 0.02, minStopFrames[ShldrIndex]);
-  framesStop[ElbowIndex] = generateStopFrames (EPS, maxElbowAngle * 0.02, minStopFrames[ElbowIndex]);
+                     sholder_ (sholder), clavicle_ (clavicle),
+                     joints_ (joints), jointsCount (joints.size ()),
+                     drawPalm_ (false)
+{ 
+  if ( jointsCount > JointsCount )
+    throw new std::exception ("Incorrect joints count"); // _T ??
   
-  createControls ();
+  if ( genMoveFrames.size () < jointsCount
+    || genStopFrames.size () < jointsCount )
+    throw new std::exception ("Incorrect gen. functions count"); // _T ??
 
+  size_t index = 0U;
+  for ( auto j : joints_ )
+  {
+    if ( j & Wrist )
+      drawPalm_ = true;
+
+    muscles_.push_back (muscleByJoint (j, true));
+    muscles_.push_back (muscleByJoint (j, false));
+
+    JointsIndexEnum  jIndex = jointIndex (j);
+    framesMove[jIndex] = genMoveFrames[index] (EPS, maxJointAngles[jIndex], maxMoveFrames[jIndex]);
+    framesStop[jIndex] = genStopFrames[index] (EPS, maxJointAngles[jIndex] * StopDistaceRatio, minStopFrames[jIndex]);
+    
+    ++index;
+  }
+  std::sort (joints_.begin (), joints_.end ());
+
+  createControls ();
   reset ();
 }
 void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t last)
@@ -352,6 +339,8 @@ void  NewHand::Hand::reset ()
   hs.moveEnd_ = false; 
   // hs.velosity_ = 0.;
 }
+
+/* NewHand::Hand:: (Clvcl < Shldr < Elbow < Wrist) index */
 void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jOp)
 {
   if ( joint )
@@ -361,8 +350,10 @@ void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::Joint
     //------------------------------------------------------
     if ( joint & Clvcl )
     { // ?? index --> ClvclIndex
+      double maxClvcl = static_cast<double>(maxJointAngles[ClvclIndex]) / 100.; // maxClvclShift;
+
       shiftClvcl = (jOp[index] > 100.0) ? 100.0 : jOp[index];
-      shiftClvcl = shiftClvcl / 100.0 * maxClvclShift;
+      shiftClvcl = shiftClvcl / 100.0 * maxClvcl;
       ++index;
     }
     else shiftClvcl = hs.shiftClvcl_;
@@ -370,7 +361,7 @@ void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::Joint
     if ( joint & Shldr )
     { // ?? index --> ShldrIndex
       angleShldr = (jOp[index] > 100.0) ? 100.0 : jOp[index];
-      angleShldr = angleShldr / 100.0 * maxShldrAngle;
+      angleShldr = angleShldr / 100.0 * maxJointAngles[ShldrIndex]; // maxShldrAngle;
       ++index;
     }
     else angleShldr = hs.angleShldr_;
@@ -378,7 +369,7 @@ void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::Joint
     if ( joint & Elbow )
     { // ?? index --> ElbowIndex
       angleElbow = (jOp[index] > 100.0) ? 100.0 : jOp[index];
-      angleElbow = angleElbow / 100.0 * maxElbowAngle;
+      angleElbow = angleElbow / 100.0 * maxJointAngles[ElbowIndex]; // maxElbowAngle;
       ++index;
     }
     else angleElbow = hs.angleElbow_;
@@ -386,7 +377,7 @@ void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::Joint
     if ( joint & Wrist )
     { // ?? index --> WristIndex
       angleWrist = (jOp[index] > 100.0) ? 100.0 : jOp[index];
-      angleWrist = angleElbow / 100.0 * maxWristAngle;
+      angleWrist = angleElbow / 100.0 * maxJointAngles[WristIndex]; // maxWristAngle;
       ++index;
     }
     else angleWrist = hs.angleWrist_;
@@ -396,12 +387,16 @@ void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::Joint
     hs.curPosShldr_ .x -= shiftClvcl;
     hs.curPosArm_   .x -= shiftClvcl;
     hs.curPosHand_  .x -= shiftClvcl;
-    // TODO: !!! hs.curPosPalm_
+    hs.curPosPalm_  .x -= shiftClvcl;
 
     hs.curPosArm_ .rotate (hs.curPosShldr_, angleShldr);
+
     hs.curPosHand_.rotate (hs.curPosShldr_, angleShldr);
     hs.curPosHand_.rotate (hs.curPosArm_,   angleElbow);
-    // TODO: !!! hs.curPosPalm_
+
+    hs.curPosPalm_.rotate (hs.curPosShldr_, angleShldr);
+    hs.curPosPalm_.rotate (hs.curPosArm_,   angleElbow);
+    hs.curPosPalm_.rotate (hs.curPosHand_,  angleWrist);
     //------------------------------------------------------
     hs.shiftClvcl_ = shiftClvcl;
     hs.angleShldr_ = angleShldr;
@@ -453,26 +448,35 @@ NewHand::Hand::JointsIndexEnum   NewHand::Hand::jointIndex  (NewHand::Hand:: Joi
 void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
 { 
   //--- draw constants ----------------------------------------------
-  const double  CircleRadius = 0.03;
-  const double  WidthJoint = 0.01;
+  const double    PalmRadius = 0.05;
+  const double   JointRadius = 0.03;
+  const double  SectionWidth = 0.01;
+  
   //-----------------------------------------------------------------
   HPEN   hPen_old   =   (HPEN) SelectObject (hdc, hPen);
   HBRUSH hBrush_old = (HBRUSH) SelectObject (hdc, hBrush);
   //-----------------------------------------------------------------
-  Point c (   clavicle_ ), s (hs.curPosShldr_),
-        a (hs.curPosArm_), h (hs.curPosHand_ );
+  Point c (   clavicle_   ),
+        s (hs.curPosShldr_), a (hs.curPosArm_ ),
+        h (hs.curPosHand_ ), w (hs.curPosPalm_);
 
-  Point su (sholder_.x + WidthJoint - hs.shiftClvcl_, sholder_.y + WidthJoint),
-        sd (sholder_.x - WidthJoint - hs.shiftClvcl_, sholder_.y - WidthJoint),
-        au (    arm_.x + WidthJoint - hs.shiftClvcl_,     arm_.y + WidthJoint),
-        ad (    arm_.x - WidthJoint - hs.shiftClvcl_,     arm_.y - WidthJoint),
-        hu (   hand_.x + WidthJoint - hs.shiftClvcl_,    hand_.y + WidthJoint),
-        hd (   hand_.x - WidthJoint - hs.shiftClvcl_,    hand_.y - WidthJoint);
+  Point su (sholder_.x + SectionWidth - hs.shiftClvcl_, sholder_.y + SectionWidth),
+        sd (sholder_.x - SectionWidth - hs.shiftClvcl_, sholder_.y - SectionWidth),
+        au (    arm_.x + SectionWidth - hs.shiftClvcl_,     arm_.y + SectionWidth),
+        ad (    arm_.x - SectionWidth - hs.shiftClvcl_,     arm_.y - SectionWidth),
+        hu (   hand_.x + SectionWidth - hs.shiftClvcl_,    hand_.y + SectionWidth),
+        hd (   hand_.x - SectionWidth - hs.shiftClvcl_,    hand_.y - SectionWidth);
 
+  Point wu, wd;
+  if ( drawPalm_ )
+  {
+    wu = Point ( palm_.x + SectionWidth - hs.shiftClvcl_,  palm_.y + SectionWidth),
+    wd = Point ( palm_.x - SectionWidth - hs.shiftClvcl_,  palm_.y - SectionWidth);
+  }
   //-----------------------------------------------------------------
   su.rotate (s, hs.angleShldr_);
   sd.rotate (s, hs.angleShldr_);
-
+  
   au.rotate (s, hs.angleShldr_);
   ad.rotate (s, hs.angleShldr_);
 
@@ -481,6 +485,15 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   hu.rotate (a, hs.angleElbow_);
   hd.rotate (a, hs.angleElbow_);
 
+  if ( drawPalm_ )
+  {
+    wu.rotate (s, hs.angleShldr_);
+    wd.rotate (s, hs.angleShldr_);
+    wu.rotate (a, hs.angleElbow_);
+    wd.rotate (a, hs.angleElbow_);
+    wu.rotate (h, hs.angleWrist_);
+    wd.rotate (h, hs.angleWrist_);
+  }
   //-----------------------------------------------------------------
   MoveToEx (hdc, Tx (1.00), Ty (su.y), NULL);
   LineTo   (hdc, Tx (su.x), Ty (su.y));
@@ -499,18 +512,31 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   MoveToEx (hdc, Tx (ad.x), Ty (ad.y), NULL);
   LineTo   (hdc, Tx (hd.x), Ty (hd.y));
 
+  if ( drawPalm_ )
+  {
+    //---palm-------------------- --------------------------------------
+    DrawCircle (hdc, w, PalmRadius);
+
+    //------------------------------------------------------------------
+    hu.rotate (h, hs.angleWrist_);
+    hd.rotate (h, hs.angleWrist_);
+
+    LineTo (hdc, Tx (wd.x), Ty (wd.y));
+    MoveToEx (hdc, Tx (hu.x), Ty (hu.y), NULL);
+    LineTo (hdc, Tx (wu.x), Ty (wu.y));
+  }
   //---clavicle-------------------------------------------------------
-  DrawCircle (hdc, c, CircleRadius);
+  DrawCircle (hdc, c, JointRadius);
 
   //---sholder--------------------------------------------------------
-  DrawCircle (hdc, s, CircleRadius);
+  DrawCircle (hdc, s, JointRadius);
 
   //---arm--------------------- --------------------------------------
-  DrawCircle (hdc, a, CircleRadius);
-
+  DrawCircle (hdc, a, JointRadius);
+  
   //---hand-------------------- --------------------------------------
-  DrawCircle (hdc, h, CircleRadius);
-
+  DrawCircle (hdc, h, JointRadius);
+  
   //------------------------------------------------------------------
   // отменяем ручку
   SelectObject (hdc, hPen_old);

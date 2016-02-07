@@ -43,6 +43,7 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
                                    // RGB (255,204,238)
                                    );
 
+
   // p_x = 0; p_y = 0;
   // fm = 0; fn = 0;
   //=======================
@@ -67,6 +68,11 @@ MyWindowData::~MyWindowData ()
   DeleteObject (hBrush_white);
   DeleteObject (hBrush_null);
   DeleteObject (hBrush_back);
+
+  // DeleteDC (hDC);
+  DeleteDC (hStaticDC);
+
+  DeleteObject (hStaticBitmap);
     
   if ( pWorkerThread )
   {
@@ -79,20 +85,34 @@ MyWindowData::~MyWindowData ()
   //=======================
 }
 //-------------------------------------------------------------------------------
-void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
+void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
+{
+  const double CircleRadius = 0.01;
+  // --------------------------------------------------------------
+  DrawDecardsCoordinates (hdc);
+  wd.target.draw (hdc, wd.hPen_grn);
+  // --------------------------------------------------------------
+
+  // ----- Отрисовка точек БД -------------------------------------
+  if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () ) /* q */
+  {
+    HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
+    for ( auto rec : wd.store )
+      DrawCircle (hdc, rec.aim, CircleRadius);
+    SelectObject (hdc, hPen_old);
+  }
+  // --------------------------------------------------------------
+  if ( wd.working_space_show ) /* u */
+    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
+  // --------------------------------------------------------------
+}
+void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
 {
   const double CircleRadius = 0.01;
   // --------------------------------------------------------------
   /* Target to achive */
-
   if ( wd.lt )
     wd.lt->draw (hdc, wd);
-
-  // auto fin = wd.target.coords ()[45];
-  // DrawCircle (hdc, fin, REllipse);
-
-  if ( wd.working_space_show )
-    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
 
   // ----- Отрисовка фигуры ---------------------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
@@ -112,25 +132,13 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
       ++it;
     } // end for
   } // end if
-
-  // --------------------------------------------------------------
-  if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
-  {
-    HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
-    for ( auto rec : wd.store )
-      DrawCircle (hdc, rec.aim, CircleRadius);
-    SelectObject (hdc, hPen_old);
-  }
-
+   
   // ----- Отрисовка точек БД -------------------------------------
   if ( !wd.adjPointsDB.empty () )
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
     for ( auto p : wd.adjPointsDB )
-    {
-      DrawCircle (hdc, p->aim, CircleRadius);
-      // SetPixel (hdc, Tx (p->aim.x), Ty (p->aim.y), RGB (000, 000, 255));
-    }
+    { DrawCircle (hdc, p->aim, CircleRadius); }
     SelectObject (hdc, hPen_old);
   }
   // --------------------------------------------------------------

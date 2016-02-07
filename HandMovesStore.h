@@ -2,14 +2,19 @@
 
 #ifndef  _HAND_MOVES_H_
 #define  _HAND_MOVES_H_
-
-#pragma once
-
-//#include "Hand.h"
-//using namespace OldHand;
+//------------------------------------------------------------------------------
+#define HAND_VER 2
+#if   HAND_VER == 1
+#include "Hand.h"
+using namespace OldHand;
+#include "HandMuscles.h"
+#elif HAND_VER == 2
 #include "NewHand.h"
 using namespace NewHand;
+#include "HandMuscles.h"
+#endif
 
+//------------------------------------------------------------------------------
 #include "MyWindow.h"
 
 namespace HandMoves
@@ -160,7 +165,7 @@ namespace HandMoves
   };
 
   using namespace boost::multi_index;
-  //------------------------------------------------------------------
+  //------------------------------------------------------------------------------
   typedef boost::multi_index_container
   < Record,
     indexed_by <

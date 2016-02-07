@@ -22,6 +22,12 @@ public:
   HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
   HBRUSH  hBrush_white, hBrush_null, hBrush_back;
 
+  HBITMAP hStaticBitmap = NULL;
+  bool    hStaticBitmapChanged = true;
+  
+  HDC hDC = NULL;
+  HDC hStaticDC = NULL;
+
   // win_point  user_coords;
   /* координаты мыши в пикселях */
   bool       mouse_haved;
@@ -83,7 +89,7 @@ public:
   MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat);
  ~MyWindowData ();
 };
-
+//-------------------------------------------------------------------------------
 template<typename Function, typename... Args>
 inline void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Function task, Args... args)
 {
@@ -100,11 +106,19 @@ inline void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Functi
   }
 }
        void  WorkerThreadTryJoin      (MyWindowData &wd);
-
-tstring  GetLastErrorToString ();
-
-void  OnShowTrajectory      (MyWindowData &wd);
-void  OnShowDBPoints        (MyWindowData &wd);
-void  OnShowDBTrajectories  (MyWindowData &wd);
+//-------------------------------------------------------------------------------
+void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd);
+void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd);
+//-------------------------------------------------------------------------------
+void  OnWindowTimer (MyWindowData &wd);
+void  OnWindowMouse (MyWindowData &wd);
+//-------------------------------------------------------------------------------
+/* inline */ void  OnRandomTest (MyWindowData &wd);
+/* inline */ void  OnCoverTest (MyWindowData &wd);
+//-------------------------------------------------------------------------------
+void  OnShowTrajectoryFrames (MyWindowData &wd);
+//-------------------------------------------------------------------------------
+void  OnShowDBPoints (MyWindowData &wd);
+void  OnShowDBTrajectories (MyWindowData &wd);
 //------------------------------------------------------------------------------
 #endif // _WINDOW_DATA_H_

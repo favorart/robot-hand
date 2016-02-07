@@ -37,6 +37,8 @@ tstring   OpenFileDialog (HWND hWnd);
 tstring   SaveFileDialog (HWND hWnd);
 
 tstring   CurrentTimeToString (tstring format, std::time_t *the_time=NULL);
+
+tstring   GetLastErrorToString ();
 //-------------------------------------------------------------------------------
 template <typename INTEGER>
 INTEGER  random (INTEGER max)
@@ -79,25 +81,11 @@ void OnWindowSize   (HWND &hWnd, RECT &myRect,
                      HWND &hLabMAim, HWND &hLabTest,
                      HWND &hLabStat, LabelsPositions &lp);
 
-void OnPaintMyLogic (HDC hdc,
-                     MyWindowData &params);
-void OnWindowPaint  (HWND &hWnd, RECT &myRect,
-                     MyWindowData &wd);
-
+void OnWindowPaint   (HWND &hWnd, RECT &myRect,
+                      MyWindowData &wd);
 void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                       WPARAM wParam, LPARAM lParam,
                       MyWindowData &wd);
-//-------------------------------------------------------------------------------
-void  OnWindowTimer (MyWindowData &wd);
-void  OnWindowMouse (MyWindowData &wd);
-
-/* inline */ void  OnRandomTest (MyWindowData &wd);
-/* inline */ void  OnCoverTest  (MyWindowData &wd);
-
-void  OnShowTrajectoryFrames (MyWindowData &wd);
-
-void  OnShowDBPoints       (MyWindowData &wd);
-void  OnShowDBTrajectories (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 inline void  DrawCircle (HDC hdc, const Point &center, double radius)
 { Ellipse (hdc, Tx (-radius + center.x), Ty ( radius + center.y),

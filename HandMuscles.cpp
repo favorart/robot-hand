@@ -1,26 +1,28 @@
 #include "StdAfx.h"
 #include "NewHand.h"
+#include "HandMuscles.h"
 
+using namespace NewHand;
 //------------------------------------------------------------------------------
-NewHand::Hand::JointsEnum   NewHand::operator| (NewHand::Hand::JointsEnum  j, NewHand::Hand::JointsEnum  k)
+Hand::JointsEnum   NewHand::operator| (Hand::JointsEnum  j, Hand::JointsEnum  k)
 { return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) | static_cast<uchar_t> (k)); }
-NewHand::Hand::JointsEnum   NewHand::operator& (NewHand::Hand::JointsEnum  j, NewHand::Hand::JointsEnum  k)
+Hand::JointsEnum   NewHand::operator& (Hand::JointsEnum  j, Hand::JointsEnum  k)
 { return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) & static_cast<uchar_t> (k)); }
-NewHand::Hand::JointsEnum   NewHand::operator^ (NewHand::Hand::JointsEnum  j, NewHand::Hand::JointsEnum  k)
+Hand::JointsEnum   NewHand::operator^ (Hand::JointsEnum  j, Hand::JointsEnum  k)
 { return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) ^ static_cast<uchar_t> (k)); }
 
-NewHand::Hand::MusclesEnum  NewHand::operator| (NewHand::Hand::MusclesEnum m, NewHand::Hand::MusclesEnum k)
+Hand::MusclesEnum  NewHand::operator| (Hand::MusclesEnum m, Hand::MusclesEnum k)
 { return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) | static_cast<uchar_t> (k)); }
-NewHand::Hand::MusclesEnum  NewHand::operator& (NewHand::Hand::MusclesEnum m, NewHand::Hand::MusclesEnum k)
+Hand::MusclesEnum  NewHand::operator& (Hand::MusclesEnum m, Hand::MusclesEnum k)
 { return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) & static_cast<uchar_t> (k)); }
-NewHand::Hand::MusclesEnum  NewHand::operator^ (NewHand::Hand::MusclesEnum m, NewHand::Hand::MusclesEnum k)
+Hand::MusclesEnum  NewHand::operator^ (Hand::MusclesEnum m, Hand::MusclesEnum k)
 { return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) ^ static_cast<uchar_t> (k)); }
 
-std::ostream&  NewHand::operator<< (std::ostream &out, NewHand::Hand::MusclesEnum muscle)
+std::ostream&  NewHand::operator<< (std::ostream &out, Hand::MusclesEnum muscle)
 {
   if ( !muscle )  return  out << "Hand::EmptyMov ";
 
-  for ( auto m : NewHand::muscles )
+  for ( auto m : muscles )
   {
     if ( m & muscle )
       switch ( m )
@@ -38,11 +40,11 @@ std::ostream&  NewHand::operator<< (std::ostream &out, NewHand::Hand::MusclesEnu
   }
   return out;
 }
-std::ostream&  NewHand::operator<< (std::ostream &out, NewHand::Hand::JointsEnum   joint)
+std::ostream&  NewHand::operator<< (std::ostream &out, Hand::JointsEnum   joint)
 {
   if ( !joint )  return  out << "Hand::Empty ";
 
-  for ( auto j : NewHand::joints )
+  for ( auto j : joints )
   {
     if ( j & joint )
       switch ( j )
@@ -57,7 +59,7 @@ std::ostream&  NewHand::operator<< (std::ostream &out, NewHand::Hand::JointsEnum
   return out;
 }
 //--------------------------------------------------------------------------------
-bool  NewHand::muscleValidAtOnce (NewHand::Hand::MusclesEnum muscle)
+bool  NewHand::muscleValidAtOnce (Hand::MusclesEnum muscle)
 {
   if ( !muscle
       || ((Hand::ClvclOpn & muscle) && (Hand::ClvclCls & muscle))
@@ -69,11 +71,11 @@ bool  NewHand::muscleValidAtOnce (NewHand::Hand::MusclesEnum muscle)
   return true;
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesEnum  NewHand::muscleByJoint (NewHand::Hand:: JointsEnum joint, bool open)
+Hand::MusclesEnum  NewHand::muscleByJoint (Hand:: JointsEnum joint, bool open)
 {
   if ( !joint ) return Hand::EmptyMov;
 
-  for ( auto j : NewHand::joints )
+  for ( auto j : joints )
   {
     if ( j & joint )
       switch ( j )
@@ -87,11 +89,11 @@ NewHand::Hand::MusclesEnum  NewHand::muscleByJoint (NewHand::Hand:: JointsEnum j
   }
   return Hand::EmptyMov;
 }
-NewHand::Hand:: JointsEnum  NewHand::jointByMuscle (NewHand::Hand::MusclesEnum muscle)
+Hand:: JointsEnum  NewHand::jointByMuscle (Hand::MusclesEnum muscle)
 {
   if ( !muscle ) return Hand::Empty;
 
-  for ( auto m : NewHand::muscles )
+  for ( auto m : muscles )
   {
     if ( m & muscle )
       switch ( m )
@@ -109,41 +111,4 @@ NewHand::Hand:: JointsEnum  NewHand::jointByMuscle (NewHand::Hand::MusclesEnum m
   }
   return Hand::Empty;
 }
-//--------------------------------------------------------------------------------
-//NewHand::Hand::MusclesEnum  NewHand::selectHandMove (size_t choose)
-//{
-//  Hand::MusclesEnum  muscles;
-//  switch ( choose )
-//  {
-//    default: muscles = Hand::EmptyMov;                                   break;
-//    case  0: muscles = Hand::ClvclOpn;                                   break;
-//    case  1: muscles = Hand::ShldrOpn;                                   break;
-//    case  2: muscles = Hand::ElbowOpn;                                   break;
-//    case  3: muscles = Hand::ClvclCls;                                   break;
-//    case  4: muscles = Hand::ShldrCls;                                   break;
-//    case  5: muscles = Hand::ElbowCls;                                   break;
-//    case  6: muscles = Hand::ClvclOpn | Hand::ShldrOpn;                  break;
-//    case  7: muscles = Hand::ClvclOpn | Hand::ElbowOpn;                  break;
-//    case  8: muscles = Hand::ShldrOpn | Hand::ElbowOpn;                  break;
-//    case  9: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowOpn; break;
-//    case 10: muscles = Hand::ClvclOpn | Hand::ShldrOpn | Hand::ElbowCls; break;
-//    case 11: muscles = Hand::ClvclCls | Hand::ShldrOpn;                  break;
-//    case 12: muscles = Hand::ClvclCls | Hand::ElbowOpn;                  break;
-//    case 13: muscles = Hand::ShldrCls | Hand::ElbowOpn;                  break;
-//    case 14: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowOpn; break;
-//    case 15: muscles = Hand::ClvclCls | Hand::ShldrOpn | Hand::ElbowCls; break;
-//    case 16: muscles = Hand::ClvclOpn | Hand::ShldrCls;                  break;
-//    case 17: muscles = Hand::ClvclOpn | Hand::ElbowCls;                  break;
-//    case 18: muscles = Hand::ShldrOpn | Hand::ElbowCls;                  break;
-//    case 19: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowOpn; break;
-//    case 20: muscles = Hand::ClvclOpn | Hand::ShldrCls | Hand::ElbowCls; break;
-//    case 21: muscles = Hand::ClvclCls | Hand::ShldrCls;                  break;
-//    case 22: muscles = Hand::ClvclCls | Hand::ElbowCls;                  break;
-//    case 23: muscles = Hand::ShldrCls | Hand::ElbowCls;                  break;
-//    case 24: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowOpn; break;
-//    case 25: muscles = Hand::ClvclCls | Hand::ShldrCls | Hand::ElbowCls; break;
-//  }
-//  return muscles;
-//}
-
 //--------------------------------------------------------------------------------

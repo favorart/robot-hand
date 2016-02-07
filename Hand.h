@@ -1,7 +1,6 @@
 #include "StdAfx.h"
 // #include "circle.h"
 
-
 #ifndef  _HAND_H_
 #define  _HAND_H_
 //------------------------------------------------------------------------------
@@ -145,7 +144,13 @@ uint_t:3;  /* unused */
     // const Circle& direction () const { return ps_.lastDirection_; }
     //----------------------------------------------------
   };
-
+  //------------------------------------------------------------------------------
+  const uint_t  HandMovesCount = 26UL;
+  Hand::MusclesEnum  selectHandMove (uint_t choose);
+  //------------------------------------------------------------------------------
+  const tstring  HAND_NAME = _T ("OldHand");
+#define SET_DEFAULT set( Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0., 0., 70. })
+  //------------------------------------------------------------------------------
   static const Hand::j_array   joints = { Hand::Clvcl, Hand::Shldr,
                                           Hand::Elbow, Hand::Wrist };
 
@@ -153,13 +158,15 @@ uint_t:3;  /* unused */
                                           Hand::ShldrOpn, Hand::ShldrCls,
                                           Hand::ElbowOpn, Hand::ElbowCls,
                                           Hand::WristOpn, Hand::WristCls };
-
+  //------------------------------------------------------------------------------
   Hand::MusclesEnum  operator| (Hand::MusclesEnum m, Hand::MusclesEnum k);
-  Hand::MusclesEnum  operator& (Hand::MusclesEnum h, Hand::MusclesEnum k);
+  Hand::MusclesEnum  operator& (Hand::MusclesEnum m, Hand::MusclesEnum k);
+  Hand::MusclesEnum  operator^ (Hand::MusclesEnum m, Hand::MusclesEnum k);
 
   Hand::JointsEnum   operator| (Hand::JointsEnum  j, Hand::JointsEnum  k);
   Hand::JointsEnum   operator& (Hand::JointsEnum  j, Hand::JointsEnum  k);
-
+  Hand::JointsEnum   operator^ (Hand::JointsEnum  j, Hand::JointsEnum  k);
+  //------------------------------------------------------------------------------
   std::ostream&  operator<< (std::ostream &out, Hand::MusclesEnum m);
   std::ostream&  operator<< (std::ostream &out, Hand::JointsEnum  j);
 
@@ -167,16 +174,9 @@ uint_t:3;  /* unused */
   // std::istream&  operator>> (std::ostream &in, Hand::JointsEnum  j);
   //------------------------------------------------------------------------------
   bool  muscleValidAtOnce (Hand::MusclesEnum muscle);
-
-  const uint_t  HandMovesCount = 26UL;
-  Hand::MusclesEnum  selectHandMove (uint_t choose);
-
+  //------------------------------------------------------------------------------
   Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
   Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
-
-
-#define SET_DEFAULT set(Hand::Clvcl|Hand::Shldr|Hand::Elbow,{0,0,70})
-#define HAND_NAME   _T("OldHand")
 };
 /*
  * hand
