@@ -66,7 +66,10 @@
 
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
+
 typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
+inline double  boost_distance (boost_point2_t a, boost_point2_t b)
+{ return boost::geometry::distance<boost_point2_t> (a,b); }
 
 // #include <boost/range/algorithm/permutation.hpp>
 // #include <boost/lambda>

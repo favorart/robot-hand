@@ -30,25 +30,25 @@ namespace HandMoves
 
     const static size_t  arrays_size = 4U;
   public:
-    const static size_t  maxMovesCount = 2U;
+    const static size_t  maxControlsCount = 2U;
 
     typedef std::array<Hand::time_t, arrays_size> times_array;
     typedef std::array<Hand::MusclesEnum, arrays_size> muscles_array;
 
-    struct MovePart
+    struct HandControl
     {
       Hand::MusclesEnum  muscle;
 
       times_t  time;
       times_t  last;
 
-      MovePart () : muscle (Hand::EmptyMov), time (0), last (0) {}
+      HandControl () : muscle (Hand::EmptyMov), time (0), last (0) {}
 
-      MovePart (Hand::MusclesEnum  muscle, times_t time, times_t last) :
+      HandControl (Hand::MusclesEnum  muscle, times_t time, times_t last) :
         muscle (muscle), time (time), last (last) {}
 
       template<class Archive>
-      void serialize (Archive & ar, const unsigned int version)
+      void  serialize (Archive & ar, const unsigned int version)
       { ar & muscle & time & last; }
     };
 
@@ -58,13 +58,13 @@ namespace HandMoves
     //                            > muscle_times_t;
 
     // ----------------------------------------
-    size_t             moves_count_;
+    size_t             controls_count_;
 
     Hand::MusclesEnum  muscles_;
     trajectory_t       visited_;
 
     // muscle_times_t     times_;
-    std::list<MovePart>   moves_;
+    std::list<HandControl>   hand_controls_;
     // times_array   times_start_;
     // times_array   times_stop_ ;
 
@@ -81,34 +81,22 @@ namespace HandMoves
     
     template <class Archive>
     void  save (Archive & ar, const unsigned int version) const
-      { ar << aim_ << hand_ << muscles_ << moves_count_;
-        // ar << times_start_  << times_stop_; <<
-        // ar << times_ << visited_;
-        ar << moves_ << visited_;
-        ar << distance_ << elegance_;
+      { ar << aim_ << hand_ << muscles_ << controls_count_;
+        // ar << times_start_  << times_stop_ << times_;
+        ar << hand_controls_ << visited_ << distance_ << elegance_;
       }
-    
     template <class Archive>
     void  load (Archive & ar, const unsigned int version)
-      { ar >> aim_;
-        ar >> hand_;
-        ar >> muscles_;
-        ar >> moves_count_;
-        // ar >> times_;
-        ar >> moves_;
-        ar >> visited_;
-        //ar >> times_start_;
-        //ar >> times_stop_;
-        ar >> distance_;
-        ar >> elegance_;
+      { ar >> aim_ >> hand_ >> muscles_ >> controls_count_;
+        // ar >> times_start_ >> times_stop_ >> times_;
+        ar >> hand_controls_ >> visited_ >> distance_ >> elegance_;
       }
 
     // template<class Archive>
     // void serialize (Archive & ar, const unsigned int version)
-    // { ar & moves_count_ & /* controls_ & */ start_times_ & distance_ & elegance_ & hand_ & aim_; }
+    // { ar & moves_count_ & /* controls_ & */ start_times_
+    //      & distance_ & elegance_ & hand_ & aim_; }
     // ----------------------------------------
-
-    double  Elegance ();
 
   public:
     // ----------------------------------------
@@ -116,7 +104,7 @@ namespace HandMoves
     struct ByX {};
     struct ByY {};
 
-    struct ChangePoint : public std::unary_function<Record, void>
+    struct ChangePoint : public std::unary_function<Record,void>
     {
       ChangePoint (const Point &p) : p_ (p) {}
       void operator() (Record &rec) { rec.aim_ = p_; }
@@ -134,7 +122,12 @@ namespace HandMoves
             const muscles_array &muscles,
             const times_array   &times,
             const times_array   &lasts,
-            size_t               moves_count,
+            size_t               controls_count,
+            const trajectory_t  &visited);
+
+    Record (const Point         &aim,
+            const Point         &hand,
+            const std::initializer_list<HandControl> controls,
             const trajectory_t  &visited);
     
     // ----------------------------------------
@@ -145,13 +138,25 @@ namespace HandMoves
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_aim)) const Point &aim;
     const Point&  get_aim () const { return aim_; }
+    __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
+    const trajectory_t&  get_trajectory () const { return visited_; }
+    __declspec(property(get = get_controls_count)) size_t  controlsCount;
+    size_t  get_controls_count () const { return controls_count_; }
 
-    __declspec(property(get = get_traj)) const trajectory_t &trajectory;
-    const trajectory_t&  get_traj () const { return visited_; }
+    size_t   controls (OUT std::array<HandControl, Record::maxControlsCount> &controls) const
+    {
+      size_t i = 0U;
+      for ( auto hc : hand_controls_ )
+      { controls[i++] = hc; }
+      return controls_count_;
+    }
+    std::list<HandControl> const &  controls () const
+    { return hand_controls_; }
     // ----------------------------------------
-    bool  validateMusclesTimes ();
-
-    void makeHandMove (MyWindowData &wd);
+    bool    validateMusclesTimes () const;
+    void    repeatMove   (Hand &hand) const;
+    double  eleganceMove (const Point &aim) const;
+    // ----------------------------------------
   };
 
   using namespace boost::multi_index;
@@ -190,15 +195,37 @@ namespace HandMoves
   void  adjacencyXsByYPoints (Store &store, std::list<Record> &range,
                               double y, double left=0., double right=0.);
   //------------------------------------------------------------------------------
+  class ClosestPredicate
+  {
+    boost_point2_t aim;
+  public:
+    ClosestPredicate (const Point &aim) : aim (aim) {}
+    double  operator() (const std::shared_ptr<Record> &a,
+                        const std::shared_ptr<Record> &b)
+    { return this->operator() (boost_point2_t (a->aim),
+                               boost_point2_t (b->aim));
+    }
+    double  operator() (const Record &a,
+                        const Record &b)
+    { return this->operator() (boost_point2_t (a.aim),
+                               boost_point2_t (b.aim));
+    }
+    double  operator() (const boost_point2_t &a,
+                        const boost_point2_t &b)
+    {
+      double  da = boost::geometry::distance (aim, a);
+      double  db = boost::geometry::distance (aim, b);
+      return (da < db);
+    }
+  };
+  //------------------------------------------------------------------------------
   /* сериализация */
-  void  storeSave (const Store& store, tstring  filename=_T("moves.bin"));
-  void  storeLoad (      Store& store, tstring  filename=_T("moves.bin"));
+  void  storeSave (const Store& store, tstring filename);
+  void  storeLoad (      Store& store, tstring filename);
   //------------------------------------------------------------------------------
   /* тестовые движения рукой */
   void  test_random (Store &store, Hand &hand, size_t tries);
-  void  test_cover  (Store &store, Hand &hand,
-                     // std::list< std::list<Point> > &trajectories,
-                     size_t nesting /* 1, 2, 3 */);
+  void  test_cover  (Store &store, Hand &hand, size_t nesting /* = 1,2,3 */);
 }
 BOOST_CLASS_VERSION (HandMoves::Record, 1)
 

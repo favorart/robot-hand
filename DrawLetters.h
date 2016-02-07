@@ -4,20 +4,6 @@
 #ifndef  _DRAW_LETTERS_H_
 #define  _DRAW_LETTERS_H_
 //------------------------------------------------------------------------------
-// class StringMaker
-// {
-//   tstringstream ss_;
-// 
-//   void push ()
-//   {
-//   
-//   }
-// 
-//   tstring  pop ()
-//   {}
-// };
-
-
 class CanvasScaleLetters
 {
   LOGFONTW lf_ = {};
@@ -47,7 +33,9 @@ public:
     DeleteObject (Font_270);
   }
 
-  void  draw (HDC hdc, const std::vector<const Point*> &handJoints, const Point* handPos=nullptr);
+  void  draw (HDC hdc,
+              const std::vector<const Point*> &handJoints,
+              const Point* handPos=nullptr);
 };
 //------------------------------------------------------------------------------
 #endif // _DRAW_LETTERS_H_

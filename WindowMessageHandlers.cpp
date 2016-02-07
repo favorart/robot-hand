@@ -34,6 +34,33 @@ Point  logic_coord (win_point* coord)
   return p;
 }
 //-------------------------------------------------------------------------------
+/* Create a string with last error message */
+tstring  GetLastErrorToString ()
+{
+  DWORD  error = GetLastError ();
+  if ( error )
+  {
+    LPVOID lpMsgBuf;
+    DWORD bufLen = FormatMessage ( FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                   FORMAT_MESSAGE_FROM_SYSTEM |
+                                   FORMAT_MESSAGE_IGNORE_INSERTS,
+                                   NULL,
+                                   error,
+                                   MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                   (LPTSTR) &lpMsgBuf,
+                                   0, NULL);
+    if ( bufLen )
+    {
+      LPCSTR lpMsgStr = (LPCSTR) lpMsgBuf;
+      tstring result (lpMsgStr, lpMsgStr + bufLen);
+
+      LocalFree (lpMsgBuf);
+      return result;
+    }
+  }
+  return  tstring ();
+}
+
 void OnWindowCreate (HWND &hWnd, RECT &myRect,
                      HWND &hLabCanv, HWND &hLabHelp,
                      HWND &hLabMAim, HWND &hLabTest,
@@ -248,19 +275,19 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   //-------------------------------------------
   /* Создание теневого контекста для двойной буфферизации */
   hCmpDC = CreateCompatibleDC (hdc);
+  if ( !hCmpDC )
+  { MessageBox (hWnd, GetLastErrorToString ().c_str (),
+                _T("ERROR"), MB_OK | MB_ICONERROR); }
+
   hBmp = CreateCompatibleBitmap (hdc, myRect.right - myRect.left,
                                       myRect.bottom - myRect.top);
   SelectObject (hCmpDC, hBmp);
-
   /* Закраска фона рабочей области */
-  { HBRUSH brush = CreateSolidBrush (RGB (235, 235, 255) /* RGB (255,204,238) background color */);
-    FillRect (hCmpDC, &myRect, brush);
-    DeleteObject (brush);
-  }
+  FillRect (hCmpDC, &myRect, wd.hBrush_back);
 
   /* set transparent brush to fill shapes */
   SelectObject (hCmpDC, wd.hBrush_null);
-  // SetBkMode (hCmpDC, TRANSPARENT);
+     SetBkMode (hCmpDC, TRANSPARENT);
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
   DrawDecardsCoordinates (hCmpDC);
@@ -376,6 +403,12 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     { // int muscle, last;
       // cin >> muscle >> last;
       // wd.hand.move ((Hand::MusclesEnum)muscle, (Hand::time_t)last);
+      
+      // testLittleCorrectives (wd.store, wd.hand, wd.target,
+      //                        max(wd.target.x_distance,
+      //                            wd.target.y_distance));
+      littleTest (wd, 2. * max (wd.target.x_distance,
+                                wd.target.y_distance));
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }

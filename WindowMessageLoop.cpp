@@ -88,8 +88,8 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
     case WM_USER_STORE:
     { //=======================
       {
-        // tstringstream buffer;
-        // buffer << _T ("Storage size ") << wd->store.size () << _T("  ");
+        // tstringstream ss;
+        // ss << _T ("Storage size ") << wd->store.size () << _T("  ");
 
         wd->store_size = wd->store.size ();
         tstring str_size = str (boost::wformat (_T ("Storage size %1%  ")) % wd->store_size);
@@ -98,7 +98,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
         SendMessage (hLabStat,         /* Label Stat */
                      WM_SETTEXT,       /* Message    */
                      (WPARAM) NULL,    /* Unused     */
-                     (LPARAM) str_size.c_str ()); // buffer.str ().c_str ());
+                     (LPARAM) str_size.c_str ()); // ss.str ().c_str ());
       }
       //=======================
       break;
@@ -114,19 +114,20 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
         case HK_OPEN: // open input text file
         { 
           tstring  FileName = OpenFileDialog (hWnd);
+          tstring  DefaultName = wd->CurFileName;
+
           if ( !FileName.empty () )
           {
-            WorkerThreadRunStoreO (*wd, _T ("  *** loading ***  "),
-                                   [](HandMoves::Store &store, tstring FileName, tstring DefaultName)
-            {
-              if ( !store.empty () )
-              { storeSave (store, DefaultName);
-                store.clear ();
-              }
-              storeLoad (store, FileName);
-
-            }, FileName, wd->CurFileName);
-
+            WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
+                                      [FileName, DefaultName](HandMoves::Store &store)
+                                      {
+                                        if ( !store.empty () )
+                                        { storeSave (store, DefaultName);
+                                          store.clear ();
+                                        }
+                                        storeLoad (store, FileName);
+                                      
+                                      });
             wd->CurFileName = FileName;
           }
           break;
@@ -136,26 +137,13 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
         { 
           // tstring  FileName = SaveFileDialog (hWnd);
           if ( !wd->store.empty () )
-          {
-            // if ( wd->CurFileName.empty () )
-            // {
-            //   tstringstream ss;
-            //   ss << _T ("HAND_NAME") 
-            //      << CurrentTimeToString (_T ("%d-%m-%Y %I:%M:%S")) 
-            //      << _T ("_moves.bin");
-            //   wd->CurFileName = ss.str ();
-            // }
-            // WorkerThreadRunTask (*wd, _T ("  *** loading ***  "),
-            //                      storeSave, std::ref (wd->store), wd->CurFileName.c_str ());
-            //                      // [&]() { storeSave (wd->store, wd->CurFileName.c_str ()); });
-
-            tstringstream ss;
+          { tstringstream ss;
             ss << HAND_NAME
                << CurrentTimeToString (_T ("_%d-%m-%Y_%I-%M-%S")) 
                << _T ("_moves.bin");
 
-            WorkerThreadRunStore (*wd, _T ("  *** loading ***  "),
-                                  storeSave, ss.str ());
+            WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
+                                      storeSave, ss.str ());
           }
           break;
         }

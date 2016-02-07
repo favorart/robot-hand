@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "WindowData.h"
 #include "Draw.h"
+#include "littleTests.h"
 
 using namespace std;
 using namespace HandMoves;
@@ -16,7 +17,8 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
                      // -0.39, 0.41, -0.05, -0.85
                      // 200U, 200U, -1., 1., -1., 1.
           ),
-  scaleLetters (target.Min (), target.Max ())
+  scaleLetters (target.Min (), target.Max ()),
+  lt (nullptr)
 {
   std::srand ((unsigned int) clock ());
 
@@ -36,6 +38,10 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   /* создаем кисти */
   hBrush_white = (HBRUSH) GetStockObject (WHITE_BRUSH);
   hBrush_null  = (HBRUSH) GetStockObject (NULL_BRUSH);
+  hBrush_back  = CreateSolidBrush (RGB (235, 235, 255)
+                                   /* background color */
+                                   // RGB (255,204,238)
+                                   );
 
   // p_x = 0; p_y = 0;
   // fm = 0; fn = 0;
@@ -44,12 +50,13 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   hand.SET_DEFAULT;
 
   // HandMoves::storeLoad (store);
-  WorkerThreadRunStore (*this, _T ("  *** loading ***  "),
-                        storeLoad, CurFileName);
+  WorkerThreadRunStoreTask (*this, _T ("  *** loading ***  "),
+                            storeLoad, CurFileName);
   //=======================
 }
 MyWindowData::~MyWindowData ()
 {
+  if ( lt ) delete lt;
   /* очищаем ручку */
   DeleteObject (hPen_grn);
   DeleteObject (hPen_red);
@@ -59,6 +66,7 @@ MyWindowData::~MyWindowData ()
 
   DeleteObject (hBrush_white);
   DeleteObject (hBrush_null);
+  DeleteObject (hBrush_back);
     
   if ( pWorkerThread )
   {
@@ -76,6 +84,9 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
   const double CircleRadius = 0.01;
   // --------------------------------------------------------------
   /* Target to achive */
+
+  if ( wd.lt )
+    wd.lt->draw (hdc, wd);
 
   // auto fin = wd.target.coords ()[45];
   // DrawCircle (hdc, fin, REllipse);
@@ -103,7 +114,7 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
   } // end if
 
   // --------------------------------------------------------------
-  if ( wd.allPointsDB_show && !wd.store.empty () )
+  if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
     for ( auto rec : wd.store )
@@ -131,18 +142,6 @@ void  OnPaintMyLogic (HDC hdc, MyWindowData &wd)
   // --------------------------------------------------------------
 }
 //-------------------------------------------------------------------------------
-//template<typename T, typename... Args>
-//void  WorkerThreadStart   (MyWindowData &wd, tstring &message, T func, Args... args)
-//{
-//  wd.testing = true;
-//  /* Setting the Label's text */
-//  SendMessage (wd.hLabTest,      /* Label   */
-//               WM_SETTEXT,       /* Message */
-//               (WPARAM) NULL,    /* Unused  */
-//               (LPARAM) message.c_str ());
-//
-//  wd.pWorkerThread = new boost::thread (func, args...);
-//}
 void  WorkerThreadTryJoin (MyWindowData &wd)
 {
   if ( wd.pWorkerThread && wd.pWorkerThread->try_join_for (boost::chrono::milliseconds (10)) )
@@ -161,7 +160,6 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
                  (LPARAM) _T (" "));
   } // end if
 }
-
 
 void  OnWindowTimer (MyWindowData &wd)
 {
@@ -231,53 +229,63 @@ void  OnWindowMouse (MyWindowData &wd)
   OnShowDBPoints (wd);
 }
 //-------------------------------------------------------------------------------
-void  OnRandomTest (MyWindowData &wd)
+/* inline */ void  OnRandomTest (MyWindowData &wd)
 {
-  if ( !wd.testing )
-  {
-    wd.testing = true;
-    /* Setting the Label's text */
-    SendMessage (wd.hLabTest,         /* Label   */
-                 WM_SETTEXT,       /* Message */
-                 (WPARAM) NULL,    /* Unused  */
-                 (LPARAM) _T ("\n *** testing ***  "));
+  // if ( !wd.testing )
+  // {
+  //   wd.testing = true;
+  //   /* Setting the Label's text */
+  //   SendMessage (wd.hLabTest,         /* Label   */
+  //                WM_SETTEXT,       /* Message */
+  //                (WPARAM) NULL,    /* Unused  */
+  //                (LPARAM) );
+  //   
+  //   const size_t repeats = 1000U;
+  //   wd.pWorkerThread = new boost::thread (HandMoves::test_random,
+  //                                         std::ref (wd.store),
+  //                                         wd.hand, /* copy */
+  //                                         repeats);
+  //   
+  //   wd.hand.SET_DEFAULT;
+  //   test_random (wd.store, wd.hand, 1000U);
 
     const size_t repeats = 1000U;
-    wd.pWorkerThread = new boost::thread (HandMoves::test_random,
-                                         std::ref (wd.store),
-                                         wd.hand, /* copy */
-                                         repeats);
-
-    // wd.hand.SET_DEFAULT;
-    // test_random (wd.store, wd.hand, 1000U);
+    WorkerThreadRunStoreTask (wd, _T ("\n *** testing ***  "),
+                              HandMoves::test_random,
+                              wd.hand, repeats);
 
     WorkerThreadTryJoin (wd);
-  }
+  // }
 }
-void  OnCoverTest  (MyWindowData &wd)
+/* inline */ void  OnCoverTest  (MyWindowData &wd)
 { 
-  if ( !wd.testing )
-  {
-    wd.testing = true;
-    /* Setting the Label's text */
-    SendMessage (wd.hLabTest,      /* Label   */
-                 WM_SETTEXT,       /* Message */
-                 (WPARAM) NULL,    /* Unused  */
-                 (LPARAM) _T("\n *** testing ***  "));
+  // if ( !wd.testing )
+  // {
+  //   wd.testing = true;
+  //   /* Setting the Label's text */
+  //   SendMessage (wd.hLabTest,      /* Label   */
+  //                WM_SETTEXT,       /* Message */
+  //                (WPARAM) NULL,    /* Unused  */
+  //                (LPARAM) _T("\n *** testing ***  "));
+  // 
+  //   const size_t nested = 2U;
+  //   wd.pWorkerThread = new boost::thread (HandMoves::test_cover,
+  //                                         std::ref (wd.store),
+  //                                         wd.hand,  /* copy */
+  //                                         nested);
+       // hand.SET_DEFAULT;
+       // HandMoves::test_cover (wd.store, wd.hand, nested);
 
     const size_t nested = 2U;
-    wd.pWorkerThread = new boost::thread (HandMoves::test_cover,
-                                          std::ref (wd.store),
-                                          wd.hand,  /* copy */
-                                          nested);
-    // hand.SET_DEFAULT;
-    // HandMoves::test_cover (wd.store, wd.hand, nested);
+    WorkerThreadRunStoreTask (wd, _T ("\n *** testing ***  "),
+                              HandMoves::test_cover,
+                              wd.hand, nested);
 
     WorkerThreadTryJoin (wd);
-  } // end if
+  // } // end if
 }
 //-------------------------------------------------------------------------------
-void  OnShowTrajectory (MyWindowData &wd)
+void  OnShowTrajectoryFrames (MyWindowData &wd)
 {
   wd.hand.SET_DEFAULT;
   wd.trajectory_frames.clear ();
@@ -291,7 +299,47 @@ void  OnShowTrajectory (MyWindowData &wd)
   wd.trajectory_frames.push_back (wd.hand.position);
 }
 //-------------------------------------------------------------------------------
-void  MakeHandMove (MyWindowData &wd);
+void  MakeHandMove   (MyWindowData &wd)
+{
+  HandMoves::adjacencyPoints (wd.store, wd.adjPointsDB,
+                              wd.mouse_aim, wd.radius);
+
+  ClosestPredicate pred (wd.mouse_aim);
+  auto it_min = std::min_element (wd.adjPointsDB.begin (),
+                                  wd.adjPointsDB.end (),
+                                  pred);
+
+
+  if ( it_min != wd.adjPointsDB.end () )
+  {
+    const shared_ptr<Record> &pRec = (*it_min);
+    pRec->repeatMove (wd.hand);
+    wd.trajectory_frames = pRec->trajectory;
+  }
+
+
+  // wd.testing_trajectories.clear ();
+
+  // tstringstream buffer;
+  // for ( auto pRec : wd.pointsDB )
+  // {
+  //   buffer << pRec << std::endl;
+  // 
+  //   wd.testing_trajectories.push_back (make_shared<HandMoves::trajectory_t> (pRec->trajectory));
+  // }
+  // /* Setting the Label's text */
+  // SendMessage (wd.hLabStat,      /* Label   */
+  //              WM_SETTEXT,       /* Message */
+  //              (WPARAM) NULL,    /* Unused  */
+  //              (LPARAM) buffer.str ().c_str ()
+  //              );
+
+  // if ( !wd.adjPointsDB.empty () )
+  // {
+  //   Record &Rec = (*(*wd.adjPointsDB.begin ()));
+  //   Rec.makeHandMove (wd);
+  // }
+}
 void  OnShowDBPoints (MyWindowData &wd)
 {
   if ( !wd.testing && wd.mouse_haved )
@@ -338,79 +386,5 @@ void  OnShowDBTrajectories (MyWindowData &wd)
   }
 }
 //-------------------------------------------------------------------------------
-void  UncoveredTargetPoints (Store &store, const RecTarget &t, std::list<Point> &uncovered)
-{
-  std::list<std::shared_ptr<Record>> range;
-  adjacencyRectPoints (store, range, t.Min (), t.Max ());
 
-  typedef Store::index<Record::ByP>::type::const_iterator StorePcIter;
-  Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
-
-  for ( auto p : t.coords () ) //.cbegin (); it != cend (); )
-  {
-    if ( index.find (boost::tuple<double, double> (p)) == index.end () )
-    { uncovered.push_back (p); }
-  }
-}
-
-
-void  MakeHandMove (MyWindowData &wd)
-{
-
-  HandMoves::adjacencyPoints (wd.store, wd.adjPointsDB,
-                              wd.mouse_aim, wd.radius);
-
-  boost_point2_t m_aim = wd.mouse_aim;
-  wd.adjPointsDB.sort ([m_aim](const shared_ptr<Record> &a,
-                               const shared_ptr<Record> &b)
-                               { boost_point2_t a_p = a->aim;
-                                 boost_point2_t b_p = b->aim;
-                                 double  d1 = boost::geometry::distance (m_aim, a_p);
-                                 double  d2 = boost::geometry::distance (m_aim, b_p);
-                                 return (d1 > d2);
-                               });
-
-  // wd.testing_trajectories.clear ();
-
-  // tstringstream buffer;
-  // for ( auto pRec : wd.pointsDB )
-  // {
-  //   buffer << pRec << std::endl;
-  // 
-  //   wd.testing_trajectories.push_back (make_shared<HandMoves::trajectory_t> (pRec->trajectory));
-  // }
-  // /* Setting the Label's text */
-  // SendMessage (wd.hLabStat,      /* Label   */
-  //              WM_SETTEXT,       /* Message */
-  //              (WPARAM) NULL,    /* Unused  */
-  //              (LPARAM) buffer.str ().c_str ()
-  //              );
-
-  if ( !wd.adjPointsDB.empty () )
-  {
-    Record &Rec = (*(*wd.adjPointsDB.begin ()));
-    Rec.makeHandMove (wd);
-  }
-}
-
-void  Record::makeHandMove (MyWindowData &wd)
-{
-  wd.hand.reset ();
-  wd.hand.SET_DEFAULT;
-  std::list<Point> visited;
-  for ( auto mp : moves_ )
-  {
-    wd.hand.move (mp.muscle, mp.last); // , visited);
-  }
-
-  // for ( auto p : visited )
-  //   wcout << wstring (p) << endl;
-  // wcout << visited.size () << endl << endl;
-  // 
-  // for ( auto p : trajectory )
-  //   wcout << wstring (p) << endl;
-  // wcout << trajectory.size () << endl << endl;
-
-  std::copy (trajectory.begin (), trajectory.end (), std::back_inserter(wd.trajectory_frames));
-}
-
+//-------------------------------------------------------------------------------

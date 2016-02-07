@@ -46,12 +46,14 @@ CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
   Font_270 = CreateFontIndirect (&lf_);
 }
 //------------------------------------------------------------------------------
-void  CanvasScaleLetters::draw (HDC hdc, const std::vector<const Point*> &handJoints, const Point* handPos)
+void  CanvasScaleLetters::draw (HDC hdc,
+                                const std::vector<const Point*> &handJoints,
+                                const Point* handPos)
 {
   const double targetXShift = 0.1;
   HFONT oldFont;
   //---------------------------------------------------------------
-  SetBkMode (hdc, TRANSPARENT);
+  // SetBkMode (hdc, TRANSPARENT);
 
   oldFont = (HFONT) SelectObject (hdc, Font_270);
   //---draw scale on RecTarget-------------------------------------

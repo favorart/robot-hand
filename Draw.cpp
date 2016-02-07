@@ -29,6 +29,21 @@ void  DrawDecardsCoordinates (HDC hdc)
 //------------------------------------------------------------------------------
 //#include <gdiplus.h>
 /* Drawing the trajectory, where we got ... */
+void  DrawTrajectory (HDC hdc, std::list<std::shared_ptr<Point>> &trajectory, HPEN hPen)
+{
+  if ( !trajectory.empty () )
+  {
+    HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
+    //------------------------------------------------------------------
+    const auto p = trajectory.front ();
+    MoveToEx (hdc, Tx (p->x), Ty (p->y), NULL);
+    for ( auto p : trajectory )
+    { LineTo (hdc, Tx (p->x), Ty (p->y)); }
+    //------------------------------------------------------------------
+    // отменяем ручку
+    SelectObject (hdc, hPen_old);
+  }
+}
 void  DrawTrajectory (HDC hdc, std::list<Point> &trajectory, HPEN hPen)
 {
   if ( !trajectory.empty () )
@@ -47,9 +62,9 @@ void  DrawTrajectory (HDC hdc, std::list<Point> &trajectory, HPEN hPen)
 }
 
 void  DrawAdjacency (HDC hdc, const Point &center, double radius,
-                     figure_t figure, HPEN hPen_cian)
+                     figure_t figure, HPEN hPen)
 {
-  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen_cian);
+  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
   switch ( figure )
   {
     case ellipse:     Ellipse (hdc, Tx (center.x - radius), Ty (center.y + radius),

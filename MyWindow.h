@@ -91,10 +91,10 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 void  OnWindowTimer (MyWindowData &wd);
 void  OnWindowMouse (MyWindowData &wd);
 
-void  OnRandomTest  (MyWindowData &wd);
-void  OnCoverTest   (MyWindowData &wd);
+/* inline */ void  OnRandomTest (MyWindowData &wd);
+/* inline */ void  OnCoverTest  (MyWindowData &wd);
 
-void  OnShowTrajectory (MyWindowData &wd);
+void  OnShowTrajectoryFrames (MyWindowData &wd);
 
 void  OnShowDBPoints       (MyWindowData &wd);
 void  OnShowDBTrajectories (MyWindowData &wd);
@@ -102,6 +102,13 @@ void  OnShowDBTrajectories (MyWindowData &wd);
 inline void  DrawCircle (HDC hdc, const Point &center, double radius)
 { Ellipse (hdc, Tx (-radius + center.x), Ty ( radius + center.y),
                 Tx ( radius + center.x), Ty (-radius + center.y));
+}
+inline void  DrawCircle (HDC hdc, const Point &center, double radius, HPEN hPen)
+{
+  HPEN Pen_old = (HPEN) SelectObject (hdc, hPen);
+  Ellipse (hdc, Tx (-radius + center.x), Ty (radius + center.y),
+                Tx (radius + center.x), Ty (-radius + center.y));
+  SelectObject (hdc, Pen_old);
 }
 //-------------------------------------------------------------------------------
 #endif // _WINDOW_H_

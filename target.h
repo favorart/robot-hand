@@ -20,8 +20,10 @@ private:
   double  lft, rgh, top, btm;
   size_t  c_rows, c_cols;
   // ---------------------------------
-
+  
 public:
+  double x_distance;
+  double y_distance;
   // ---------------------------------
   RecTarget () : 
     c_rows (0), c_cols (0), lft (0), rgh (0), top (0), btm (0) {}
