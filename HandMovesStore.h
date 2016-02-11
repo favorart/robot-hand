@@ -7,7 +7,6 @@
 #if   HAND_VER == 1
 #include "Hand.h"
 using namespace OldHand;
-#include "HandMuscles.h"
 #elif HAND_VER == 2
 #include "NewHand.h"
 using namespace NewHand;
@@ -24,8 +23,7 @@ namespace HandMoves
   // Point  hand_;
   // Point  close_network_;
   
-  // !!!!
-  // compare (x1 < x2 & y1 < y2)
+  // !!! compare (x1 < x2 & y1 < y2)
   
   typedef std::list<Point> trajectory_t;
 
@@ -63,22 +61,15 @@ namespace HandMoves
     //                            > muscle_times_t;
 
     // ----------------------------------------
-    size_t             controls_count_;
-
     Hand::MusclesEnum  muscles_;
     trajectory_t       visited_;
 
     // muscle_times_t     times_;
     std::list<HandControl>   hand_controls_;
-    // times_array   times_start_;
-    // times_array   times_stop_ ;
+    // times_array   times_start_, times_stop_ ;
 
-    Point     aim_;
-    Point     hand_;
-    
-    // ----- calc -----------------------------
-    double    distance_;
-    double    elegance_;
+    // ----------------------------------------
+    Point     aim_, hand_final_, hand_begin_;
 
     // ----------------------------------------
     friend class boost::serialization::access;
@@ -86,15 +77,15 @@ namespace HandMoves
     
     template <class Archive>
     void  save (Archive & ar, const unsigned int version) const
-      { ar << aim_ << hand_ << muscles_ << controls_count_;
+      { ar << aim_ << hand_begin_ << hand_final_ << muscles_;
         // ar << times_start_  << times_stop_ << times_;
-        ar << hand_controls_ << visited_ << distance_ << elegance_;
+        ar << hand_controls_ << visited_;
       }
     template <class Archive>
     void  load (Archive & ar, const unsigned int version)
-      { ar >> aim_ >> hand_ >> muscles_ >> controls_count_;
+      { ar >> aim_ >> hand_begin_ >> hand_final_ >> muscles_;
         // ar >> times_start_ >> times_stop_ >> times_;
-        ar >> hand_controls_ >> visited_ >> distance_ >> elegance_;
+        ar >> hand_controls_ >> visited_;
       }
 
     // template<class Archive>
@@ -108,6 +99,7 @@ namespace HandMoves
     struct ByP {};
     struct ByX {};
     struct ByY {};
+    struct ByD {};
 
     struct ChangePoint : public std::unary_function<Record,void>
     {
@@ -123,7 +115,8 @@ namespace HandMoves
     Record () {}
 
     Record (const Point         &aim,
-            const Point         &hand,
+            const Point         &hand_begin,
+            const Point         &hand_final,
             const muscles_array &muscles,
             const times_array   &times,
             const times_array   &lasts,
@@ -131,7 +124,8 @@ namespace HandMoves
             const trajectory_t  &visited);
 
     Record (const Point         &aim,
-            const Point         &hand,
+            const Point         &hand_begin,
+            const Point         &hand_final,
             const std::initializer_list<HandControl> controls,
             const trajectory_t  &visited);
     
@@ -146,21 +140,24 @@ namespace HandMoves
     __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
     const trajectory_t&  get_trajectory () const { return visited_; }
     __declspec(property(get = get_controls_count)) size_t  controlsCount;
-    size_t  get_controls_count () const { return controls_count_; }
+    size_t  get_controls_count () const { return hand_controls_.size (); }
 
     size_t   controls (OUT std::array<HandControl, Record::maxControlsCount> &controls) const
     {
       size_t i = 0U;
       for ( auto hc : hand_controls_ )
       { controls[i++] = hc; }
-      return controls_count_;
+      return controlsCount;
     }
     std::list<HandControl> const &  controls () const
     { return hand_controls_; }
     // ----------------------------------------
     bool    validateMusclesTimes () const;
     void    repeatMove   (Hand &hand) const;
-    double  eleganceMove (const Point &aim) const;
+
+    double  eleganceMove (/* const Point &aim */) const;
+    double  distanceCovered () const
+    { return boost_distance (hand_final_, hand_begin_); }
     // ----------------------------------------
   };
 
@@ -176,10 +173,13 @@ namespace HandMoves
                                                     >
                                      >,
                   ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::aim_x> >,
-                  ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> > //,
+                  ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> >,
+                  ordered_non_unique < tag<Record::ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > //,
                   // random_access      <> // доступ, как у вектору
                 >
   > Store;
+  //------------------------------------------------------------------------------
+  void  storeInsert (Store &store, const Record &rec);
   //------------------------------------------------------------------------------
   /* прямоугольная окрестность точки */
   size_t  adjacencyRectPoints (Store &store, std::list<Record> &range,

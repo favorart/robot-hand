@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 #include "MyWindow.h"
 #include "NewHand.h"
 #define HAND_VER 2
@@ -29,7 +29,7 @@ NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (MusclesEnum  muscle)
 //--------------------------------------------------------------------------------
 // ??? min velosity
 // ??? current velosity
-/* ??? Коэффициент взаимодействия приводов */
+/* ??? РљРѕСЌС„С„РёС†РёРµРЅС‚ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ РїСЂРёРІРѕРґРѕРІ */
 double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atStop)
 {
   const bool USE_SPEED = true;
@@ -121,13 +121,13 @@ void    NewHand::Hand::muscleFinal (JointsIndexEnum jointIndex)
   hs.lastsStop[jointIndex] = 0U;
   hs.lasts_   [jointIndex] = 0U;
 
-  /* Исключаем остановленный двигатель */
+  /* РСЃРєР»СЋС‡Р°РµРј РѕСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹Р№ РґРІРёРіР°С‚РµР»СЊ */
   hs.musclesMove_ = hs.musclesMove_ ^ muscleByJoint (static_cast<JointsEnum> (1U << jointIndex), true);
   hs.musclesMove_ = hs.musclesMove_ ^ muscleByJoint (static_cast<JointsEnum> (1U << jointIndex), false);
 
   if ( boost::algorithm::none_of (hs.lastsMove, NonZero)
     && boost::algorithm::none_of (hs.lastsStop, NonZero) )
-  { /* Полная остановка руки */
+  { /* РџРѕР»РЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР° СЂСѓРєРё */
     hs.moveEnd_ = true;
     hs.musclesMove_ = Hand::EmptyMov;
   }
@@ -148,37 +148,37 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
   if ( control && !hs.lastsMove[jointIndex] )
     //  && (!hs.lastsMove[jointIndex + 1U] && !(jointIndex % 2)
     //   || !hs.lastsMove[jointIndex - 1U] &&  (jointIndex % 2)) )
-  { /* начало движения руки */
+  { /* РЅР°С‡Р°Р»Рѕ РґРІРёР¶РµРЅРёСЏ СЂСѓРєРё */
     auto lastMax = maxMoveFrames[jointIndex];
     hs.lastsMove[jointIndex] = last ? min (last, lastMax) : lastMax;
     hs.lasts_   [jointIndex] = 0U;
   }
   else if ( hs.lastsMove[jointIndex] && control )
-  { /* остановка движения - по сигналу */
+  { /* РѕСЃС‚Р°РЅРѕРІРєР° РґРІРёР¶РµРЅРёСЏ - РїРѕ СЃРёРіРЅР°Р»Сѓ */
     muscleBrake (jointIndex);
   }
   else if ( hs.lastsMove[jointIndex] && hs.lasts_[jointIndex] >= maxMoveFrames[jointIndex] )
-  { /* остановка движения - по истечении доступных фреймов */
+  { /* РѕСЃС‚Р°РЅРѕРІРєР° РґРІРёР¶РµРЅРёСЏ - РїРѕ РёСЃС‚РµС‡РµРЅРёРё РґРѕСЃС‚СѓРїРЅС‹С… С„СЂРµР№РјРѕРІ */
     muscleFinal (jointIndex);
   }
   else if ( hs.lastsMove[jointIndex] && hs.lasts_[jointIndex] >= hs.lastsMove[jointIndex] )
-  { /* остановка основного движения - по истечении заданной длительности */
+  { /* РѕСЃС‚Р°РЅРѕРІРєР° РѕСЃРЅРѕРІРЅРѕРіРѕ РґРІРёР¶РµРЅРёСЏ - РїРѕ РёСЃС‚РµС‡РµРЅРёРё Р·Р°РґР°РЅРЅРѕР№ РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё */
     muscleBrake (jointIndex);
   }
   else if ( hs.lastsMove[jointIndex] && hs.lasts_[jointIndex] <  hs.lastsMove[jointIndex] )
-  { /* продолжение движения */
+  { /* РїСЂРѕРґРѕР»Р¶РµРЅРёРµ РґРІРёР¶РµРЅРёСЏ */
     if ( !muscleFrame (muscle, hs.lasts_[jointIndex], false) )
-    { /* Окончательная остановка */
+    { /* РћРєРѕРЅС‡Р°С‚РµР»СЊРЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР° */
       muscleFinal (jointIndex);
     } // end if
   } // end else if
 
   //-------------------------------------------------------
-  /* Движение по инерции */
+  /* Р”РІРёР¶РµРЅРёРµ РїРѕ РёРЅРµСЂС†РёРё */
   if (   (hs.lastsStop[jointIndex])
       && (hs.lasts_   [jointIndex] >= hs.lastsStop[jointIndex]
        || !muscleFrame (muscle, hs.lasts_[jointIndex], true)) )
-  { /* Конец полного движения */
+  { /* РљРѕРЅРµС† РїРѕР»РЅРѕРіРѕ РґРІРёР¶РµРЅРёСЏ */
     muscleFinal (jointIndex);
   } // end if
   //-------------------------------------------------------
@@ -198,7 +198,7 @@ NewHand::Hand::Hand (const Point &palm,
                      // maxElbowAngle (135U),
                      // maxWristAngle (100U),
                      maxJointAngles ({ 40U, 105U, 135U, 100U}),
-                     StopDistaceRatio (0.02), // 20% от общего пробега
+                     StopDistaceRatio (0.02), // 20% РѕС‚ РѕР±С‰РµРіРѕ РїСЂРѕР±РµРіР°
                      
                      maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
                                        55U /* ElbowIndex */ , 30U /* WristIndex */ }),
@@ -299,14 +299,14 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   /* simultaniusly moving */
   if ( last )
   {
-    /* Исключить незадействованные двигатели */
+    /* РСЃРєР»СЋС‡РёС‚СЊ РЅРµР·Р°РґРµР№СЃС‚РІРѕРІР°РЅРЅС‹Рµ РґРІРёРіР°С‚РµР»Рё */
     MusclesEnum ms = Hand::EmptyMov;
     for ( auto m : muscles_ ) { ms = ms | m; }
     muscle = ms & muscle;
 
     step (muscle, last);
     
-    /* Что-то должно двигаться, иначе беск.цикл */
+    /* Р§С‚Рѕ-С‚Рѕ РґРѕР»Р¶РЅРѕ РґРІРёРіР°С‚СЊСЃСЏ, РёРЅР°С‡Рµ Р±РµСЃРє.С†РёРєР» */
     while ( muscle && !hs.moveEnd_ )
     { step ();
       ++actual_last;
@@ -538,7 +538,7 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   DrawCircle (hdc, h, JointRadius);
   
   //------------------------------------------------------------------
-  // отменяем ручку
+  // РѕС‚РјРµРЅСЏРµРј СЂСѓС‡РєСѓ
   SelectObject (hdc, hPen_old);
   SelectObject (hdc, hBrush_old);
 }

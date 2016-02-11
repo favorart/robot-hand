@@ -36,6 +36,7 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
     size_t  moves_count = random (1U, Record::maxControlsCount);
 
     hand.SET_DEFAULT;
+    Point hand_base = hand.position;
     for ( size_t j = 0U; j < moves_count; ++j )
     {
       // auto muscle = selectHandMove ( random (1U, HandMovesCount - 1U) );
@@ -61,7 +62,7 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
     const Point &aim = hand.position;
 
     try
-    { auto rec = Record (aim, aim,
+    { auto rec = Record (aim, hand_base, aim,
                          muscles,
                          start_times, lasts,
                          moves_count,
@@ -81,14 +82,14 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
   for ( Hand::MusclesEnum  muscle_i : hand.muscles_ )
   {
     hand.SET_DEFAULT;
-    
+    Point hand_base = hand.position;
     for ( Hand::frames_t last_i : boost::irange(1U, hand.maxMuscleLast (muscle_i)) )
     {
       std::list<Point> trajectory;
 
       hand.move (muscle_i, last_i, trajectory);
       
-      store.insert (Record (hand.position, hand.position,
+      store.insert (Record (hand.position, hand_base, hand.position,
                             { muscle_i }, { 0 }, { last_i },
                             1U, trajectory));
 
@@ -105,7 +106,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
 
             hand.move (muscle_j, last_j, trajectory);
             
-            store.insert (Record (hand.position, hand.position,
+            store.insert (Record (hand.position, hand_base, hand.position,
                                   { muscle_i, muscle_j }, 
                                   { 0, last_i },
                                   { last_i, last_j },
@@ -126,7 +127,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
                   
                   hand.move (muscle_k, last_k, trajectory);
                   
-                  store.insert (Record (hand.position, hand.position,
+                  store.insert (Record (hand.position, hand_base, hand.position,
                                          { muscle_i, muscle_j, muscle_k },
                                          { 0, last_i, last_i + last_j },
                                          { last_i, last_j, last_k },

@@ -166,18 +166,16 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   { TCHAR string_help[1024];
 
   _stprintf (string_help,
-             _T ("Клавиши управления:  \r\rEsc - выход  \r\rR - сбросить всё  \r\r") // Enter - авто-тест  \r
-             _T ("Z - двинуть ключицей вправо  \rX - сомкнуть плечо  \rС - сомкнуть локоть  \r")
-             _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \rD - раскрыть локоть  \r\r")
+             _T ("Клавиши управления:  \rEsc - выход  \rR - сбросить всё  \r\r") // Enter - авто-тест  \r
+             _T ("Z - двинуть ключицей вправо  \rX - сомкнуть плечо  \rС - сомкнуть локоть  \rV - сомкнуть ладонь  \r")
+             _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \rD - раскрыть локоть  \rF - раскрыть ладонь  \r\r")
              _T ("Повторное нажатие на кнопку во время движения  \rостанавливает соответствующее движение.  \r\r")
              _T ("U - нарисовать рабочую область руки  \rO - нарисовать случайную траекторию  \r\r")
              _T ("P - Cover Test  \rT - Random Test  \r")
-             _T ("Y - TargetCoverTest  \r\rF - Show scales  \r\r")
+             _T ("Y - TargetCoverTest  \r\rG - Show scales  \r\r")
              _T ("Ctrl+O - OpenFile  \rCtrl+S - SaveFile  \r\r")
              //_T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
              //_T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r, где 0 <= !no! - номер строки/столбца"),
-             //tgRowsCount,
-             //tgColsCount
              );
 
   // Setting the Label's text
@@ -398,8 +396,11 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
       wd.hand.move (wd.trajectory_frames_muscle, wd.trajectory_frames_lasts, wd.trajectory_frames);
 
-      auto aim = wd.hand.position;
-      auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
+      auto   aim = wd.hand.position;
+      Point  hand_base = wd.trajectory_frames.front ();
+      wd.trajectory_frames.pop_front ();
+      auto rec = Record (aim, hand_base, aim,
+                         { wd.trajectory_frames_muscle },
                          { 0U }, { wd.trajectory_frames_lasts },
                          1U, wd.trajectory_frames);
       wd.store.insert (rec);

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 
 // #pragma once
 
@@ -22,14 +22,12 @@ public:
   HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
   HBRUSH  hBrush_white, hBrush_null, hBrush_back;
 
+  HDC     hStaticDC = NULL;
   HBITMAP hStaticBitmap = NULL;
   bool    hStaticBitmapChanged = true;
   
-  HDC hDC = NULL;
-  HDC hStaticDC = NULL;
-
   // win_point  user_coords;
-  /* координаты мыши в пикселях */
+  /* РєРѕРѕСЂРґРёРЅР°С‚С‹ РјС‹С€Рё РІ РїРёРєСЃРµР»СЏС… */
   bool       mouse_haved;
   win_point  mouse_coords;
   Point      mouse_aim;
@@ -81,7 +79,7 @@ public:
   LittleTest *lt;
   size_t no;
 
-  /* Набор пользователем чисел */
+  /* РќР°Р±РѕСЂ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј С‡РёСЃРµР» */
   // static int  flag_m, flag_n;
   // static int  p_x, p_y;
   // ---------------------------------
@@ -114,7 +112,7 @@ void  OnWindowTimer (MyWindowData &wd);
 void  OnWindowMouse (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 /* inline */ void  OnRandomTest (MyWindowData &wd);
-/* inline */ void  OnCoverTest (MyWindowData &wd);
+/* inline */ void  OnCoverTest  (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 void  OnShowTrajectoryFrames (MyWindowData &wd);
 //-------------------------------------------------------------------------------

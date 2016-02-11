@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 
 #ifndef  _HAND_MUSCLES_H_
 #define  _HAND_MUSCLES_H_

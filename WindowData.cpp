@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 #include "WindowData.h"
 #include "Draw.h"
 #include "littleTests.h"
@@ -28,21 +28,20 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   working_space_show = false;
   allPointsDB_show = false;
 
-  /* создаем ручки */
+  /* СЃРѕР·РґР°РµРј СЂСѓС‡РєРё */
   hPen_grn  = CreatePen (PS_SOLID, 1, RGB (100, 180, 050));
   hPen_red  = CreatePen (PS_SOLID, 2, RGB (255, 000, 000));
   hPen_blue = CreatePen (PS_SOLID, 2, RGB (000, 000, 255));
   hPen_cian = CreatePen (PS_SOLID, 2, RGB (057, 168, 157));
   hPen_orng = CreatePen (PS_SOLID, 2, RGB (255, 128, 000));
 
-  /* создаем кисти */
+  /* СЃРѕР·РґР°РµРј РєРёСЃС‚Рё */
   hBrush_white = (HBRUSH) GetStockObject (WHITE_BRUSH);
   hBrush_null  = (HBRUSH) GetStockObject (NULL_BRUSH);
   hBrush_back  = CreateSolidBrush (RGB (235, 235, 255)
                                    /* background color */
                                    // RGB (255,204,238)
                                    );
-
 
   // p_x = 0; p_y = 0;
   // fm = 0; fn = 0;
@@ -58,7 +57,7 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
 MyWindowData::~MyWindowData ()
 {
   if ( lt ) delete lt;
-  /* очищаем ручку */
+  /* РѕС‡РёС‰Р°РµРј СЂСѓС‡РєСѓ */
   DeleteObject (hPen_grn);
   DeleteObject (hPen_red);
   DeleteObject (hPen_blue);
@@ -69,9 +68,7 @@ MyWindowData::~MyWindowData ()
   DeleteObject (hBrush_null);
   DeleteObject (hBrush_back);
 
-  // DeleteDC (hDC);
   DeleteDC (hStaticDC);
-
   DeleteObject (hStaticBitmap);
     
   if ( pWorkerThread )
@@ -93,7 +90,7 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
   wd.target.draw (hdc, wd.hPen_grn);
   // --------------------------------------------------------------
 
-  // ----- Отрисовка точек БД -------------------------------------
+  // ----- РћС‚СЂРёСЃРѕРІРєР° С‚РѕС‡РµРє Р‘Р” -------------------------------------
   if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () ) /* q */
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
@@ -114,7 +111,7 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   if ( wd.lt )
     wd.lt->draw (hdc, wd);
 
-  // ----- Отрисовка фигуры ---------------------------------------
+  // ----- РћС‚СЂРёСЃРѕРІРєР° С„РёРіСѓСЂС‹ ---------------------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
   DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
   // --------------------------------------------------------------
@@ -133,7 +130,7 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
     } // end for
   } // end if
    
-  // ----- Отрисовка точек БД -------------------------------------
+  // ----- РћС‚СЂРёСЃРѕРІРєР° С‚РѕС‡РµРє Р‘Р” -------------------------------------
   if ( !wd.adjPointsDB.empty () )
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
@@ -200,8 +197,12 @@ void  OnWindowTimer (MyWindowData &wd)
 
         if ( !wd.testing )
         {
-          auto rec = Record (aim, aim, { wd.trajectory_frames_muscle },
-          { 0U }, { wd.trajectory_frames_lasts },
+          Point  base_pos = wd.trajectory_frames.front ();
+          wd.trajectory_frames.pop_front ();
+
+          auto rec = Record (aim, base_pos, aim,
+                             { wd.trajectory_frames_muscle },
+                             { 0U }, { wd.trajectory_frames_lasts },
                              1U, wd.trajectory_frames);
           wd.store.insert (rec);
         }
@@ -303,6 +304,7 @@ void  OnShowTrajectoryFrames (MyWindowData &wd)
   wd.trajectory_frames_muscle = wd.hand.selectControl ();
   wd.trajectory_frames_lasts = random ( wd.hand.maxMuscleLast (wd.trajectory_frames_muscle) );
   
+  wd.trajectory_frames.push_back (wd.hand.position);
   wd.hand.step (wd.trajectory_frames_muscle);
   wd.trajectory_frames.push_back (wd.hand.position);
 }

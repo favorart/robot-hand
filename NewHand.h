@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+ï»¿#include "StdAfx.h"
 #include "HandMotionLaw.h"
 
 
@@ -44,10 +44,10 @@ namespace NewHand
     //----------------------------------------------------
     typedef enum : uint8_t
     { Empty = 0,
-      Clvcl = 1 << 0, // 1,  // êëþ÷èöà:   clavicle
-      Shldr = 1 << 1, // 2,  // ïëå÷î:     sholder
-      Elbow = 1 << 2, // 4,  // ëîêîòü:    elbow
-      Wrist = 1 << 3  // 8   // çàïÿñòüå:  carpus , wrist
+      Clvcl = 1 << 0, // 1,  // ÐºÐ»ÑŽÑ‡Ð¸Ñ†Ð°:   clavicle
+      Shldr = 1 << 1, // 2,  // Ð¿Ð»ÐµÑ‡Ð¾:     sholder
+      Elbow = 1 << 2, // 4,  // Ð»Ð¾ÐºÐ¾Ñ‚ÑŒ:    elbow
+      Wrist = 1 << 3  // 8   // Ð·Ð°Ð¿ÑÑÑ‚ÑŒÐµ:  carpus , wrist
     } JointsEnum;
 
     typedef enum : uint8_t

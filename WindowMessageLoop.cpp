@@ -25,9 +25,6 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       // RedirectIOToConsole ();
       //=======================
       wd = new MyWindowData (hLabMAim, hLabTest, hLabStat);
-
-      // wd->hDC = GetDC (hWnd);
-      // wd->hStaticDC = CreateCompatibleDC (wd->hDC);
       //=======================
       OnWindowCreate (hWnd, myRect, hLabCanv, hLabHelp,
                       hLabMAim, hLabTest, hLabStat, lp);
