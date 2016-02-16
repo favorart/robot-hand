@@ -76,7 +76,7 @@ bool    Record::validateMusclesTimes () const
         // if ( ((iti->second.first <= itj->second.first) && (iti->second.second >= itj->second.first))
         //   || ((itj->second.first <= iti->second.first) && (itj->second.second >= iti->second.first)) )
         if ( ((iti->time <= itj->time) && ((iti->time + iti->last) >= itj->time))
-            || ((itj->time <= iti->time) && ((itj->time + itj->last) >= iti->time)) )
+          || ((itj->time <= iti->time) && ((itj->time + itj->last) >= iti->time)) )
         {
           for ( auto j : joints )
           {

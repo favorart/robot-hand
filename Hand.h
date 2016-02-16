@@ -33,7 +33,7 @@ namespace OldHand
     {
       Empty = 0,
       Clvcl = 1 << 0, // 1 // ключица:   clavicle
-      Shldr = 1 << 1, // 2 // плечо:     sholder
+      Shldr = 1 << 1, // 2 // плечо:     shoulder
       Elbow = 1 << 2, // 4 // локоть:    elbow
       Wrist = 1 << 3, // 8 // запястье:  wrist , carpus
       JointsCount = 4
@@ -60,8 +60,8 @@ namespace OldHand
 
   private:
     //---internal phisical parameters---------------------
-    time_t  time_;                            // descrete time
-    Point   hand_, arm_, sholder_, clavicle_; // base position
+    time_t  time_;                             // descrete time
+    Point   hand_, arm_, shoulder_, clavicle_; // base position
 
     //---current position---------------------------------
     Point  curPosHand_, curPosArm_, curPosShldr_;
@@ -110,8 +110,8 @@ uint_t:3;  /* unused */
   public:
     //----------------------------------------------------
     //Hand ();
-    Hand (const Point &hand = { -0.35, 1.0 }, const Point &arm = { 0.25, 0.7 },
-          const Point &sholder = { 0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
+    Hand (const Point &hand     = { -0.35, 1.0  }, const Point &arm      = { 0.25, 0.7  },
+          const Point &shoulder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
           const std::vector<JointsEnum>  & joints_ = { Clvcl, Shldr, Elbow },
           const std::vector<MusclesEnum> &muscles_ = { ClvclOpn, ClvclCls, ShldrOpn,
                                                        ShldrCls, ElbowOpn, ElbowCls });
@@ -196,7 +196,7 @@ uint_t:3;  /* unused */
  * lenght of hand_
  * масса и распределение
  * mass of hand_
- * mass of sholder
+ * mass of shoulder
  * mass of arm
  * mass of hand_
  *---------------------------------*/

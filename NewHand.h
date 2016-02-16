@@ -45,7 +45,7 @@ namespace NewHand
     typedef enum : uint8_t
     { Empty = 0,
       Clvcl = 1 << 0, // 1,  // ключица:   clavicle
-      Shldr = 1 << 1, // 2,  // плечо:     sholder
+      Shldr = 1 << 1, // 2,  // плечо:     shoulder
       Elbow = 1 << 2, // 4,  // локоть:    elbow
       Wrist = 1 << 3  // 8   // запястье:  carpus , wrist
     } JointsEnum;
@@ -104,7 +104,7 @@ namespace NewHand
 
     bool drawPalm_;
     //---base position------------------------------------
-    Point   palm_, hand_, arm_, sholder_, clavicle_;
+    Point   palm_, hand_, arm_, shoulder_, clavicle_;
     // TODO: make array
 
     //---angle limits-------------------------------------
@@ -118,8 +118,8 @@ namespace NewHand
     const double  StopDistaceRatio;
 
     //---internal phisical parameters---------------------
-    const std::array<uint_t, JointsCount>  maxMoveFrames;
-    const std::array<uint_t, JointsCount>  minStopFrames;
+    const std::array<frames_t, JointsCount>  maxMoveFrames;
+    const std::array<frames_t, JointsCount>  minStopFrames;
 
     std::array<std::vector<double>, JointsCount>  framesMove;
     std::array<std::vector<double>, JointsCount>  framesStop;
@@ -143,9 +143,9 @@ namespace NewHand
 
   public:
     //----------------------------------------------------
-    Hand (const Point &palm    = { -0.75, 1.05 },
-          const Point &hand    = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
-          const Point &sholder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
+    Hand (const Point &palm     = { -0.75, 1.05 },
+          const Point &hand     = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
+          const Point &shoulder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
           const std::vector<JointsEnum>  &joints={ Elbow, Shldr }, // , Wrist, Clvcl 
           const std::vector<MotionLaws::MotionLaw> &genMoveFrames = 
           { MotionLaws::generateJointMoveFrames,

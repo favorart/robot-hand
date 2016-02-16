@@ -167,7 +167,7 @@ std::vector<double>  generateStopFrames (double a, double b, size_t n)
 }
 
 Hand::Hand (const Point &hand, const Point &arm,
-            const Point &sholder, const Point &clavicle,
+            const Point &shoulder, const Point &clavicle,
             const std::vector<JointsEnum> &joints,
             const std::vector<MusclesEnum> &muscles):
             minJStopMoveFrames (15U),  // (5U),
@@ -183,7 +183,7 @@ Hand::Hand (const Point &hand, const Point &arm,
             musclesCount (muscles.size ()),
             hand_(hand),
             arm_(arm),
-            sholder_ (sholder),
+            shoulder_ (shoulder),
             clavicle_ (clavicle)
 { // joints_ (joints), muscles_ (muscles),
   std::copy ( joints.begin (),  joints.end (), std::begin( joints_));
@@ -273,12 +273,12 @@ void  Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   Point c (clavicle_),  s (curPosShldr_),
         a (curPosArm_), h (curPosHand_);
 
-  Point su (sholder_.x + WSholder - shiftClvcl_, sholder_.y + WSholder),
-        sd (sholder_.x - WSholder - shiftClvcl_, sholder_.y - WSholder),
-        au (    arm_.x + WSholder - shiftClvcl_,     arm_.y + WSholder),
-        ad (    arm_.x - WSholder - shiftClvcl_,     arm_.y - WSholder),
-        hu (   hand_.x + WSholder - shiftClvcl_,    hand_.y + WSholder),
-        hd (   hand_.x - WSholder - shiftClvcl_,    hand_.y - WSholder);
+  Point su (shoulder_.x + WSholder - shiftClvcl_, shoulder_.y + WSholder),
+        sd (shoulder_.x - WSholder - shiftClvcl_, shoulder_.y - WSholder),
+        au (     arm_.x + WSholder - shiftClvcl_,      arm_.y + WSholder),
+        ad (     arm_.x - WSholder - shiftClvcl_,      arm_.y - WSholder),
+        hu (    hand_.x + WSholder - shiftClvcl_,     hand_.y + WSholder),
+        hd (    hand_.x - WSholder - shiftClvcl_,     hand_.y - WSholder);
 
   //-----------------------------------------------------------------
   su.rotate (s, angleShldr_);
@@ -314,7 +314,7 @@ void  Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   Ellipse (hdc, Tx (-REllipse + c.x), Ty ( REllipse + c.y),
                 Tx ( REllipse + c.x), Ty (-REllipse + c.y));
   
-  //---sholder--------------------------------------------------------
+  //---shoulder-------------------------------------------------------
   Ellipse (hdc, Tx (-REllipse + s.x), Ty ( REllipse + s.y),
                 Tx ( REllipse + s.x), Ty (-REllipse + s.y));
   
@@ -334,21 +334,21 @@ void  Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
 void  Hand::reset ()
 { time_ = 0ULL;
 
- flagMovEnd_ = false;
- //-----------------------------------------------------------------
- //     hand_.x = -0.3;     hand_.y = 0.9;
- //      arm_.x =  0.3;      arm_.y = 0.6;
- //  sholder_.x =  0.8;  sholder_.y = 0.1;
+  flagMovEnd_ = false;
+  //-----------------------------------------------------------------
+  //     hand_.x = -0.3;     hand_.y = 0.9;
+  //      arm_.x =  0.3;      arm_.y = 0.6;
+  // shoulder_.x =  0.8; shoulder_.y = 0.1;
   // clavicle_.x =  0.8; clavicle_.y = 0.1;
- //-----------------------------------------------------------------
+  //-----------------------------------------------------------------
   std::memset (timeBgn2OpenHyd_, 0, sizeof (*timeBgn2OpenHyd_) * musclesCount);
   std::memset (timeEnd2OpenHyd_, 0, sizeof (*timeEnd2OpenHyd_) * musclesCount);
- //-----------------------------------------------------------------
-  curPosShldr_ = sholder_;
- curPosArm_   =     arm_;
- curPosHand_  =    hand_;
- //-----------------------------------------------------------------
- shiftClvcl_ = angleElbow_ = angleShldr_ = 0.0;
+  //-----------------------------------------------------------------
+  curPosShldr_ = shoulder_;
+  curPosArm_   =     arm_;
+  curPosHand_  =    hand_;
+  //-----------------------------------------------------------------
+  shiftClvcl_ = angleElbow_ = angleShldr_ = 0.0;
 }
 //void  Hand::set   (const uchar_t jOp[jointsCount])
 //{ reset ();

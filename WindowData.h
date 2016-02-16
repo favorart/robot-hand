@@ -1,7 +1,5 @@
 ﻿#include "StdAfx.h"
 
-// #pragma once
-
 #ifndef  _WINDOW_DATA_H_
 #define  _WINDOW_DATA_H_
 
@@ -10,10 +8,16 @@
 #include "DrawLetters.h"
 #include "littleTests.h"
 
+// ====================================================
 void  /*HandMoves::*/ testLittleCorrectives (HandMoves::Store &store, Hand &hand, RecTarget &target,
                                              double radius, /* minimal distance between 2 neighbour points of target */
                                              double epsilont = EPS);
 void littleTest (MyWindowData &wd, double radius);
+
+// !?!?!?!?!?! КОНФИГУРАЦИОННЫЕ ФАЙЛЫ !?!?!?!?
+// !?!?!?!?!?! ФАЙЛЫ, как интерфейс управления !?!?!?!?
+// ====================================================
+
 //------------------------------------------------------------------------------
 class MyWindowData
 {

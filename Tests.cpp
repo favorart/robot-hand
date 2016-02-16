@@ -149,25 +149,69 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
   hand.SET_DEFAULT;
 }
 
-//------------------------------------------------------------------------------
-// ??? PROGRESS
-void  /*HandMoves::*/ test_cover2 (Store &store, Hand &hand, double radius,
-                                   std::list< std::list<Point> > &trajectories)
+
+namespace HandMoves
 {
-//
-//  typedef std::vector<Hand::MusclesEnum> vector_muscles_t;
-//  vector_muscles_t  muscle_opn_cmds = { Hand::ClvclOpn, Hand::ShldrOpn, Hand::ElbowOpn };
-//  vector_muscles_t  muscle_cls_cmds = { Hand::ClvclCls, Hand::ShldrCls, Hand::ElbowCls };
-//
-//  hand.SET_DEFAULT;
-//
-//  auto muscles = muscle_opn_cmds;
-//  for ( auto i = 0U; i < muscles.size (); ++i )
-//  {
-//    Point h = hand.position;
-//    store.insert (h);
-//
-//    for ( auto last_i = 1U; last_i < hand.maxMuscleLast (muscles[i]); ++last_i )
+  void  testCover       (Store &store, Hand &hand, Hand::MusclesEnum muscles);
+  //void  testCoverTarget (Store &store, Hand &hand, RecTarget &target);
+};
+//------------------------------------------------------------------------------
+/*
+   Количество точек, в окресности искомой точки.
+
+
+   Что я могу варьировать?
+
+   v  1. Длительность работы каждого мускула
+   v  2. Время старта каждого мускула
+   ?  3. Тормозить мускулом? (снимать от движущегося начинающий двигаться)
+   ?  4. Может быть !1 перелом! траектории (полная остановка)
+         Он может нам понадобиться в зависимости от законов движения
+         разных мускулов, если один до второго не успевает ...
+         (?позже включить??)
+*/
+
+// ??? PROGRESS
+void  HandMoves::testCover (Store &store, Hand &hand, Hand::MusclesEnum muscles)
+{
+  hand.reset ();
+  hand.SET_DEFAULT;
+
+  Point hand_base = hand.position;
+
+    /*    Покрыть всё в одно движение
+     *    
+     *    Начать двигать какой-то мышцой (варьировать длительность),
+     *    К её движению сложить все комбинации остальных мышц.
+     *
+     */
+
+  /* возьмём первый мускул наугад */
+  for ( auto muscle_i : hand.muscles_ )
+  {
+    if ( !(muscle_i & muscles) )
+    {
+      std::list<Point> trajectory;
+
+      /* Попробуем его варьировать по длительности */
+      for ( Hand::frames_t last_i : boost::irange (1U, hand.maxMuscleLast (muscle_i)) )
+      {
+        hand.move (muscle_i, last_i, trajectory);
+        storeInsert (store,
+                     Record (hand.position, hand_base, hand.position,
+                     { muscle_i }, { 0 }, { last_i },
+                     1U, trajectory));
+
+        /*  Теперь в каждый такт длительности первого мускула, включим второй
+         *  и будет варьировать его длительность
+         */
+        testCover (store, hand, muscles & muscle_i);
+
+      } // end for
+    } // end if
+  } // end for
+
+// for ( auto last_i = 1U; last_i < hand.maxMuscleLast (muscles[i]); ++last_i )
 //    {
 //      hand.move (muscles[i], 1); // last_i);
 //      Point hi = hand.position;
@@ -218,7 +262,7 @@ void  getTargetCenter (Hand &hand)
 
 }
 // ??? PROGRESS
-void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &target)
+void  /*HandMoves::*/testCoverTarget (Store &store, Hand &hand, RecTarget &target)
 {
   hand.SET_DEFAULT;
   // std::list<std::list<Point>> trajectories;
@@ -422,9 +466,9 @@ HandMoves::Record  /* HandMoves:: */ findExactPoint (Store &store, const Point &
   return *result;
 }
 
-void  UncoveredTargetPoints (Store &store,
-                             const RecTarget &target,
-                             std::list<Point> &uncovered)
+void  UncoveredTargetPoints (IN  Store &store,
+                             IN  const RecTarget &target,
+                             OUT std::list<Point> &uncovered)
 {
   std::list<std::shared_ptr<Record>> range;
   adjacencyRectPoints (store, range, target.Min (), target.Max ());
@@ -495,9 +539,9 @@ void littleTest (MyWindowData &wd, double radius)
 }
 
 /* 
-Strategies:
- + findBest
- + 
+ *  Strategies:
+ *   + findBest
+ *   + 
  */
 void  /*HandMoves::*/ testLittleCorrectives (Store &store, Hand &hand, RecTarget &target,
                                              double radius, /* minimal distance between 2 neighbour points of target */

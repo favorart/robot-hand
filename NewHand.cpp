@@ -189,7 +189,7 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
 //--------------------------------------------------------------------------------
 NewHand::Hand::Hand (const Point &palm,
                      const Point &hand, const Point &arm,
-                     const Point &sholder, const Point &clavicle,
+                     const Point &shoulder, const Point &clavicle,
                      const std::vector<JointsEnum>  &joints,
                      const std::vector<MotionLaws::MotionLaw> &genMoveFrames,
                      const std::vector<MotionLaws::MotionLaw> &genStopFrames ) :
@@ -206,7 +206,7 @@ NewHand::Hand::Hand (const Point &palm,
                                        15U /* ElbowIndex */ , 25U /* WristIndex */ }),
 
                      palm_ (palm), hand_ (hand), arm_ (arm),
-                     sholder_ (sholder), clavicle_ (clavicle),
+                     shoulder_ (shoulder), clavicle_ (clavicle),
                      joints_ (joints), jointsCount (joints.size ()),
                      drawPalm_ (false)
 { 
@@ -319,7 +319,7 @@ void  NewHand::Hand::reset ()
 {
   //-----------------------------------------------------------------
   hs.curPosClvcl_ = clavicle_;
-  hs.curPosShldr_ = sholder_;
+  hs.curPosShldr_ = shoulder_;
   hs.curPosArm_   = arm_;
   hs.curPosHand_  = hand_;
   hs.curPosPalm_  = palm_;
@@ -460,12 +460,12 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
         s (hs.curPosShldr_), a (hs.curPosArm_ ),
         h (hs.curPosHand_ ), w (hs.curPosPalm_);
 
-  Point su (sholder_.x + SectionWidth - hs.shiftClvcl_, sholder_.y + SectionWidth),
-        sd (sholder_.x - SectionWidth - hs.shiftClvcl_, sholder_.y - SectionWidth),
-        au (    arm_.x + SectionWidth - hs.shiftClvcl_,     arm_.y + SectionWidth),
-        ad (    arm_.x - SectionWidth - hs.shiftClvcl_,     arm_.y - SectionWidth),
-        hu (   hand_.x + SectionWidth - hs.shiftClvcl_,    hand_.y + SectionWidth),
-        hd (   hand_.x - SectionWidth - hs.shiftClvcl_,    hand_.y - SectionWidth);
+  Point su (shoulder_.x + SectionWidth - hs.shiftClvcl_, shoulder_.y + SectionWidth),
+        sd (shoulder_.x - SectionWidth - hs.shiftClvcl_, shoulder_.y - SectionWidth),
+        au (     arm_.x + SectionWidth - hs.shiftClvcl_,      arm_.y + SectionWidth),
+        ad (     arm_.x - SectionWidth - hs.shiftClvcl_,      arm_.y - SectionWidth),
+        hu (    hand_.x + SectionWidth - hs.shiftClvcl_,     hand_.y + SectionWidth),
+        hd (    hand_.x - SectionWidth - hs.shiftClvcl_,     hand_.y - SectionWidth);
 
   Point wu, wd;
   if ( drawPalm_ )
@@ -528,7 +528,7 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   //---clavicle-------------------------------------------------------
   DrawCircle (hdc, c, JointRadius);
 
-  //---sholder--------------------------------------------------------
+  //---shoulder-------------------------------------------------------
   DrawCircle (hdc, s, JointRadius);
 
   //---arm--------------------- --------------------------------------

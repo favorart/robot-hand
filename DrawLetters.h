@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "MyWindow.h"
 
 #ifndef  _DRAW_LETTERS_H_
