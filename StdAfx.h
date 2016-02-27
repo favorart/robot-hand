@@ -20,10 +20,9 @@
 #include <cstdlib>
 //--------------------------------
 #include <set>
-//#include <map>
+#include <map>
 #include <list>
 #include <limits>
-//#include <bitset>
 #include <string>
 #include <vector>
 #include <memory>
@@ -31,16 +30,23 @@
 #include <utility>
 #include <fstream>
 #include <iostream>
-//#include <hash_map>
 #include <iterator>
 #include <algorithm>
 #include <functional>
+#include <unordered_map>
 
+// #if !defined(NDEBUG)
+// #define BOOST_MULTI_INDEX_ENABLE_INVARIANT_CHECKING
+// #define BOOST_MULTI_INDEX_ENABLE_SAFE_MODE
+// #endif
+
+// #include <boost/config.hpp> /* keep it first to prevent nasty warns in MSVC */
 //#define BOOST_HAS_HASH
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/random_access_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 #include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/indexed_by.hpp>
 #include <boost/multi_index/identity.hpp>
@@ -55,6 +61,9 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
 
+#include <boost/functional/hash.hpp>
+#include <boost/algorithm/cxx11/none_of.hpp>
+
 #include <boost/range/adaptor/sliced.hpp>
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -66,6 +75,8 @@
 
 #include <boost/geometry/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/segment.hpp>
+#include <boost/geometry/geometries/linestring.hpp>
 
 typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 inline double  boost_distance (boost_point2_t a, boost_point2_t b)
@@ -77,14 +88,22 @@ inline double  boost_distance (boost_point2_t a, boost_point2_t b)
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
-
-// #include <boost/serialization/map.hpp>
 #include <boost/serialization/list.hpp>
+// #include <boost/serialization/map.hpp>
 // #include <boost/serialization/bitset.hpp>
 
 // a portable text archive
 #include <boost/archive/text_oarchive.hpp> // saving
 #include <boost/archive/text_iarchive.hpp> // loading
+// a binary archive
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
+// #include <boost/interprocess/allocators/allocator.hpp>
+// #include <boost/interprocess/containers/string.hpp>
+// #include <boost/interprocess/managed_mapped_file.hpp>
+// #include <boost/interprocess/sync/named_mutex.hpp>
+// #include <boost/interprocess/sync/scoped_lock.hpp>
 
 /* Visual Leak Detector */
 #include <vld.h>
@@ -101,9 +120,8 @@ typedef std::basic_fstream<TCHAR> tfstream;
 typedef std::basic_stringstream<TCHAR> tstringstream;
 
 //---defines---------------------------
-#define   MAX(a,b)   ((a)>(b))?(a):(b)
-#define   MIN(a,b)   ((a)<(b))?(a):(b)
 #define   EPS        1e-4
+#define   EPS_VIS    1e-2
 
 #define   INHERITANCE_FINAL
 #define   IN

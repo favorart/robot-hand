@@ -11,7 +11,6 @@ const Point&  Point::operator= (const Point &p)
 /* compare operator */
 bool  Point::operator<  (const Point &p) const
 { return (x_ < p.x_) && (y_ < p.y_); }
-// { return (x_ == p.x_) ? (y_ < p.y_) : (x_ < p.x_); }
 
 bool  Point::operator== (const Point &p) const
 { return  hit (p); }

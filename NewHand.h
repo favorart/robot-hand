@@ -73,6 +73,8 @@ namespace NewHand
      JointsIndexEnum    jointIndex ( JointsEnum   joint) const;
 
     frames_t  maxMuscleLast (MusclesEnum  muscle);
+
+    MusclesEnum musclesCumul;
     
   private:
 
@@ -108,13 +110,8 @@ namespace NewHand
     // TODO: make array
 
     //---angle limits-------------------------------------
-    // const double  maxClvclShift;
-    // const uint_t  maxShldrAngle;
-    // const uint_t  maxElbowAngle;
-    // const uint_t  maxWristAngle;
-
-    // TODO: make array
     const std::array<size_t, JointsCount> maxJointAngles;
+    // maxClvclShift, maxShldrAngle, maxElbowAngle, maxWristAngle
     const double  StopDistaceRatio;
 
     //---internal phisical parameters---------------------
@@ -156,20 +153,105 @@ namespace NewHand
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
 
+    struct Control
+    {
+      MusclesEnum  muscle;
+      frames_t     start;
+      frames_t     last;
+
+      Control () : muscle (EmptyMov), start (0U), last (0U) {}
+
+      Control (MusclesEnum  muscle, frames_t start, frames_t last) :
+        muscle (muscle), start (start), last (last) {}
+
+      Control&  operator= (const Control &c)
+      {
+        if ( this != &c )
+        {
+          muscle = c.muscle;
+          start = c.start;
+          last = c.last;
+        }
+        return *this;
+      }
+
+      bool  operator<  (const Control &c) const
+      { return start < c.start; }
+      bool  operator== (const Control &c) const
+      {
+        return  (muscle == c.muscle)
+             && (start == c.start)
+             && (last == c.last);
+      }
+
+      template<class Archive>
+      void  serialize (Archive & ar, const unsigned int version)
+      { ar & muscle & start & last; }
+    };
+
+    template <class Iter>
+    frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL) throw (...)
+    {
+      frames_t  actual_last = 0U;
+
+      if ( !std::is_sorted (begin, end) )
+        throw new std::exception ("Controls are not sorted");
+
+      /* Исключить незадействованные двигатели */
+      MusclesEnum control_muscles = Hand::EmptyMov;
+      for ( Iter it = begin; it != end; ++it )
+      { control_muscles = control_muscles | it->muscle; }
+
+      /* simultaniusly moving */
+      if ( musclesCumul & control_muscles )
+      { /*  Что-то должно двигаться,
+        *  иначе бесконечный цикл.
+        */
+        Iter  iter = begin;
+        for ( frames_t time = iter->start; iter != end; ++time )
+        {
+          if ( time == iter->start )
+          {
+            step (iter->muscle, iter->last);
+            if ( iter != begin )
+              ++actual_last;
+            ++iter;
+            if ( visited ) visited->push_back (position);
+          }
+          else
+          {
+            step ();
+            ++actual_last;
+            if ( visited ) visited->push_back (position);
+          }
+        } // end for
+
+        while ( !hs.moveEnd_ )
+        {
+          step ();
+          ++actual_last;
+          if ( visited ) visited->push_back (position);
+        }
+      } // end if
+      return  actual_last;
+    }
+    frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited);
 
     void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
 
-    /* jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 % */
+    /*  NewHand::Hand:: (Clvcl < Shldr < Elbow < Wrist) index
+     *  jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 %
+     */
     void  set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jointsOpenPercent);
     void  reset ();
 
-    std::vector<const Point*>  points () const;
+    std::vector<const Point*>  jointsPositions () const;
 
     MusclesEnum  selectControl (size_t choose)
     { return  (choose < controls.size ()) ? controls[choose] : Hand::EmptyMov; }
-    MusclesEnum  selectControl ();
+    MusclesEnum  selectControl (MusclesEnum muscle=EmptyMov);
     // { return  controls[random (controls.size ())]; }
     
     /* Microsoft specific: C++ properties */
@@ -190,4 +272,5 @@ namespace NewHand
 };
 //------------------------------------------------------------------------------
 #endif // _HAND_H_
+
 

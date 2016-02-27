@@ -356,8 +356,6 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   EndPaint (hWnd, &ps);
 }
 //-------------------------------------------------------------------------------
-void  /*HandMoves::*/ testCoverTarget (Store &store, Hand &hand, RecTarget &target);
-
 void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                       WPARAM wParam, LPARAM lparam,
                       MyWindowData &wd)
@@ -433,7 +431,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'y':
     {
-      testCoverTarget (wd.store, wd.hand, wd.target);
+      Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
       break;
     }
 
@@ -461,6 +459,20 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
+
+    case 'k':
+    {
+      // static std::list<int> step;
+      // // step.clear ();
+      // std::shared_ptr<trajectory_t> trajectory = make_shared<trajectory_t> (new trajectory_t());
+      // wd.testing_trajectories.push_back (trajectory);
+      
+      // HandMoves::testCover (wd.store, wd.hand, Hand::EmptyMov, wd.testing_trajectories); // , step, wd.testing_trajectories.back ());
+      Point center = Point ((wd.target.Min ().x + wd.target.Max ().x) / 2.,
+                            (wd.target.Min ().y + wd.target.Max ().y) / 2.);
+      Positions::getTargetCenter (wd.hand, center);
+    }
+    break;
 
     case 'u':
     {

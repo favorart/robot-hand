@@ -3,8 +3,6 @@
 #include "NewHand.h"
 #define HAND_VER 2
 #include "HandMuscles.h"
-
-#include <boost/algorithm/cxx11/none_of.hpp>
 //--------------------------------------------------------------------------------
 NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (MusclesEnum  muscle)
 {
@@ -234,19 +232,24 @@ NewHand::Hand::Hand (const Point &palm,
   }
   std::sort (joints_.begin (), joints_.end ());
 
+  musclesCumul = Hand::EmptyMov;
+  for ( auto real_muscle : muscles_ )
+  { musclesCumul = musclesCumul | real_muscle; }
+
   createControls ();
   reset ();
 }
+
 void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t last)
 {
   if ( muscle )
   {
-    MusclesEnum ms = Hand::EmptyMov;
-    for ( auto m : muscles_ ) { ms = ms | m; }
-    muscle = ms & muscle;
-
+    /* Исключить незадействованные двигатели */
+    muscle = musclesCumul & muscle;
+    /* Совместимо ли новое с тем, что уже сейчас движется? */
     if ( muscleValidAtOnce (hs.musclesMove_ | muscle) )
     { hs.musclesMove_ = hs.musclesMove_ | muscle; }
+    /* Если нет выходим без изменений */
     else  return;
   }
 
@@ -274,16 +277,11 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   /* simultaniusly moving */
   if ( last )
   {
-    MusclesEnum ms = Hand::EmptyMov;
-    for ( auto m : muscles_ ) { ms = ms | m; }
-    muscle = ms & muscle;
-
-    /* START! */
+    /* start movement */
     step (muscle, last);
     visited.push_back (position);
     // std::wcout << std::endl << tstring (position) << std::endl;
-
-    while ( muscle && !hs.moveEnd_ )
+    while ( hs.musclesMove_ && !hs.moveEnd_ )
     { /* just moving */
       step ();
       visited.push_back (position);
@@ -299,21 +297,17 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   /* simultaniusly moving */
   if ( last )
   {
-    /* Исключить незадействованные двигатели */
-    MusclesEnum ms = Hand::EmptyMov;
-    for ( auto m : muscles_ ) { ms = ms | m; }
-    muscle = ms & muscle;
-
     step (muscle, last);
-    
     /* Что-то должно двигаться, иначе беск.цикл */
-    while ( muscle && !hs.moveEnd_ )
+    while ( hs.musclesMove_ && !hs.moveEnd_ )
     { step ();
       ++actual_last;
     }
   } // end if
-  return actual_last;
+  return  actual_last;
 }
+NewHand::Hand::frames_t  NewHand::Hand::move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited)
+{ return  move (controls.begin (), controls.end (), visited); }
 
 void  NewHand::Hand::reset ()
 {
@@ -443,7 +437,6 @@ NewHand::Hand::JointsIndexEnum   NewHand::Hand::jointIndex  (NewHand::Hand:: Joi
   }
   return JointsCount;
 }
-
 //--------------------------------------------------------------------------------
 void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
 { 
@@ -543,7 +536,7 @@ void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
   SelectObject (hdc, hBrush_old);
 }
 //--------------------------------------------------------------------------------
-std::vector<const Point*>  NewHand::Hand::points () const
+std::vector<const Point*>  NewHand::Hand::jointsPositions () const
 {
   std::vector<const Point*> vec;
   vec.push_back (&hs.curPosClvcl_);
@@ -580,23 +573,34 @@ void  NewHand::Hand::recursiveControlsAppend (NewHand::Hand::MusclesEnum  muscle
         recursiveControlsAppend (muscles | muscleByJoint (j, false), j | joints, cur_deep + 1U, max_deep);
       } // end else
     } // end if
-  } // emd for
+  } // end for
 };
 void  NewHand::Hand::createControls ()
 {
-  // std::copy (muscles_.begin (), muscles_.end (), controls.begin ());
-  
   for ( auto m : muscles_ )
   { controls.push_back (m); }
 
   /* 1 << 0,1,2,3,4,5,6,7 */
   /* Impossible (0 & 1) (2 & 3) (4 & 5) (6 & 7) */
 
-  size_t  maxSimultMoves = joints_.size ();
+  size_t    maxSimultMoves = joints_.size ();
   for ( size_t SimultMoves = 1U; SimultMoves < maxSimultMoves; ++SimultMoves )
     recursiveControlsAppend (Hand::EmptyMov, Hand::Empty, 0U, SimultMoves);
 }
-
-NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl ()
-{ return  controls[random (controls.size ())]; }
+//--------------------------------------------------------------------------------
+NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl (NewHand::Hand::MusclesEnum  muscle)
+{ 
+  if ( !muscle )
+    return controls[random (controls.size ())];
+  else
+  {
+    for ( auto m : controls )
+      if ( !(m & muscle) && muscleValidAtOnce (m | muscle) )
+        return m;
+    // auto m = controls[random (controls.size ())];
+    // while ( (m & muscle) || !muscleValidAtOnce (m | muscle) )
+    //   m = controls[random (controls.size ())];
+  }
+  return  EmptyMov;
+}
 //--------------------------------------------------------------------------------

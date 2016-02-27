@@ -59,5 +59,19 @@ private:
   friend std::ostream&  operator<< (std::ostream &out, const Point &p);
 };
 //-------------------------------------------------------------------------------
+struct PointHasher
+{
+  std::size_t operator()(const Point& k) const
+  {
+    std::size_t  seed = 0U;
+    // modify seed by xor and bit-shifting
+    // of the key members
+    boost::hash_combine (seed, boost::hash_value (k.x));
+    boost::hash_combine (seed, boost::hash_value (k.y));
+    // the result.
+    return seed;
+  }
+};
+//-------------------------------------------------------------------------------
 BOOST_CLASS_VERSION (Point, 1)
 #endif // _POINT_H_

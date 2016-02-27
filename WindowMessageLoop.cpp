@@ -145,9 +145,15 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
                << CurrentTimeToString (_T ("_%d-%m-%Y_%I-%M-%S")) 
                << _T ("_moves.bin");
 
-            WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
+            WorkerThreadRunStoreTask (*wd, _T ("  *** saving ***  "),
                                       storeSave, ss.str ());
-          }
+
+            /* Setting the Label's text */
+            SendMessage (hLabStat,         /* Label Stat */
+                         WM_SETTEXT,       /* Message    */
+                         (WPARAM) NULL,    /* Unused     */
+                         (LPARAM) _T ("  *** saved ***  "));
+          }          
           break;
         }
         

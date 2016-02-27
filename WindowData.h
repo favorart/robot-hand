@@ -98,11 +98,9 @@ inline void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Functi
   if ( !wd.testing && !wd.pWorkerThread )
   {
     wd.testing = true;
-    /* Setting the Label's text */
-    SendMessage (wd.hLabTest,      /* Label   */
-                 WM_SETTEXT,       /* Message */
-                 (WPARAM) NULL,    /* Unused  */
-                 (LPARAM) message.c_str ());
+    /* Set text of label 'Stat'  */
+    SendMessage (wd.hLabTest, WM_SETTEXT, NULL,
+                 reinterpret_cast<LPARAM> (message.c_str ()));
 
     wd.pWorkerThread = new boost::thread (task, std::ref (wd.store), args...);
   }
