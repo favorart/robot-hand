@@ -22,9 +22,9 @@ public:
 
   void appendPts (std::list<std::shared_ptr<HandMoves::Record>> &range, bool append_traj)
   {
-    for ( auto rec : range )
+    for ( auto &rec : range )
     {
-      pt_s.push_back (std::make_shared<Point> (rec->aim));
+      pt_s.push_back (std::make_shared<Point> (rec->hit));
       if ( append_traj )
         traj_s1.push_back (std::make_shared<HandMoves::trajectory_t> (rec->trajectory));
     }
@@ -36,7 +36,7 @@ public:
   void appendTraj (const std::list<Point> &traj)
   {
     std::list<std::shared_ptr<Point>> nTraj;
-    for ( auto pt : traj )
+    for ( auto &pt : traj )
       nTraj.push_back (std::make_shared<Point> (pt));
     traj_s.push_back (nTraj);
   }

@@ -11,7 +11,7 @@ bool  trajectories_concat (HandMoves::trajectories_t  &trajectories,
   // --------------------------------------------
   // ???
   auto back = boost_point2_t (trajectory.back ());
-  for ( auto t : trajectories )
+  for ( auto &t : trajectories )
   {
     auto fin = boost_point2_t (t.back ()); 
     if ( boost::geometry::distance (fin, back) < EPS )
@@ -23,7 +23,6 @@ bool  trajectories_concat (HandMoves::trajectories_t  &trajectories,
   return true;
 }
 //------------------------------------------------------------------------------
-// !!! ALMOST DONE
 void  HandMoves::test_random (Store &store, Hand &hand, size_t tries) 
 {
   /* Для нового потока нужно снова переинициализировать rand */
@@ -40,9 +39,10 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
 
     hand.SET_DEFAULT;
     Point hand_base = hand.position;
+
     for ( size_t j = 0U; j < moves_count; ++j )
     {
-      // auto muscle = selectHandMove ( random (1U, HandMovesCount - 1U) );
+      
       auto muscle = hand.selectControl ();
       auto last   = random ( hand.maxMuscleLast (muscle) );
       auto actual_last = hand.move (muscle, last, visited);
@@ -62,22 +62,19 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
       // times_stop[j]  = (j) ? (times_stop[j - 1] + last) : last;
     }
 
-    const Point &aim = hand.position;
+    const Point &hand_pos = hand.position;
 
     try
-    { auto rec = Record (aim, hand_base, aim,
-                         muscles,
-                         start_times, lasts,
-                         moves_count,
-                         visited);
+    { auto rec = Record (hand_pos, hand_base, hand_pos,
+                         muscles, start_times, lasts,
+                         moves_count, visited);
       storeInsert (store, rec);
     }
     catch(...)
     { continue; }
 
-  }
+  } // for tries
 }
-// ??? PROGRESS
 void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
 {
   /* Create the tree of possible passes */

@@ -45,7 +45,7 @@ INTEGER  random (INTEGER max)
 { return  (max) ? (static_cast<INTEGER> (rand ()) % (max)) : (max); }
 template <typename INTEGER>
 INTEGER  random (INTEGER min, INTEGER max)
-{ return  (max) ? (static_cast<INTEGER> (rand ()) % (max) + min) : (max); }\
+{ return  (max) ? (static_cast<INTEGER> (rand ()) % (max) + min) : (max); }
 
 inline double  random (double max)
 { return  (static_cast<double> (rand ()) / RAND_MAX) * max; }

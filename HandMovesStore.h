@@ -18,6 +18,7 @@ using namespace NewHand;
 namespace HandMoves
 {
   // !!! tree types of point !!!
+  //-------------------------------
   // Point  aim_;
   // Point  hand_;
   // Point  close_network_;
@@ -78,8 +79,8 @@ namespace HandMoves
       Point p_;
     };
 
-    double aim_x () const { return aim_.x; }
-    double aim_y () const { return aim_.y; }
+    double hit_x () const { return hand_final_.x; }
+    double hit_y () const { return hand_final_.y; }
 
     Hand::MusclesEnum  muscles () const
     { return muscles_; }
@@ -98,17 +99,20 @@ namespace HandMoves
     Record (const Point         &aim,
             const Point         &hand_begin,
             const Point         &hand_final,
-            const std::initializer_list<Hand::Control> controls,
+            const std::list<Hand::Control> controls,
             const trajectory_t  &visited);
 
     // ----------------------------------------
     operator tstring () const
-    { return  str (boost::wformat (_T ("rec<x=%1%, y=%2%>")) % aim.x % aim.y); }
+    { return  str (boost::wformat (_T ("rec<x=%1%, y=%2%>")) % hit.x % hit.y); }
 
     // ----------------------------------------
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_aim)) const Point &aim;
     const Point&  get_aim () const { return aim_; }
+
+    __declspec(property(get = get_final)) const Point &hit;
+    const Point&  get_final () const { return hand_final_; }
 
     __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
     const trajectory_t  &get_trajectory () const { return visited_; }
@@ -119,7 +123,7 @@ namespace HandMoves
     size_t   controls_array (OUT std::array<Hand::Control, Record::maxControlsCount> &controls) const
     {
       size_t i = 0U;
-      for ( auto hc : hand_controls_ )
+      for ( auto &hc : hand_controls_ )
       { controls[i++] = hc; }
       return controlsCount;
     }
@@ -170,14 +174,14 @@ namespace HandMoves
                                     >,
                  ordered_non_unique < tag<Record::ByP>,
                                       composite_key < Record,
-                                                      const_mem_fun<Record, double, &Record::aim_x>,
-                                                      const_mem_fun<Record, double, &Record::aim_y>
+                                                      const_mem_fun<Record, double, &Record::hit_x>,
+                                                      const_mem_fun<Record, double, &Record::hit_y>
                                                     >
                                     >,
-                 ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::aim_x> >,
-                 ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::aim_y> >,
-                 ordered_non_unique < tag<Record::ByD>, const_mem_fun<Record, double, &Record::distanceCovered> >//,
-                 // random_access      <> // доступ, как у вектору
+                 ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
+                 ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
+                 ordered_non_unique < tag<Record::ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > // ,
+              // random_access      < > // доступ, как у вектору
                >
   > Store;
   //------------------------------------------------------------------------------
@@ -215,13 +219,13 @@ namespace HandMoves
     ClosestPredicate (const Point &aim) : aim (aim) {}
     double  operator() (const std::shared_ptr<Record> &a,
                         const std::shared_ptr<Record> &b)
-    { return this->operator() (boost_point2_t (a->aim),
-                               boost_point2_t (b->aim));
+    { return this->operator() (boost_point2_t (a->hit),
+                               boost_point2_t (b->hit));
     }
     double  operator() (const Record &a,
                         const Record &b)
-    { return this->operator() (boost_point2_t (a.aim),
-                               boost_point2_t (b.aim));
+    { return this->operator() (boost_point2_t (a.hit),
+                               boost_point2_t (b.hit));
     }
     double  operator() (const boost_point2_t &a,
                         const boost_point2_t &b)
@@ -250,6 +254,9 @@ namespace HandMoves
       auto  rb = b.ratioDistanceByTrajectory ();
       return (ra < rb);
     }
+    double  operator() (const std::shared_ptr<Record> &a,
+                        const std::shared_ptr<Record> &b)
+    { return this->operator() (*a, *b); }
   };
   //------------------------------------------------------------------------------
   /* сериализация */

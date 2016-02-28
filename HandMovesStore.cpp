@@ -58,7 +58,7 @@ size_t  HandMoves::adjacencyPoints (Store &store, std::list<Record> &range,
   for ( auto it = itFirstLower; it != itFirstUpper; ++it )
   {
     if ( boost::geometry::distance (boost_point2_t (center),
-                                    boost_point2_t (it->aim)) <= radius )
+                                    boost_point2_t (it->hit)) <= radius )
     {
       range.push_back (*it);
       // *range_it = (pointer_type) ? (make_shared<Record> (*it)) : (*it); ++range_it;
@@ -82,7 +82,7 @@ size_t  HandMoves::adjacencyPoints (Store &store, std::list<std::shared_ptr<Hand
   for ( auto it = itFirstLower; it != itFirstUpper; ++it )
   {
     if ( boost::geometry::distance (boost_point2_t (center), 
-                                    boost_point2_t (it->aim)) <= radius )
+                                    boost_point2_t (it->hit)) <= radius )
     { range.push_back (make_shared<Record> (*it));
       ++count;
     }

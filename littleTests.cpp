@@ -13,40 +13,129 @@ void  LittleTest::draw (HDC hdc, MyWindowData &wd) const
 {
   DrawCircle (hdc, aim, 0.007);
   //---------------------------------
-  for ( auto traj : traj_s1 )
+  for ( auto &traj : traj_s1 )
     DrawTrajectory (hdc, *traj, NULL /*wd.hPen_orng*/);
 
   DrawAdjacency (hdc, aim, radius, ellipse, wd.hPen_red);
 
   HPEN Pen_old = (HPEN) SelectObject (hdc, wd.hPen_red);
-  for ( auto pt : pt_s )
+  for ( auto &pt : pt_s )
   { DrawCircle (hdc, *pt, 0.007); }
   SelectObject (hdc, Pen_old);
   //---------------------------------
 }
 //------------------------------------------------------------------------------
-void  littleTest (MyWindowData &wd, double radius)
+void /*size_t*/  littleTest (MyWindowData &wd, double radius)
 {
-  for ( auto pt : wd.target.coords () | boost::adaptors::sliced (wd.no, wd.target.coordsCount ()) )
+  for ( auto &pt : wd.target.coords () | boost::adaptors::sliced (wd.no, wd.target.coordsCount ()) )
   {
     ++wd.no;
     std::list<std::shared_ptr<HandMoves::Record>> exact_range;
 
     HandMoves::adjacencyPoints (wd.store, exact_range, pt, EPS);
     /* If there is no exact trajectory */
-    if ( exact_range.empty () )
-    {
-      /* Try to find the several closest trajectories */
-      std::list<std::shared_ptr<HandMoves::Record>> range;
+    // if ( exact_range.empty () )
+    // {
+    //   /* Try to find the several closest trajectories */
+    //   std::list<std::shared_ptr<HandMoves::Record>> range;
+    // 
+    //   HandMoves::adjacencyPoints (wd.store, range, pt, radius);
+    // 
+    //   if ( wd.lt ) delete wd.lt;
+    //   wd.lt = new LittleTest (pt, radius);
+    //   wd.lt->appendPts (range, true);
+    // 
+    //   return exact_range.size ();
+    // }
+  }
+  // return exact_range.size ();
+}
 
-      HandMoves::adjacencyPoints (wd.store, range, pt, radius);
+
+size_t  littleTest (MyWindowData &wd) //, double radius)
+{
+  for ( auto &pt : wd.target.coords () | boost::adaptors::sliced (wd.no, wd.target.coordsCount ()) )
+  {
+    ++wd.no;
+    std::list<std::shared_ptr<HandMoves::Record>> exact_range;
+    Point aim = pt;
+
+    HandMoves::adjacencyPoints (wd.store, exact_range, pt, 3 * EPS_VIS);
+    if ( !exact_range.empty () )
+    {
+      exact_range.sort (ElegancePredicate ());
+      HandMoves::controling_t  ctrls = exact_range.front ()->controls ();
 
       if ( wd.lt ) delete wd.lt;
-      wd.lt = new LittleTest (pt, radius);
-      wd.lt->appendPts (range, true);
-      return;
+      wd.lt = new LittleTest (aim, 3 * EPS_VIS);
+      // wd.lt->appendPts (range, true);
+      wd.lt->appendTraj (exact_range.front ()->trajectory );
+
+      wd.hand.SET_DEFAULT;
+      Point hand_base = wd.hand.position;
+
+      wd.hand.move (ctrls.begin (), ctrls.end ());
+      double init_distance = boost_distance (wd.hand.position, aim);
+      
+      wd.hand.SET_DEFAULT;
+      for ( auto  &c : ctrls )
+      {
+        auto last_backup = c.last;
+        for ( auto i : boost::irange (-5, 6) )
+        {
+          trajectory_t visited;
+          c.last += i;
+
+          wd.hand.move (ctrls.begin (), ctrls.end (), &visited);
+          // if ( init_distance > boost_distance (wd.hand.position, aim) )
+          {
+            storeInsert ( wd.store,
+                          Record (aim, hand_base, wd.hand.position,
+                                  ctrls, visited) );
+          }
+          c.last = last_backup;
+          wd.hand.SET_DEFAULT;
+        }
+        
+        auto start_backup = c.start;
+        for ( auto i : boost::irange (-5, 6) )
+        {
+          trajectory_t visited;
+          c.start += i;
+          
+          wd.hand.move (ctrls.begin (), ctrls.end (), &visited);
+          // if ( init_distance > boost_distance (wd.hand.position, aim) )
+          {
+            storeInsert (wd.store,
+                         Record (aim, hand_base, wd.hand.position,
+                                 ctrls, visited));
+          }
+          c.start = start_backup;
+          wd.hand.SET_DEFAULT;
+        }
+      } // end for
+      return  exact_range.size ();
+    /*
+     *   
+     *   
+     */
+   
+    /* If there is no exact trajectory */
+    
+    //   /* Try to find the several closest trajectories */
+    //   std::list<std::shared_ptr<HandMoves::Record>> range;
+    // 
+    //   HandMoves::adjacencyPoints (wd.store, range, pt, radius);
+    // 
+    //   if ( wd.lt ) delete wd.lt;
+    //   wd.lt = new LittleTest (pt, radius);
+    //   wd.lt->appendPts (range, true);
+    // 
+    //   return exact_range.size ();
     }
   }
+  // return exact_range.size ();
+  return 0U;
 }
 
 /*
@@ -83,7 +172,7 @@ void  /*HandMoves::*/ testLittleCorrectives (Store &store, Hand &hand, RecTarget
         auto it_min = std::min_element (range.begin (), range.end (), pred);
 
         /*  */
-        for ( auto rec : range )
+        for ( auto &rec : range )
         {
 
         }

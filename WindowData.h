@@ -13,7 +13,7 @@ void  /*HandMoves::*/ testLittleCorrectives (HandMoves::Store &store, Hand &hand
                                              double radius, /* minimal distance between 2 neighbour points of target */
                                              double epsilont = EPS);
 void littleTest (MyWindowData &wd, double radius);
-
+size_t  littleTest (MyWindowData &wd);
 // !?!?!?!?!?! КОНФИГУРАЦИОННЫЕ ФАЙЛЫ !?!?!?!?
 // !?!?!?!?!?! ФАЙЛЫ, как интерфейс управления !?!?!?!?
 // ====================================================
@@ -43,10 +43,11 @@ public:
   size_t store_size;
 
   // --- show_frames_trajectory ------
-  std::list<Point>   trajectory_frames;
-  Hand::MusclesEnum  trajectory_frames_muscle;
-  Hand::time_t       trajectory_frames_lasts;
-  bool               trajectory_frames_show;
+
+  HandMoves::trajectory_t   trajectory_frames;
+  Hand::MusclesEnum         trajectory_frames_muscle;
+  Hand::time_t              trajectory_frames_lasts;
+  bool                      trajectory_frames_show;
   // ---------------------------------
 
   bool working_space_show;
@@ -71,7 +72,7 @@ public:
   bool testing;
   bool reach;
 
-  std::list<std::shared_ptr<HandMoves::trajectory_t>>  testing_trajectories;
+  std::list<HandMoves::trajectory_t>  testing_trajectories;
   bool testing_trajectories_show; // ?? CheckBox
   
   size_t  testing_trajectories_animation_num_iteration = 1;

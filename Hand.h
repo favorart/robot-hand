@@ -117,7 +117,7 @@ uint_t:3;  /* unused */
                                                        ShldrCls, ElbowOpn, ElbowCls });
     
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
-    void  move (MusclesEnum muscle, time_t last);              // ??? PROGRESS
+    void  move (MusclesEnum muscle, time_t last); 
     void  move (MusclesEnum muscle, time_t last, std::list<Point> &visited);
     void  step (MusclesEnum muscle = EmptyMov);
     void  step (const bool control[MusclesCount]);
@@ -126,7 +126,7 @@ uint_t:3;  /* unused */
 
     /* jOp = { Clvcl, Shldr, Elbow } < 100.0 % */
     void  set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jOp);
-    void  set (MusclesEnum muscle, uint_t frame); // ?????
+    void  set (MusclesEnum muscle, uint_t frame); 
 
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_mend)) bool moveEnd;

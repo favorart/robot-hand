@@ -380,24 +380,23 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'o':
     { //========================================
-      // OnShowTrajectory (wd);
       
       wd.trajectory_frames.clear ();
       wd.hand.SET_DEFAULT;
 
       // wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
       wd.trajectory_frames_muscle = wd.hand.selectControl ();
-      wd.trajectory_frames_lasts = random (wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
+      wd.trajectory_frames_lasts = random (1U, wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
 
       // wd.trajectory_frames_muscle = Hand::ShldrCls;
       // wd.trajectory_frames_lasts = 25U;
 
       wd.hand.move (wd.trajectory_frames_muscle, wd.trajectory_frames_lasts, wd.trajectory_frames);
 
-      auto   aim = wd.hand.position;
+      auto   hand_pos = wd.hand.position;
       Point  hand_base = wd.trajectory_frames.front ();
       wd.trajectory_frames.pop_front ();
-      auto rec = Record (aim, hand_base, aim,
+      auto rec = Record (hand_pos, hand_base, hand_pos,
                          { wd.trajectory_frames_muscle },
                          { 0U }, { wd.trajectory_frames_lasts },
                          1U, wd.trajectory_frames);
@@ -417,8 +416,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       OnCoverTest (wd);
 
       tstring message;
-      for ( auto t : wd.testing_trajectories )
-        message += tstring (t->back ()) + tstring (_T ("\n"));
+      for ( auto &t : wd.testing_trajectories )
+        message += tstring (t.back ()) + tstring (_T ("\n"));
 
       // MessageBox (hWnd, message.c_str (),
       //             str (boost::wformat (_T ("CoverTest %1%")) %
@@ -454,8 +453,9 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       // testLittleCorrectives (wd.store, wd.hand, wd.target,
       //                        max(wd.target.x_distance,
       //                            wd.target.y_distance));
-      littleTest (wd, 2. * max (wd.target.x_distance,
-                                wd.target.y_distance));
+
+      littleTest (wd/*, 2. * max (wd.target.x_distance,
+                                wd.target.y_distance)*/);
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }

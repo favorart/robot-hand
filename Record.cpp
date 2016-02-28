@@ -16,24 +16,24 @@ Record::Record (const Point         &aim,
   muscles_ (Hand::EmptyMov), visited_ (visited)
 {
   if ( !visited.size () )
-    throw new exception ("Incorrect trajectory in constructor Record");
+    throw new exception ("Incorrect trajectory in constructor Record"); // _T( ?? 
 
   if ( controls_count > maxControlsCount )
-    throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ??
+    throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ?? 
 
   for ( auto i = 0U; i < controls_count; ++i )
   { hand_controls_.push_back (Hand::Control (muscles[i], times[i], lasts[i])); }
   hand_controls_.sort ();
 
   auto  first_start_time = times.front ();
-  for ( auto hc : hand_controls_ )
+  for ( auto &hc : hand_controls_ )
   {
     muscles_ = muscles_ | hc.muscle;
     hc.start -= first_start_time;
   }
 
   if ( !validateMusclesTimes () )
-    throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ??
+    throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ?? 
 
   // elegance_ = eleganceMove (aim_);
   // distance_ = boost_distance (hand_, aim_);
@@ -42,29 +42,29 @@ Record::Record (const Point         &aim,
 Record::Record (const Point         &aim,
                 const Point         &hand_begin,
                 const Point         &hand_final,
-                const std::initializer_list<Hand::Control> controls,
+                const std::list<Hand::Control> controls,
                 const trajectory_t  &visited) :
   aim_ (aim), hand_begin_ (hand_begin), hand_final_ (hand_final),
   muscles_ (Hand::EmptyMov), visited_ (visited)
 {
   if ( !visited.size () )
-    throw new exception ("Incorrect trajectory in constructor Record");
+    throw new exception ("Incorrect trajectory in constructor Record"); // _T( ?? 
 
   if ( controls.size () > maxControlsCount )
-    throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ??
+    throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ?? 
 
-  hand_controls_.assign (controls);
+  hand_controls_.assign (controls.begin (), controls.end ());
   hand_controls_.sort ();
 
   auto  first_start_time = hand_controls_.begin ()->start;
-  for ( auto hc : hand_controls_ )
+  for ( auto &hc : hand_controls_ )
   {
     muscles_ = muscles_ | hc.muscle;
     hc.start -= first_start_time;
   }
 
   if ( !validateMusclesTimes () )
-    throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ??
+    throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ?? 
 }
 //---------------------------------------------------------
 bool    Record::validateMusclesTimes () const
@@ -103,7 +103,7 @@ double  Record::eleganceMove (/* const Point &aim */) const
   {
     /* Суммарное время работы двигателей */
     auto sum_time_muscles = 0.;
-    for ( auto hc : hand_controls_ ) { sum_time_muscles += hc.last; }
+    for ( auto &hc : hand_controls_ ) { sum_time_muscles += hc.last; }
     /* Количество движений */
     double controls_count_ratio = 1. / controlsCount;
 
@@ -147,7 +147,7 @@ double  Record::ratioTrajectoryDivirgence () const
   line.push_back (bpt (aim.x, aim.y));
 
   double max_divirgence = 0.;
-  for ( auto pt : visited_ )
+  for ( auto &pt : visited_ )
   {
     double dist = boost::geometry::distance (bpt (pt.x, pt.y), line);
     if ( dist > max_divirgence )
@@ -168,7 +168,7 @@ double  Record::ratioUsedMusclesCount () const
 }
 double  Record::ratioTrajectoryBrakes () const
 { /* ПЕРЛОМЫ */
-  // ?? остановки
+  // остановки 
 
   // (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
   return 0.;

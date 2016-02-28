@@ -75,9 +75,7 @@ namespace Positions
   using namespace std;
   using namespace HandMoves;
   //------------------------------------------------------------------------------
-  static void  testCover (Store &store, Hand &hand,
-                   Hand::MusclesEnum muscles /* recursive */,
-                   std::list<std::shared_ptr<std::list<Point>>> &trajectories)
+  static void  testCover (Store &store, Hand &hand, trajectories_t &trajectories)
   {
     hand.reset ();
     hand.SET_DEFAULT;
@@ -112,6 +110,11 @@ namespace Positions
                 {
                   Hand::Control control_j (muscle_j, start_j, last_j);
                   hand.move ({ control_i, control_j }, &trajectory);
+
+                  // auto& index = store.get<Record::ByC> ();
+                  // 
+                  // auto& index = store.get<Record::ByP> ();
+                  // index.equal_range (hand.position);
 
                   storeInsert (store, Record (hand.position, hand_base, hand.position,
                                               { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
@@ -156,7 +159,7 @@ namespace Positions
 
   static  void  testCoverTarget (Store &store, Hand &hand,
                          RecTarget &target,
-                         std::list<std::shared_ptr<std::list<Point>>> &trajectories)
+                         std::list<std::list<Point>> &trajectories)
   {
     hand.reset ();
     hand.SET_DEFAULT;
@@ -523,7 +526,7 @@ namespace Positions
     adjacencyRectPoints (store, range, target.Min (), target.Max ());
 
     Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
-    for ( auto pt : target.coords () )
+    for ( auto &pt : target.coords () )
     {
       if ( index.find (boost::tuple<double, double> (pt.x, pt.y)) == index.end () )
       { uncovered.push_back (pt); }

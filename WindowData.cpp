@@ -75,7 +75,7 @@ MyWindowData::~MyWindowData ()
     pWorkerThread = nullptr;
   }
   //=======================
-  // HandMoves::storeSave (store, CurFileName);
+  HandMoves::storeSave (store, CurFileName);
   //=======================
 }
 //-------------------------------------------------------------------------------
@@ -96,24 +96,24 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
     HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
 
     std::unordered_map<Point, double, PointHasher>  map_points;
-    for ( auto rec : wd.store )
-    {
-      /*  Если в одну точку попадают несколько движений -
-       *  выбрать лучшее движение по элегантности */
-
-      auto pRec = map_points.find (rec.aim);
-      if ( pRec != map_points.end () )
-      {
-        double elegance = rec.eleganceMove ();
-        if ( pRec->second < elegance )
-          map_points.insert (std::make_pair(rec.aim, elegance));
-      }
-      else
-      { map_points.insert (std::make_pair(rec.aim, rec.eleganceMove ())); }
-    }
-
-    for ( auto pt : map_points )
-    { DrawCircle (hdc, pt.first, CircleRadius); }
+    for ( auto &rec : wd.store )
+    // {
+    //   /*  Если в одну точку попадают несколько движений -
+    //    *  выбрать лучшее движение по элегантности */
+    // 
+    //   auto pRec = map_points.find (rec.hit);
+    //   if ( pRec != map_points.end () )
+    //   {
+    //     double elegance = rec.eleganceMove ();
+    //     if ( pRec->second < elegance )
+    //       map_points.insert (std::make_pair(rec.hit, elegance));
+    //   }
+    //   else
+    //   { map_points.insert (std::make_pair(rec.hit, rec.eleganceMove ())); }
+    // }
+    // 
+    // for ( auto &pt : map_points )
+    { DrawCircle (hdc, rec.hit /*pt.first*/, CircleRadius); }
 
     SelectObject (hdc, hPen_old);
   }
@@ -138,14 +138,13 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   if ( !wd.testing && !wd.testing_trajectories.empty () && 
         wd.testing_trajectories_animation_show )
   {
-    // for ( auto t : wd.testing_trajectories )
+    // for ( auto &t : wd.testing_trajectories )
     auto it = wd.testing_trajectories.begin ();
     for ( auto i = 0U; i < wd.testing_trajectories_animation_num_iteration; ++i )
     {
-      auto itt = *it;
-      DrawTrajectory (hdc, *itt.get (), wd.hPen_blue);
+      DrawTrajectory (hdc, *it, wd.hPen_blue);
 
-      DrawCircle(hdc, itt->back (), CircleRadius);
+      DrawCircle(hdc, it->back (), CircleRadius);
       ++it;
     } // end for
   } // end if
@@ -154,8 +153,8 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   if ( !wd.adjPointsDB.empty () )
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
-    for ( auto p : wd.adjPointsDB )
-    { DrawCircle (hdc, p->aim, CircleRadius); }
+    for ( auto &p : wd.adjPointsDB )
+    { DrawCircle (hdc, p->hit, CircleRadius); }
     SelectObject (hdc, hPen_old);
   }
   // --------------------------------------------------------------
@@ -210,15 +209,15 @@ void  OnWindowTimer (MyWindowData &wd)
       /* !!! WORKING ONLY FOR NEW_HAND !!! */
       if ( wd.hand.moveEnd )
       {
-        auto aim = wd.hand.position;
-        wd.trajectory_frames.push_back (aim);
+        auto hand_pos = wd.hand.position;
+        wd.trajectory_frames.push_back (hand_pos);
 
         if ( !wd.testing )
         {
           Point  base_pos = wd.trajectory_frames.front ();
           wd.trajectory_frames.pop_front ();
 
-          auto rec = Record (aim, base_pos, aim,
+          auto rec = Record (hand_pos, base_pos, hand_pos,
                              { wd.trajectory_frames_muscle },
                              { 0U }, { wd.trajectory_frames_lasts },
                              1U, wd.trajectory_frames);
@@ -319,9 +318,9 @@ void  MakeHandMove   (MyWindowData &wd)
   HandMoves::adjacencyPoints (wd.store, range,
                               wd.mouse_aim, 0.01);
   if ( range.size () > 1U )
-    for ( auto rec : range )
+    for ( auto &rec : range )
     {
-      wd.testing_trajectories.push_back (std::make_shared<trajectory_t> (rec->trajectory));
+      wd.testing_trajectories.push_back (rec->trajectory);
     }
 
 }
@@ -365,7 +364,7 @@ void  OnShowDBPoints (MyWindowData &wd)
 //-------------------------------------------------------------------------------
 void  OnShowDBTrajectories (MyWindowData &wd)
 {
-  for ( auto rec : wd.adjPointsDB )
+  for ( auto &rec : wd.adjPointsDB )
   { 
     wd.trajectoriesDB.push_back ( make_shared<trajectory_t> (rec->trajectory) );
   }
