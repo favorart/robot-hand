@@ -115,8 +115,8 @@ namespace NewHand
     const double  StopDistaceRatio;
 
     //---internal phisical parameters---------------------
-    const std::array<frames_t, JointsCount>  maxMoveFrames;
-    const std::array<frames_t, JointsCount>  minStopFrames;
+    std::array<frames_t, JointsCount>  maxMoveFrames;
+    std::array<frames_t, JointsCount>  minStopFrames;
 
     std::array<std::vector<double>, JointsCount>  framesMove;
     std::array<std::vector<double>, JointsCount>  framesStop;
@@ -130,7 +130,7 @@ namespace NewHand
 
     void    muscleMove  (JointsIndexEnum jointIndex, MusclesEnum muscle,
                          frames_t last, bool control);
-    //----------------------------------------------------
+    
     std::vector<MusclesEnum>  controls;
     void  createControls ();
     void  recursiveControlsAppend (MusclesEnum  muscles,
@@ -138,18 +138,25 @@ namespace NewHand
                                    size_t       cur_deep,
                                    size_t       max_deep);
 
+    //----------------------------------------------------
+    const double minFrameMove = EPS; // 0.1;
+
   public:
     //----------------------------------------------------
     Hand (const Point &palm     = { -0.75, 1.05 },
           const Point &hand     = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
           const Point &shoulder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
-          const std::vector<JointsEnum>  &joints={ Elbow, Shldr }, // , Wrist, Clvcl 
+          const std::vector<JointsEnum>  &joints = { Elbow, Shldr }, //, Wrist, Clvcl }, //
           const std::vector<MotionLaws::MotionLaw> &genMoveFrames = 
           { MotionLaws::generateJointMoveFrames,
             MotionLaws::generateJointMoveFrames },
+         // MotionLaws::generateJointMoveFrames ,
+         // MotionLaws::generateJointMoveFrames },
           const std::vector<MotionLaws::MotionLaw> &genStopFrames = 
           { MotionLaws::generateJointStopFrames,
             MotionLaws::generateJointStopFrames });
+         // MotionLaws::generateJointMoveFrames ,
+         // MotionLaws::generateJointMoveFrames });
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
 

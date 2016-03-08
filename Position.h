@@ -157,70 +157,79 @@ namespace Positions
     return 0.;
   }
 
-  static  void  testCoverTarget (Store &store, Hand &hand,
-                         RecTarget &target,
-                         std::list<std::list<Point>> &trajectories)
+  static  void  testCoverTarget (Store &store, Hand &hand, RecTarget &target)
+                                 // std::list<std::list<Point>> &trajectories)
   {
+    // boost::this_thread::disable_interruption  no_interruption;
+
     hand.reset ();
     hand.SET_DEFAULT;
 
     Point hand_base = hand.position;
-
     /*    Покрыть всё в одно движение
-    *
-    *    Начать двигать какой-то мышцой (варьировать длительность),
-    *    К её движению сложить все комбинации остальных мышц.
-    *
-    */
-
+     *
+     *    Начать двигать какой-то мышцой (варьировать длительность),
+     *    К её движению сложить все комбинации остальных мышц.
+     *
+     */
     double  x_leftBorder = target.Min ().x,
             x_rightBorder = target.Max ().x,
             y_bottomBorder = target.Max ().y;
 
     // Point center
-
-    /* Возьмём первый мускул наугад */
-    for ( auto muscle_i : hand.muscles_ )
+    try
     {
-      // if ( !(muscle_i & muscles) && muscleValidAtOnce(muscle_i | muscles) )
+      /* Возьмём первый мускул наугад */
+      for ( auto muscle_i : hand.muscles_ )
       {
-        /* Попробуем его варьировать по длительности */
-        for ( Hand::frames_t last_i : boost::irange (1U, hand.maxMuscleLast (muscle_i)) )
+        // if ( !(muscle_i & muscles) && muscleValidAtOnce(muscle_i | muscles) )
         {
-          Hand::Control control_i (muscle_i, 0U, last_i);
-          // hand.move ({ control_i });
+          /* Попробуем его варьировать по длительности */
+          for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_i), 10) )
+          {
+            Hand::Control control_i (muscle_i, 0U, last_i);
+            // hand.move ({ control_i });
 
-          for ( auto muscle_j : hand.muscles_ )
-            if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
-            {
-              for ( Hand::frames_t start_j : boost::irange<Hand::frames_t> (1U, last_i) ) // ?? + inertial_lasts
+            for ( auto muscle_j : hand.muscles_ )
+              if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
               {
-                for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_j), 5) )
+                for ( Hand::frames_t start_j : boost::irange<Hand::frames_t> (1U, last_i, 10) ) // ?? + inertial_lasts
                 {
-                  Hand::Control control_j (muscle_j, start_j, last_j);
-
-                  hand.SET_DEFAULT;
-                  trajectory_t  trajectory;
-                  hand.move ({ control_i, control_j }, &trajectory);
-
-                  if ( hand.position.x > x_leftBorder
-                    && hand.position.x < x_rightBorder
-                    && hand.position.y < y_bottomBorder )
+                  for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_j), 10) )
                   {
-                    storeInsert (store, Record (hand.position, hand_base, hand.position,
-                                { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
-                                 trajectory)
-                                 );
-                    // trajectories.push_back (make_shared<trajectory_t> (trajectory));
-                  }
-                  else
-                  { break; }
+                    
+                    boost::this_thread::interruption_point ();
+
+                    trajectory_t  trajectory;
+                    Hand::Control control_j (muscle_j, start_j, last_j);
+
+                    hand.SET_DEFAULT;
+                    hand.move ({ control_i, control_j }, &trajectory);
+
+                    if (   hand.position.x > x_leftBorder
+                        && hand.position.x < x_rightBorder
+                        && hand.position.y < y_bottomBorder )
+                    {
+                      storeInsert (store,
+                                   Record (hand.position, hand_base, hand.position,
+                                           { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
+                                           trajectory) );
+                      // trajectories.push_back (make_shared<trajectory_t> (trajectory));
+                    }
+                    // else { break; } // ?????
+                    
+                    boost::this_thread::interruption_point ();
+
+                  } // end for
                 } // end for
-              } // end for
-            } // end if
-        } // end for
-      } // end if
-    } // end for
+              } // end if
+          } // end for
+        } // end if
+      } // end for
+
+    }
+    catch ( boost::thread_interrupted& )
+    { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
   }
   //------------------------------------------------------------------------------
   class ChooseDirection
@@ -313,7 +322,7 @@ namespace Positions
     hand.move (d.control, last);
   }
 
-  static void  testCoverTarget (Store &store, Hand &hand, RecTarget &target)
+  static void  testCoverTarget1 (Store &store, Hand &hand, RecTarget &target)
   {
     hand.SET_DEFAULT;
     // std::list<std::list<Point>> trajectories;

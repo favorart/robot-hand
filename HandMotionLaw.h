@@ -32,6 +32,8 @@ namespace NewHand
      *  расстояния или «закон движения») - это можно сделать следующим образом:
      */
     // std::vector<double>  generateElbowMoveFrames (double, double, size_t);
+
+    std::vector<double>  generateJointMoveFrames_cos (double a, double b, size_t n);
   }
 }
 //------------------------------------------------------------------------------

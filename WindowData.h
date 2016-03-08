@@ -29,6 +29,7 @@ public:
   HDC     hStaticDC = NULL;
   HBITMAP hStaticBitmap = NULL;
   bool    hStaticBitmapChanged = true;
+  // bool    hDrawingThread = false;
   
   // win_point  user_coords;
   /* координаты мыши в пикселях */
@@ -37,6 +38,7 @@ public:
   Point      mouse_aim;
 
   const double  radius = 0.1;
+  const size_t  skip_show_steps = 15;
 
   tstring  CurFileName = tstring(HAND_NAME) + tstring (_T ("_moves.bin"));
 
@@ -72,6 +74,7 @@ public:
   bool testing;
   bool reach;
 
+  // !!!!!!!!!!!! ЗАМЕНИЛЛЛЛЛ !!!!! проверить везде
   std::list<HandMoves::trajectory_t>  testing_trajectories;
   bool testing_trajectories_show; // ?? CheckBox
   

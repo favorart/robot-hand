@@ -79,47 +79,61 @@ MyWindowData::~MyWindowData ()
   //=======================
 }
 //-------------------------------------------------------------------------------
-void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
+void  storeDraw (HDC hdc, HandMoves::Store &store, color_interval_t colors=make_pair(RGB(0,0,255),RGB(255,0,0)) )
 {
-  const double CircleRadius = 0.01;
+  gradient_t  gradient;
+  MakeGradient (colors, 10, gradient);
   // --------------------------------------------------------------
-  DrawDecardsCoordinates (hdc);
-  wd.target.draw (hdc, wd.hPen_grn);
-  // --------------------------------------------------------------
-
-  // WorkerThreadRunStoreTask (wd, _T (" *** loading ***  "),
-  //                           [hdc](const HandMoves::Store &store) { /* ... */ });
-
-  // ----- Отрисовка точек БД -------------------------------------
-  if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () ) /* command  q */
+  for ( auto &rec : store )
   {
-    HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_blue);
+    double elegance = rec.eleganceMove ();
+    int index = static_cast<int> (elegance * (gradient.size () - 1));
 
-    std::unordered_map<Point, double, PointHasher>  map_points;
-    for ( auto &rec : wd.store )
-    // {
-    //   /*  Если в одну точку попадают несколько движений -
-    //    *  выбрать лучшее движение по элегантности */
-    // 
-    //   auto pRec = map_points.find (rec.hit);
-    //   if ( pRec != map_points.end () )
-    //   {
-    //     double elegance = rec.eleganceMove ();
-    //     if ( pRec->second < elegance )
-    //       map_points.insert (std::make_pair(rec.hit, elegance));
-    //   }
-    //   else
-    //   { map_points.insert (std::make_pair(rec.hit, rec.eleganceMove ())); }
-    // }
-    // 
-    // for ( auto &pt : map_points )
-    { DrawCircle (hdc, rec.hit /*pt.first*/, CircleRadius); }
-
-    SelectObject (hdc, hPen_old);
+    COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
+    if ( gradient[index] < col )
+      SetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y), gradient[index]);
   }
   // --------------------------------------------------------------
-  if ( wd.working_space_show ) /* u */
-    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
+}
+// enum { Pixels, Ellipses };
+void  storeDraw (HDC hdc, HandMoves::Store &store, double CircleRadius, HPEN hPen)
+{
+  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
+  // --------------------------------------------------------------
+  std::unordered_map<Point, double, PointHasher>  map_points;
+  for ( auto &rec : store )
+  {
+    /*  Если в одну точку попадают несколько движений -
+    *  выбрать лучшее движение по элегантности */
+
+    auto pRec = map_points.find (rec.hit);
+    if ( pRec != map_points.end () )
+    {
+      double elegance = rec.eleganceMove ();
+      if ( pRec->second < elegance )
+        map_points.insert (std::make_pair (rec.hit, elegance));
+    }
+    else
+    { map_points.insert (std::make_pair (rec.hit, rec.eleganceMove ())); }
+  }
+
+  for ( auto &pt : map_points )
+  { DrawCircle (hdc, pt.first, CircleRadius); }
+  // --------------------------------------------------------------
+  SelectObject (hdc, hPen_old);
+}
+
+void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
+{
+  // const double CircleRadius = 0.01;
+  // ----- Отрисовка точек БД -------------------------------------
+  if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
+  { /* command  <q>  */
+    WorkerThreadRunStoreTask (wd, _T (" *** drawing ***  "),
+                              [hdc](HandMoves::Store &store)
+                              { storeDraw (hdc, store); });
+    // storeDraw (hdc, wd.store);
+  }
   // --------------------------------------------------------------
 }
 void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
@@ -135,19 +149,24 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
   // --------------------------------------------------------------
 
-  if ( !wd.testing && !wd.testing_trajectories.empty () && 
-        wd.testing_trajectories_animation_show )
-  {
-    // for ( auto &t : wd.testing_trajectories )
-    auto it = wd.testing_trajectories.begin ();
-    for ( auto i = 0U; i < wd.testing_trajectories_animation_num_iteration; ++i )
-    {
-      DrawTrajectory (hdc, *it, wd.hPen_blue);
+  // --------------------------------------------------------------
+  if ( wd.working_space_show ) /* u */
+    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
+  // --------------------------------------------------------------
 
-      DrawCircle(hdc, it->back (), CircleRadius);
-      ++it;
-    } // end for
-  } // end if
+  // if ( !wd.testing && !wd.testing_trajectories.empty () && 
+  //       wd.testing_trajectories_animation_show )
+  // {
+  //   // for ( auto &t : wd.testing_trajectories )
+  //   auto it = wd.testing_trajectories.begin ();
+  //   for ( auto i = 0U; i < wd.testing_trajectories_animation_num_iteration; ++i )
+  //   {
+  //     DrawTrajectory (hdc, *it, wd.hPen_blue);
+  // 
+  //     DrawCircle(hdc, it->back (), CircleRadius);
+  //     ++it;
+  //   } // end for
+  // } // end if
    
   // ----- Отрисовка точек БД -------------------------------------
   if ( !wd.adjPointsDB.empty () )
@@ -179,13 +198,13 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
 
     /* Set text of label 'Stat'  */
     SendMessage (wd.hLabTest, WM_SETTEXT, NULL,
-                 reinterpret_cast<LPARAM> (_T (" ")) );
+                 reinterpret_cast<LPARAM> (_T (" Done  ")) );
   } // end if
 }
 
 void  OnWindowTimer (MyWindowData &wd)
 {
-  if ( !wd.testing && !wd.reach )
+  if ( !wd.testing && !wd.reach ) // ????????
   {
     /* Auto-drawing trajectory animation */
 
@@ -201,7 +220,8 @@ void  OnWindowTimer (MyWindowData &wd)
     // }
 
     // ============
-    wd.hand.step ();
+    for ( size_t i = 0U; i < wd.skip_show_steps; ++i )
+      wd.hand.step ();
     // ============
     if ( wd.trajectory_frames_show )
     { 
@@ -237,9 +257,6 @@ void  OnWindowTimer (MyWindowData &wd)
          wd.testing_trajectories.size () )
     { ++wd.testing_trajectories_animation_num_iteration; }
   }
-
-  else
-  { WorkerThreadTryJoin (wd); }
 }
 void  OnWindowMouse (MyWindowData &wd)
 {

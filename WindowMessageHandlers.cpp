@@ -60,7 +60,7 @@ tstring  GetLastErrorToString ()
   }
   return  tstring ();
 }
-
+//-------------------------------------------------------------------------------
 void OnWindowCreate (HWND &hWnd, RECT &myRect,
                      HWND &hLabCanv, HWND &hLabHelp,
                      HWND &hLabMAim, HWND &hLabTest,
@@ -76,6 +76,7 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
 
   lp.LabelsLeft    = Rect.bottom - Rect.top;
   lp.LabelsWidth   = Rect.right - (Rect.bottom - Rect.top);
+
   lp.LabCanvTop    = Rect.top;
   lp.LabCanvHeight = 24U;
   lp.LabHelpTop    = Rect.top + 25U;
@@ -88,75 +89,75 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   lp.LabStatHeight = Rect.bottom - ((Rect.bottom - Rect.top) * 2U / 3U - 125U);
 
   // Create a Static Label control
-  hLabCanv = CreateWindow (_T ("STATIC"),          /* The name of the static control's class */
-                           _T ("Canvas  "),                              /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,       /* Styles (continued) */
+  hLabCanv = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
+                           _T ("Canvas  "),                                    /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER, /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_CANVAS,                        /* The Label's ID */
+                           (HMENU) IDL_CANVAS,                               /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabCanv )
     MessageBox (hWnd, _T ("Could not create hLabCanv."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Create a Static Label control
-  hLabHelp = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
-                           _T ("Help"),                              /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+  hLabHelp = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
+                           _T ("Help"),                                        /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER, /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
-                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabHelpTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
-                           lp.LabCanvHeight,                                         /* Height */
+                           lp.LabHelpHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,                       /* The Label's ID */
+                           (HMENU) IDL_HELP,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabHelp )
     MessageBox (hWnd, _T ("Could not create hLabHelp."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Create a Static Label control
-  hLabMAim = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
-                           _T (" "),                                /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+  hLabMAim = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
+                           _T (" "),                                           /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER, /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
-                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabTestTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
-                           lp.LabCanvHeight,                                         /* Height */
+                           lp.LabTestHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,                        /* The Label's ID */
+                           (HMENU) IDL_MAIM,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabMAim )
     MessageBox (hWnd, _T ("Could not create hLabMAim."), _T ("Error"), MB_OK | MB_ICONERROR);
-
+  
   // Create a Static Label control
-  hLabTest = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
-                           _T (" "),                                /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+  hLabTest = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
+                           _T (" "),                                           /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER, /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
-                           lp.LabCanvTop,                                    /* Y co-ordinates */
+                           lp.LabStatTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
-                           lp.LabCanvHeight,                                         /* Height */
+                           lp.LabStatHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,                        /* The Label's ID */
+                           (HMENU) IDL_TEST,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabTest )
     MessageBox (hWnd, _T ("Could not create hLabTest."), _T ("Error"), MB_OK | MB_ICONERROR);
-
+  
   // Create a Static Label control
-  hLabStat = CreateWindow (_T ("STATIC"),        /* The name of the static control's class */
-                           _T (" "),                                /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER,             /* Styles (continued) */
+  hLabStat = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
+                           _T (" "),                                           /* Label's Text */
+                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER, /* Styles (continued) */
                            lp.LabelsLeft,                                    /* X co-ordinates */
                            lp.LabCanvTop,                                    /* Y co-ordinates */
                            lp.LabelsWidth,                                            /* Width */
                            lp.LabCanvHeight,                                         /* Height */
                            hWnd,                                                /* Parent HWND */
-                           (HMENU) IDL_HELP,                        /* The Label's ID */
+                           (HMENU) IDL_STAT,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
   if ( !hLabStat )
@@ -189,10 +190,15 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   RegisterHotKey (hWnd, HK_SAVE, MOD_CONTROL, 0x53); // 'S'
   RegisterHotKey (hWnd, HK_EXIT, (UINT) NULL, 0x1B); // 'Esc'       
 
-  SetTimer (hWnd,        /* Handle to main window */
-            IDT_TIMER,         /* timer identifier    */
-            50,         // sec/2      /* 1-second interval   */
-            (TIMERPROC) NULL); /* no timer callback   */
+  // SetTimer (hWnd,                   /* Handle to main window */
+  //           IDT_TIMER_STROKE,       /* Timer identifier      */
+  //           USER_TIMER_MINIMUM,     /* 1/200-second interval */
+  //           (TIMERPROC) NULL);      /* No Timer callback     */
+
+  SetTimer (hWnd,                   /* Handle to main window */
+            IDT_TIMER_VISION,       /* Timer identifier      */
+            30,                     /* 1/10-second interval  */
+            (TIMERPROC) NULL);      /* No Timer callback     */
 }
 
 void OnWindowSize (HWND &hWnd, RECT &myRect,
@@ -214,6 +220,7 @@ void OnWindowSize (HWND &hWnd, RECT &myRect,
 
   lp.LabelsLeft = Rect.bottom - Rect.top;
   lp.LabelsWidth = Rect.right - (Rect.bottom - Rect.top);
+
   lp.LabCanvTop = Rect.top;
   lp.LabCanvHeight = 24U;
   lp.LabHelpTop = Rect.top + 25U;
@@ -269,7 +276,7 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   
   HDC  hdc = BeginPaint (hWnd, &ps);
   //-------------------------------------------
-  if ( wd.hStaticBitmapChanged )
+  if ( wd.hStaticBitmapChanged && !wd.testing )
   {
     /* Создание ещё одного теневого контекста
      * для отрисовки неизменной и
@@ -277,23 +284,27 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
      * части картинки единожды.
      */
     if ( !wd.hStaticDC )
-    { wd.hStaticDC = CreateCompatibleDC (hdc);
+    {
+      wd.hStaticDC = CreateCompatibleDC (hdc);
       if ( !wd.hStaticDC )
-      { MessageBox (hWnd, GetLastErrorToString ().c_str (),
+      {
+        MessageBox (hWnd, GetLastErrorToString ().c_str (),
                     _T ("ERROR"), MB_OK | MB_ICONERROR);
-      } 
+      }
     }
 
     /* Удаляем старый объект */
     if ( wd.hStaticBitmap )
-    { DeleteObject (wd.hStaticBitmap);
+    {
+      DeleteObject (wd.hStaticBitmap);
       wd.hStaticBitmap = NULL;
     }
     /* Создаём новый растровый холст */
-    wd.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
-                                                    myRect.bottom - myRect.top);
+    wd.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right - myRect.left,
+                                               myRect.bottom - myRect.top);
     if ( !wd.hStaticBitmap )
-    { MessageBox (hWnd, GetLastErrorToString ().c_str (),
+    {
+      MessageBox (hWnd, GetLastErrorToString ().c_str (),
                   _T ("ERROR"), MB_OK | MB_ICONERROR);
     }
     SelectObject (wd.hStaticDC, wd.hStaticBitmap);
@@ -304,7 +315,11 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     FillRect (wd.hStaticDC, &myRect, wd.hBrush_back);
     /* set transparent brush to fill shapes */
     SelectObject (wd.hStaticDC, wd.hBrush_null);
-       SetBkMode (wd.hStaticDC, TRANSPARENT);
+    SetBkMode (wd.hStaticDC, TRANSPARENT);
+    //-------------------------------------
+    DrawDecardsCoordinates (wd.hStaticDC);
+    wd.target.draw (wd.hStaticDC, wd.hPen_grn);
+
     //-------------------------------------
     /* Здесь рисуем на контексте hCmpDC */
     OnPaintStaticFigures (wd.hStaticDC, wd);
@@ -327,16 +342,33 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   }
   SelectObject (hCmpDC, hBmp);
   //-------------------------------------
-  SetStretchBltMode (hCmpDC, COLORONCOLOR);
-  BitBlt (hCmpDC, 0, 0,
-          myRect.right - myRect.left,
-          myRect.bottom - myRect.top,
-          wd.hStaticDC, 0, 0,
-          SRCCOPY);
-  //-------------------------------------
-  /* set transparent brush to fill shapes */
-  SelectObject (hCmpDC, wd.hBrush_null);
-     SetBkMode (hCmpDC, TRANSPARENT);
+  if ( !wd.testing )
+  {
+    SetStretchBltMode (hCmpDC, COLORONCOLOR);
+    BitBlt (hCmpDC, 0, 0,
+            myRect.right - myRect.left,
+            myRect.bottom - myRect.top,
+            wd.hStaticDC, 0, 0,
+            SRCCOPY);
+    //-------------------------------------
+    /* set transparent brush to fill shapes */
+    SelectObject (hCmpDC, wd.hBrush_null);
+    SetBkMode (hCmpDC, TRANSPARENT);
+  }
+  else
+  {
+    /* Рисуем всё заново */
+    //======================================
+    /* Закраска фона рабочей области */
+    FillRect (hCmpDC, &myRect, wd.hBrush_back);
+    /* set transparent brush to fill shapes */
+    SelectObject (hCmpDC, wd.hBrush_null);
+    SetBkMode (hCmpDC, TRANSPARENT);
+    //-------------------------------------
+    DrawDecardsCoordinates (hCmpDC);
+    wd.target.draw (hCmpDC, wd.hPen_grn);
+    //-------------------------------------
+  }
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
   OnPainDynamicFigures (hCmpDC, wd);
@@ -374,7 +406,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       // MessageBox (hWnd, _T ("Done\n"), 
       //             _T ("RandomTest"), MB_OK);
       //========================================
-      InvalidateRect (hWnd, &myRect, FALSE);
+      /* Фон не будет переписовываться */
+      InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
@@ -406,7 +439,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames_muscle = Hand::EmptyMov;
       wd.trajectory_frames_lasts = 0;
       //========================================
-      InvalidateRect (hWnd, &myRect, FALSE);
+      InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
@@ -415,22 +448,27 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       //========================================
       OnCoverTest (wd);
 
-      tstring message;
-      for ( auto &t : wd.testing_trajectories )
-        message += tstring (t.back ()) + tstring (_T ("\n"));
-
+      // tstring message;
+      // for ( auto &t : wd.testing_trajectories )
+      //   message += tstring (t.back ()) + tstring (_T ("\n"));
       // MessageBox (hWnd, message.c_str (),
       //             str (boost::wformat (_T ("CoverTest %1%")) %
       //             wd.testing_trajectories.size ()).c_str (),
       //             MB_OK);
       //========================================
-      InvalidateRect (hWnd, &myRect, FALSE);
+      InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
     case 'y':
     {
-      Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
+      //========================================
+      WorkerThreadRunStoreTask (wd, _T (" *** target cover test ***  "),
+                                Positions::testCoverTarget, wd.hand, wd.target);
+      // Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
+      WorkerThreadTryJoin (wd);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
@@ -471,6 +509,15 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       Point center = Point ((wd.target.Min ().x + wd.target.Max ().x) / 2.,
                             (wd.target.Min ().y + wd.target.Max ().y) / 2.);
       Positions::getTargetCenter (wd.hand, center);
+    }
+    break;
+
+    case 'l':
+    {
+      if ( wd.pWorkerThread )
+        wd.pWorkerThread->interrupt ();
+
+      WorkerThreadTryJoin (wd);
     }
     break;
 
@@ -639,5 +686,80 @@ tstring   CurrentTimeToString (tstring format, std::time_t *the_time)
   tstringstream ss;
   ss << std::put_time (TimeInfo, format.c_str ());
   return ss.str ();
+}
+//-------------------------------------------------------------------------------
+void      MakeGradient (IN  color_interval_t  colors,
+                        IN  size_t            n_levels,
+                        OUT gradient_t       &gradient)
+{ 
+  gradient.clear ();
+  gradient.resize (n_levels);
+  /* loop to create the gradient */
+  for ( size_t i = 0U; i < n_levels; ++i )
+  {
+    unsigned char  r, g, b;
+    /* Determine the colors */
+    r = GetRValue (colors.first) + (i * (GetRValue (colors.second) - GetRValue (colors.first)) / n_levels);
+    g = GetGValue (colors.first) + (i * (GetGValue (colors.second) - GetGValue (colors.first)) / n_levels);
+    b = GetBValue (colors.first) + (i * (GetBValue (colors.second) - GetBValue (colors.first)) / n_levels);
+    /* Append new color */
+    gradient[i] = RGB (r, g, b);
+  }
+}
+//-------------------------------------------------------------------------------
+void OnEraseBackGround_WithGradient (HWND hwnd)
+{
+  /* Vars */
+  HDC dc; /* Standard Device Context; used to do the painting */
+
+          /* rect = Client Rect of the window;
+          Temp = Temparary rect tangle for the color bands */
+  RECT rect, temp;
+  HBRUSH color; /* A brush to do the painting with */
+
+                /* Get the dc for the wnd */
+  dc = GetDC (hwnd);
+
+  /* Get the client rect */
+  GetClientRect (hwnd, &rect);
+
+  /* Start color; Change the R,G,B values
+  to the color of your choice */
+  int r1 = 255, g1 = 0, b1 = 0;
+
+  /* End Color; Change the R,G,B values
+  to the color of your choice */
+  int r2 = 255, g2 = 255, b2 = 0;
+
+  /* loop to create the gradient */
+  for ( int i = 0; i<rect.right; i++ )
+  {
+    /* Color ref. for the gradient */
+    int r, g, b;
+    /* Determine the colors */
+    r = r1 + (i * (r2 - r1) / rect.right);
+    g = g1 + (i * (g2 - g1) / rect.right);
+    b = b1 + (i * (b2 - b1) / rect.right);
+
+    /* Fill in the rectangle information */
+
+    /* The uper left point of the rectangle
+    being painted; uses i as the starting point*/
+    temp.left = i;
+    /* Upeer Y cord. Always start at the top */
+    temp.top = 0;
+    /* Okay heres the key part,
+    create a rectangle thats 1 pixel wide */
+    temp.right = i + 1;
+    /* Height of the rectangle */
+    temp.bottom = rect.bottom;
+
+    /* Create a brush to draw with;
+    these colors are randomized */
+    color = CreateSolidBrush (RGB (r, g, b));
+
+    /* Finally fill in the rectange */
+    FillRect (dc, &temp, color);
+  }
 }
 //-------------------------------------------------------------------------------

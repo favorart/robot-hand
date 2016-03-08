@@ -133,7 +133,21 @@ namespace HandMoves
     void    repeatMove (Hand &hand) const
     {
       hand.SET_DEFAULT;
-      hand.move (hand_controls_.begin (), hand_controls_.end ());
+      trajectory_t visited;
+      hand.move (hand_controls_.begin (), hand_controls_.end (), &visited);
+
+      auto it1 = visited .begin ();
+      auto it2 = visited_.begin ();
+      auto index = 0U;
+      for ( ; it1 != visited.end () && it2 != visited_.end (); ++it1, ++it2 )
+      {
+        if ( *it1 != *it2 )
+        {
+          auto  &j1 = *it1;
+          auto  &j2 = *it2;
+        }
+        ++index;
+      }
     }
 
     double  eleganceMove (/* const Point &aim */) const;
@@ -257,6 +271,21 @@ namespace HandMoves
     double  operator() (const std::shared_ptr<Record> &a,
                         const std::shared_ptr<Record> &b)
     { return this->operator() (*a, *b); }
+  };
+  //------------------------------------------------------------------------------
+  class RecordHasher
+  {
+    std::size_t operator()(const Record& rec) const
+    {
+      std::size_t  seed = 0U;
+      // modify seed by xor and bit-shifting
+      // of the key members
+      boost::hash_combine (seed, boost::hash_value (rec.hit.x));
+      boost::hash_combine (seed, boost::hash_value (rec.hit.y));
+      // the result.
+      return seed;
+    }
+  
   };
   //------------------------------------------------------------------------------
   /* сериализация */

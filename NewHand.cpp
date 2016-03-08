@@ -36,15 +36,23 @@ double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atS
 
   /* !!!  frame  IS  this->hs.lasts_[index]  */
   auto  frameUseSpeed = [this, atStop, USE_SPEED](size_t index)
-  { double Frame;
+  { 
+    double Frame;
     do
     {
       Frame = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
                          this->framesMove[index][this->hs.lasts_[index]];
-  
+    
     } while ( USE_SPEED && atStop
              && (  this->hs.prevFrame_[index] < Frame)
              && (++this->hs.lasts_    [index] < this->minStopFrames[index]) );
+
+    // double Frame  = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
+    //                            this->framesMove[index][this->hs.lasts_[index]];
+    // 
+    // if ( USE_SPEED && atStop && this->hs.prevFrame_[index] < Frame )
+    //   Frame = this->hs.prevFrame_[index];
+
     return Frame;
   };
 
@@ -191,18 +199,15 @@ NewHand::Hand::Hand (const Point &palm,
                      const std::vector<JointsEnum>  &joints,
                      const std::vector<MotionLaws::MotionLaw> &genMoveFrames,
                      const std::vector<MotionLaws::MotionLaw> &genStopFrames ) :
-                     // maxClvclShift (0.40),
-                     // maxShldrAngle (105U),
-                     // maxElbowAngle (135U),
-                     // maxWristAngle (100U),
-                     maxJointAngles ({ 40U, 105U, 135U, 100U}),
-                     StopDistaceRatio (0.02), // 20% от общего пробега
                      
-                     maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
-                                       55U /* ElbowIndex */ , 30U /* WristIndex */ }),
-                     minStopFrames ({  35U /* ClvclIndex */ , 25U /* ShldrIndex */ , 
-                                       15U /* ElbowIndex */ , 25U /* WristIndex */ }),
+                     maxJointAngles ({  40U/* maxClvclShift */ , 105U /* maxShldrAngle */ ,
+                                       135U/* maxElbowAngle */ , 100U /* maxWristAngle */ }),
+                     maxMoveFrames ({ 3000U /* ClvclIndex */ , 500U /* ShldrIndex */ ,
+                                      400U /* ElbowIndex */ , 350U /* WristIndex */ }),
+                     StopDistaceRatio (0.2), // 20% от общего пробега
 
+                     // maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
+                     //                   55U /* ElbowIndex */ , 30U /* WristIndex */ }),
                      palm_ (palm), hand_ (hand), arm_ (arm),
                      shoulder_ (shoulder), clavicle_ (clavicle),
                      joints_ (joints), jointsCount (joints.size ()),
@@ -225,8 +230,10 @@ NewHand::Hand::Hand (const Point &palm,
     muscles_.push_back (muscleByJoint (j, false));
 
     JointsIndexEnum  jIndex = jointIndex (j);
-    framesMove[jIndex] = genMoveFrames[index] (EPS, maxJointAngles[jIndex], maxMoveFrames[jIndex]);
-    framesStop[jIndex] = genStopFrames[index] (EPS, maxJointAngles[jIndex] * StopDistaceRatio, minStopFrames[jIndex]);
+    minStopFrames[jIndex] = static_cast<frames_t> (maxMoveFrames[jIndex] * StopDistaceRatio);
+
+    framesMove[jIndex] = genMoveFrames[index] (minFrameMove, maxJointAngles[jIndex],                    maxMoveFrames[jIndex]);
+    framesStop[jIndex] = genStopFrames[index] (minFrameMove, maxJointAngles[jIndex] * StopDistaceRatio, minStopFrames[jIndex]);
     
     ++index;
   }

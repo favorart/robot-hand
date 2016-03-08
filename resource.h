@@ -9,9 +9,14 @@
 #define HK_COLOR                         109
 
 #define IDD_COMBOC                      1002
-#define IDL_HELP                        1003
-#define IDL_CANVAS                      1004
-#define IDT_TIMER                       1005
+#define IDL_CANVAS                      1003
+#define IDL_HELP                        1004
+#define IDL_MAIM                        1005
+#define IDL_TEST                        1006
+#define IDL_STAT                        1007
+
+#define IDT_TIMER_VISION                1015
+#define IDT_TIMER_STROKE                1016
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

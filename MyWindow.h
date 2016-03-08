@@ -99,4 +99,11 @@ inline void  DrawCircle (HDC hdc, const Point &center, double radius, HPEN hPen)
   SelectObject (hdc, Pen_old);
 }
 //-------------------------------------------------------------------------------
+typedef  std::pair<COLORREF,COLORREF> color_interval_t;
+typedef  std::vector<COLORREF> gradient_t;
+
+void      MakeGradient (IN  color_interval_t  colors,
+                        IN  size_t            n_levels,
+                        OUT gradient_t       &gradient);
+//-------------------------------------------------------------------------------
 #endif // _WINDOW_H_

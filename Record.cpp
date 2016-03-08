@@ -123,17 +123,22 @@ double  Record::eleganceMove (/* const Point &aim */) const
 //---------------------------------------------------------
 double  Record::ratioDistanceByTrajectory () const
 {
-  double  distance_ratio;
+  double  distance_ratio = 1.;
+  double visited_disance = 0.;
+
   if ( visited_.size () )
   {
+    auto curr = hand_begin_;
     /* Длина траектории по сравнениею с дистанцией */
-    double visited_disance = 0.;
-    for ( auto curr = visited_.begin (), next = std::next (curr); next != visited_.end (); ++next )
-    { visited_disance += boost_distance (*curr, *next); }
+    for ( auto next = visited_.begin () /*, next = std::next (curr)*/; next != visited_.end (); ++next )
+    { visited_disance += boost_distance (curr, *next);
+      curr = *next;
+    }
+    visited_disance += boost_distance (aim_, visited_.back ());
 
-    distance_ratio = (visited_disance) ? (boost_distance (aim_, hand_begin_) / visited_disance) : 0.;
+    distance_ratio = (visited_disance) ? (boost_distance (aim_, hand_begin_) / visited_disance) : 1.;
   }
-  else distance_ratio = 1.;
+  // else distance_ratio = 1.;
   return  distance_ratio;
 }
 double  Record::ratioTrajectoryDivirgence () const

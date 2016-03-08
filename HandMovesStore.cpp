@@ -160,10 +160,17 @@ void  HandMoves::adjacencyXsByYPoints (Store &store, std::list<Record> &range,
 //------------------------------------------------------------------------------
 void  HandMoves::storeSave (const Store& store, tstring filename)
 {
-  ofstream  ofs (filename, std::ios_base::binary | std::ios_base::out);
-  // boost::archive::text_oarchive  oa (ofs);
-  boost::archive::binary_oarchive   oa (ofs);
-  oa << store;
+  try
+  {
+    ofstream  ofs (filename, std::ios_base::binary | std::ios_base::out);
+    // boost::archive::text_oarchive  oa (ofs);
+    boost::archive::binary_oarchive   oa (ofs);
+    oa << store;
+  }
+  catch ( ... )
+  {
+    MessageBox (NULL, GetLastErrorToString ().c_str (), _T ("Error"), MB_OK);
+  }
 }
 void  HandMoves::storeLoad (      Store& store, tstring filename)
 {
