@@ -8,7 +8,7 @@ using namespace std;
 
 static const WORD MAX_CONSOLE_LINES = 150U;
 
-#ifdef _DEBUG
+// #ifdef _DEBUG
 
 void RedirectIOToConsole ()
 {
@@ -61,4 +61,4 @@ void RedirectIOToConsole ()
   // point to console as well
   ios::sync_with_stdio ();
 }
-#endif // _DEBUG
+// #endif // _DEBUG

@@ -160,6 +160,7 @@ void  HandMoves::adjacencyXsByYPoints (Store &store, std::list<Record> &range,
 //------------------------------------------------------------------------------
 void  HandMoves::storeSave (const Store& store, tstring filename)
 {
+  boost::this_thread::disable_interruption  no_interruption;
   try
   {
     ofstream  ofs (filename, std::ios_base::binary | std::ios_base::out);
@@ -169,11 +170,13 @@ void  HandMoves::storeSave (const Store& store, tstring filename)
   }
   catch ( ... )
   {
-    MessageBox (NULL, GetLastErrorToString ().c_str (), _T ("Error"), MB_OK);
+    tstring last_error = GetLastErrorToString ();
+    MessageBoxW (NULL, last_error.c_str (), _T ("Error"), MB_OK);
   }
 }
 void  HandMoves::storeLoad (      Store& store, tstring filename)
 {
+  // boost::this_thread::disable_interruption  no_interruption;
   if ( isFileExists (filename.c_str ()) )
   {
     ifstream  ifs (filename,  std::ios_base::binary | std::ios_base::in);
@@ -202,7 +205,13 @@ void  HandMoves::storeInsert (    Store &store, const Record &rec)
   //   ?? store.insert (rec);
   // }
   // else
-
-  store.insert (rec);
+  try
+  {
+    store.insert (rec);
+  }
+  catch ( ... )
+  {
+    MessageBox (NULL, GetLastErrorToString ().c_str (), _T (" Error "), MB_OK);
+  }
 }
 //------------------------------------------------------------------------------

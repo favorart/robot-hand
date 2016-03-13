@@ -172,32 +172,35 @@ namespace Positions
      *    К её движению сложить все комбинации остальных мышц.
      *
      */
-    double  x_leftBorder = target.Min ().x,
+    double  y_topBorder = target.Max ().y,
+            x_leftBorder = target.Min ().x,
             x_rightBorder = target.Max ().x,
-            y_bottomBorder = target.Max ().y;
+            y_bottomBorder = target.Min ().y;
 
     // Point center
     try
     {
+      std::cout << _T( "hand.muscles_.size = " ) << (int) hand.muscles_.size () << std::endl;
       /* Возьмём первый мускул наугад */
       for ( auto muscle_i : hand.muscles_ )
       {
         // if ( !(muscle_i & muscles) && muscleValidAtOnce(muscle_i | muscles) )
         {
-          /* Попробуем его варьировать по длительности */
-          for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_i), 10) )
+          std::cout << muscle_i << std::endl;
+          for ( auto muscle_j : hand.muscles_ )
           {
-            Hand::Control control_i (muscle_i, 0U, last_i);
-            // hand.move ({ control_i });
-
-            for ( auto muscle_j : hand.muscles_ )
-              if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
+            if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
+            {
+              std::cout << muscle_j << _T ("  ") << (int) hand.maxMuscleLast (muscle_j) << std::endl;
+              /* Попробуем его варьировать по длительности */
+              for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (15U, hand.maxMuscleLast (muscle_i), 3) )
               {
-                for ( Hand::frames_t start_j : boost::irange<Hand::frames_t> (1U, last_i, 10) ) // ?? + inertial_lasts
+                Hand::Control control_i (muscle_i, 0U, last_i);
+                // hand.move ({ control_i });
+                for ( Hand::frames_t start_j : boost::irange<Hand::frames_t> (1U, last_i, 3) ) // ?? + inertial_lasts
                 {
-                  for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_j), 10) )
+                  for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (3U, hand.maxMuscleLast (muscle_j), 3) )
                   {
-                    
                     boost::this_thread::interruption_point ();
 
                     trajectory_t  trajectory;
@@ -206,25 +209,34 @@ namespace Positions
                     hand.SET_DEFAULT;
                     hand.move ({ control_i, control_j }, &trajectory);
 
-                    if (   hand.position.x > x_leftBorder
+                    if ( hand.position.x > x_leftBorder
+                        && hand.position.y < y_topBorder
                         && hand.position.x < x_rightBorder
-                        && hand.position.y < y_bottomBorder )
+                        && hand.position.y > y_bottomBorder )
                     {
                       storeInsert (store,
                                    Record (hand.position, hand_base, hand.position,
                                            { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
-                                           trajectory) );
+                                           trajectory));
                       // trajectories.push_back (make_shared<trajectory_t> (trajectory));
+
+                           if ( store.size () == 200000 )
+                        storeSave (store, _T ("NewHand_200000_moves_save.txt"));
+                      else if ( store.size () == 400000 )
+                        storeSave (store, _T ("NewHand_400000_moves_save.txt"));
+                      else if ( store.size () == 600000 )
+                        storeSave (store, _T ("NewHand_600000_moves_save.txt"));
                     }
                     // else { break; } // ?????
-                    
+
                     boost::this_thread::interruption_point ();
 
                   } // end for
                 } // end for
-              } // end if
+              } // end for
+            } // end if
           } // end for
-        } // end if
+        } // end // if
       } // end for
 
     }

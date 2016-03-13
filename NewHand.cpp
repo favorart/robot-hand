@@ -200,10 +200,10 @@ NewHand::Hand::Hand (const Point &palm,
                      const std::vector<MotionLaws::MotionLaw> &genMoveFrames,
                      const std::vector<MotionLaws::MotionLaw> &genStopFrames ) :
                      
-                     maxJointAngles ({  40U/* maxClvclShift */ , 105U /* maxShldrAngle */ ,
-                                       135U/* maxElbowAngle */ , 100U /* maxWristAngle */ }),
-                     maxMoveFrames ({ 3000U /* ClvclIndex */ , 500U /* ShldrIndex */ ,
-                                      400U /* ElbowIndex */ , 350U /* WristIndex */ }),
+                     maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
+                                       135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
+                     maxMoveFrames ({ 3000U /* ClvclIndex */    , 500U /* ShldrIndex */ ,
+                                       400U /* ElbowIndex */    , 350U /* WristIndex */ }),
                      StopDistaceRatio (0.2), // 20% от общего пробега
 
                      // maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
@@ -278,22 +278,26 @@ void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t
       }
     }
 }
-NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited)
+NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last,
+                                              OUT std::list<Point> &visited, frames_t each)
 {
+  frames_t  frame = 1U;
   frames_t  actual_last = 0U;
   /* simultaniusly moving */
   if ( last )
   {
     /* start movement */
     step (muscle, last);
-    visited.push_back (position);
+    // visited.push_back (position);
     // std::wcout << std::endl << tstring (position) << std::endl;
     while ( hs.musclesMove_ && !hs.moveEnd_ )
     { /* just moving */
       step ();
-      visited.push_back (position);
+      if ( !(frame % each) )
+        visited.push_back (position);
       // std::wcout << tstring (position) << std::endl;
       ++actual_last;
+      ++frame;
     }
   }
   return  actual_last;
@@ -313,8 +317,9 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   } // end if
   return  actual_last;
 }
-NewHand::Hand::frames_t  NewHand::Hand::move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited)
-{ return  move (controls.begin (), controls.end (), visited); }
+NewHand::Hand::frames_t  NewHand::Hand::move (IN  std::initializer_list<Control> controls,
+                                              OUT std::list<Point> *visited, frames_t each)
+{ return  move (controls.begin (), controls.end (), visited, each); }
 
 void  NewHand::Hand::reset ()
 {

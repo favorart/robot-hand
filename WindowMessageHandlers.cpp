@@ -41,14 +41,14 @@ tstring  GetLastErrorToString ()
   if ( error )
   {
     LPVOID lpMsgBuf;
-    DWORD bufLen = FormatMessage ( FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                                   FORMAT_MESSAGE_FROM_SYSTEM |
-                                   FORMAT_MESSAGE_IGNORE_INSERTS,
-                                   NULL,
-                                   error,
-                                   MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                   (LPTSTR) &lpMsgBuf,
-                                   0, NULL);
+    DWORD bufLen = FormatMessageW ( FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                    // FORMAT_MESSAGE_IGNORE_INSERTS |
+                                    FORMAT_MESSAGE_FROM_SYSTEM,
+                                    NULL,
+                                    error,
+                                    MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                    (LPTSTR) &lpMsgBuf,
+                                    0, NULL);
     if ( bufLen )
     {
       LPCSTR lpMsgStr = (LPCSTR) lpMsgBuf;
@@ -186,9 +186,9 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
                (LPARAM) string_help);
   }
 
-  RegisterHotKey (hWnd, HK_OPEN, MOD_CONTROL, 0x4f); // 'O'
-  RegisterHotKey (hWnd, HK_SAVE, MOD_CONTROL, 0x53); // 'S'
-  RegisterHotKey (hWnd, HK_EXIT, (UINT) NULL, 0x1B); // 'Esc'       
+  // RegisterHotKey (NULL /* hWnd */, HK_OPEN, MOD_CONTROL | MOD_NOREPEAT, 0x4f); // 'O'
+  // RegisterHotKey (NULL /* hWnd */, HK_SAVE, MOD_CONTROL | MOD_NOREPEAT, 0x53); // 'S'
+  // RegisterHotKey (NULL /* hWnd */, HK_EXIT,               MOD_NOREPEAT, 0x1B); // 'Esc'       
 
   // SetTimer (hWnd,                   /* Handle to main window */
   //           IDT_TIMER_STROKE,       /* Timer identifier      */
@@ -412,7 +412,11 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     }
 
     case 'o':
-    { //========================================
+    { 
+      if ( GetKeyState (VK_CONTROL) & 0x8000 )
+
+      
+      //========================================
       
       wd.trajectory_frames.clear ();
       wd.hand.SET_DEFAULT;

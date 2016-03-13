@@ -6,19 +6,16 @@
 using namespace std;
 using namespace HandMoves;
 //-------------------------------------------------------------------------------
-MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
-  pWorkerThread(nullptr), 
-  hLabMAim (hLabMAim),
-  hLabTest (hLabTest),
-  hLabStat (hLabStat),
+MyWindowData:: MyWindowData () :
+  pWorkerThread (NULL),
+  lt (NULL),
   target ( 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
                      //  -0.70,  0.90,  0.90, -0.99)
                       -0.41,  0.46, -0.05, -0.90
                      // -0.39, 0.41, -0.05, -0.85
                      // 200U, 200U, -1., 1., -1., 1.
           ),
-  scaleLetters (target.Min (), target.Max ()),
-  lt (nullptr)
+  scaleLetters (target.Min (), target.Max ())
 {
   std::srand ((unsigned int) clock ());
 
@@ -32,7 +29,7 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
   hPen_grn  = CreatePen (PS_SOLID, 1, RGB (100, 180, 050));
   hPen_red  = CreatePen (PS_SOLID, 2, RGB (255, 000, 000));
   hPen_blue = CreatePen (PS_SOLID, 2, RGB (000, 000, 255));
-  hPen_cian = CreatePen (PS_SOLID, 2, RGB (057, 168, 157));
+  hPen_cian = CreatePen (PS_SOLID, 1, RGB (057, 168, 157));
   hPen_orng = CreatePen (PS_SOLID, 2, RGB (255, 128, 000));
 
   /* создаем кисти */
@@ -45,15 +42,11 @@ MyWindowData:: MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat) :
 
   // p_x = 0; p_y = 0;
   // fm = 0; fn = 0;
-  //=======================
-  hand.SET_DEFAULT;
-  WorkerThreadRunStoreTask (*this, _T ("  *** loading ***  "),
-                            storeLoad, CurFileName);
-  //=======================
 }
 MyWindowData::~MyWindowData ()
 {
   if ( lt ) delete lt;
+  //=======================
   /* очищаем ручку */
   DeleteObject (hPen_grn);
   DeleteObject (hPen_red);
@@ -67,33 +60,52 @@ MyWindowData::~MyWindowData ()
 
   DeleteDC (hStaticDC);
   DeleteObject (hStaticBitmap);
-    
+
+  //=======================    
   if ( pWorkerThread )
   {
-    // pWorkerThread->interrupt ();
+    pWorkerThread->interrupt ();
+
     delete pWorkerThread;
-    pWorkerThread = nullptr;
+    pWorkerThread = NULL;
   }
   //=======================
   HandMoves::storeSave (store, CurFileName);
   //=======================
 }
 //-------------------------------------------------------------------------------
-void  storeDraw (HDC hdc, HandMoves::Store &store, color_interval_t colors=make_pair(RGB(0,0,255),RGB(255,0,0)) )
+void  storeDraw (HDC hdc, HandMoves::Store &store,
+                 color_interval_t colors=make_pair(RGB(0,0,255),RGB(255,0,0)))
 {
   gradient_t  gradient;
   MakeGradient (colors, 10, gradient);
-  // --------------------------------------------------------------
-  for ( auto &rec : store )
+  try
   {
-    double elegance = rec.eleganceMove ();
-    int index = static_cast<int> (elegance * (gradient.size () - 1));
+    // int i = 0U;
+    // --------------------------------------------------------------
+    for ( auto &rec : store )
+    {
+      double elegance = rec.eleganceMove ();
+      int index = static_cast<int> (elegance * (gradient.size () - 1));
 
-    COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
-    if ( gradient[index] < col )
+      // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
+      // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
       SetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y), gradient[index]);
+
+      boost::this_thread::interruption_point ();
+
+      // ++i;
+      // if ( !(i % 1000) )
+      // { 
+      //   tstringstream ss; ss << i << _T ("  ");
+      //   SendMessage (wd.hLabMAim, WM_SETTEXT, NULL,
+      //                reinterpret_cast<LPARAM> (ss.str().c_str()) );
+      // }
+    }
+    // --------------------------------------------------------------
   }
-  // --------------------------------------------------------------
+  catch ( boost::thread_interrupted& )
+  { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
 }
 // enum { Pixels, Ellipses };
 void  storeDraw (HDC hdc, HandMoves::Store &store, double CircleRadius, HPEN hPen)
@@ -167,15 +179,14 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   //     ++it;
   //   } // end for
   // } // end if
-   
-  // ----- Отрисовка точек БД -------------------------------------
-  if ( !wd.adjPointsDB.empty () )
-  {
-    HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
-    for ( auto &p : wd.adjPointsDB )
-    { DrawCircle (hdc, p->hit, CircleRadius); }
-    SelectObject (hdc, hPen_old);
-  }
+  // // ----- Отрисовка точек БД -------------------------------------
+  // if ( !wd.adjPointsDB.empty () )
+  // {
+  //   HPEN hPen_old = (HPEN) SelectObject (hdc, wd.hPen_cian);
+  //   for ( auto &p : wd.adjPointsDB )
+  //   { DrawCircle (hdc, p->hit, CircleRadius); }
+  //   SelectObject (hdc, hPen_old);
+  // }
   // --------------------------------------------------------------
   if ( wd.mouse_haved )
    DrawAdjacency (hdc, wd.mouse_aim, wd.radius, ellipse, wd.hPen_cian);
@@ -200,6 +211,37 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
     SendMessage (wd.hLabTest, WM_SETTEXT, NULL,
                  reinterpret_cast<LPARAM> (_T (" Done  ")) );
   } // end if
+}
+
+void  MakeHandMove (MyWindowData &wd)
+{
+  HandMoves::adjacencyPoints (wd.store, wd.adjPointsDB,
+                              wd.mouse_aim, wd.radius);
+
+  ClosestPredicate pred (wd.mouse_aim);
+  auto it_min = std::min_element (wd.adjPointsDB.begin (),
+                                  wd.adjPointsDB.end (),
+                                  pred);
+
+  if ( it_min != wd.adjPointsDB.end () )
+  {
+    const shared_ptr<Record> &pRec = (*it_min);
+    pRec->repeatMove (wd.hand);
+    wd.trajectory_frames = pRec->trajectory;
+  }
+
+  // // ================================================
+  // // EXACT VARIANTS
+
+  // decltype(wd.adjPointsDB) range;
+  // HandMoves::adjacencyPoints (wd.store, range,
+  //                             wd.mouse_aim, 0.01);
+  // if ( range.size () > 1U )
+  //   for ( auto &rec : range )
+  //   {
+  //     wd.testing_trajectories.push_back (rec->trajectory);
+  //   }
+
 }
 
 void  OnWindowTimer (MyWindowData &wd)
@@ -268,8 +310,16 @@ void  OnWindowMouse (MyWindowData &wd)
                WM_SETTEXT,       /* Message */
                (WPARAM) NULL,    /* Unused  */
                (LPARAM) tstring (wd.mouse_aim).c_str () );
-  
-  OnShowDBPoints (wd);
+ 
+  if ( !wd.testing && wd.mouse_haved )
+  {
+    wd.adjPointsDB.clear ();
+    wd.trajectory_frames.clear ();
+
+    wd.reach = true;
+    MakeHandMove (wd);
+  }
+
 }
 //-------------------------------------------------------------------------------
 /* inline */ void  OnRandomTest (MyWindowData &wd)
@@ -312,35 +362,6 @@ void  OnShowTrajectoryFrames (MyWindowData &wd)
   wd.trajectory_frames.push_back (wd.hand.position);
 }
 //-------------------------------------------------------------------------------
-void  MakeHandMove   (MyWindowData &wd)
-{
-  HandMoves::adjacencyPoints (wd.store, wd.adjPointsDB,
-                              wd.mouse_aim, wd.radius);
-
-  ClosestPredicate pred (wd.mouse_aim);
-  auto it_min = std::min_element (wd.adjPointsDB.begin (),
-                                  wd.adjPointsDB.end (),
-                                  pred);
-
-  if ( it_min != wd.adjPointsDB.end () )
-  {
-    const shared_ptr<Record> &pRec = (*it_min);
-    pRec->repeatMove (wd.hand);
-    wd.trajectory_frames = pRec->trajectory;
-  }
-
-  // ================================================
-  // EXACT VARIANTS
-  decltype(wd.adjPointsDB) range;
-  HandMoves::adjacencyPoints (wd.store, range,
-                              wd.mouse_aim, 0.01);
-  if ( range.size () > 1U )
-    for ( auto &rec : range )
-    {
-      wd.testing_trajectories.push_back (rec->trajectory);
-    }
-
-}
 void  OnShowDBPoints (MyWindowData &wd)
 {
   if ( !wd.testing && wd.mouse_haved )
@@ -378,8 +399,7 @@ void  OnShowDBPoints (MyWindowData &wd)
 
   } // end if
 }
-//-------------------------------------------------------------------------------
-void  OnShowDBTrajectories (MyWindowData &wd)
+void  OnShowDBTrajes (MyWindowData &wd)
 {
   for ( auto &rec : wd.adjPointsDB )
   { 

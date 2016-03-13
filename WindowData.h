@@ -21,28 +21,32 @@ size_t  littleTest (MyWindowData &wd);
 //------------------------------------------------------------------------------
 class MyWindowData
 {
+  // ---------------------------------
 public:
   HWND    hLabMAim, hLabTest, hLabStat;
   HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
   HBRUSH  hBrush_white, hBrush_null, hBrush_back;
 
+  // ---------------------------------
   HDC     hStaticDC = NULL;
   HBITMAP hStaticBitmap = NULL;
   bool    hStaticBitmapChanged = true;
   // bool    hDrawingThread = false;
   
+  // ---------------------------------
   // win_point  user_coords;
   /* координаты мыши в пикселях */
   bool       mouse_haved;
   win_point  mouse_coords;
   Point      mouse_aim;
+    
+  // ---------------------------------
 
   const double  radius = 0.1;
   const size_t  skip_show_steps = 15;
 
   tstring  CurFileName = tstring(HAND_NAME) + tstring (_T ("_moves.bin"));
-
-  size_t store_size;
+  size_t   store_size;
 
   // --- show_frames_trajectory ------
 
@@ -56,7 +60,6 @@ public:
   HandMoves::trajectory_t  working_space;
 
   // --- adjacency -------------------
-
   bool allPointsDB_show;
 
   std::list<std::shared_ptr<HandMoves::Record>>           adjPointsDB;
@@ -83,16 +86,15 @@ public:
 
   boost::thread *pWorkerThread;
   // ---------------------------------
-
   LittleTest *lt;
   size_t no;
+  // ---------------------------------
 
   /* Набор пользователем чисел */
   // static int  flag_m, flag_n;
   // static int  p_x, p_y;
   // ---------------------------------
-
-  MyWindowData (HWND hLabMAim, HWND hLabTest, HWND hLabStat);
+  MyWindowData ();
  ~MyWindowData ();
 };
 //-------------------------------------------------------------------------------

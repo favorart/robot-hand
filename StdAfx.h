@@ -106,7 +106,7 @@ inline double  boost_distance (boost_point2_t a, boost_point2_t b)
 // #include <boost/interprocess/sync/scoped_lock.hpp>
 
 /* Visual Leak Detector */
-#include <vld.h>
+// #include <vld.h>
 
 /* Windows */
 #include <windows.h>
