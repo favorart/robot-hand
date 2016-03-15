@@ -18,43 +18,44 @@ Hand::MusclesEnum  NewHand::operator& (Hand::MusclesEnum m, Hand::MusclesEnum k)
 Hand::MusclesEnum  NewHand::operator^ (Hand::MusclesEnum m, Hand::MusclesEnum k)
 { return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) ^ static_cast<uchar_t> (k)); }
 
-std::ostream&  NewHand::operator<< (std::ostream &out, Hand::MusclesEnum muscle)
+tostream&  NewHand::operator<< (tostream &out, Hand::MusclesEnum muscle)
 {
-  if ( !muscle )  return  out << "Hand::EmptyMov ";
+  if ( !muscle )  return  out << "EmptyMov"; // Hand::
 
   for ( auto m : muscles )
   {
     if ( m & muscle )
       switch ( m )
       {
-        // case Hand::EmptyMov: out << "Hand::EmptyMov "; break;
-        case Hand::ClvclOpn: out << "Hand::ClvclOpn "; break;
-        case Hand::ClvclCls: out << "Hand::ClvclCls "; break;
-        case Hand::ShldrOpn: out << "Hand::ShldrOpn "; break;
-        case Hand::ShldrCls: out << "Hand::ShldrCls "; break;
-        case Hand::ElbowOpn: out << "Hand::ElbowOpn "; break;
-        case Hand::ElbowCls: out << "Hand::ElbowCls "; break;
-        case Hand::WristOpn: out << "Hand::WristOpn "; break;
-        case Hand::WristCls: out << "Hand::WristCls "; break;
+        // case Hand::EmptyMov: out << "EmptyMov "; break; // Hand::
+        case Hand::ClvclOpn: out << "ClvclOpn"; break; // Hand::
+        case Hand::ClvclCls: out << "ClvclCls"; break; // Hand::
+        case Hand::ShldrOpn: out << "ShldrOpn"; break; // Hand::
+        case Hand::ShldrCls: out << "ShldrCls"; break; // Hand::
+        case Hand::ElbowOpn: out << "ElbowOpn"; break; // Hand::
+        case Hand::ElbowCls: out << "ElbowCls"; break; // Hand::
+        case Hand::WristOpn: out << "WristOpn"; break; // Hand::
+        case Hand::WristCls: out << "WristCls"; break; // Hand::
       }
   }
   return out;
 }
-std::ostream&  NewHand::operator<< (std::ostream &out, Hand::JointsEnum   joint)
+tostream&  NewHand::operator<< (tostream &out, Hand::JointsEnum   joint)
 {
-  if ( !joint )  return  out << "Hand::Empty ";
+  if ( !joint )  return  out << "Empty"; // Hand::
 
   for ( auto j : joints )
   {
     if ( j & joint )
       switch ( j )
       {
-        // case Hand::Empty: out << "Hand::Empty "; break;
-        case Hand::Clvcl: out << "Hand::Clvcl "; break;
-        case Hand::Shldr: out << "Hand::Shldr "; break;
-        case Hand::Elbow: out << "Hand::Elbow "; break;
-        case Hand::Wrist: out << "Hand::Wrist "; break;
+        // case Hand::Empty: out << "Empty"; break; // Hand::
+        case Hand::Clvcl: out << "Clvcl"; break; // Hand::
+        case Hand::Shldr: out << "Shldr"; break; // Hand::
+        case Hand::Elbow: out << "Elbow"; break; // Hand::
+        case Hand::Wrist: out << "Wrist"; break; // Hand::
       }
+  
   }
   return out;
 }

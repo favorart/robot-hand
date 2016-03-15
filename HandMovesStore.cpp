@@ -158,7 +158,85 @@ void  HandMoves::adjacencyXsByYPoints (Store &store, std::list<Record> &range,
   //std::copy (itFirstLower, itFirstUpper, std::back_inserter (range));
 }
 //------------------------------------------------------------------------------
-void  HandMoves::storeSave (const Store& store, tstring filename)
+// enum { Pixels, Ellipses };
+void  HandMoves::storeDraw (HDC hdc, const Store &store, double CircleRadius, HPEN hPen)
+{
+  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
+  // --------------------------------------------------------------
+  std::unordered_map<Point, double, PointHasher>  map_points;
+  for ( auto &rec : store )
+  {
+    /*  Если в одну точку попадают несколько движений -
+    *  выбрать лучшее движение по элегантности */
+
+    auto pRec = map_points.find (rec.hit);
+    if ( pRec != map_points.end () )
+    {
+      double elegance = rec.eleganceMove ();
+      if ( pRec->second < elegance )
+        map_points.insert (std::make_pair (rec.hit, elegance));
+    }
+    else
+    { map_points.insert (std::make_pair (rec.hit, rec.eleganceMove ())); }
+  }
+
+  for ( auto &pt : map_points )
+  { DrawCircle (hdc, pt.first, CircleRadius); }
+  // --------------------------------------------------------------
+  SelectObject (hdc, hPen_old);
+}
+void  HandMoves::storeDraw (HDC hdc, const Store &store, color_interval_t colors)
+{
+  gradient_t  gradient;
+  MakeGradient (colors, 190, gradient);
+
+  // int i = 0;
+  // for ( auto c : gradient )
+  // {
+  //   std::wcout << '(' << GetRValue (c) << ' ' << GetGValue (c) << ' ' << GetBValue (c) << ' ' << ')' << ' '; //std::endl;
+  //   HPEN Pen = CreatePen (PS_SOLID, 1, c);
+  //   DrawCircle (hdc,Point(0.01 * i -0.99, 0.9), 0.01, Pen);
+  //   DeleteObject (Pen);
+  //   ++i;
+  // }
+
+  try
+  {
+    // int i = 0U;
+    // --------------------------------------------------------------
+    for ( auto &rec : store )
+    {
+      double elegance = rec.eleganceMove ();
+
+      // std::wcout << elegance << std::endl;
+      int index = static_cast<int> (elegance * (gradient.size () - 1));
+
+      // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
+      // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
+
+      SetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y), gradient[index]);
+
+      // HPEN Pen = CreatePen (PS_SOLID, 1, gradient[index]);
+      // DrawCircle (hdc, rec.hit, 0.01, Pen);
+      // DeleteObject (Pen);
+
+
+      // ++i;
+      // if ( !(i % 1000) )
+      // { 
+      //   tstringstream ss; ss << i << _T ("  ");
+      //   SendMessage (wd.hLabMAim, WM_SETTEXT, NULL,
+      //                reinterpret_cast<LPARAM> (ss.str().c_str()) );
+      // }
+
+      boost::this_thread::interruption_point ();
+    }
+    // --------------------------------------------------------------
+  }
+  catch ( boost::thread_interrupted& )
+  { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
+}
+void  HandMoves::storeSave (const Store &store, tstring filename)
 {
   boost::this_thread::disable_interruption  no_interruption;
   try
@@ -174,7 +252,7 @@ void  HandMoves::storeSave (const Store& store, tstring filename)
     MessageBoxW (NULL, last_error.c_str (), _T ("Error"), MB_OK);
   }
 }
-void  HandMoves::storeLoad (      Store& store, tstring filename)
+void  HandMoves::storeLoad (      Store &store, tstring filename)
 {
   // boost::this_thread::disable_interruption  no_interruption;
   if ( isFileExists (filename.c_str ()) )

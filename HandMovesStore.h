@@ -288,9 +288,12 @@ namespace HandMoves
   
   };
   //------------------------------------------------------------------------------
+  void  storeDraw (HDC hdc, const Store &store, color_interval_t colors);
+  void  storeDraw (HDC hdc, const Store &store, double CircleRadius, HPEN hPen);
+  //------------------------------------------------------------------------------
   /* сериализация */
-  void  storeSave (const Store& store, tstring filename);
-  void  storeLoad (      Store& store, tstring filename);
+  void  storeSave (const Store &store, tstring filename);
+  void  storeLoad (      Store &store, tstring filename);
   //------------------------------------------------------------------------------
   /* тестовые движения рукой */
   void  test_random (Store &store, Hand &hand, size_t tries);

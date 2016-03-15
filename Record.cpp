@@ -113,12 +113,18 @@ double  Record::eleganceMove (/* const Point &aim */) const
     double muscles_count_ratio = ratioUsedMusclesCount ();
   }
   /* Длина траектории по сравнениею с дистанцией */
-  double  distance_ratio = ratioDistanceByTrajectory ();
+  // double  distance_ratio = ratioDistanceByTrajectory ();
   
-  return  distance_ratio;
+  // return  distance_ratio;
   /*   + max_divirgence + sum_time_muscles
    *   + muscles_count_ratio + controls_count_ratio
    */
+
+  auto longest_control = *boost::max_element (controls (), [](const Hand::Control &a, const Hand::Control &b)
+                                                           {return (a.start + a.last) > (b.start + b.last); });
+  double total_time = (longest_control.start + longest_control.last) / 300.;
+  // double total_time = (controls ().back ().start + controls ().back ().last) - controls ().front ().start;
+  return total_time;
 }
 //---------------------------------------------------------
 double  Record::ratioDistanceByTrajectory () const

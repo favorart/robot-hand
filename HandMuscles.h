@@ -22,8 +22,8 @@ namespace NewHand
   Hand::JointsEnum   operator& (Hand::JointsEnum  j, Hand::JointsEnum  k);
   Hand::JointsEnum   operator^ (Hand::JointsEnum  j, Hand::JointsEnum  k);
   //------------------------------------------------------------------------------
-  std::ostream&  operator<< (std::ostream &out, Hand::MusclesEnum m);
-  std::ostream&  operator<< (std::ostream &out, Hand::JointsEnum  j);
+  tostream&  operator<< (tostream &out, Hand::MusclesEnum muscle);
+  tostream&  operator<< (tostream &out, Hand::JointsEnum   joint);
   //------------------------------------------------------------------------------
   bool  muscleValidAtOnce (Hand::MusclesEnum muscle);
   //------------------------------------------------------------------------------

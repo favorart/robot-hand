@@ -36,11 +36,11 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       //=======================
       wd->hand.SET_DEFAULT;
       //=======================
-      // WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
-      //                           storeLoad, wd->CurFileName);
-      // WorkerThreadTryJoin (*wd);
+      WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
+                                storeLoad, wd->CurFileName);
+      WorkerThreadTryJoin (*wd);
 
-      storeLoad (wd->store, wd->CurFileName);
+      // storeLoad (wd->store, wd->CurFileName);
 
       SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
       //=======================

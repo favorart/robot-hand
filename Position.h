@@ -19,6 +19,7 @@ using namespace NewHand;
 
 namespace Positions
 {
+#define _HAND_TEST_CONSOLE_PRINTF
 
   /*  Количество точек, в окресности искомой точки.
 
@@ -166,40 +167,52 @@ namespace Positions
     hand.SET_DEFAULT;
 
     Point hand_base = hand.position;
+    Point hand_prev = hand.position;
     /*    Покрыть всё в одно движение
      *
      *    Начать двигать какой-то мышцой (варьировать длительность),
      *    К её движению сложить все комбинации остальных мышц.
      *
      */
-    double  y_topBorder = target.Max ().y,
-            x_leftBorder = target.Min ().x,
-            x_rightBorder = target.Max ().x,
-            y_bottomBorder = target.Min ().y;
+    
+    // double  y_topBorder = target.Max ().y,
+    //         x_leftBorder = target.Min ().x,
+    //         x_rightBorder = target.Max ().x,
+    //         y_bottomBorder = target.Min ().y;
 
+    
     // Point center
     try
     {
-      std::cout << _T( "hand.muscles_.size = " ) << (int) hand.muscles_.size () << std::endl;
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+      std::wcout << _T( "hand.muscles_.size = " ) << (int) hand.muscles_.size () << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
       /* Возьмём первый мускул наугад */
       for ( auto muscle_i : hand.muscles_ )
       {
-        // if ( !(muscle_i & muscles) && muscleValidAtOnce(muscle_i | muscles) )
-        {
-          std::cout << muscle_i << std::endl;
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+          std::wcout << muscle_i << _T ("  ") << (int) hand.maxMuscleLast (muscle_i) << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
           for ( auto muscle_j : hand.muscles_ )
           {
             if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
             {
-              std::cout << muscle_j << _T ("  ") << (int) hand.maxMuscleLast (muscle_j) << std::endl;
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+              std::wcout << muscle_j << _T ("  ") << (int) hand.maxMuscleLast (muscle_j) << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
               /* Попробуем его варьировать по длительности */
-              for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (15U, hand.maxMuscleLast (muscle_i), 3) )
+
+              // for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (5U, hand.maxMuscleLast (muscle_i), 2) )
+              for ( Hand::frames_t  last_i : boost::irange (5U, hand.maxMuscleLast (muscle_i)) )
               {
                 Hand::Control control_i (muscle_i, 0U, last_i);
                 // hand.move ({ control_i });
-                for ( Hand::frames_t start_j : boost::irange<Hand::frames_t> (1U, last_i, 3) ) // ?? + inertial_lasts
+
+                // for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (3U, hand.maxMuscleLast (muscle_j), 2) )
+                for ( Hand::frames_t last_j : boost::irange (3U, hand.maxMuscleLast (muscle_j)) )
                 {
-                  for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (3U, hand.maxMuscleLast (muscle_j), 3) )
+                  // for ( Hand::frames_t start_j : boost::irange<Hand::frames_t> (5U, last_i, 2) ) // ?? + inertial_lasts
+                  for ( Hand::frames_t  start_j : boost::irange (5U, last_i) )
                   {
                     boost::this_thread::interruption_point ();
 
@@ -209,39 +222,107 @@ namespace Positions
                     hand.SET_DEFAULT;
                     hand.move ({ control_i, control_j }, &trajectory);
 
-                    if ( hand.position.x > x_leftBorder
-                        && hand.position.y < y_topBorder
-                        && hand.position.x < x_rightBorder
-                        && hand.position.y > y_bottomBorder )
+                    // if ( hand.position.x > x_leftBorder && hand.position.x < x_rightBorder
+                    //   && hand.position.y < y_topBorder && hand.position.y > y_bottomBorder )
+
+                    const Point&  hand_pos = hand.position;
+                    if ( target.isOnTarget (hand_pos) )
                     {
                       storeInsert (store,
-                                   Record (hand.position, hand_base, hand.position,
+                                   Record (hand_pos, hand_base, hand_pos,
                                            { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
                                            trajectory));
                       // trajectories.push_back (make_shared<trajectory_t> (trajectory));
 
                            if ( store.size () == 200000 )
-                        storeSave (store, _T ("NewHand_200000_moves_save.txt"));
+                      {
+                        storeSave (store, _T ("NewHand_200000_moves_tightly_save.bin"));
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                        std::wcout << _T ("NewHand_200000_moves_tightly_saved") << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      }
                       else if ( store.size () == 400000 )
-                        storeSave (store, _T ("NewHand_400000_moves_save.txt"));
+                      {
+                        storeSave (store, _T ("NewHand_400000_moves_tightly_save.bin"));
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                        std::wcout << _T ("NewHand_400000_moves_tightly_saved") << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      }
                       else if ( store.size () == 600000 )
-                        storeSave (store, _T ("NewHand_600000_moves_save.txt"));
+                      {
+                        storeSave (store, _T ("NewHand_600000_moves_tightly_save.bin"));
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                        std::wcout << _T ("NewHand_600000_moves_tightly_saved") << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      }
+                      else if ( store.size () == 1000000 )
+                      {
+                        storeSave (store, _T ("NewHand_1000000_moves_tightly_save.bin"));
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                        std::wcout << _T ("NewHand_1000000_moves_tightly_saved") << std::endl;
+                        std::wcout << muscle_i << ' ' << last_i << std::endl;
+                        std::wcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      }
+                      else if ( store.size () == 1500000 )
+                      {
+                        storeSave (store, _T ("NewHand_1500000_moves_tightly_save.bin"));
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                        std::wcout << _T ("NewHand_1500000_moves_tightly_saved") << std::endl;
+                        std::wcout << muscle_i << ' ' << last_i << std::endl;
+                        std::wcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      }
+                      else if ( store.size () == 2000000 )
+                      {
+                        storeSave (store, _T ("NewHand_2000000_moves_tightly_save.bin"));
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                        std::wcout << _T ("NewHand_2000000_moves_tightly_saved")  << std::endl;
+                        std::wcout << muscle_i << ' '                   << last_i << std::endl;
+                        std::wcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      }
                     }
                     // else { break; } // ?????
 
-                    boost::this_thread::interruption_point ();
-
+#ifdef _HAND_TEST_BREAK
+                    if ( boost_distance (hand_pos, target.center ()) > boost_distance (hand_prev, target.center ()) )
+                    {
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                      std::wcout << _T ("break") << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      break;
+                    }
+                    hand_prev = hand_pos;
+#endif // _HAND_TEST_BREAK
+                    try
+                    {
+                      boost::this_thread::interruption_point ();
+                    }
+                    catch ( boost::thread_interrupted& )
+                    {
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+                      std::wcout << _T ("WorkingThread interrupted")            << std::endl;
+                      std::wcout << muscle_i << ' '                   << last_i << std::endl;
+                      std::wcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+                      return;
+                    }
                   } // end for
                 } // end for
               } // end for
             } // end if
           } // end for
-        } // end // if
       } // end for
 
     }
-    catch ( boost::thread_interrupted& )
-    { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
+    catch ( std::exception &ex )
+    { 
+#ifdef _HAND_TEST_CONSOLE_PRINTF
+      std::cout << ex.what () << std::endl;
+#endif // _HAND_TEST_CONSOLE_PRINTF
+      return;
+    }
   }
   //------------------------------------------------------------------------------
   class ChooseDirection
@@ -350,7 +431,7 @@ namespace Positions
     // while ( aim.y () < hand.position.y )
     {
       /* Try each muscle */
-      for ( auto i : boost::irange (1U, hand.controlsCount) )
+      for ( auto i : boost::irange<size_t> (1U, hand.controlsCount) )
       {
         auto muscle = hand.selectControl (i);
         auto last = hand.maxMuscleLast (muscle);

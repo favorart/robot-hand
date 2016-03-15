@@ -35,17 +35,31 @@ double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atS
   //------------------------------------------------
 
   /* !!!  frame  IS  this->hs.lasts_[index]  */
-  auto  frameUseSpeed = [this, atStop, USE_SPEED](size_t index)
-  { 
-    double Frame;
-    do
+    auto  frameUseSpeed = [this, atStop, USE_SPEED](size_t index)
     {
-      Frame = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
-                         this->framesMove[index][this->hs.lasts_[index]];
-    
-    } while ( USE_SPEED && atStop
-             && (  this->hs.prevFrame_[index] < Frame)
-             && (++this->hs.lasts_    [index] < this->minStopFrames[index]) );
+      double Frame;
+      try
+      {
+        do
+        {
+          Frame = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
+                             this->framesMove[index][this->hs.lasts_[index]];
+
+          if ( !this )
+          { std::wcout << _T ("not this!!!!") << std::endl; }
+          if ( index >= this->hs.lasts_.size ()
+              || index >= this->hs.prevFrame_.size ()
+              || index >= this->minStopFrames.size () )
+          {
+            std::wcout << _T ("index!!!!") << std::endl;
+          }
+
+        } while ( USE_SPEED && atStop
+                 && (this->hs.prevFrame_[index] < Frame)
+                 && (++this->hs.lasts_[index] < this->minStopFrames[index]) );
+      }
+      catch (...)
+      { Frame = 0.; }
 
     // double Frame  = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
     //                            this->framesMove[index][this->hs.lasts_[index]];
@@ -204,7 +218,7 @@ NewHand::Hand::Hand (const Point &palm,
                                        135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
                      maxMoveFrames ({ 3000U /* ClvclIndex */    , 500U /* ShldrIndex */ ,
                                        400U /* ElbowIndex */    , 350U /* WristIndex */ }),
-                     StopDistaceRatio (0.2), // 20% от общего пробега
+                     StopDistaceRatio (0.3), // 30% от общего пробега
 
                      // maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
                      //                   55U /* ElbowIndex */ , 30U /* WristIndex */ }),
@@ -232,9 +246,38 @@ NewHand::Hand::Hand (const Point &palm,
     JointsIndexEnum  jIndex = jointIndex (j);
     minStopFrames[jIndex] = static_cast<frames_t> (maxMoveFrames[jIndex] * StopDistaceRatio);
 
-    framesMove[jIndex] = genMoveFrames[index] (minFrameMove, maxJointAngles[jIndex],                    maxMoveFrames[jIndex]);
+    framesMove[jIndex] = genMoveFrames[index] (minFrameMove, maxJointAngles[jIndex], maxMoveFrames[jIndex]);
     framesStop[jIndex] = genStopFrames[index] (minFrameMove, maxJointAngles[jIndex] * StopDistaceRatio, minStopFrames[jIndex]);
     
+    // // ------------------------------------------------------------------------------------
+    // double  maxVelosity = *boost::max_element (framesMove[jIndex]);
+    // for ( auto it = framesStop[jIndex].begin (); it != framesStop[jIndex].end (); ++it )
+    // {
+    //   if ( *it > maxVelosity )
+    //   { *it = maxVelosity; }
+    // }
+    // // framesStop[jIndex].erase( std::remove_if (framesStop[jIndex].begin (), framesStop[jIndex].end (),
+    // //                                           [maxVelosity](double x) { return  (x > maxVelosity); }),
+    // //                           framesStop[jIndex].end ());
+    // // ------------------------------------------------------------------------------------
+
+    // #pragma warning (disable:4996)
+    // {
+    //   tstringstream ss;   
+    //   ss << _T ("framesMove_") << j << _T (".txt");
+    //   FILE *f = _wfopen (ss.str ().c_str (), _T ("w"));
+    //   for ( auto d : framesMove[jIndex] )
+    //     fwprintf (f, _T ("%lf "), d);
+    //   fclose (f);
+    // }
+    // { tstringstream ss;
+    //   ss << _T ("framesStop_") << j << _T (".txt");
+    //   FILE *f = _wfopen (ss.str ().c_str (), _T ("w"));
+    //   for ( auto d : framesStop[jIndex] )
+    //     fwprintf (f, _T ("%lf "), d);
+    //   fclose (f);
+    // }
+
     ++index;
   }
   std::sort (joints_.begin (), joints_.end ());
@@ -278,10 +321,26 @@ void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t
       }
     }
 }
+NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last)
+{
+  frames_t  actual_last = 0U;
+  /* simultaniusly moving */
+  if ( last )
+  {
+    step (muscle, last);
+    /* Что-то должно двигаться, иначе беск.цикл */
+    while ( hs.musclesMove_ && !hs.moveEnd_ )
+    {
+      step ();
+      ++actual_last;
+    }
+  } // end if
+  return  actual_last;
+}
 NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last,
                                               OUT std::list<Point> &visited, frames_t each)
 {
-  frames_t  frame = 1U;
+  frames_t  frame = 0U;
   frames_t  actual_last = 0U;
   /* simultaniusly moving */
   if ( last )
@@ -299,22 +358,8 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
       ++actual_last;
       ++frame;
     }
+    visited.push_back (position);
   }
-  return  actual_last;
-}
-NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last)
-{ 
-  frames_t  actual_last = 0U;
-  /* simultaniusly moving */
-  if ( last )
-  {
-    step (muscle, last);
-    /* Что-то должно двигаться, иначе беск.цикл */
-    while ( hs.musclesMove_ && !hs.moveEnd_ )
-    { step ();
-      ++actual_last;
-    }
-  } // end if
   return  actual_last;
 }
 NewHand::Hand::frames_t  NewHand::Hand::move (IN  std::initializer_list<Control> controls,

@@ -199,7 +199,7 @@ namespace NewHand
     template <class Iter>
     frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL, frames_t each=15) throw (...)
     {
-      frames_t  frame = 1U;
+      frames_t  frame = 0U;
       frames_t  actual_last = 0U;
 
       if ( !std::is_sorted (begin, end) )
@@ -245,12 +245,14 @@ namespace NewHand
             visited->push_back (position);
           ++frame;
         }
+        if ( visited )
+          visited->push_back (position);
       } // end if
       return  actual_last;
     }
-    frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL, frames_t each = 15);
+    frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL, frames_t each=50);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last);
-    frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited, frames_t each=15);
+    frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited, frames_t each=50);
 
     void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
 

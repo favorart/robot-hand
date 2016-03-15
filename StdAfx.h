@@ -66,6 +66,8 @@
 
 #include <boost/range/adaptor/sliced.hpp>
 #include <boost/range/adaptor/filtered.hpp>
+#include <boost/range/adaptors.hpp>
+#include <boost/range/algorithm.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/assign.hpp>
 
@@ -114,6 +116,10 @@ inline double  boost_distance (boost_point2_t a, boost_point2_t b)
 
 // TCHAR based std::string
 typedef std::basic_string<TCHAR> tstring;
+// TCHAR based std::istream
+typedef std::basic_istream<TCHAR> tistream;
+// TCHAR based std::ostream
+typedef std::basic_ostream<TCHAR> tostream;
 // TCHAR based std::fstream;
 typedef std::basic_fstream<TCHAR> tfstream;
 // TCHAR based std::stringstream

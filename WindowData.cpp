@@ -9,11 +9,12 @@ using namespace HandMoves;
 MyWindowData:: MyWindowData () :
   pWorkerThread (NULL),
   lt (NULL),
-  target ( 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
-                     //  -0.70,  0.90,  0.90, -0.99)
-                      -0.41,  0.46, -0.05, -0.90
-                     // -0.39, 0.41, -0.05, -0.85
-                     // 200U, 200U, -1., 1., -1., 1.
+  target ( 64U, 64U,
+           // 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
+                        //  -0.70,  0.90,  0.90, -0.99)
+                         -0.41,  0.46, -0.05, -0.90
+                        // -0.39, 0.41, -0.05, -0.85
+                        // 200U, 200U, -1., 1., -1., 1.
           ),
   scaleLetters (target.Min (), target.Max ())
 {
@@ -74,76 +75,17 @@ MyWindowData::~MyWindowData ()
   //=======================
 }
 //-------------------------------------------------------------------------------
-void  storeDraw (HDC hdc, HandMoves::Store &store,
-                 color_interval_t colors=make_pair(RGB(0,0,255),RGB(255,0,0)))
-{
-  gradient_t  gradient;
-  MakeGradient (colors, 10, gradient);
-  try
-  {
-    // int i = 0U;
-    // --------------------------------------------------------------
-    for ( auto &rec : store )
-    {
-      double elegance = rec.eleganceMove ();
-      int index = static_cast<int> (elegance * (gradient.size () - 1));
-
-      // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
-      // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
-      SetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y), gradient[index]);
-
-      boost::this_thread::interruption_point ();
-
-      // ++i;
-      // if ( !(i % 1000) )
-      // { 
-      //   tstringstream ss; ss << i << _T ("  ");
-      //   SendMessage (wd.hLabMAim, WM_SETTEXT, NULL,
-      //                reinterpret_cast<LPARAM> (ss.str().c_str()) );
-      // }
-    }
-    // --------------------------------------------------------------
-  }
-  catch ( boost::thread_interrupted& )
-  { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
-}
-// enum { Pixels, Ellipses };
-void  storeDraw (HDC hdc, HandMoves::Store &store, double CircleRadius, HPEN hPen)
-{
-  HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
-  // --------------------------------------------------------------
-  std::unordered_map<Point, double, PointHasher>  map_points;
-  for ( auto &rec : store )
-  {
-    /*  Если в одну точку попадают несколько движений -
-    *  выбрать лучшее движение по элегантности */
-
-    auto pRec = map_points.find (rec.hit);
-    if ( pRec != map_points.end () )
-    {
-      double elegance = rec.eleganceMove ();
-      if ( pRec->second < elegance )
-        map_points.insert (std::make_pair (rec.hit, elegance));
-    }
-    else
-    { map_points.insert (std::make_pair (rec.hit, rec.eleganceMove ())); }
-  }
-
-  for ( auto &pt : map_points )
-  { DrawCircle (hdc, pt.first, CircleRadius); }
-  // --------------------------------------------------------------
-  SelectObject (hdc, hPen_old);
-}
-
 void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
 {
-  // const double CircleRadius = 0.01;
   // ----- Отрисовка точек БД -------------------------------------
   if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
   { /* command  <q>  */
-    WorkerThreadRunStoreTask (wd, _T (" *** drawing ***  "),
-                              [hdc](HandMoves::Store &store)
-                              { storeDraw (hdc, store); });
+    WorkerThreadRunStoreTask ( wd, _T (" *** drawing ***  "),
+                               [hdc](HandMoves::Store &store, color_interval_t interval)
+                               { storeDraw (hdc, store, interval); },
+                               make_pair(RGB(0,0,128), RGB(255,0,0))
+                               // make_pair(RGB(130,0,0), RGB(255,155,155))
+                              );
     // storeDraw (hdc, wd.store);
   }
   // --------------------------------------------------------------
@@ -153,8 +95,7 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   const double CircleRadius = 0.01;
   // --------------------------------------------------------------
   /* Target to achive */
-  if ( wd.lt )
-    wd.lt->draw (hdc, wd);
+  if ( wd.lt )  wd.lt->draw (hdc, wd);
 
   // ----- Отрисовка фигуры ---------------------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
