@@ -38,28 +38,28 @@ double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atS
     auto  frameUseSpeed = [this, atStop, USE_SPEED](size_t index)
     {
       double Frame;
-      try
-      {
+      // // try
+      // // {
         do
         {
           Frame = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
                              this->framesMove[index][this->hs.lasts_[index]];
 
-          if ( !this )
-          { std::wcout << _T ("not this!!!!") << std::endl; }
-          if ( index >= this->hs.lasts_.size ()
-              || index >= this->hs.prevFrame_.size ()
-              || index >= this->minStopFrames.size () )
-          {
-            std::wcout << _T ("index!!!!") << std::endl;
-          }
+          // // if ( !this )
+          // // { std::wcout << _T ("not this!!!!") << std::endl; }
+          // // if ( index >= this->hs.lasts_.size ()
+          // //     || index >= this->hs.prevFrame_.size ()
+          // //     || index >= this->minStopFrames.size () )
+          // // {
+          // //   std::wcout << _T ("index!!!!") << std::endl;
+          // // }
 
         } while ( USE_SPEED && atStop
                  && (this->hs.prevFrame_[index] < Frame)
                  && (++this->hs.lasts_[index] < this->minStopFrames[index]) );
-      }
-      catch (...)
-      { Frame = 0.; }
+    // // }
+    // // catch (...)
+    // // { Frame = 0.; }
 
     // double Frame  = (atStop) ? this->framesStop[index][this->hs.lasts_[index]] :
     //                            this->framesMove[index][this->hs.lasts_[index]];
@@ -210,9 +210,10 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
 NewHand::Hand::Hand (const Point &palm,
                      const Point &hand, const Point &arm,
                      const Point &shoulder, const Point &clavicle,
-                     const std::vector<JointsEnum>  &joints,
-                     const std::vector<MotionLaws::MotionLaw> &genMoveFrames,
-                     const std::vector<MotionLaws::MotionLaw> &genStopFrames ) :
+                     // const std::vector<JointsEnum>  &joints,
+                     // const std::vector<MotionLaws::JointMoveLaw> &MoveFrames,
+                     // const std::vector<MotionLaws::JointStopLaw> &StopFrames
+                     const JointsMotionLaws &jointsFrames) :
                      
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
                                        135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
@@ -224,42 +225,40 @@ NewHand::Hand::Hand (const Point &palm,
                      //                   55U /* ElbowIndex */ , 30U /* WristIndex */ }),
                      palm_ (palm), hand_ (hand), arm_ (arm),
                      shoulder_ (shoulder), clavicle_ (clavicle),
-                     joints_ (joints), jointsCount (joints.size ()),
+                     // joints_ (joints.), 
+                     jointsCount (joints.size ()),
                      drawPalm_ (false)
 { 
-  if ( jointsCount > JointsCount )
-    throw new std::exception ("Incorrect joints count"); // _T ??
-  
-  if ( genMoveFrames.size () < jointsCount
-    || genStopFrames.size () < jointsCount )
-    throw new std::exception ("Incorrect gen. functions count"); // _T ??
+  for ( auto j : jointsFrames )
+  { joints_.push_back (j.first); }
 
-  size_t index = 0U;
-  for ( auto j : joints_ )
+  if ( !jointsCount || jointsCount > JointsCount )
+    throw new std::exception ("Incorrect joints count"); // _T ??
+
+  for ( auto joint : joints_ )
   {
-    if ( j & Wrist )
+    if ( joint & Wrist )
       drawPalm_ = true;
 
-    muscles_.push_back (muscleByJoint (j, true));
-    muscles_.push_back (muscleByJoint (j, false));
+    muscles_.push_back (muscleByJoint (joint, true));
+    muscles_.push_back (muscleByJoint (joint, false));
 
-    JointsIndexEnum  jIndex = jointIndex (j);
+    JointsIndexEnum  jIndex = jointIndex (joint);
     minStopFrames[jIndex] = static_cast<frames_t> (maxMoveFrames[jIndex] * StopDistaceRatio);
 
-    framesMove[jIndex] = genMoveFrames[index] (minFrameMove, maxJointAngles[jIndex], maxMoveFrames[jIndex]);
-    framesStop[jIndex] = genStopFrames[index] (minFrameMove, maxJointAngles[jIndex] * StopDistaceRatio, minStopFrames[jIndex]);
+    framesMove[jIndex].resize (maxMoveFrames[jIndex]);
+    framesStop[jIndex].resize (minStopFrames[jIndex]);
+
+    jointsFrames.find (joint)->second.moveLaw->generate (framesMove[jIndex].begin (), maxMoveFrames[jIndex],
+                                                         minFrameMove, maxJointAngles[jIndex]);
+
+    double  maxVelosity = *boost::max_element (framesMove[jIndex]);
+
+    jointsFrames.find (joint)->second.stopLaw->generate (framesStop[jIndex].begin (), minStopFrames[jIndex],
+                                                         minFrameMove, maxJointAngles[jIndex] * StopDistaceRatio,
+                                                         maxVelosity);
     
-    // // ------------------------------------------------------------------------------------
-    // double  maxVelosity = *boost::max_element (framesMove[jIndex]);
-    // for ( auto it = framesStop[jIndex].begin (); it != framesStop[jIndex].end (); ++it )
-    // {
-    //   if ( *it > maxVelosity )
-    //   { *it = maxVelosity; }
-    // }
-    // // framesStop[jIndex].erase( std::remove_if (framesStop[jIndex].begin (), framesStop[jIndex].end (),
-    // //                                           [maxVelosity](double x) { return  (x > maxVelosity); }),
-    // //                           framesStop[jIndex].end ());
-    // // ------------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------
 
     // #pragma warning (disable:4996)
     // {
@@ -278,7 +277,6 @@ NewHand::Hand::Hand (const Point &palm,
     //   fclose (f);
     // }
 
-    ++index;
   }
   std::sort (joints_.begin (), joints_.end ());
 

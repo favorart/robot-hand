@@ -52,5 +52,5 @@ int WINAPI  WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
      DispatchMessage (&lpMsg);
   }
   
-  return (lpMsg.wParam);
+  return  (int) (lpMsg.wParam);
 }

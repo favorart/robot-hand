@@ -63,7 +63,7 @@ struct PointHasher
 {
   std::size_t operator()(const Point& k) const
   {
-    std::size_t  seed = 0U;
+    std::size_t  seed = 0;
     // modify seed by xor and bit-shifting
     // of the key members
     boost::hash_combine (seed, boost::hash_value (k.x));

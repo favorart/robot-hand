@@ -33,10 +33,7 @@ Record::Record (const Point         &aim,
   }
 
   if ( !validateMusclesTimes () )
-    throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ?? 
-
-  // elegance_ = eleganceMove (aim_);
-  // distance_ = boost_distance (hand_, aim_);
+    throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ??
 }
 
 Record::Record (const Point         &aim,

@@ -30,14 +30,14 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
     /* Для нового потока нужно снова переинициализировать rand */
     std::srand ((unsigned int) clock ());
 
-    for ( uint_t i = 0U; i < tries; ++i )
+    for ( size_t i = 0U; i < tries; ++i )
     {
       trajectory_t visited;
       Record::muscles_array  muscles = {};
       Record::times_array    start_times = {};
       Record::times_array    lasts = {};
 
-      size_t  moves_count = random (1U, Record::maxControlsCount);
+      size_t  moves_count = random<size_t> (1, Record::maxControlsCount);
 
       hand.SET_DEFAULT;
       Point hand_base = hand.position;
@@ -92,7 +92,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
     {
       hand.SET_DEFAULT;
       Point hand_base = hand.position;
-      for ( Hand::frames_t last_i : boost::irange (1U, hand.maxMuscleLast (muscle_i)) )
+      for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_i)) )
       {
         std::list<Point> trajectory;
 

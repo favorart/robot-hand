@@ -10,8 +10,8 @@ namespace NewHand
   class Hand
   {
   public:         
-    typedef uint32_t time_t;
-    typedef uint32_t frames_t;
+    typedef unsigned int time_t;
+    typedef unsigned int frames_t;
     //----------------------------------------------------
     typedef enum : uint8_t
     { /* Opn - open,
@@ -142,21 +142,25 @@ namespace NewHand
     const double minFrameMove = EPS; // 0.1;
 
   public:
+    typedef  std::map<JointsEnum, MotionLaws::JointMotionLaw>  JointsMotionLaws;
     //----------------------------------------------------
     Hand (const Point &palm     = { -0.75, 1.05 },
           const Point &hand     = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
           const Point &shoulder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
-          const std::vector<JointsEnum>  &joints = { Elbow, Shldr }, //, Wrist, Clvcl }, //
-          const std::vector<MotionLaws::MotionLaw> &genMoveFrames = 
-          { MotionLaws::generateJointMoveFrames,
-            MotionLaws::generateJointMoveFrames },
-         // MotionLaws::generateJointMoveFrames ,
-         // MotionLaws::generateJointMoveFrames },
-          const std::vector<MotionLaws::MotionLaw> &genStopFrames = 
-          { MotionLaws::generateJointStopFrames,
-            MotionLaws::generateJointStopFrames });
-         // MotionLaws::generateJointMoveFrames ,
-         // MotionLaws::generateJointMoveFrames });
+          const JointsMotionLaws &jointsFrames = 
+          { { Hand::Elbow, { // new MotionLaws::ContinuousAcceleration (),
+                             new MotionLaws::ContinuousAccelerationThenStabilization (),
+                             new MotionLaws::ContinuousDeceleration () } },
+            { Hand::Shldr, { // new MotionLaws::ContinuousAcceleration (),
+                             new MotionLaws::ContinuousAccelerationThenStabilization (),
+                             new MotionLaws::ContinuousDeceleration () } }
+            // { Hand::Wrist, { // new MotionLaws::ContinuousAcceleration (),
+            //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+            //                  new MotionLaws::ContinuousDeceleration () } },
+            // { Hand::Clvcl, { // new MotionLaws::ContinuousAcceleration (),
+            //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+            //                  new MotionLaws::ContinuousDeceleration () } }
+          } );
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
 

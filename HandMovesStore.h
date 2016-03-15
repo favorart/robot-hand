@@ -66,6 +66,7 @@ namespace HandMoves
   public:
     // ----------------------------------------
     struct ByP {};
+    struct ByA {};
     struct ByX {};
     struct ByY {};
     struct ByD {};
@@ -81,6 +82,9 @@ namespace HandMoves
 
     double hit_x () const { return hand_final_.x; }
     double hit_y () const { return hand_final_.y; }
+
+    double aim_x () const { return aim_.x; }
+    double aim_y () const { return aim_.y; }
 
     Hand::MusclesEnum  muscles () const
     { return muscles_; }
@@ -192,8 +196,14 @@ namespace HandMoves
                                                       const_mem_fun<Record, double, &Record::hit_y>
                                                     >
                                     >,
-                 ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
-                 ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
+                 ordered_non_unique < tag<Record::ByA>,
+                                      composite_key < Record,
+                                                      const_mem_fun<Record, double, &Record::aim_x>,
+                                                      const_mem_fun<Record, double, &Record::aim_y>
+                                                    >
+                                    >,
+                 // ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
+                 // ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
                  ordered_non_unique < tag<Record::ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > // ,
               // random_access      < > // доступ, как у вектору
                >

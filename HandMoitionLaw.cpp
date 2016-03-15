@@ -2,7 +2,7 @@
 #include "HandMotionLaw.h"
 
 
-const double  acceler_percents = 0.45;
+const double acceler_percents = 0.45;
 //------------------------------------------------------------------------------
 std::vector<double>  NewHand::MotionLaws::generateJointMoveFrames (double a, double b, size_t n)
 {
@@ -24,11 +24,11 @@ std::vector<double>  NewHand::MotionLaws::generateJointMoveFrames (double a, dou
     norm_sum += frames[i];
   }
   //------------------------------------------------------
-  double sum1 = 0.;
+  // double sum1 = 0.;
   for ( size_t i = 0U; i <= n; ++i )
   { /* apply the normalization */
     frames[i] = frames[i] * (b - (n + 1) * a) / norm_sum + a;
-    sum1 += frames[i];
+    // sum1 += frames[i];
   }
   //------------------------------------------------------
   return frames;

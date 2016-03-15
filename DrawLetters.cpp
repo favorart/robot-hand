@@ -60,8 +60,8 @@ void  CanvasScaleLetters::draw (HDC hdc,
   TextOut (hdc,
            Tx ( targetMax_.x + targetXShift), /* Location of the text */
            Ty ((targetMax_.y + targetMin_.y) * 0.5 + targetXShift),
-           txtTargetScale.c_str (),        /* Text to print */
-           txtTargetScale.size ()       /* Size of the text */
+           txtTargetScale.c_str (),                  /* Text to print */
+           (int) txtTargetScale.size ()           /* Size of the text */
            );
   //---------------------------------------------------------------
   SelectObject (hdc, oldFont);
@@ -71,7 +71,7 @@ void  CanvasScaleLetters::draw (HDC hdc,
   TextOut (hdc,
            Tx (-0.13), Ty (0.01),   /* Location of the text */
            txtXScale.c_str (),             /* Text to print */
-           txtXScale.size ()            /* Size of the text */
+           (int) txtXScale.size ()      /* Size of the text */
            );
   //---------------------------------------------------------------
   SelectObject (hdc, oldFont);
@@ -81,7 +81,7 @@ void  CanvasScaleLetters::draw (HDC hdc,
   TextOut (hdc,
            Tx (0.01), Ty (0.13),    /* Location of the text */
            txtYScale.c_str (),             /* Text to print */
-           txtYScale.size ()            /* Size of the text */
+           (int) txtYScale.size ()      /* Size of the text */
            );
   //---------------------------------------------------------------
   SelectObject (hdc, oldFont);
@@ -116,9 +116,9 @@ void  CanvasScaleLetters::draw (HDC hdc,
       oldFont = (HFONT) SelectObject (hdc, Font);
       //---------------------------------------
       TextOut ( hdc,
-                Tx (pos.x), Ty (pos.y) /* - lf.lfHeight */,         /* Location of the text */
-                strHandScale.c_str (),                 /* Text to print */
-                strHandScale.size ()                /* Size of the text */
+                Tx (pos.x), Ty (pos.y) /* - lf.lfHeight */,  /* Location of the text */
+                strHandScale.c_str (),                              /* Text to print */
+                (int) strHandScale.size ()                       /* Size of the text */
                );
       //---------------------------------------
       SelectObject (hdc, oldFont);
@@ -140,7 +140,7 @@ void  CanvasScaleLetters::draw (HDC hdc,
              Tx (handPos->x),
              Ty (handPos->y),          /* Location of the text */
              strHandPos.c_str (),             /* Text to print */
-             strHandPos.size ()            /* Size of the text */
+             (int) strHandPos.size ()      /* Size of the text */
              );
     //---------------------------------------------------------------
     SelectObject (hdc, oldFont);

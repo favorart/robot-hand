@@ -210,6 +210,8 @@ void  HandMoves::storeDraw (HDC hdc, const Store &store, color_interval_t colors
 
       // std::wcout << elegance << std::endl;
       int index = static_cast<int> (elegance * (gradient.size () - 1));
+      index = index >= gradient.size () ? gradient.size () - 1 : index;
+
 
       // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
       // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
