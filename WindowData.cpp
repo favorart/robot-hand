@@ -83,8 +83,9 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
     WorkerThreadRunStoreTask ( wd, _T (" *** drawing ***  "),
                                [hdc](HandMoves::Store &store, color_interval_t colours)
                                { store.draw (hdc, colours); },
-                               // make_pair(RGB(0,0,255), RGB(255,0,0)) // 128
-                               make_pair(RGB(130,0,0), RGB(255,155,155))
+                               // make_pair(RGB(0,0,130), RGB(255,0,0)) // 128
+                                make_pair (RGB (10, 10, 245), RGB(245, 10, 150))
+                               // make_pair(RGB(130,0,0), RGB(255,155,155))
                               );
     // storeDraw (hdc, wd.store);
   }

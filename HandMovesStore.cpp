@@ -65,7 +65,7 @@ void  HandMoves::Store::draw (HDC hdc, double CircleRadius, HPEN hPen) const
 void  HandMoves::Store::draw (HDC hdc, color_interval_t colors) const
 {
   gradient_t  gradient;
-  MakeGradient (colors, 50, gradient);
+  MakeGradient (colors, 500, gradient);
 
   // int i = 0;
   // for ( auto c : gradient )
@@ -97,8 +97,8 @@ void  HandMoves::Store::draw (HDC hdc, color_interval_t colors) const
 
       double longs = static_cast<double> (rec.longestMusclesControl ());
       size_t index = static_cast<size_t>
-                    (((longs       - minTimeLong) /
-                      (maxTimeLong - minTimeLong)) * (gradient.size () - 1));
+                    (((longs      /* - minTimeLong*/) /
+                      (maxTimeLong/* - minTimeLong*/)) * (gradient.size () - 1));
 
       // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
       // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
