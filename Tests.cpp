@@ -66,16 +66,9 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
       }
 
       const Point &hand_pos = hand.position;
-
-      try
-      {
-        auto rec = Record (hand_pos, hand_base, hand_pos,
-                           muscles, start_times, lasts,
-                           moves_count, visited);
-        storeInsert (store, rec);
-      }
-      catch ( exception )
-      { /* continue; */ }
+      store.insert (Record (hand_pos, hand_base, hand_pos,
+                            muscles, start_times, lasts,
+                            moves_count, visited) );
 
       boost::this_thread::interruption_point ();
     } // for tries
@@ -97,8 +90,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
         std::list<Point> trajectory;
 
         hand.move (muscle_i, last_i, trajectory);
-        storeInsert (store,
-                     Record (hand.position, hand_base, hand.position,
+        store.insert (Record (hand.position, hand_base, hand.position,
                              { muscle_i }, { 0 }, { last_i },
                              1U, trajectory) );
 
@@ -116,8 +108,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
               --tail_j;
 
               hand.move (muscle_j, last_j, trajectory);
-              storeInsert (store,
-                           Record (hand.position, hand_base, hand.position,
+              store.insert (Record (hand.position, hand_base, hand.position,
                                    { muscle_i, muscle_j },
                                    { 0, last_i },
                                    { last_i, last_j },
@@ -140,8 +131,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
                     --tail_k;
 
                     hand.move (muscle_k, last_k, trajectory);
-                    storeInsert (store,
-                                 Record (hand.position, hand_base, hand.position,
+                    store.insert (Record (hand.position, hand_base, hand.position,
                                          { muscle_i, muscle_j, muscle_k },
                                          { 0, last_i, last_i + last_j },
                                          { last_i, last_j, last_k },

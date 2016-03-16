@@ -32,7 +32,7 @@ void /*size_t*/  littleTest (MyWindowData &wd, double radius)
     ++wd.no;
     std::list<std::shared_ptr<HandMoves::Record>> exact_range;
 
-    HandMoves::adjacencyPoints (wd.store, exact_range, pt, EPS);
+    wd.store.adjacencyPoints (exact_range, pt, EPS);
     /* If there is no exact trajectory */
     // if ( exact_range.empty () )
     // {
@@ -60,10 +60,10 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
     std::list<std::shared_ptr<HandMoves::Record>> exact_range;
     Point aim = pt;
 
-    HandMoves::adjacencyPoints (wd.store, exact_range, pt, 3 * EPS_VIS);
+    wd.store.adjacencyPoints (exact_range, pt, 3 * EPS_VIS);
     if ( !exact_range.empty () )
     {
-      exact_range.sort (ElegancePredicate ());
+      // exact_range.sort (ElegancePredicate ());
       HandMoves::controling_t  ctrls = exact_range.front ()->controls ();
 
       if ( wd.lt ) delete wd.lt;
@@ -89,9 +89,8 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
           wd.hand.move (ctrls.begin (), ctrls.end (), &visited);
           // if ( init_distance > boost_distance (wd.hand.position, aim) )
           {
-            storeInsert ( wd.store,
-                          Record (aim, hand_base, wd.hand.position,
-                                  ctrls, visited) );
+            wd.store.insert (Record (aim, hand_base, wd.hand.position,
+                                     ctrls, visited) );
           }
           c.last = last_backup;
           wd.hand.SET_DEFAULT;
@@ -106,9 +105,8 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
           wd.hand.move (ctrls.begin (), ctrls.end (), &visited);
           // if ( init_distance > boost_distance (wd.hand.position, aim) )
           {
-            storeInsert (wd.store,
-                         Record (aim, hand_base, wd.hand.position,
-                                 ctrls, visited));
+            wd.store.insert (Record (aim, hand_base, wd.hand.position,
+                                     ctrls, visited));
           }
           c.start = start_backup;
           wd.hand.SET_DEFAULT;
@@ -154,13 +152,13 @@ void  /*HandMoves::*/ testLittleCorrectives (Store &store, Hand &hand, RecTarget
   {
     /* For each point in Target */
     std::list<std::shared_ptr<HandMoves::Record>> exact;
-    HandMoves::adjacencyPoints (store, exact, ptTarget, epsilont);
+    store.adjacencyPoints (exact, ptTarget, epsilont);
     /* If there is no exact trajectory */
     if ( exact.empty () )
     {
       /* Try to find the several closest trajectories */
       std::list<std::shared_ptr<HandMoves::Record>> range;
-      HandMoves::adjacencyPoints (store, range, ptTarget, radius);
+      store.adjacencyPoints (range, ptTarget, radius);
 
       auto lt = new LittleTest (ptTarget, radius);
       lt->appendPts (range, true);
@@ -168,8 +166,8 @@ void  /*HandMoves::*/ testLittleCorrectives (Store &store, Hand &hand, RecTarget
       /* Construct the linear combinations */
       if ( range.size () >= 3U )
       {
-        HandMoves::ClosestPredicate  pred (ptTarget);
-        auto it_min = std::min_element (range.begin (), range.end (), pred);
+        HandMoves::ClosestPredicate  CPred (ptTarget);
+        auto it_min = std::min_element (range.begin (), range.end (), CPred);
 
         /*  */
         for ( auto &rec : range )

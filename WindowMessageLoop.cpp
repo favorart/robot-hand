@@ -39,7 +39,9 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       wd->hand.SET_DEFAULT;
       //=======================
       WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
-                                storeLoad, wd->CurFileName);
+                                [](Store &store, tstring filename)
+                                { store.load (filename); },
+                                wd->CurFileName);
       WorkerThreadTryJoin (*wd);
 
       // storeLoad (wd->store, wd->CurFileName);
@@ -175,7 +177,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       //                              [FileName, DefaultName](HandMoves::Store &store)
       //                              {
       //                                if ( !store.empty () )
-      //                                { storeSave (store, DefaultName);
+      //                                { store.save (DefaultName);
       //                                  store.clear ();
       //                                }
       //                                storeLoad (store, FileName);
@@ -244,10 +246,10 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
                                         [FileName, DefaultName](HandMoves::Store &store) {
                 if ( !store.empty () )
                 {
-                  storeSave (store, DefaultName);
+                  store.save (DefaultName);
                   store.clear ();
                 }
-                storeLoad (store, FileName);
+                store.load (FileName);
               });
               wd->CurFileName = FileName;
             }
@@ -265,7 +267,9 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
                 << CurrentTimeToString (_T ("_%d-%m-%Y_%I-%M-%S"))
                 << _T ("_moves.bin");
               WorkerThreadRunStoreTask (*wd, _T ("  *** saving ***  "),
-                                        storeSave, ss.str ());
+                                        [](const Store &store, tstring filename)
+                                        { store.save (filename); },
+                                        ss.str ());
             }
           }
           break;
@@ -277,7 +281,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
             ss << HAND_NAME
               << CurrentTimeToString (_T ("_%d-%m-%Y_%I-%M-%S"))
               << _T ("_moves.bin");
-            storeSave (wd->store, ss.str ());
+            wd->store.save (ss.str ());
           }
           break;
 

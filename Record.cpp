@@ -91,37 +91,30 @@ bool    Record::validateMusclesTimes () const
   return true;
 }
 //---------------------------------------------------------
-double  Record::eleganceMove (/* const Point &aim */) const
+double  Record::eleganceMove ( /* const Point &aim */ ) const
 {
-  /*  max.отклонение      !!!ПЕРЕЛОМЫ траектории!!!
-   *  Длина траектории по сравнениею с дистанцией
-   */
-  if ( 0 )
-  {
-    /* Суммарное время работы двигателей */
-    auto sum_time_muscles = 0.;
-    for ( auto &hc : hand_controls_ ) { sum_time_muscles += hc.last; }
-    /* Количество движений */
-    double controls_count_ratio = 1. / controlsCount;
-
-    /* max.отклонение от оптимальной траектории */
-    double max_divirgence = ratioTrajectoryDivirgence ();
-    /* Количество задействованных мышц */
-    double muscles_count_ratio = ratioUsedMusclesCount ();
-  }
-  /* Длина траектории по сравнениею с дистанцией */
-  // double  distance_ratio = ratioDistanceByTrajectory ();
+  /* Суммарное время работы двигателей */
+  auto sum_time_muscles = 0.;
+  for ( auto &hc : hand_controls_ )
+  { sum_time_muscles += hc.last; }
   
-  // return  distance_ratio;
-  /*   + max_divirgence + sum_time_muscles
-   *   + muscles_count_ratio + controls_count_ratio
-   */
-
-  auto longest_control = *boost::max_element (controls (), [](const Hand::Control &a, const Hand::Control &b)
-                                                           {return (a.start + a.last) > (b.start + b.last); });
-  double total_time = (longest_control.start + longest_control.last) / 300.;
-  // double total_time = (controls ().back ().start + controls ().back ().last) - controls ().front ().start;
-  return total_time;
+  /* Количество движений */
+  double controls_count_ratio = 1. / controlsCount;
+  /* Количество задействованных мышц */
+  double muscles_count_ratio = ratioUsedMusclesCount ();
+  /* max.отклонение от оптимальной траектории */
+  double max_divirgence = ratioTrajectoryDivirgence ();
+  /* Длина траектории по сравнениею с дистанцией */
+  double distance_ratio = ratioDistanceByTrajectory ();
+  /* Переломы в движении */
+  double trajectory_brakes = ratioTrajectoryBrakes ();
+  
+  return  distance_ratio + max_divirgence
+        + trajectory_brakes + sum_time_muscles
+        + muscles_count_ratio + controls_count_ratio;
+  
+  // double total_time = longestMusclesControl ();
+  // return total_time;
 }
 //---------------------------------------------------------
 double  Record::ratioDistanceByTrajectory () const
@@ -165,6 +158,15 @@ double  Record::ratioTrajectoryDivirgence () const
   return max_divirgence;
 }
 
+Hand::frames_t  Record::longestMusclesControl () const
+{
+  const Hand::Control &longestControl = *boost::max_element (controls (),
+                                       [](const Hand::Control &a, const Hand::Control &b)
+                                       { return (a.start + a.last) < (b.start + b.last); });
+  // return (longestControl.start + longestControl.last) / 300.; // ??? ЧЕМ НОРМАЛИЗОВЫВАТЬ???
+  return  (longestControl.start + longestControl.last);
+}
+
 double  Record::ratioUsedMusclesCount () const
 {
   /* Количество задействованных мышц */
@@ -177,6 +179,12 @@ double  Record::ratioUsedMusclesCount () const
 double  Record::ratioTrajectoryBrakes () const
 { /* ПЕРЛОМЫ */
   // остановки 
+
+  // for ( auto m : mus )
+
+  // if ( Opn and Cls in controls )
+  // or start > start + last
+
 
   // (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
   return 0.;

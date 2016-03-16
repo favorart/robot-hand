@@ -56,8 +56,7 @@ namespace Positions
   //      for ( Hand::frames_t last_i : boost::irange (1U, hand.maxMuscleLast (muscle_i)) )
   //      {
   //        hand.move (muscle_i, last_i, trajectory);
-  //        storeInsert (store,
-  //                     Record (hand.position, hand_base, hand.position,
+  //        store.insert (Record (hand.position, hand_base, hand.position,
   //                             { muscle_i }, { 0 }, { last_i }, 1U,
   //                             trajectory)
   //                     );
@@ -117,7 +116,7 @@ namespace Positions
                   // auto& index = store.get<Record::ByP> ();
                   // index.equal_range (hand.position);
 
-                  storeInsert (store, Record (hand.position, hand_base, hand.position,
+                  store.insert (Record (hand.position, hand_base, hand.position,
                                               { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
                                               trajectory));
                   // trajectories.push_back (make_shared<trajectory_t> (trajectory));
@@ -133,8 +132,7 @@ namespace Positions
       //     for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (1U, 126U, 10) ) //hand.maxMuscleLast (muscle_i)) )
       //     {
       //       hand.move (muscle_i | muscle_j, last_i, trajectory);
-      //       storeInsert (store,
-      //                    Record (hand.position, hand_base, hand.position,
+      //       store.insert (Record (hand.position, hand_base, hand.position,
       //                    { muscle_i }, { 0 }, { last_i, 126U - last_i }, 1U,
       //                    trajectory)
       //                    );
@@ -229,36 +227,35 @@ namespace Positions
                     const Point&  hand_pos = hand.position;
                     if ( target.isOnTarget (hand_pos) )
                     {
-                      storeInsert (store,
-                                   Record (hand_pos, hand_base, hand_pos,
-                                           { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
-                                           trajectory));
+                      store.insert (Record (hand_pos, hand_base, hand_pos,
+                                            { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
+                                            trajectory));
                       // trajectories.push_back (make_shared<trajectory_t> (trajectory));
 
                            if ( store.size () == 200000 )
                       {
-                        storeSave (store, _T ("NewHand_200000_moves_tightly_save.bin"));
+                        store.save (_T ("NewHand_200000_moves_tightly_save.bin"));
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
                         std::wcout << _T ("NewHand_200000_moves_tightly_saved") << std::endl;
 #endif // _HAND_TEST_CONSOLE_PRINTF
                       }
                       else if ( store.size () == 400000 )
                       {
-                        storeSave (store, _T ("NewHand_400000_moves_tightly_save.bin"));
+                        store.save (_T ("NewHand_400000_moves_tightly_save.bin"));
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
                         std::wcout << _T ("NewHand_400000_moves_tightly_saved") << std::endl;
 #endif // _HAND_TEST_CONSOLE_PRINTF
                       }
                       else if ( store.size () == 600000 )
                       {
-                        storeSave (store, _T ("NewHand_600000_moves_tightly_save.bin"));
+                        store.save (_T ("NewHand_600000_moves_tightly_save.bin"));
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
                         std::wcout << _T ("NewHand_600000_moves_tightly_saved") << std::endl;
 #endif // _HAND_TEST_CONSOLE_PRINTF
                       }
                       else if ( store.size () == 1000000 )
                       {
-                        storeSave (store, _T ("NewHand_1000000_moves_tightly_save.bin"));
+                        store.save (_T ("NewHand_1000000_moves_tightly_save.bin"));
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
                         std::wcout << _T ("NewHand_1000000_moves_tightly_saved") << std::endl;
                         std::wcout << muscle_i << ' ' << last_i << std::endl;
@@ -267,7 +264,7 @@ namespace Positions
                       }
                       else if ( store.size () == 1500000 )
                       {
-                        storeSave (store, _T ("NewHand_1500000_moves_tightly_save.bin"));
+                        store.save (_T ("NewHand_1500000_moves_tightly_save.bin"));
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
                         std::wcout << _T ("NewHand_1500000_moves_tightly_saved") << std::endl;
                         std::wcout << muscle_i << ' ' << last_i << std::endl;
@@ -276,7 +273,7 @@ namespace Positions
                       }
                       else if ( store.size () == 2000000 )
                       {
-                        storeSave (store, _T ("NewHand_2000000_moves_tightly_save.bin"));
+                        store.save (_T ("NewHand_2000000_moves_tightly_save.bin"));
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
                         std::wcout << _T ("NewHand_2000000_moves_tightly_saved")  << std::endl;
                         std::wcout << muscle_i << ' '                   << last_i << std::endl;
@@ -530,7 +527,7 @@ namespace Positions
     //  Record rec (aim, aim,
     //              { muscle_i }, { 0 }, { last_i },
     //              1U, trajectory);
-    //  storeInsert (store, rec);
+    //  store.insert (rec);
     //}
     //=========================================================================
     //// std::cout << muscle_i << ' ' << hi << ' ' << last_i << std::endl;
@@ -552,7 +549,7 @@ namespace Positions
     //      hand.move (muscle_j, last_j, trajectory);
     //      {
     //        const Point &aim = hand.position;
-    //        storeInsert (store, Record (aim, aim,
+    //        store.insert (Record (aim, aim,
     //        { muscle_i, muscle_j },
     //        { 0, last_i },
     //        { last_i, last_j },
@@ -581,7 +578,7 @@ namespace Positions
     //            hand.move (muscle_k, last_k, trajectory);
     //            {
     //              const Point &aim = hand.position;
-    //              storeInsert (store, Record (aim, aim,
+    //              store.insert (Record (aim, aim,
     //              { muscle_i, muscle_j, muscle_k },
     //              { 0, last_i, last_i + last_j },
     //              { last_i, last_j, last_k },
@@ -613,28 +610,15 @@ namespace Positions
 
   }
   //------------------------------------------------------------------------------
-  static HandMoves::Record  findExactPoint (Store &store, const Point &aim)
-  {
-    Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
-    auto result = index.find (boost::tuple<double, double> (aim.x, aim.y));
-    return *result;
-  }
-
-  //------------------------------------------------------------------------------
-  static void  UncoveredTargetPoints (IN  Store &store,
-                               IN  const RecTarget &target,
-                               OUT std::list<Point> &uncovered)
-  {
-    std::list<std::shared_ptr<Record>> range;
-    adjacencyRectPoints (store, range, target.Min (), target.Max ());
-
-    Store::index<Record::ByP>::type& index = store.get<Record::ByP> ();
-    for ( auto &pt : target.coords () )
-    {
-      if ( index.find (boost::tuple<double, double> (pt.x, pt.y)) == index.end () )
-      { uncovered.push_back (pt); }
-    }
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   static  bool  tryToHitTheAim (Store &store, Hand &hand, const Point &aim,
                         size_t maxTries, double epsilont = EPS)
@@ -644,7 +628,7 @@ namespace Positions
     /* While there is no exact trajectory */
     for ( size_t n_try = 0U; (result = exact_range.empty ()) || n_try < maxTries; ++n_try )
     {
-      HandMoves::adjacencyPoints (store, exact_range, aim, epsilont);
+      store.adjacencyPoints (exact_range, aim, epsilont);
 
     }
     return !result;

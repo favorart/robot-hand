@@ -71,7 +71,7 @@ MyWindowData::~MyWindowData ()
     pWorkerThread = NULL;
   }
   //=======================
-  HandMoves::storeSave (store, CurFileName);
+  store.save (CurFileName);
   //=======================
 }
 //-------------------------------------------------------------------------------
@@ -81,10 +81,10 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
   if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
   { /* command  <q>  */
     WorkerThreadRunStoreTask ( wd, _T (" *** drawing ***  "),
-                               [hdc](HandMoves::Store &store, color_interval_t interval)
-                               { storeDraw (hdc, store, interval); },
-                               make_pair(RGB(0,0,128), RGB(255,0,0))
-                               // make_pair(RGB(130,0,0), RGB(255,155,155))
+                               [hdc](HandMoves::Store &store, color_interval_t colours)
+                               { store.draw (hdc, colours); },
+                               // make_pair(RGB(0,0,255), RGB(255,0,0)) // 128
+                               make_pair(RGB(130,0,0), RGB(255,155,155))
                               );
     // storeDraw (hdc, wd.store);
   }
@@ -156,8 +156,8 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
 
 void  MakeHandMove (MyWindowData &wd)
 {
-  HandMoves::adjacencyPoints (wd.store, wd.adjPointsDB,
-                              wd.mouse_aim, wd.radius);
+  wd.store.adjacencyPoints (wd.adjPointsDB,
+                            wd.mouse_aim, wd.radius);
 
   ClosestPredicate pred (wd.mouse_aim);
   auto it_min = std::min_element (wd.adjPointsDB.begin (),

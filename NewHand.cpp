@@ -210,22 +210,16 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
 NewHand::Hand::Hand (const Point &palm,
                      const Point &hand, const Point &arm,
                      const Point &shoulder, const Point &clavicle,
-                     // const std::vector<JointsEnum>  &joints,
-                     // const std::vector<MotionLaws::JointMoveLaw> &MoveFrames,
-                     // const std::vector<MotionLaws::JointStopLaw> &StopFrames
                      const JointsMotionLaws &jointsFrames) :
                      
+                     StopDistaceRatio (0.3), // 30% от общего пробега
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
                                        135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
                      maxMoveFrames ({ 3000U /* ClvclIndex */    , 500U /* ShldrIndex */ ,
                                        400U /* ElbowIndex */    , 350U /* WristIndex */ }),
-                     StopDistaceRatio (0.3), // 30% от общего пробега
 
-                     // maxMoveFrames ({ 150U /* ClvclIndex */ , 60U /* ShldrIndex */ , 
-                     //                   55U /* ElbowIndex */ , 30U /* WristIndex */ }),
                      palm_ (palm), hand_ (hand), arm_ (arm),
                      shoulder_ (shoulder), clavicle_ (clavicle),
-                     // joints_ (joints.), 
                      jointsCount (joints.size ()),
                      drawPalm_ (false)
 { 

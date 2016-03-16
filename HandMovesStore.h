@@ -3,238 +3,233 @@
 #ifndef  _HAND_MOVES_H_
 #define  _HAND_MOVES_H_
 //------------------------------------------------------------------------------
-#define HAND_VER 2
-#if   HAND_VER == 1
-#include "Hand.h"
-using namespace OldHand;
-#elif HAND_VER == 2
-#include "NewHand.h"
-using namespace NewHand;
-#include "HandMuscles.h"
-#endif
-//------------------------------------------------------------------------------
+#include "Record.h"
 #include "MyWindow.h"
-
+//------------------------------------------------------------------------------
 namespace HandMoves
 {
-  // !!! tree types of point !!!
-  //-------------------------------
-  // Point  aim_;
-  // Point  hand_;
-  // Point  close_network_;
-  
-  typedef std::list<Point>          trajectory_t;
-  typedef std::list<trajectory_t>   trajectories_t;
-  typedef std::list<Hand::Control>  controling_t;
+  struct ByP {};
+  struct ByA {};
+  struct ByX {};
+  struct ByY {};
+  struct ByD {};
+  struct ByC {};
 
-  class Record
+  using namespace ::boost::multi_index;
+
+  class Store // DataBase
   {
-  public:
-    const static size_t  maxControlsCount = 2U;
-
-    const static size_t  arrays_size = 4U;
-    typedef std::array<Hand::frames_t, arrays_size> times_array;
-    typedef std::array<Hand::MusclesEnum, arrays_size> muscles_array;
-
-    controling_t  hand_controls_;
-  private:
-    // ----------------------------------------
-    Point  aim_, hand_begin_, hand_final_;
-    // ----------------------------------------
-    Hand::MusclesEnum   muscles_;
-    trajectory_t        visited_;
-
-    /* ПЕРЕЛОМы !?!?! */
-
-    // ----------------------------------------
-    friend class boost::serialization::access;
-    BOOST_SERIALIZATION_SPLIT_MEMBER ()
-
-    template <class Archive>
-    void  save (Archive & ar, const unsigned int version) const
+    struct ControlingHasher : std::unary_function<const controling_t&, size_t>
     {
-      ar << aim_ << hand_begin_ << hand_final_;
-      ar << muscles_ << hand_controls_ << visited_;
-    }
-    template <class Archive>
-    void  load (Archive & ar, const unsigned int version)
-    {
-      ar >> aim_ >> hand_begin_ >> hand_final_;
-      ar >> muscles_ >> hand_controls_ >> visited_;
-    }
-
-  public:
-    // ----------------------------------------
-    struct ByP {};
-    struct ByA {};
-    struct ByX {};
-    struct ByY {};
-    struct ByD {};
-    struct ByC {};
-
-    struct ChangePoint : public std::unary_function<Record, void>
-    {
-      ChangePoint (const Point &p) : p_ (p) {}
-      void operator() (Record rec) { rec.aim_ = p_; }
-    private:
-      Point p_;
-    };
-
-    double hit_x () const { return hand_final_.x; }
-    double hit_y () const { return hand_final_.y; }
-
-    double aim_x () const { return aim_.x; }
-    double aim_y () const { return aim_.y; }
-
-    Hand::MusclesEnum  muscles () const
-    { return muscles_; }
-    // ----------------------------------------
-    Record () {}
-
-    Record (const Point         &aim,
-            const Point         &hand_begin,
-            const Point         &hand_final,
-            const muscles_array &muscles,
-            const times_array   &times,
-            const times_array   &lasts,
-            size_t               controls_count,
-            const trajectory_t  &visited);
-
-    Record (const Point         &aim,
-            const Point         &hand_begin,
-            const Point         &hand_final,
-            const std::list<Hand::Control> controls,
-            const trajectory_t  &visited);
-
-    // ----------------------------------------
-    operator tstring () const
-    { return  str (boost::wformat (_T ("rec<x=%1%, y=%2%>")) % hit.x % hit.y); }
-
-    // ----------------------------------------
-    /* Microsoft specific: C++ properties */
-    __declspec(property(get = get_aim)) const Point &aim;
-    const Point&  get_aim () const { return aim_; }
-
-    __declspec(property(get = get_final)) const Point &hit;
-    const Point&  get_final () const { return hand_final_; }
-
-    __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
-    const trajectory_t  &get_trajectory () const { return visited_; }
-
-    __declspec(property(get = get_controls_count)) size_t  controlsCount;
-    size_t  get_controls_count () const { return hand_controls_.size (); }
-
-    size_t   controls_array (OUT std::array<Hand::Control, Record::maxControlsCount> &controls) const
-    {
-      size_t i = 0U;
-      for ( auto &hc : hand_controls_ )
-      { controls[i++] = hc; }
-      return controlsCount;
-    }
-    const controling_t&  controls () const { return hand_controls_; }
-    // ----------------------------------------
-    bool    validateMusclesTimes () const;
-    void    repeatMove (Hand &hand) const
-    {
-      hand.SET_DEFAULT;
-      trajectory_t visited;
-      hand.move (hand_controls_.begin (), hand_controls_.end (), &visited);
-
-      auto it1 = visited .begin ();
-      auto it2 = visited_.begin ();
-      auto index = 0U;
-      for ( ; it1 != visited.end () && it2 != visited_.end (); ++it1, ++it2 )
+      std::size_t operator()(const controling_t &controls) const
       {
-        if ( *it1 != *it2 )
+        std::size_t seed = 0U;
+        for ( Hand::Control c : controls )
         {
-          auto  &j1 = *it1;
-          auto  &j2 = *it2;
+          boost::hash_combine (seed, boost::hash_value (c.muscle));
+          boost::hash_combine (seed, boost::hash_value (c.start));
+          boost::hash_combine (seed, boost::hash_value (c.last));
         }
-        ++index;
+        return seed;
       }
-    }
+    };
+    //------------------------------------------------------------------------------
+    typedef boost::multi_index_container
+    < Record,
+      indexed_by < hashed_unique      < tag<ByC>,
+                                        member<Record, controling_t, &Record::hand_controls_>,
+                                        ControlingHasher
+                                      >,
+                   ordered_non_unique < tag<ByP>,
+                                        composite_key < Record,
+                                                        const_mem_fun<Record, double, &Record::hit_x>,
+                                                        const_mem_fun<Record, double, &Record::hit_y>
+                                                      >
+                                      >,
+                   ordered_non_unique < tag<ByA>,
+                                        composite_key < Record,
+                                                        const_mem_fun<Record, double, &Record::aim_x>,
+                                                        const_mem_fun<Record, double, &Record::aim_y>
+                                                      >
+                                      >,
+                   // ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
+                   // ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
+                   ordered_non_unique < tag<ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > // ,
+                // random_access      < > // доступ, как у вектору
+                 >
+    > MultiIndexMoves;
+    //==============================================================================
+    MultiIndexMoves store_;
 
-    double  eleganceMove (/* const Point &aim */) const;
-    double  distanceCovered () const
-    { return boost_distance (hand_final_, hand_begin_); }
-    // ----------------------------------------
-    double  Record::ratioDistanceByTrajectory () const;
-    double  Record::ratioTrajectoryDivirgence () const;
+    gradient_t  gradient;
 
-    double  Record::ratioUsedMusclesCount () const;
-    double  Record::ratioTrajectoryBrakes () const;
-    // ----------------------------------------
-  };
 
-  struct ControlingHasher : std::unary_function<const controling_t&, size_t>
-  {
-    std::size_t operator()(const controling_t &controls) const
+    mutable boost::mutex    store_mutex_;
+    Hand::frames_t          minTimeLong, maxTimeLong;
+    //==============================================================================
+  public:
+    Store () : minTimeLong (0U), maxTimeLong (0U) {}
+    //------------------------------------------------------------------------------
+    class RangeInserter
     {
-      std::size_t seed = 0U;
-      for ( Hand::Control c : controls )
+    public:
+      void operator () (std::list<Record> &range, const Record &rec)
+      { range.push_back (rec); }
+      void operator () (std::list<std::shared_ptr<Record>> &range, const Record &rec)
+      { range.push_back (std::make_shared<Record> (rec)); }
+    };
+    //------------------------------------------------------------------------------
+    /* прямоугольная окрестность точки */
+    template <class T>
+    size_t  adjacencyRectPoints (std::list<T> &range, const Point &left_down, const Point &right_up)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      
+      typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
+      MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+      /* Range searching, i.e.the lookup of all elements in a given interval */
+      IndexPcIter itFirstLower = index.lower_bound (boost::tuple<double, double> (left_down));
+      IndexPcIter itFirstUpper = index.upper_bound (boost::tuple<double, double> (right_up));
+    
+      size_t count = 0U;
+      RangeInserter rangeInserter;
+      for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
-        boost::hash_combine (seed, boost::hash_value (c.muscle));
-        boost::hash_combine (seed, boost::hash_value (c.start));
-        boost::hash_combine (seed, boost::hash_value (c.last));
+        auto &rec = *it;
+        rangeInserter (range, rec);
+        // range.push_back (*it); // range.push_back ( std::make_shared<Record> (*it) );
+        ++count;
       }
-      return seed;
+      return count;
     }
+    /* круглая окрестность точки */
+    template <class T>
+    size_t  adjacencyPoints (std::list<T> &range, const Point &center, double radius)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      
+      typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
+      MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+    
+      IndexPcIter itFirstLower = index.lower_bound (boost::make_tuple (center.x - radius,
+                                                                       center.y - radius));
+      IndexPcIter itFirstUpper = index.upper_bound (boost::make_tuple (center.x + radius,
+                                                                       center.y + radius));
+      size_t count = 0U;
+      RangeInserter  rangeInserter;
+      for ( auto it = itFirstLower; it != itFirstUpper; ++it )
+      {
+        auto &rec = *it;
+        if ( boost::geometry::distance (boost_point2_t (center),
+                                        boost_point2_t (rec.hit)) <= radius )
+        {
+          rangeInserter (range, rec);
+          // range.push_back (*it); // range.push_back ( make_shared<Record> (*it) );
+          ++count;
+        }
+      }
+      return count;
+    }
+    //------------------------------------------------------------------------------
+    template <class T>
+    size_t  similDistances  (std::list<T> &range, double min_distance, double max_distance)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      
+      typedef MultiIndexMoves::index<ByD>::type::const_iterator IndexDcIter;
+      MultiIndexMoves::index<ByD>::type  &index = store_.get<ByD> ();
+    
+      IndexDcIter itFirstLower = index.lower_bound (min_distance);
+      IndexDcIter itFirstUpper = index.upper_bound (max_distance);
+    
+      size_t count = 0U;
+      RangeInserter  rangeInserter;
+      for ( auto it = itFirstLower; it != itFirstUpper; ++it )
+      {
+        auto &rec = *it;
+        rangeInserter (rec);
+        ++count;
+      }
+      return count;
+    }
+    //------------------------------------------------------------------------------
+    /* Все точки с данным x | y */
+    void  adjacencyYsByXPoints (std::list<Record> &range, double x,
+                                double up = 0., double down =0.) const;
+    void  adjacencyXsByYPoints (std::list<Record> &range, double y,
+                                double left=0., double right=0.) const;
+    //------------------------------------------------------------------------------
+    const Record*  ExactRecordByControl (controling_t controls)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      
+      MultiIndexMoves::index<ByC>::type  &index = store_.get<ByC> ();
+      auto equal = index.find (controls);
+      return  (equal != index.end ()) ? (&(*equal)) : (nullptr);
+    }
+    //------------------------------------------------------------------------------
+    template <class T>
+    size_t  FindEndPoint (std::list<T> &range, const Point &point)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+
+      MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+      auto result = index.equal_range (boost::tuple<double, double> (point));
+
+      size_t count = 0U;
+      RangeInserter rangeInserter;
+      for ( auto it = result.first; it != result.second (); ++it )
+      {
+        rangeInserter (range, *it);
+        ++count;
+      }
+      return  count;
+    }
+    //------------------------------------------------------------------------------
+    void  draw (HDC hdc, color_interval_t colors) const;
+    void  draw (HDC hdc, double CircleRadius, HPEN hPen) const;
+    //------------------------------------------------------------------------------
+    /* сериализация */
+    void  save (tstring filename) const;
+    void  load (tstring filename);
+    //------------------------------------------------------------------------------
+    void  insert (const Record &rec);
+    //------------------------------------------------------------------------------
+    void  clear ()
+    { 
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      store_.clear ();
+
+      minTimeLong = 0U;
+      maxTimeLong = 0U;
+    }
+    bool  empty ()
+    { 
+      // boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      return store_.empty ();
+    }
+    size_t size ()
+    { 
+      // boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      return store_.size ();
+    }
+    //------------------------------------------------------------------------------
+    // void  uncoveredTargetPoints (IN const RecTarget &target,
+    //                              OUT std::list<Point> &uncovered) const
+    // {
+    //   boost::lock_guard<boost::mutex>  lock (store_mutex_);
+    //
+    //   std::list<std::shared_ptr<Record>> range;
+    //   adjacencyPoints (range, target.Min (), target.Max ());
+    //   
+    //   MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+    //   for ( auto &pt : target.coords () )
+    //   {
+    //     if ( index.find (boost::tuple<double, double> (pt)) == index.end () )
+    //     { uncovered.push_back (pt); }
+    //   }
+    // }
   };
-
-
-  using namespace boost::multi_index;
-  //------------------------------------------------------------------------------
-  typedef boost::multi_index_container
-  < Record,
-    indexed_by < hashed_unique      < tag<Record::ByC>,
-                                      member<Record, controling_t, &Record::hand_controls_>,
-                                      ControlingHasher
-                                    >,
-                 ordered_non_unique < tag<Record::ByP>,
-                                      composite_key < Record,
-                                                      const_mem_fun<Record, double, &Record::hit_x>,
-                                                      const_mem_fun<Record, double, &Record::hit_y>
-                                                    >
-                                    >,
-                 ordered_non_unique < tag<Record::ByA>,
-                                      composite_key < Record,
-                                                      const_mem_fun<Record, double, &Record::aim_x>,
-                                                      const_mem_fun<Record, double, &Record::aim_y>
-                                                    >
-                                    >,
-                 // ordered_non_unique < tag<Record::ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
-                 // ordered_non_unique < tag<Record::ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
-                 ordered_non_unique < tag<Record::ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > // ,
-              // random_access      < > // доступ, как у вектору
-               >
-  > Store;
-  //------------------------------------------------------------------------------
-  void  storeInsert (Store &store, const Record &rec);
-  //------------------------------------------------------------------------------
-  /* прямоугольная окрестность точки */
-  size_t  adjacencyRectPoints (Store &store, std::list<Record> &range,
-                               const Point &left_down, const Point &right_up);
-  size_t  adjacencyRectPoints (Store &store, std::list<std::shared_ptr<Record>> &range,
-                               const Point &left_down, const Point &right_up);
-
-  /* круглая окрестность точки */
-  size_t  adjacencyPoints (Store &store, std::list<Record> &range,
-                           const Point &center, double radius);
-
-  size_t  adjacencyPoints (Store &store, std::list<std::shared_ptr<Record>> &range,
-                           const Point &center, double radius);
-
-  size_t  similDistances (Store &store, std::list<std::shared_ptr<HandMoves::Record>> &range,
-                          double distance, double over=EPS);
-
-  size_t  similControls (Store &store, std::list<std::shared_ptr<HandMoves::Record>> &range,
-                         Hand::MusclesEnum control, bool contains_not_exact=true);
-  
-  /* Все точки с данным x | y */
-  void  adjacencyYsByXPoints (Store &store, std::list<Record> &range,
-                              double x, double up = 0., double down = 0.);
-  void  adjacencyXsByYPoints (Store &store, std::list<Record> &range,
-                              double y, double left=0., double right=0.);
   //------------------------------------------------------------------------------
   class ClosestPredicate
   {
@@ -243,12 +238,14 @@ namespace HandMoves
     ClosestPredicate (const Point &aim) : aim (aim) {}
     double  operator() (const std::shared_ptr<Record> &a,
                         const std::shared_ptr<Record> &b)
-    { return this->operator() (boost_point2_t (a->hit),
+    {
+      return this->operator() (boost_point2_t (a->hit),
                                boost_point2_t (b->hit));
     }
     double  operator() (const Record &a,
                         const Record &b)
-    { return this->operator() (boost_point2_t (a.hit),
+    {
+      return this->operator() (boost_point2_t (a.hit),
                                boost_point2_t (b.hit));
     }
     double  operator() (const boost_point2_t &a,
@@ -260,62 +257,18 @@ namespace HandMoves
     }
   };
   //------------------------------------------------------------------------------
-  class ElegancePredicate
-  {
-  public:
-    double  operator() (const Record &a,
-                        const Record &b)
-    {
-       /*  Элегантность - это
-        *  отношение дистанции к длине траектории
-        *  и отсутствие переломов 
-        */
-
-        // (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
-
-      /* Длина траектории по сравнениею с дистанцией */
-      auto  ra = a.ratioDistanceByTrajectory ();
-      auto  rb = b.ratioDistanceByTrajectory ();
-      return (ra < rb);
-    }
-    double  operator() (const std::shared_ptr<Record> &a,
-                        const std::shared_ptr<Record> &b)
-    { return this->operator() (*a, *b); }
-  };
-  //------------------------------------------------------------------------------
-  class RecordHasher
-  {
-    std::size_t operator()(const Record& rec) const
-    {
-      std::size_t  seed = 0U;
-      // modify seed by xor and bit-shifting
-      // of the key members
-      boost::hash_combine (seed, boost::hash_value (rec.hit.x));
-      boost::hash_combine (seed, boost::hash_value (rec.hit.y));
-      // the result.
-      return seed;
-    }
-  
-  };
-  //------------------------------------------------------------------------------
-  void  storeDraw (HDC hdc, const Store &store, color_interval_t colors);
-  void  storeDraw (HDC hdc, const Store &store, double CircleRadius, HPEN hPen);
-  //------------------------------------------------------------------------------
-  /* сериализация */
-  void  storeSave (const Store &store, tstring filename);
-  void  storeLoad (      Store &store, tstring filename);
-  //------------------------------------------------------------------------------
   /* тестовые движения рукой */
   void  test_random (Store &store, Hand &hand, size_t tries);
   void  test_cover  (Store &store, Hand &hand, size_t nesting /* = 1,2,3 */);
   //------------------------------------------------------------------------------
   // void  testCover (Store &store, Hand &hand, Hand::MusclesEnum muscles, \
-                     std::list<std::shared_ptr<std::list<Point>>> &trajectories);
-
+                       std::list<std::shared_ptr<std::list<Point>>> &trajectories);
+  
   // void  getTargetCenter (Hand &hand, Point &center);
   // void  testCoverTarget (Store &store, Hand &hand, RecTarget &target);
+  //------------------------------------------------------------------------------
 }
-BOOST_CLASS_VERSION (HandMoves::Record, 1)
+BOOST_CLASS_VERSION (HandMoves::Store, 2)
 
 #include "Position.h"
 

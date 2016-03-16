@@ -148,11 +148,11 @@ namespace NewHand
           const Point &hand     = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
           const Point &shoulder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
           const JointsMotionLaws &jointsFrames = 
-          { { Hand::Elbow, { // new MotionLaws::ContinuousAcceleration (),
-                             new MotionLaws::ContinuousAccelerationThenStabilization (),
+          { { Hand::Elbow, { new MotionLaws::ContinuousAcceleration (),
+                             // new MotionLaws::ContinuousAccelerationThenStabilization (),
                              new MotionLaws::ContinuousDeceleration () } },
-            { Hand::Shldr, { // new MotionLaws::ContinuousAcceleration (),
-                             new MotionLaws::ContinuousAccelerationThenStabilization (),
+            { Hand::Shldr, { new MotionLaws::ContinuousAcceleration (),
+                             // new MotionLaws::ContinuousAccelerationThenStabilization (),
                              new MotionLaws::ContinuousDeceleration () } }
             // { Hand::Wrist, { // new MotionLaws::ContinuousAcceleration (),
             //                  new MotionLaws::ContinuousAccelerationThenStabilization (),

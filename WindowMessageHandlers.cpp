@@ -692,9 +692,8 @@ tstring   CurrentTimeToString (tstring format, std::time_t *the_time)
   return ss.str ();
 }
 //-------------------------------------------------------------------------------
-void      MakeGradient (IN  color_interval_t  colors,
-                        IN  size_t            n_levels,
-                        OUT gradient_t       &gradient)
+void      MakeGradient (color_interval_t  colors, size_t n_levels,
+                        gradient_t  &gradient)
 { 
   gradient.clear ();
   gradient.resize (n_levels);
