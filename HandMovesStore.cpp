@@ -34,7 +34,7 @@ void  HandMoves::Store::adjacencyXsByYPoints (std::list<Record> &range,
 }
 //------------------------------------------------------------------------------
 // enum { Pixels, Ellipses };
-void  HandMoves::Store::draw (HDC hdc, double CircleRadius, HPEN hPen) const
+void  HandMoves::Store::draw (HDC hdc, double circleRadius, HPEN hPen) const
 {
   HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
   // --------------------------------------------------------------
@@ -58,28 +58,27 @@ void  HandMoves::Store::draw (HDC hdc, double CircleRadius, HPEN hPen) const
     }
   }
   for ( auto &pt : map_points )
-  { DrawCircle (hdc, pt.first, CircleRadius); }
+  { DrawCircle (hdc, pt.first, circleRadius); }
   // --------------------------------------------------------------
   SelectObject (hdc, hPen_old);
 }
-void  HandMoves::Store::draw (HDC hdc, color_interval_t colors) const
+void  HandMoves::Store::draw (HDC hdc, gradient_t gradient) const
 {
-  gradient_t  gradient;
-  MakeGradient (colors, 500, gradient);
+  
 
-  // int i = 0;
-  // for ( auto c : gradient )
-  // {
-  //   std::wcout << '(' << GetRValue (c) << ' '
-  //                     << GetGValue (c) << ' '
-  //                     << GetBValue (c) << ' '
-  //              << ')' << ' '; // std::endl;
-  // 
-  //   HPEN Pen = CreatePen (PS_SOLID, 1, c);
-  //   DrawCircle (hdc, Point (0.01 * i - 0.99, 0.9), 0.01, Pen);
-  //   DeleteObject (Pen);
-  //   ++i;
-  // }
+  int i = 0;
+  for ( auto c : gradient )
+  {
+    std::wcout << '(' << GetRValue (c) << ' '
+                      << GetGValue (c) << ' '
+                      << GetBValue (c) << ' '
+               << ')' << ' '; // std::endl;
+  
+    HPEN Pen = CreatePen (PS_SOLID, 1, c);
+    DrawCircle (hdc, Point (0.01 * i - 0.99, 0.9), 0.01, Pen);
+    DeleteObject (Pen);
+    ++i;
+  }
 
   boost::lock_guard<boost::mutex>  lock (store_mutex_);
 
@@ -95,10 +94,24 @@ void  HandMoves::Store::draw (HDC hdc, color_interval_t colors) const
       // // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       // index = index >= gradient.size () ? gradient.size () - 1 : index;
 
-      double longs = static_cast<double> (rec.longestMusclesControl ());
-      size_t index = static_cast<size_t>
-                    (((longs      /* - minTimeLong*/) /
-                      (maxTimeLong/* - minTimeLong*/)) * (gradient.size () - 1));
+      // double longs = static_cast<double> (rec.longestMusclesControl () - minTimeLong);
+      size_t longs = rec.longestMusclesControl ();
+
+      size_t index;
+      if ( longs > 500U )
+        index = 2U;
+      else if ( longs > 150U )
+        index = 1U;
+      else
+        index = 0U;
+
+      // double step  = static_cast<double> (maxTimeLong - minTimeLong) / gradient.size ();
+      // size_t index = static_cast<size_t> (longs / step);
+
+
+      // size_t index = static_cast<size_t>
+      //               (((longs       - minTimeLong) /
+      //                 (maxTimeLong - minTimeLong)) * (gradient.size (); - 1));
 
       // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
       // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )

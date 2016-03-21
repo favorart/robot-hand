@@ -41,12 +41,15 @@ public:
   // ---------------------------------
   size_t  coordsCount () const { return coords_.size (); }
   const vec_t& coords () const { return coords_; }
-
-  void  draw (HDC hdc, HPEN hPen) const;
-
+  
   void  generate ();
 
-  bool  isOnTarget (const Point &p)
+  void  draw (HDC hdc, HPEN hPen,
+              bool internalLines,
+              bool internalPoints,
+              bool ellipseOrPixel) const;
+
+  bool  isOnTarget (const Point &p) const
   { return  (p.x >= lft && p.x <= rgh && p.y >= btm && p.y <= top); }
 
   Point  Min () const { return  Point (lft, btm); }

@@ -18,14 +18,11 @@ void     SetWindowSize (int Width_, int Height_)
   WindowSize ()->y = Height_;
 }
 
-int  Tx (double logic_x)
-{ return  (int) (MARGIN + ( 1.0 / 2) * (logic_x + 1) *
-                 (WindowSize ()->x - 2 * MARGIN));
-}
-int  Ty (double logic_y)
-{ return  (int) (MARGIN + (-1.0 / 2) * (logic_y - 1) * 
-                 (WindowSize ()->y - 2 * MARGIN));
-}
+int  Tx  (double logic_x) { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
+int  Ty  (double logic_y) { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
+
+int  T1x (double logic_x) { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
+int  T1y (double logic_y) { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
 Point  logic_coord (win_point* coord)
 { Point p;
@@ -318,7 +315,8 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     SetBkMode (wd.hStaticDC, TRANSPARENT);
     //-------------------------------------
     DrawDecardsCoordinates (wd.hStaticDC);
-    wd.target.draw (wd.hStaticDC, wd.hPen_grn);
+    wd.target.draw (wd.hStaticDC, wd.hPen_grn,
+                    true /*false*/, false, false);
 
     //-------------------------------------
     /* Здесь рисуем на контексте hCmpDC */
@@ -366,7 +364,8 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     SetBkMode (hCmpDC, TRANSPARENT);
     //-------------------------------------
     DrawDecardsCoordinates (hCmpDC);
-    wd.target.draw (hCmpDC, wd.hPen_grn);
+    wd.target.draw (hCmpDC, wd.hPen_grn,
+                    true /*false*/, false, false);
     //-------------------------------------
   }
   //-------------------------------------

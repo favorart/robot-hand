@@ -34,13 +34,13 @@ namespace HandMoves
     typedef std::array<Hand::frames_t, arrays_size> times_array;
     typedef std::array<Hand::MusclesEnum, arrays_size> muscles_array;
 
-    controling_t  hand_controls_;
   private:
     // ----------------------------------------
     Point  aim_, hand_begin_, hand_final_;
     // ----------------------------------------
     Hand::MusclesEnum   muscles_;
     trajectory_t        visited_;
+    controling_t  hand_controls_;
 
     // ----------------------------------------
     friend class boost::serialization::access;
@@ -92,7 +92,7 @@ namespace HandMoves
     Record (const Point         &aim,
             const Point         &hand_begin,
             const Point         &hand_final,
-            const std::list<Hand::Control> controls,
+            const controling_t  &controls,
             const trajectory_t  &visited);
 
     // ----------------------------------------

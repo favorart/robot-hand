@@ -37,7 +37,7 @@ namespace HandMoves
     typedef boost::multi_index_container
     < Record,
       indexed_by < hashed_unique      < tag<ByC>,
-                                        member<Record, controling_t, &Record::hand_controls_>,
+                                        const_mem_fun<Record, const controling_t&, &Record::controls>,
                                         ControlingHasher
                                       >,
                    ordered_non_unique < tag<ByP>,
@@ -186,8 +186,8 @@ namespace HandMoves
       return  count;
     }
     //------------------------------------------------------------------------------
-    void  draw (HDC hdc, color_interval_t colors) const;
-    void  draw (HDC hdc, double CircleRadius, HPEN hPen) const;
+    void  draw (HDC hdc, gradient_t gradient) const;
+    void  draw (HDC hdc, double circleRadius, HPEN hPen) const;
     //------------------------------------------------------------------------------
     /* сериализация */
     void  save (tstring filename) const;

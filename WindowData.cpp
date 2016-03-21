@@ -9,7 +9,8 @@ using namespace HandMoves;
 MyWindowData:: MyWindowData () :
   pWorkerThread (NULL),
   lt (NULL),
-  target ( 64U, 64U,
+  target ( // 200U, 200U,
+           64U, 64U,
            // 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
                         //  -0.70,  0.90,  0.90, -0.99)
                          -0.41,  0.46, -0.05, -0.90
@@ -80,14 +81,28 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
   // ----- Отрисовка точек БД -------------------------------------
   if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
   { /* command  <q>  */
+
+    // size_t colorGradations = 15U;
+    // color_interval_t colors = // make_pair(RGB(0,0,130), RGB(255,0,0)); // 128
+    //   make_pair (RGB (150, 10, 245), RGB (245, 10, 150));
+    // // make_pair(RGB(130,0,0), RGB(255,155,155));
+    // 
+    // gradient_t  gradient;
+    // MakeGradient (colors, colorGradations, gradient);
+    // // wd.store.draw (hdc, gradient);
+
+    gradient_t  gradient ({ RGB (25, 255, 25),
+                            RGB (25, 25, 255),
+                            // RGB (0, 0, 255),
+                            RGB (255, 25, 25)// ,
+                            // RGB (255, 0, 0)
+                          });
+
     WorkerThreadRunStoreTask ( wd, _T (" *** drawing ***  "),
-                               [hdc](HandMoves::Store &store, color_interval_t colours)
-                               { store.draw (hdc, colours); },
-                               // make_pair(RGB(0,0,130), RGB(255,0,0)) // 128
-                                make_pair (RGB (10, 10, 245), RGB(245, 10, 150))
-                               // make_pair(RGB(130,0,0), RGB(255,155,155))
-                              );
-    // storeDraw (hdc, wd.store);
+                               [hdc](HandMoves::Store &store,
+                                     gradient_t gradient)
+                               { store.draw (hdc, gradient); },
+                              gradient);
   }
   // --------------------------------------------------------------
 }

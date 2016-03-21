@@ -39,7 +39,7 @@ Record::Record (const Point         &aim,
 Record::Record (const Point         &aim,
                 const Point         &hand_begin,
                 const Point         &hand_final,
-                const std::list<Hand::Control> controls,
+                const controling_t  &controls,
                 const trajectory_t  &visited) :
   aim_ (aim), hand_begin_ (hand_begin), hand_final_ (hand_final),
   muscles_ (Hand::EmptyMov), visited_ (visited)
@@ -157,16 +157,15 @@ double  Record::ratioTrajectoryDivirgence () const
   
   return max_divirgence;
 }
-
+//---------------------------------------------------------
 Hand::frames_t  Record::longestMusclesControl () const
 {
   const Hand::Control &longestControl = *boost::max_element (controls (),
                                        [](const Hand::Control &a, const Hand::Control &b)
                                        { return (a.start + a.last) < (b.start + b.last); });
-  // return (longestControl.start + longestControl.last) / 300.; // ??? ЧЕМ НОРМАЛИЗОВЫВАТЬ???
   return  (longestControl.start + longestControl.last);
 }
-
+//---------------------------------------------------------
 double  Record::ratioUsedMusclesCount () const
 {
   /* Количество задействованных мышц */

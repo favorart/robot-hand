@@ -43,7 +43,7 @@ public:
   // ---------------------------------
 
   const double  radius = 0.1;
-  const size_t  skip_show_steps = 15;
+  const size_t  skip_show_steps = 15U;
 
   tstring  CurFileName = tstring(HAND_NAME) + tstring (_T ("_moves.bin"));
   size_t   store_size;
@@ -56,7 +56,7 @@ public:
   bool                      trajectory_frames_show;
   // ---------------------------------
 
-  bool working_space_show;
+  bool  working_space_show;
   HandMoves::trajectory_t  working_space;
 
   // --- adjacency -------------------

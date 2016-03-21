@@ -69,8 +69,6 @@ namespace NewHand
        */
     public:
       // --------------------------------
-      ContinuousAcceleration () {}
-      // --------------------------------
       // template <typename ForwardIterator>
       virtual void  generate (VectorDoublesIterator first, size_t frames_count,
                               double left_border, double right_border) const
@@ -99,12 +97,19 @@ namespace NewHand
     };
     class ContinuousAccelerationThenStabilization : public JointMoveLaw
     {
-      double  AccelerationLongInPercents;
+      /*  Моделируется нелинейное ускорение на протяжении первой части работы мускула,
+      *  длина этой части задаётся параметром AccelerationLong ϵ [0.0, 1.0].
+      *  Затем скорость движения руки стабилизируется до полного раскрытия.
+      *  ...
+      */
+      double  AccelerationLong = 0.45;
     public:
       // --------------------------------
-      ContinuousAccelerationThenStabilization () : AccelerationLongInPercents (0.45) {}
-      ContinuousAccelerationThenStabilization (double AccelerationLongInPercents) :
-        AccelerationLongInPercents (AccelerationLongInPercents) {}
+      ContinuousAccelerationThenStabilization (double AccelerationLong)
+      {
+        if ( 1. >= AccelerationLong && AccelerationLong >= 0. )
+        { this->AccelerationLong = AccelerationLong; }
+      }
       // --------------------------------
       // template <typename ForwardIterator>
       virtual void  generate (VectorDoublesIterator first, size_t frames_count,
@@ -113,7 +118,7 @@ namespace NewHand
         VectorDoublesIterator  iter = first;
         // --------------------------------
         size_t  n = frames_count;
-        size_t  m = static_cast<size_t> (frames_count * AccelerationLongInPercents) + 1U;
+        size_t  m = static_cast<size_t> (frames_count * AccelerationLong) + 1U;
         double a = left_border, b = right_border;
         // --------------------------------
         double  norm_sum = 0.;
