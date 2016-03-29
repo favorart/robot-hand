@@ -21,19 +21,7 @@ namespace Positions
 {
 #define _HAND_TEST_CONSOLE_PRINTF
 
-  /*  Количество точек, в окресности искомой точки.
 
-  Что я могу варьировать?
-
-  v  1. Длительность работы каждого мускула
-  v  2. Время старта каждого мускула
-  v  3. Тормозить мускулом? (прерывать 1 на вход на которкое время)
-
-  ?  4. Может быть !1 перелом! траектории (полная остановка)
-  Он может нам понадобиться в зависимости от законов движения
-  разных мускулов, если один до второго не успевает ...
-  (?позже включить??)
-  */
 
   //void  /*HandMoves::*/testCover (Store &store, Hand &hand,
   //                            Hand::MusclesEnum muscles /* recursive */,
@@ -152,17 +140,23 @@ namespace Positions
     } // end for
   }
   //------------------------------------------------------------------------------
-  static double  prediction ()
-  {
-    return 0.;
-  }
-
-  // static Hand::frames_t  start_restrict (Hand::frames_t  max_lasts)
-  // { return  (max_lasts > 2U) ? (max_lasts * 3U / 4U) : 1U; }
-
   class LearnMovements
   {
- 
+    /*  Количество точек, в окресности искомой точки.
+     *
+     *  Что я могу варьировать?
+     *
+     *  v  1. Длительность работы каждого мускула
+     *  v  2. Время старта каждого мускула
+     *  v  3. Тормозить мускулом? (прерывать '1' входа на которкое время)
+     *
+     *  ?  4. Может быть !1 перелом! траектории (полная остановка)
+     *  Он может нам понадобиться в зависимости от законов движения
+     *  разных мускулов, если один до второго не успевает ...
+     *  (?позже включить??)
+     *
+     */
+
     /* stage_1 */
     //==============================================
     /* Желаемое расстояние между конеными точками
@@ -306,20 +300,98 @@ namespace Positions
        *         +----------------+
        */
 
+      // class PredictedDirection
+      // {
+      //   Hand::MusclesEnum  muscle;
+      //   Hand::frames_t     last;
+      //   // trajectory_t trajectory; ???
+      //   // Point center;
+      // 
+      //   PredictedDirection ():
+      //     muscle (Hand::EmptyMov), last (0U), end (0,0) {}
+      //   PredictedDirection (Hand::MusclesEnum m, Hand::frames_t l, Point e) :
+      //     muscle (m), last (l), end (e) {}
+      // 
+      // public:
+      //   Point end;
+      // };
 
-      /*
-          key  - muscle
-          data - center
-                 direction
-      */
-      std::map<Hand::MusclesEnum, std::pair<Point, std::list<Point>>>  directions;
-      for ( auto m : hand.muscles_ )
+
+      class DirectionPredictor
       {
-        trajectory_t visited;
-        hand.move (m, hand.maxMuscleLast (m), visited);
-        directions[m] = std::make_pair (hand.jointPosition (jointByMuscle (m)), visited);
-      }
+        //------------------------------------------
+        class MainDirection
+        {
+        public:
+          //------------------------------------------
+          Hand::MusclesEnum  muscle;
+          std::vector<Point>  shifting;
+          Point  center;
+          //------------------------------------------
+          MainDirection (Hand::MusclesEnum m, Hand &hand) :
+            muscle (m),
+            center (hand.jointPosition (jointByMuscle (m)))
+          {
+            hand.SET_DEFAULT;
+            Point hand_base = hand.position;
+            // Must !!! Each !!!
+            std::list<Point>  trajectory;
+            hand.move (m, hand.maxMuscleLast (m), trajectory /*, !!! */);
 
+            for ( auto pt : trajectory )
+            {
+              shifting.push_back (Point (pt.x - hand_base.x,
+                                         pt.y - hand_base.y));
+            }
+          }
+          //------------------------------------------
+          bool operator== (Hand::MusclesEnum m) const
+          { return  (muscle == m); }
+          bool operator!= (Hand::MusclesEnum m) const
+          { return  (muscle != m); }
+        };
+        //------------------------------------------
+        std::list<MainDirection>  mainDirections;
+        Point hand_base;
+        //------------------------------------------
+      public:
+        DirectionPredictor (Hand &hand) :
+          hand_base (hand.position)
+        {
+          for ( auto m : hand.muscles_ )
+          { mainDirections.push_back ( MainDirection (m, hand) ); }
+        }
+        //------------------------------------------
+        Point  predict (Hand::MusclesEnum m, Hand::frames_t l
+                        /*, !!! CENTER POSITIONS !!! */) const
+        {
+          Point end = hand_base;
+          // if ( /* m not in mainDirections */ 1 )
+          {
+            for ( auto m_ : muscles )
+              for ( auto md : mainDirections )
+                if ( md == (m & m_) )
+                {
+                  end.x += md.shifting[l].x;
+                  end.y += md.shifting[l].y;
+                }
+            }
+          return end;
+        }
+        //------------------------------------------
+      };
+
+      DirectionPredictor  pd (hand);
+      for ( size_t  i : boost::irange<size_t> (0U, hand.controlsCount) )
+      {
+        Hand::MusclesEnum  m = hand.selectControl (i);
+        Point end = pd.predict (m, 11U);
+
+        if ( target.isOnTarget (end) )
+        {
+          /* !!! НА МИШЕНИ !!! */
+        }
+      }
 
 
     }
