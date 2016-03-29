@@ -210,13 +210,14 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
 NewHand::Hand::Hand (const Point &palm,
                      const Point &hand, const Point &arm,
                      const Point &shoulder, const Point &clavicle,
-                     const JointsMotionLaws &jointsFrames) :
+                     const JointsMotionLaws &jointsFrames) throw (...) :
                      
                      StopDistaceRatio (0.3), // 30% от общего пробега
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
                                        135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
                      maxMoveFrames ({ 3000U /* ClvclIndex */    , 500U /* ShldrIndex */ ,
                                        400U /* ElbowIndex */    , 350U /* WristIndex */ }),
+                     visitedSaveEach (10),
 
                      palm_ (palm), hand_ (hand), arm_ (arm),
                      shoulder_ (shoulder), clavicle_ (clavicle),
@@ -330,7 +331,7 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   return  actual_last;
 }
 NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last,
-                                              OUT std::list<Point> &visited, frames_t each)
+                                              OUT std::list<Point> &visited)
 {
   frames_t  frame = 0U;
   frames_t  actual_last = 0U;
@@ -344,7 +345,7 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
     while ( hs.musclesMove_ && !hs.moveEnd_ )
     { /* just moving */
       step ();
-      if ( !(frame % each) )
+      if ( !(frame % visitedSaveEach) )
         visited.push_back (position);
       // std::wcout << tstring (position) << std::endl;
       ++actual_last;
@@ -355,8 +356,8 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   return  actual_last;
 }
 NewHand::Hand::frames_t  NewHand::Hand::move (IN  std::initializer_list<Control> controls,
-                                              OUT std::list<Point> *visited, frames_t each)
-{ return  move (controls.begin (), controls.end (), visited, each); }
+                                              OUT std::list<Point> *visited) throw (...)
+{ return  move (controls.begin (), controls.end (), visited); }
 
 void  NewHand::Hand::reset ()
 {

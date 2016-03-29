@@ -106,4 +106,6 @@ void      MakeGradient (color_interval_t  colors,
                         size_t            n_levels,
                         gradient_t       &gradient);
 //-------------------------------------------------------------------------------
+#define _ANIMATION_
+
 #endif // _WINDOW_H_

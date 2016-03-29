@@ -9,14 +9,15 @@
 #include "littleTests.h"
 
 // ====================================================
-void  /*HandMoves::*/ testLittleCorrectives (HandMoves::Store &store, Hand &hand, RecTarget &target,
-                                             double radius, /* minimal distance between 2 neighbour points of target */
-                                             double epsilont = EPS);
-void littleTest (MyWindowData &wd, double radius);
+void  testLittleCorrectives (HandMoves::Store &store, Hand &hand, RecTarget &target,
+                             double radius, /* minimal distance between 2 neighbour points of target */
+                             double epsilont = EPS);
+void    littleTest (MyWindowData &wd, double radius);
 size_t  littleTest (MyWindowData &wd);
+
+// ====================================================
 // !?!?!?!?!?! КОНФИГУРАЦИОННЫЕ ФАЙЛЫ !?!?!?!?
 // !?!?!?!?!?! ФАЙЛЫ, как интерфейс управления !?!?!?!?
-// ====================================================
 
 //------------------------------------------------------------------------------
 class MyWindowData
@@ -68,6 +69,8 @@ public:
 
   RecTarget  target;
   CanvasScaleLetters scaleLetters;
+
+  std::list<Point> uncoveredPoints;
   
   // ---------------------------------
   Hand hand;

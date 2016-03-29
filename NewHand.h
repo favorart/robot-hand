@@ -76,6 +76,9 @@ namespace NewHand
 
     MusclesEnum musclesCumul;
     
+
+    frames_t  visitedSaveEach;
+
   private:
 
     struct HandStatus
@@ -160,7 +163,7 @@ namespace NewHand
             // { Hand::Clvcl, { // new MotionLaws::ContinuousAcceleration (),
             //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
             //                  new MotionLaws::ContinuousDeceleration () } }
-          } );
+          }) throw (...);
 
     void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
 
@@ -199,9 +202,9 @@ namespace NewHand
       void  serialize (Archive & ar, const unsigned int version)
       { ar & muscle & start & last; }
     };
-
+    
     template <class Iter>
-    frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL, frames_t each=25) throw (...)
+    frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL) throw (...)
     {
       frames_t  frame = 0U;
       frames_t  actual_last = 0U;
@@ -217,25 +220,26 @@ namespace NewHand
       /* simultaniusly moving */
       if ( musclesCumul & control_muscles )
       { /*  Что-то должно двигаться,
-        *  иначе бесконечный цикл.
-        */
+         *  иначе бесконечный цикл.
+         */
         Iter  iter = begin;
         for ( frames_t time = iter->start; iter != end; ++time )
         {
-          if ( time == iter->start )
+          if ( time == iter->start ) /* А ЕСЛИ ОНИ СТАРТУЮТ ОДНОВРЕМЕННО НО С РАЗНОЙ ПРОДОЛЖИТЕЛЬНОСТЬЮ РАБОТАЮТ !?!? */
+            while ( time == iter->start )
           {
             step (iter->muscle, iter->last);
             if ( iter != begin )
               ++actual_last;
             ++iter;
-            if ( visited && !(frame % each) )
+            if ( visited && !(frame % visitedSaveEach) )
               visited->push_back (position);
           }
           else
           {
             step ();
             ++actual_last;
-            if ( visited && !(frame % each) )
+            if ( visited && !(frame % visitedSaveEach) )
               visited->push_back (position);
           }
           ++frame;
@@ -245,7 +249,7 @@ namespace NewHand
         {
           step ();
           ++actual_last;
-          if ( visited && !(frame % each) )
+          if ( visited && !(frame % visitedSaveEach) )
             visited->push_back (position);
           ++frame;
         }
@@ -254,11 +258,23 @@ namespace NewHand
       } // end if
       return  actual_last;
     }
-    frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL, frames_t each=25);
+    frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL) throw (...);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last);
-    frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited, frames_t each=25);
+    frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited);
 
     void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
+
+    const Point&  jointPosition (Hand::JointsEnum joint) const throw (...)
+    {
+      switch ( joint )
+      {
+        case Hand::Clvcl: return clavicle_;
+        case Hand::Shldr: return shoulder_;
+        case Hand::Elbow: return      arm_;
+        case Hand::Wrist: return     hand_;
+        default: throw new std::exception ("Inorrect joint");  // _T ??
+      }
+    }
 
     /*  NewHand::Hand:: (Clvcl < Shldr < Elbow < Wrist) index
      *  jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 %

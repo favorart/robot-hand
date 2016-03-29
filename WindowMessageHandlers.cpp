@@ -21,6 +21,7 @@ void     SetWindowSize (int Width_, int Height_)
 int  Tx  (double logic_x) { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
 int  Ty  (double logic_y) { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
+/* zoom */
 int  T1x (double logic_x) { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
 int  T1y (double logic_y) { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
@@ -399,24 +400,20 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     //   InvalidateRect (hWnd, &myRect, TRUE /*0*/);
     //   break;
 
-    case 't':
-    { //========================================
-      OnRandomTest (wd);
-      // MessageBox (hWnd, _T ("Done\n"), 
-      //             _T ("RandomTest"), MB_OK);
+    case 'q':
+    {
       //========================================
-      /* Фон не будет переписовываться */
-      InvalidateRect (hWnd, &myRect, TRUE);
+      // OnShowDBPoints (wd);
+      wd.allPointsDB_show = !wd.allPointsDB_show;
+      wd.hStaticBitmapChanged = true;
+      //========================================
+      InvalidateRect (hWnd, &myRect, FALSE);
       break;
     }
 
     case 'o':
     { 
-      if ( GetKeyState (VK_CONTROL) & 0x8000 )
-
-      
       //========================================
-      
       wd.trajectory_frames.clear ();
       wd.hand.SET_DEFAULT;
 
@@ -424,14 +421,14 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames_muscle = wd.hand.selectControl ();
       wd.trajectory_frames_lasts = random (1U, wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
 
-      // wd.trajectory_frames_muscle = Hand::ShldrCls;
-      // wd.trajectory_frames_lasts = 25U;
-
-      wd.hand.move (wd.trajectory_frames_muscle, wd.trajectory_frames_lasts, wd.trajectory_frames);
+#ifndef   _ANIMATION_
+      wd.hand.move (wd.trajectory_frames_muscle,
+                    wd.trajectory_frames_lasts,
+                    wd.trajectory_frames);
 
       auto   hand_pos = wd.hand.position;
       Point  hand_base = wd.trajectory_frames.front ();
-      wd.trajectory_frames.pop_front ();
+      // wd.trajectory_frames.pop_front ();
       auto rec = Record (hand_pos, hand_base, hand_pos,
                          { wd.trajectory_frames_muscle },
                          { 0U }, { wd.trajectory_frames_lasts },
@@ -441,7 +438,24 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames.clear ();
       wd.trajectory_frames_muscle = Hand::EmptyMov;
       wd.trajectory_frames_lasts = 0;
+#else  // _ANIMATION_
+      wd.trajectory_frames_show = true;
+      wd.hand.step (wd.trajectory_frames_muscle,
+                    wd.trajectory_frames_lasts);
+#endif // _ANIMATION_
+
       //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+    
+    case 't':
+    { //========================================
+      OnRandomTest (wd);
+      // MessageBox (hWnd, _T ("Done\n"), 
+      //             _T ("RandomTest"), MB_OK);
+      //========================================
+      /* Фон не будет переписовываться */
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
@@ -466,25 +480,56 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     case 'y':
     {
       //========================================
-      WorkerThreadRunStoreTask (wd, _T (" *** target cover test ***  "),
-                                Positions::testCoverTarget, wd.hand, wd.target);
+      // WorkerThreadRunStoreTask (wd, _T (" *** target cover test ***  "),
+      //                           Positions::testCoverTarget, wd.hand, wd.target);
       // Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
+
+      
+
+      WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
+                                // Positions::test_1_stage
+                                [](Store &store, Hand &hand, RecTarget &target)
+                                {
+                                  Positions::LearnMovements lm;
+                                  lm.testStage1 (store, hand, target);
+                                }
+                                , wd.hand, wd.target);
       WorkerThreadTryJoin (wd);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
-    case 'q':
-    { 
+    case 'k':
+    {
+      // static std::list<int> step;
+      // // step.clear ();
+      // std::shared_ptr<trajectory_t> trajectory = make_shared<trajectory_t> (new trajectory_t());
+      // wd.testing_trajectories.push_back (trajectory);
+
+      // HandMoves::testCover (wd.store, wd.hand, Hand::EmptyMov, wd.testing_trajectories); // , step, wd.testing_trajectories.back ());
+      
+      // Point center = Point ((wd.target.Min ().x + wd.target.Max ().x) / 2.,
+      //                       (wd.target.Min ().y + wd.target.Max ().y) / 2.);
+      // Positions::getTargetCenter (wd.hand, center);
+
+      // WorkerThreadRunStoreTask (wd, _T (" *** stage 3 test ***  "),
+      //                           [&uncovered] (Store &store, Hand &hand, RecTarget &target)
+      //                           {
+      //                             Positions::LearnMovements lm;
+      //                             lm.testStage3 (store, hand, target, uncovered);
+      //                           }
+      //                           , wd.hand, wd.target);
+      // WorkerThreadTryJoin (wd);
+
+      {
+        Positions::LearnMovements lm;
+        lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
+      }
       //========================================
-      // OnShowDBPoints (wd);
-      wd.allPointsDB_show = !wd.allPointsDB_show;
-      wd.hStaticBitmapChanged = true;
-      //========================================
-      InvalidateRect (hWnd, &myRect, FALSE);
-      break;
+      InvalidateRect (hWnd, &myRect, TRUE);
     }
+    break;
 
     case 'i':
     { // int muscle, last;
@@ -501,54 +546,31 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
-    case 'k':
-    {
-      // static std::list<int> step;
-      // // step.clear ();
-      // std::shared_ptr<trajectory_t> trajectory = make_shared<trajectory_t> (new trajectory_t());
-      // wd.testing_trajectories.push_back (trajectory);
-      
-      // HandMoves::testCover (wd.store, wd.hand, Hand::EmptyMov, wd.testing_trajectories); // , step, wd.testing_trajectories.back ());
-      Point center = Point ((wd.target.Min ().x + wd.target.Max ().x) / 2.,
-                            (wd.target.Min ().y + wd.target.Max ().y) / 2.);
-      Positions::getTargetCenter (wd.hand, center);
-    }
-    break;
-
-    case 'l':
-    {
-      if ( wd.pWorkerThread )
-        wd.pWorkerThread->interrupt ();
-
-      WorkerThreadTryJoin (wd);
-    }
-    break;
-
     case 'u':
     {
       if ( !wd.working_space.size () )
       {
         Hand::MusclesEnum muscle;
         wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0.,0.,0. });
-
+    
         muscle = Hand::ClvclOpn;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-
+    
         muscle = Hand::ShldrCls;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-
+    
         muscle = Hand::ClvclCls;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-
+    
         muscle = Hand::ElbowCls;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-
+    
         muscle = Hand::ShldrOpn;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-
+    
         muscle = Hand::ElbowOpn;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-
+    
         wd.hand.SET_DEFAULT;
       }
       wd.working_space_show = !wd.working_space_show;
@@ -557,12 +579,24 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
+    case 'l':
+    {
+      if ( wd.pWorkerThread )
+      {
+        wd.pWorkerThread->interrupt ();
+        WorkerThreadTryJoin (wd);
+      }
+      break;
+    }
+
     case 'g':
+    {
       //========================================
       wd.scaleLetters.show = !wd.scaleLetters.show;
       //========================================
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
+    } 
 
     //========================================
     /* Clavicle */
@@ -579,8 +613,9 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     case 'f': wd.hand.step (Hand::WristOpn); break;
     /* Reset */
     case 'r': 
+    {
       wd.hand.SET_DEFAULT;
-      
+
       wd.reach = false;
 
       wd.adjPointsDB.clear ();
@@ -588,9 +623,11 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
       wd.mouse_haved = false;
 
+      wd.trajectory_frames.clear ();
       wd.trajectory_frames_show = false;
       wd.testing_trajectories.clear ();
-      wd.trajectory_frames.clear ();
+
+      wd.uncoveredPoints.clear ();
 
       /* Setting the Label's text */
       SendMessage (wd.hLabMAim,      /* Label   */
@@ -598,6 +635,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                    (WPARAM) NULL,    /* Unused  */
                    (LPARAM) _T (" "));
       break;
+    }
     //========================================
     // case 'm': if ( !fn ) fm = 1; break;
     // case 'n': if ( !fm ) fn = 1; break;
@@ -711,7 +749,7 @@ void      MakeGradient (color_interval_t  colors, size_t n_levels,
   }
 }
 //-------------------------------------------------------------------------------
-void OnEraseBackGround_WithGradient (HWND hwnd)
+void      OnEraseBackGround_WithGradient (HWND hwnd)
 {
   /* Vars */
   HDC dc; /* Standard Device Context; used to do the painting */

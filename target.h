@@ -21,10 +21,11 @@ private:
   size_t  c_rows, c_cols;
   // ---------------------------------
   Point center_;
-  
-public:
+  // ---------------------------------
   double x_distance;
   double y_distance;
+  
+public:
   // ---------------------------------
   RecTarget () : 
     c_rows (0), c_cols (0), lft (0), rgh (0), top (0), btm (0), center_ (0., 0.) {}
@@ -56,6 +57,10 @@ public:
   Point  Max () const { return  Point (rgh, top); }
 
   const Point&  center () const { return  center_; }
+  double     precision () const
+  { return  min (x_distance, y_distance) / 2.; }
+  double     pts_distance () const
+  { return  max (x_distance, y_distance); }
   // ---------------------------------
 };
 //------------------------------------------------------------------------------

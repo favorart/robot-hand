@@ -214,18 +214,21 @@ namespace HandMoves
       return store_.size ();
     }
     //------------------------------------------------------------------------------
-    // void  uncoveredTargetPoints (IN const RecTarget &target,
-    //                              OUT std::list<Point> &uncovered) const
+    // void  uncoveredTargetPoints (IN const RecTarget &target, OUT std::list<Point> &uncovered)
     // {
     //   boost::lock_guard<boost::mutex>  lock (store_mutex_);
-    //
-    //   std::list<std::shared_ptr<Record>> range;
-    //   adjacencyPoints (range, target.Min (), target.Max ());
-    //   
-    //   MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+    // 
+    //   // std::list<std::shared_ptr<Record>> range;
+    //   // adjacencyPoints (range, target.Min (), target.Max ());
+    //  
+    //   // MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
     //   for ( auto &pt : target.coords () )
     //   {
-    //     if ( index.find (boost::tuple<double, double> (pt)) == index.end () )
+    //     std::list<std::shared_ptr<Record>> exact;
+    //     adjacencyPoints (exact, pt, target.precision ());
+    // 
+    //     if ( exact.empty )
+    //     // if ( index.find (boost::tuple<double, double> (pt)) == index.end () )
     //     { uncovered.push_back (pt); }
     //   }
     // }

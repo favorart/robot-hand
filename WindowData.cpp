@@ -117,11 +117,15 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
   DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
   // --------------------------------------------------------------
-
-  // --------------------------------------------------------------
   if ( wd.working_space_show ) /* u */
     DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
   // --------------------------------------------------------------
+
+  for ( auto pt : wd.uncoveredPoints )
+  { SetPixel (hdc, Tx (pt.x), Ty (pt.y), RGB (255, 0, 0)); }
+
+  if ( wd.trajectory_frames_show )
+  { DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng); }
 
   // if ( !wd.testing && !wd.testing_trajectories.empty () && 
   //       wd.testing_trajectories_animation_show )
@@ -144,6 +148,7 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   //   { DrawCircle (hdc, p->hit, CircleRadius); }
   //   SelectObject (hdc, hPen_old);
   // }
+
   // --------------------------------------------------------------
   if ( wd.mouse_haved )
    DrawAdjacency (hdc, wd.mouse_aim, wd.radius, ellipse, wd.hPen_cian);
@@ -205,57 +210,52 @@ void  OnWindowTimer (MyWindowData &wd)
 {
   if ( !wd.testing && !wd.reach ) // ????????
   {
-    /* Auto-drawing trajectory animation */
-
-    /* !!! WORKING ONLY FOR NEW_HAND !!! */
-
-    // if ( wd.trajectory_frames_show )
-    // { --wd.trajectory_frames_lasts;
-    //   if ( !wd.trajectory_frames_lasts )
-    //   {
-    //     // std::wcout << L"end " << tstring (wd.hand.position) << std::endl;
-    //     wd.hand.step (wd.trajectory_frames_muscle);
-    //   }
-    // }
-
     // ============
     for ( size_t i = 0U; i < wd.skip_show_steps; ++i )
+    {
       wd.hand.step ();
-    // ============
-    if ( wd.trajectory_frames_show )
-    { 
-      
-      /* !!! WORKING ONLY FOR NEW_HAND !!! */
-      if ( wd.hand.moveEnd )
+      // ============
+#ifdef    _ANIMATION_
+      /* Auto-drawing trajectory animation */
+      if ( wd.trajectory_frames_show )
       {
-        auto hand_pos = wd.hand.position;
-        wd.trajectory_frames.push_back (hand_pos);
+        /* !!! WORKING ONLY FOR NEW_HAND !!! */
+        wd.hand.step ();
 
-        if ( !wd.testing )
+        if ( wd.hand.moveEnd )
         {
-          Point  base_pos = wd.trajectory_frames.front ();
-          wd.trajectory_frames.pop_front ();
+          auto hand_pos = wd.hand.position;
+          wd.trajectory_frames.push_back (hand_pos);
 
-          auto rec = Record (hand_pos, base_pos, hand_pos,
-                             { wd.trajectory_frames_muscle },
-                             { 0U }, { wd.trajectory_frames_lasts },
-                             1U, wd.trajectory_frames);
-          wd.store.insert (rec);
+          if ( !wd.testing )
+          {
+            Point  base_pos = wd.trajectory_frames.front ();
+            // wd.trajectory_frames.pop_front ();
+
+            auto rec = Record (hand_pos, base_pos, hand_pos,
+            { wd.trajectory_frames_muscle },
+            { 0U }, { wd.trajectory_frames_lasts },
+                               1U, wd.trajectory_frames);
+            wd.store.insert (rec);
+          }
+
+          // wd.trajectory_frames_show = false;
+          // wd.trajectory_frames.clear ();
+          wd.trajectory_frames_muscle = Hand::EmptyMov;
+          wd.trajectory_frames_lasts = 0;
         }
-        wd.trajectory_frames_lasts = 0U;
-        wd.trajectory_frames_muscle = Hand::EmptyMov;
+        else
+        { wd.trajectory_frames.push_back (wd.hand.position); }
       }
-      else if ( wd.trajectory_frames_lasts )
-      { wd.trajectory_frames.push_back (wd.hand.position); }
+#endif // _ANIMATION_
 
-    }
-
-    /* Trajectoriaes animation */
-    if ( wd.testing_trajectories_animation_show && 
-         wd.testing_trajectories_animation_num_iteration >= 
-         wd.testing_trajectories.size () )
-    { ++wd.testing_trajectories_animation_num_iteration; }
-  }
+      /* Trajectoriaes animation */
+      if ( wd.testing_trajectories_animation_show &&
+          wd.testing_trajectories_animation_num_iteration >=
+          wd.testing_trajectories.size () )
+      { ++wd.testing_trajectories_animation_num_iteration; }
+    } // end for
+  } // end if
 }
 void  OnWindowMouse (MyWindowData &wd)
 {
@@ -276,7 +276,6 @@ void  OnWindowMouse (MyWindowData &wd)
     wd.reach = true;
     MakeHandMove (wd);
   }
-
 }
 //-------------------------------------------------------------------------------
 /* inline */ void  OnRandomTest (MyWindowData &wd)
