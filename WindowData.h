@@ -71,6 +71,7 @@ public:
   CanvasScaleLetters scaleLetters;
 
   std::list<Point> uncoveredPoints;
+  bool             uncovered_show = true;
   
   // ---------------------------------
   Hand hand;

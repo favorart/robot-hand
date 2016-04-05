@@ -113,3 +113,6 @@ Hand:: JointsEnum  NewHand::jointByMuscle (Hand::MusclesEnum muscle)
   return Hand::Empty;
 }
 //--------------------------------------------------------------------------------
+tostream&  NewHand::operator<< (tostream &out, const Hand::Control &control)
+{ return out << control.muscle << _T(" ") << control.start << _T (" ") << control.last; }
+//--------------------------------------------------------------------------------

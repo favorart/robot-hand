@@ -30,5 +30,6 @@ namespace NewHand
   Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
   Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
 //------------------------------------------------------------------------------
+  tostream&  operator<< (tostream &out, const Hand::Control &control);
 };
 #endif // _HAND_MUSCLES_H_

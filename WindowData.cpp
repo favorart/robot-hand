@@ -74,7 +74,7 @@ MyWindowData::~MyWindowData ()
     pWorkerThread = NULL;
   }
   //=======================
-  store.save (CurFileName);
+  // store.save (CurFileName);
   //=======================
 }
 //-------------------------------------------------------------------------------
@@ -118,7 +118,8 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
                                    { SetPixel (hdc, Tx (pt.x), Ty (pt.y), RGB (255, 0, 0)); }
                                },
                               gradient, /* (zoom) ? 0.0005 : */ 0.,
-                              wd.uncoveredPoints, wd.hPen_red);
+                              ( wd.uncovered_show ) ?  wd.uncoveredPoints : HandMoves::trajectory_t(),
+                              wd.hPen_red);
   }
   // --------------------------------------------------------------
 }
@@ -134,8 +135,6 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
   // --------------------------------------------------------------
   
-  
-
   if ( wd.trajectory_frames_show )
   { DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng); }
 
@@ -186,7 +185,7 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
                  reinterpret_cast<LPARAM> (_T (" Done  ")) );
   } // end if
 }
-
+//-------------------------------------------------------------------------------
 void  MakeHandMove (MyWindowData &wd)
 {
   wd.store.adjacencyPoints (wd.adjPointsDB,
@@ -202,12 +201,25 @@ void  MakeHandMove (MyWindowData &wd)
     const shared_ptr<Record> &pRec = (*it_min);
     pRec->repeatMove (wd.hand);
     wd.trajectory_frames = pRec->trajectory;
+
+    //-------------------------------------------------
+    tstring text = GetTextToString (wd.hLabMAim);
+    
+    tstringstream ss;
+    ss << text << _T("\r");
+    for ( const Hand::Control &c : pRec->controls () )
+    { ss << c << _T ("  \r"); }
+
+    SendMessage (wd.hLabMAim, WM_SETTEXT, NULL, (LPARAM) ss.str ().c_str ());
+    //-------------------------------------------------
   }
+
+  
 
   // // ================================================
   // // EXACT VARIANTS
 
-  // decltype(wd.adjPointsDB) range;
+  // decltype(wd.adjPointsDB) range;SetWind
   // HandMoves::adjacencyPoints (wd.store, range,
   //                             wd.mouse_aim, 0.01);
   // if ( range.size () > 1U )
@@ -275,10 +287,8 @@ void  OnWindowMouse (MyWindowData &wd)
   wd.mouse_aim = logic_coord (&wd.mouse_coords);
 
   /* Setting the Label's text */
-  SendMessage (wd.hLabMAim,      /* Label   */
-               WM_SETTEXT,       /* Message */
-               (WPARAM) NULL,    /* Unused  */
-               (LPARAM) tstring (wd.mouse_aim).c_str () );
+  tstring  message = tstring (wd.mouse_aim) + _T ("  ");
+  SendMessage (wd.hLabMAim, WM_SETTEXT, NULL, (WPARAM) message.c_str ());
  
   if ( !wd.testing && wd.mouse_haved )
   {

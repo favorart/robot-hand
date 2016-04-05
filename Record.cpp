@@ -47,8 +47,8 @@ Record::Record (const Point         &aim,
   if ( !visited.size () )
     throw new exception ("Incorrect trajectory in constructor Record"); // _T( ?? 
 
-  if ( controls.size () > maxControlsCount )
-    throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ?? 
+  // if ( controls.size () > maxControlsCount )
+  //   throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ?? 
 
   hand_controls_.assign (controls.begin (), controls.end ());
   hand_controls_.sort ();

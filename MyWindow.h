@@ -39,6 +39,8 @@ tstring   SaveFileDialog (HWND hWnd);
 tstring   CurrentTimeToString (tstring format, std::time_t *the_time=NULL);
 
 tstring   GetLastErrorToString ();
+
+tstring   GetTextToString (HWND hWnd);
 //-------------------------------------------------------------------------------
 template <typename INTEGER>
 INTEGER  random (INTEGER max)

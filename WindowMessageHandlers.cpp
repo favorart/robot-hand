@@ -28,8 +28,10 @@ int  T2y  (double logic_y)
 { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
 /* zoom */
-int  T1x (double logic_x) { return  (int) (MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
-int  T1y (double logic_y) { return  (int) (MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
+int  T1x (double logic_x)
+{ return  (int) (MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
+int  T1y (double logic_y)
+{ return  (int) (MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
 
 int  Tx (double logic_x)
 { return  (zoom) ? T1x (logic_x) : T2x (logic_x); }
@@ -534,8 +536,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       // lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
+      break;
     }
-    break;
 
     case 'j':
     {
@@ -543,8 +545,26 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
+      break;
     }
-    break;
+
+    case 'n':
+    {
+      // Positions::LearnMovements lm;
+      // lm.STAGE2 (wd.store, wd.hand, wd.target);
+
+      WorkerThreadRunStoreTask (wd, _T (" *** stage 2 test ***  "),
+                                [](Store &store, Hand &hand, RecTarget &target)
+                                {
+                                  Positions::LearnMovements lm;
+                                  lm.STAGE2 (store, hand, target);
+                                }
+                                , wd.hand, wd.target);
+      WorkerThreadTryJoin (wd);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
 
     case 'i':
     { // int muscle, last;
@@ -623,6 +643,15 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
+    case 'h':
+    {
+      //========================================
+      wd.uncovered_show = !wd.uncovered_show;
+      wd.hStaticBitmapChanged = true;
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
     //========================================
     /* Clavicle */
     case 'z': wd.hand.step (Hand::ClvclCls); break; /* двинуть ключицей вправо */
@@ -738,6 +767,15 @@ tstring   SaveFileDialog (HWND hWnd)
   if ( GetSaveFileName (&SaveFileName) )
   { return _T(""); }
   return SaveFileName.lpstrFile;
+}
+//-------------------------------------------------------------------------------
+tstring  GetTextToString (HWND hWnd)
+{
+  int  len = GetWindowTextLength (hWnd) + 1U;
+  std::vector<TCHAR>  buffer (len);
+  GetWindowText (hWnd, buffer.data (), len);
+  // SendMessage (hWnd, WM_GETTEXT, (WPARAM) len, (LPARAM) buffer.data ());
+  return  tstring (buffer.begin (), buffer.end () - 1);
 }
 //-------------------------------------------------------------------------------
 tstring   CurrentTimeToString (tstring format, std::time_t *the_time)

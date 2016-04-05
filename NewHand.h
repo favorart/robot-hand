@@ -200,8 +200,16 @@ namespace NewHand
       template<class Archive>
       void  serialize (Archive & ar, const unsigned int version)
       { ar & muscle & start & last; }
+
+      operator tstring () const
+      {
+        tstringstream ss;
+        ss << muscle << _T(" ") << start << _T(" ") << last;
+        // ss << *this;
+        return  ss.str ();
+      }
     };
-    
+        
     template <class Iter>
     frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL) throw (...)
     {

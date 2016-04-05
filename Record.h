@@ -28,7 +28,7 @@ namespace HandMoves
   class Record
   {
   public:
-    const static size_t  maxControlsCount = 2U;
+    const static size_t  maxControlsCount = 50U; // !!!!!!!!!!!!!
 
     const static size_t  arrays_size = 4U;
     typedef std::array<Hand::frames_t, arrays_size> times_array;
@@ -128,7 +128,7 @@ namespace HandMoves
       hand.SET_DEFAULT;
       trajectory_t visited;
       hand.move (hand_controls_.begin (), hand_controls_.end (), &visited);
-
+      
       auto it1 = visited.begin ();
       auto it2 = visited_.begin ();
       auto index = 0U;
