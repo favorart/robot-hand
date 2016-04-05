@@ -21,8 +21,6 @@ namespace Positions
 {
 #define _HAND_TEST_CONSOLE_PRINTF
 
-
-
   //void  /*HandMoves::*/testCover (Store &store, Hand &hand,
   //                            Hand::MusclesEnum muscles /* recursive */,
   //                            int recursive,
@@ -61,10 +59,10 @@ namespace Positions
   //  } // end for
   //}
 
-  using namespace std;
-  using namespace HandMoves;
+  // using namespace std;
+  // using namespace HandMoves;
   //------------------------------------------------------------------------------
-  static void  testCover (Store &store, Hand &hand, trajectories_t &trajectories)
+  static void  testCover (HandMoves::Store &store, Hand &hand, HandMoves::trajectories_t &trajectories)
   {
     hand.reset ();
     hand.SET_DEFAULT;
@@ -79,11 +77,11 @@ namespace Positions
      */
 
     /* Возьмём первый мускул наугад */
-    for ( auto muscle_i : hand.muscles_ | boost::adaptors::sliced (3, 4) )
+    for ( auto muscle_i : hand.muscles_ /* | boost::adaptors::sliced (3, 4) */ )
     {
       // if ( !(muscle_i & muscles) && muscleValidAtOnce(muscle_i | muscles) )
       {
-        trajectory_t  trajectory;
+        HandMoves::trajectory_t  trajectory;
         /* Попробуем его варьировать по длительности */
         for ( Hand::frames_t last_i : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_i) / 2, 10) )
         {
@@ -97,7 +95,7 @@ namespace Positions
               {
                 for ( Hand::frames_t last_j : boost::irange<Hand::frames_t> (1U, hand.maxMuscleLast (muscle_j) / 2, 10) )
                 {
-                  Hand::Control control_j (muscle_j, start_j, last_j);
+                  Hand::Control control_j (muscle_j, 0U /* start_j */, last_j);
                   hand.move ({ control_i, control_j }, &trajectory);
 
                   // auto& index = store.get<Record::ByC> ();
@@ -105,9 +103,11 @@ namespace Positions
                   // auto& index = store.get<Record::ByP> ();
                   // index.equal_range (hand.position);
 
-                  store.insert (Record (hand.position, hand_base, hand.position,
-                                              { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
-                                              trajectory));
+                  Point hand_pos = hand.position;
+                  HandMoves::Record  rec (hand_pos, hand_base, hand_pos,
+                                          { control_i, control_j }, trajectory);
+
+                  store.insert (rec);
                   // trajectories.push_back (make_shared<trajectory_t> (trajectory));
                 }
               }
@@ -162,65 +162,336 @@ namespace Positions
     /* Желаемое расстояние между конеными точками
      * чернового покрытия
      */
-    double      draft_distance = 0.07;
+    double             draft_distance = 0.07;
     /* Время преодоления инерции */
-    Hand::frames_t   last_init = 50U;
-
-    Hand::frames_t   last_step = 0U;
-
-    Hand::frames_t   count_points = 20U;
+    Hand::frames_t   lasts_init_value1 = 50U;
+    /* Изменение шага времени */
+    Hand::frames_t   lasts_incr_value1 = 10U;
+    /*  Примерное количество точек 
+     *  от базового состояния до
+     *  крайнего положения в каждую
+     *  из возможных сторон движения.
+     */
+    // Hand::frames_t   count_points = 20U;
     //==============================================
 
     /* stage_2 */
     //==============================================
-    size_t step;
+    double            detail_distance = 0.005;
+    /* Время преодоления инерции */
+    Hand::frames_t   lasts_init_value2 = 1U;
+    /* Изменение шага времени */
+    Hand::frames_t   lasts_incr_value2 = 1U;
+    // Hand::frames_t   count_points = 20U;
+
+    // class PredictedDirection
+    // {
+    //   Hand::MusclesEnum  muscle;
+    //   Hand::frames_t     last;
+    //   // trajectory_t trajectory; ???
+    //   // Point center;
+    // 
+    //   PredictedDirection ():
+    //     muscle (Hand::EmptyMov), last (0U), end (0,0) {}
+    //   PredictedDirection (Hand::MusclesEnum m, Hand::frames_t l, Point e) :
+    //     muscle (m), last (l), end (e) {}
+    // 
+    // public:
+    //   Point end;
+    // };
+    class DirectionPredictor
+    {
+      //------------------------------------------
+      class MainDirection
+      {
+      public:
+        //------------------------------------------
+        Hand::MusclesEnum  muscle;
+        std::vector<Point>  shifting;
+        Point  center;
+        //------------------------------------------
+        MainDirection (Hand::MusclesEnum m, Hand &hand) :
+          muscle (m),
+          center (hand.jointPosition (jointByMuscle (m)))
+        {
+          hand.SET_DEFAULT;
+          Point hand_base = hand.position;
+
+          std::list<Point>  trajectory;
+          //-----Must be !!! EACH !!!--------
+          auto oldEach = hand.visitedSaveEach;
+          hand.visitedSaveEach = 1U;
+          hand.move (m, hand.maxMuscleLast (m), trajectory /*, !!! */);
+          hand.visitedSaveEach = oldEach;
+          //---------------------------------
+          for ( auto pt : trajectory )
+          { shifting.push_back (Point (pt.x - hand_base.x,
+                                       pt.y - hand_base.y));
+          }
+        }
+        //------------------------------------------
+        bool operator== (Hand::MusclesEnum m) const
+        { return  (muscle == m); }
+        bool operator!= (Hand::MusclesEnum m) const
+        { return  (muscle != m); }
+      };
+      //------------------------------------------
+      std::list<MainDirection>  mainDirections;
+      Point hand_base;
+      //------------------------------------------
+    public:
+      DirectionPredictor (Hand &hand) :
+        hand_base (hand.position)
+      {
+        for ( auto m : hand.muscles_ )
+        { mainDirections.push_back (MainDirection (m, hand)); }
+      }
+      //------------------------------------------
+      /* Point */ void  predict (IN  Hand::MusclesEnum m,
+                                  IN  Hand::frames_t l,
+                                  OUT Point &end) const
+      {
+        // Point end = hand_base;
+        // if ( /* m not in mainDirections */ 1 )
+        {
+          for ( auto m_ : muscles )
+            for ( auto &md : mainDirections ) // !!!!!!!!!!!!
+              if ( md == (m & m_) && l < md.shifting.size () )
+              {
+                end.x += md.shifting[l].x;
+                end.y += md.shifting[l].y;
+              }
+        }
+        // return end;
+      }
+      //------------------------------------------
+    };
+
+    std::map < Hand::MusclesEnum /* -------------muscle---*/,
+               std::pair< Hand::frames_t /*---min lasts---*/ ,
+                          Hand::frames_t /*---max lasts---*/ >
+             > borders_;
+    // !!! НУЖНО ТОРМОЗИТЬ УЖЕ НА ЭТОЙ СТАДИИ !!!
     //==============================================
+    int count = 0;
+    int count_TP = 0;
+    int count_FP = 0;
+    int count_TN = 0;
+    int count_FN = 0;
 
     /* stage_3 */
     //==============================================
     //==============================================
 
   public:
-    LearnMovements () : last_step (10U) {}
-    LearnMovements (Store &store, Hand &hand, RecTarget &target)
-    {
-      last_step = 0U;
-      for ( auto m : hand.muscles_ )
-        last_step += hand.maxMuscleLast (m);
-      last_step /= (Hand::frames_t) hand.muscles_.size ();
-      last_step /= count_points;
-    }
+    // LearnMovements () : lasts_incr_value1 (10U), lasts_incr_value2 (3U) {}
+    // LearnMovements (HandMoves::Store &store, Hand &hand, RecTarget &target)
+    // {
+    //   lasts_incr_value1 = 0U;
+    //   for ( auto m : hand.muscles_ )
+    //     lasts_incr_value1 += hand.maxMuscleLast (m);
+    //   lasts_incr_value1 /= (Hand::frames_t) hand.muscles_.size ();
+    //   lasts_incr_value1 /= count_points;
+    // }
 
     void  draftDistance (IN  Point  &hand_pos_prev,
                          IN  Point  &hand_pos,
                          OUT Hand::frames_t  &lasts_step,
                          IN  const Hand::frames_t  &last,
-                         IN  const Hand::frames_t   last_max)
+                         IN  const Hand::frames_t   lasts_max,
+                         IN  const Hand::frames_t   lasts_incr_value,
+                         IN double distance )
     {
-      if ( boost_distance (hand_pos_prev, hand_pos) > draft_distance + EPS_VIS )
+      if ( boost_distance (hand_pos_prev, hand_pos) > distance )
       {
-        if ( lasts_step > 2 * last_step )
-          lasts_step -= last_step;
-        // else if ( lasts_step > last_step )
-        //   lasts_step -= last_step * 0.5;
+        if ( lasts_step > 2 * lasts_incr_value )
+          lasts_step -= lasts_incr_value;
+        // else if ( lasts_step > lasts_incr_value )
+        //   lasts_step -= lasts_incr_value * 0.5;
         // else if ( lasts_step > 2 )
         //   --lasts_step;
       }
-      else if ( boost_distance (hand_pos_prev, hand_pos) < draft_distance - EPS_VIS )
+      else if ( boost_distance (hand_pos_prev, hand_pos) < distance )
       {
-        if ( (last + last_step) < last_max )
-          lasts_step += last_step;
-        // else if ( (last + 0.5 * last_step) < last_max )
-        //   lasts_step += 0.5 * last_step;
+        if ( (last + lasts_incr_value) < lasts_max )
+          lasts_step += lasts_incr_value;
+        // else if ( (last + 0.5 * lasts_incr_value) < last_max )
+        //   lasts_step += 0.5 * lasts_incr_value;
         // else
-        //   lasts_step = last_max - last;
+        //   lasts_step = lasts_max - last;
       }
     
     }
+    void  borders_insert (const HandMoves::Record &rec)
+    {
+      for ( auto &ctrl : rec.controls () )
+      {
+        for ( auto m : muscles )
+          if ( m & ctrl.muscle )
+          {
+            auto it = borders_.find (m);
+            if ( it != borders_.end () )
+            {
+              if ( ctrl.last < it->second.first )
+                it->second.first = ctrl.last;
+              if ( ctrl.last > it->second.second )
+                it->second.second = ctrl.last;
+            }
+            else
+            { borders_[ctrl.muscle] = std::make_pair (ctrl.last, ctrl.last); }
+          }
+      } // end for
+    }
+
+    void  borders (HandMoves::Store &store, RecTarget &target)
+    {
+      for ( auto &rec : store )
+      {
+        if ( target.contain (rec.hit) )
+        {
+          borders_insert (rec);
+        } // end if
+      } // end for
+
+      HandMoves::adjacency_refs_t range;
+      store.adjacencyPoints (range, (target.min) (), draft_distance);
+      for ( auto p_rec : range )
+      {
+        borders_insert (*p_rec);
+      }
+
+      range.clear ();
+      store.adjacencyPoints (range, Point ((target.min) ().x, (target.max) ().y), draft_distance);
+      for ( auto p_rec : range )
+      {
+        borders_insert (*p_rec);
+      }
+
+      range.clear ();
+      store.adjacencyPoints (range, Point ((target.max) ().x, (target.min) ().y), draft_distance);
+      for ( auto p_rec : range )
+      {
+        borders_insert (*p_rec);
+      }
+
+      range.clear ();
+      store.adjacencyPoints (range, (target.max) (), draft_distance);
+      for ( auto p_rec : range )
+      {
+        borders_insert (*p_rec);
+      }
+
+    }
+
+    void  checking (Hand &hand, RecTarget &target, 
+                    std::vector<Hand::MusclesEnum> &ms,
+                    std::vector<Hand::frames_t> &lasts,
+                    const Point &end)
+    {
+      std::vector<Hand::Control> controls (ms.size ());
+      for ( size_t ii = 0U; ii < ms.size (); ++ii )
+        controls[ii] = Hand::Control (ms[ii], 0U, lasts[ii]);
+
+      HandMoves::trajectory_t  trajectory;
+      hand.SET_DEFAULT;
+      hand.move (controls.begin (), controls.end (), &trajectory);
+
+      ++count;
+      bool model = target.contain (end);
+      bool real  = target.contain (hand.position);
+      if ( model & real )
+        ++count_TP;
+      else if ( !model & !real )
+        ++count_TN;
+      else if ( model & !real )
+        ++count_FP;
+      else if ( !model & real )
+        ++count_FN;
+    }
+
+
+    void runNextNestedMusclesFor (HandMoves::Store &store, Hand &hand, RecTarget &target,
+                                  std::vector<Hand::MusclesEnum> &ms,
+                                  std::vector<Hand::frames_t> &lasts,
+                                  size_t nested)
+    {
+      for ( auto muscle : { muscleByJoint (hand.joints_[nested], false),
+                            muscleByJoint (hand.joints_[nested], true) } )
+      {
+        ms[nested] = muscle;
+        if ( nested < hand.joints_.size () )
+          runNextNestedMusclesFor (store, hand, target, ms, lasts, nested + 1U);
+        else
+        { size_t  nested_lasts = 0U;
+          runNextNestedLastsFor   (store, hand, target, ms, lasts, nested_lasts);
+        } // end else
+      } // end for
+    }
+
+    void runNextNestedLastsFor (HandMoves::Store &store, Hand &hand, RecTarget &target,
+                                std::vector<Hand::MusclesEnum> &ms,
+                                std::vector<Hand::frames_t> &lasts,
+                                size_t nested)
+    {
+      for ( auto last : { muscleByJoint (hand.joints_[nested], false),
+           muscleByJoint (hand.joints_[nested], true) } )
+      {
+        lasts[nested] = last;
+        if ( nested < hand.joints_.size () )
+          runNextNestedLastsFor (store, hand, target, ms, lasts, nested + 1U);
+        else
+          runNextInserting (store, hand, target, ms, lasts);
+      } // end for
+    }
+
+    void  runNextInserting (HandMoves::Store &store, Hand &hand, RecTarget &target,
+                            std::vector<Hand::MusclesEnum> &ms,
+                            std::vector<Hand::frames_t> &lasts)
+    {
+      hand.SET_DEFAULT;
+      Point hand_base = hand.position;
+      DirectionPredictor  pd (hand);
+      Point end = hand_base;
+
+      for ( auto index : boost::irange (size_t{ 0U }, hand.joints_.size ()) )
+        pd.predict (ms[index], lasts[index], end);
+
+      checking (hand, target, ms, lasts, end);
+
+      if ( target.contain (end) )
+      {
+        /* !!! НА МИШЕНИ !!! */
+        std::list<Hand::Control> controls;
+        for ( auto ii = 0U; ii < ms.size (); ++ii )
+          controls.push_back ( Hand::Control (ms[ii], 0U, lasts[ii]) );
+
+        HandMoves::trajectory_t  trajectory;
+        hand.move (controls.begin (), controls.end (), &trajectory);
+        Point hand_pos = hand.position;
+        hand.SET_DEFAULT;
+
+        /// ??????????????????
+        // if ( last_j == last_init )
+        //   hand_pos_i = hand_pos;
+
+        HandMoves::Record  rec (hand_pos, hand_base, hand_pos,
+                                controls, trajectory);
+        store.insert (rec);
+
+        /// ??????????????????
+        // draftDistance (hand_pos_prev_j, hand_pos, lasts_step, last_j, last_j_max, lasts_incr_value2);
+        // hand_pos_prev_j = hand_pos;
+
+        boost::this_thread::interruption_point ();
+      } /* end if */
+    }
+
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
-    void  testStage1 (Store &store, Hand &hand, RecTarget &target)
+    void  testStage1 (HandMoves::Store &store, Hand &hand, RecTarget &target)
     {
+      size_t complexity = 0U;
+
       hand.reset ();
       hand.SET_DEFAULT;
 
@@ -230,20 +501,22 @@ namespace Positions
       Point  hand_pos_prev_j = hand_pos_base;
 
       /* Возьмём первый мускул наугад */
-      for ( auto muscle_i : hand.muscles_ )
-        for ( auto muscle_j : hand.muscles_ )
+      for ( auto muscle_i : { muscleByJoint (hand.joints_[0], false), muscleByJoint (hand.joints_[0], true) } ) // hand.muscles_
+        for ( auto muscle_j : { muscleByJoint (hand.joints_[1], false), muscleByJoint (hand.joints_[1], true) } ) // hand.muscles_
+      //for ( auto muscle_i : hand.muscles_ )
+      //  for ( auto muscle_j : hand.muscles_ )
           if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
           {
             Point  hand_pos_i;
             /* Нужен уменьшающийся шаг в зависимости от пройдённой дистанции */
-            Hand::frames_t  lasts_step = last_init;
+            Hand::frames_t  lasts_step = lasts_init_value1;
 
             auto last_i_max = hand.maxMuscleLast (muscle_i),
                  last_j_max = hand.maxMuscleLast (muscle_j);
             /* Попробуем его варьировать по длительности */
-            for ( Hand::frames_t last_i = last_init; last_i < last_i_max; last_i += lasts_step )
+            for ( Hand::frames_t last_i = lasts_init_value1; last_i < last_i_max; last_i += lasts_step )
             {
-              for ( Hand::frames_t last_j = last_init; last_j < last_j_max; last_j += lasts_step )
+              for ( Hand::frames_t last_j = lasts_init_value1; last_j < last_j_max; last_j += lasts_step )
               {
                 Hand::Control  control_i (muscle_i, 0U, last_i);
                 // {
@@ -256,20 +529,22 @@ namespace Positions
                   // }
                 Hand::Control  control_j (muscle_j, 0U /* start_j */, last_j);
 
-                trajectory_t  trajectory;
+                HandMoves::trajectory_t  trajectory;
                 hand.SET_DEFAULT;
                 hand.move ({ control_i, control_j }, &trajectory);
 
-                Point hand_pos = hand.position;
-                if ( last_j == last_init )
-                  hand_pos_i = hand_pos;
+                Point hand_pos_j = hand.position;
+                if ( last_j == lasts_init_value1 )
+                  hand_pos_i = hand_pos_j;
 
-                Record  rec (hand_pos, hand_pos_base, hand_pos,
-                { control_i, control_j }, trajectory);
+                HandMoves::Record  rec (hand_pos_j, hand_pos_base, hand_pos_j,
+                                        { control_i, control_j }, trajectory);
                 store.insert (rec);
 
-                draftDistance (hand_pos_prev_j, hand_pos, lasts_step, last_j, last_j_max);
-                hand_pos_prev_j = hand_pos;
+                draftDistance (hand_pos_prev_j, hand_pos_j, lasts_step, last_j, last_j_max, lasts_incr_value1, draft_distance);
+                hand_pos_prev_j = hand_pos_j;
+                
+                ++complexity;
 
                 try
                 { boost::this_thread::interruption_point (); }
@@ -278,15 +553,17 @@ namespace Positions
 
               } // end for
 
-              draftDistance (hand_pos_prev_i, hand_pos_i, lasts_step, last_i, last_i_max);
+              draftDistance (hand_pos_prev_i, hand_pos_i, lasts_step, last_i, last_i_max, lasts_incr_value1, draft_distance);
               hand_pos_prev_i = hand_pos_i;
 
             } // end for 
           }
+      // ----------------------------------------------------
+      std::wcout << _T("\nStage 1 Complexity ") << complexity << std::endl;
+      // ----------------------------------------------------
     }
-
     /* Покрытие всей мишени не слишком плотно */
-    void  testStage2 (Store &store, Hand &hand, RecTarget &target)
+    void  testStage2 (HandMoves::Store &store, Hand &hand, RecTarget &target)
     {
       /*         ~ - - - - *
        *       /
@@ -299,111 +576,142 @@ namespace Positions
        *         |                |
        *         +----------------+
        */
+      size_t complexity = 0U;
 
-      // class PredictedDirection
-      // {
-      //   Hand::MusclesEnum  muscle;
-      //   Hand::frames_t     last;
-      //   // trajectory_t trajectory; ???
-      //   // Point center;
-      // 
-      //   PredictedDirection ():
-      //     muscle (Hand::EmptyMov), last (0U), end (0,0) {}
-      //   PredictedDirection (Hand::MusclesEnum m, Hand::frames_t l, Point e) :
-      //     muscle (m), last (l), end (e) {}
-      // 
-      // public:
-      //   Point end;
-      // };
-
-
-      class DirectionPredictor
-      {
-        //------------------------------------------
-        class MainDirection
-        {
-        public:
-          //------------------------------------------
-          Hand::MusclesEnum  muscle;
-          std::vector<Point>  shifting;
-          Point  center;
-          //------------------------------------------
-          MainDirection (Hand::MusclesEnum m, Hand &hand) :
-            muscle (m),
-            center (hand.jointPosition (jointByMuscle (m)))
-          {
-            hand.SET_DEFAULT;
-            Point hand_base = hand.position;
-            // Must !!! Each !!!
-            std::list<Point>  trajectory;
-            hand.move (m, hand.maxMuscleLast (m), trajectory /*, !!! */);
-
-            for ( auto pt : trajectory )
-            {
-              shifting.push_back (Point (pt.x - hand_base.x,
-                                         pt.y - hand_base.y));
-            }
-          }
-          //------------------------------------------
-          bool operator== (Hand::MusclesEnum m) const
-          { return  (muscle == m); }
-          bool operator!= (Hand::MusclesEnum m) const
-          { return  (muscle != m); }
-        };
-        //------------------------------------------
-        std::list<MainDirection>  mainDirections;
-        Point hand_base;
-        //------------------------------------------
-      public:
-        DirectionPredictor (Hand &hand) :
-          hand_base (hand.position)
-        {
-          for ( auto m : hand.muscles_ )
-          { mainDirections.push_back ( MainDirection (m, hand) ); }
-        }
-        //------------------------------------------
-        Point  predict (Hand::MusclesEnum m, Hand::frames_t l
-                        /*, !!! CENTER POSITIONS !!! */) const
-        {
-          Point end = hand_base;
-          // if ( /* m not in mainDirections */ 1 )
-          {
-            for ( auto m_ : muscles )
-              for ( auto md : mainDirections )
-                if ( md == (m & m_) )
-                {
-                  end.x += md.shifting[l].x;
-                  end.y += md.shifting[l].y;
-                }
-            }
-          return end;
-        }
-        //------------------------------------------
-      };
-
+      borders (store, target);
       DirectionPredictor  pd (hand);
-      for ( size_t  i : boost::irange<size_t> (0U, hand.controlsCount) )
+
+      hand.reset ();
+      hand.SET_DEFAULT;
+
+      Point  hand_pos_base = hand.position;
+
+      Point  hand_pos_prev_i = hand_pos_base;
+      Point  hand_pos_prev_j = hand_pos_base;
+
+      // for ( size_t i : boost::irange<size_t> (0U, hand.controlsCount) )
+      // { Hand::MusclesEnum  m = hand.selectControl (i); }
+
+      count = 0;
+      count_TP = 0;
+      count_FP = 0;
+      count_TN = 0;
+      count_FN = 0;
+
+      draft_distance = 0.1;
+      Hand::frames_t  last_step = 10U;
+
+      // std::wcout << _T ("TARGET: ") << tstring ((target.min) ()) << _T ("  ") << tstring ((target.max) ()) << std::endl;
+
+      // try
+      // { 
+      //   std::vector<Hand::MusclesEnum>  ms (hand.joints_.size ());
+      //   std::vector<Hand::frames_t>  lasts (hand.joints_.size ());
+      //   
+      //   runNextNestedMusclesFor (store, hand, target, ms, lasts, 0U);
+      // }
+      // catch ( boost::thread_interrupted& )
+      // { return; } // end catch
+
+      for ( auto muscle_i : { muscleByJoint (hand.joints_[0], false), muscleByJoint (hand.joints_[0], true) }  ) // hand.muscles_
+        for ( auto muscle_j : { muscleByJoint (hand.joints_[1], false), muscleByJoint (hand.joints_[1], true) } ) // hand.muscles_
+      // for ( auto muscle_i : hand.muscles_ )
+      //   for ( auto muscle_j : hand.muscles_ )
+          if ( (muscle_i != muscle_j) && muscleValidAtOnce (muscle_i | muscle_j) )
+          {
+            Point  hand_pos_i;
+            /* Нужен уменьшающийся шаг в зависимости от пройдённой дистанции */
+            Hand::frames_t  last_step = lasts_incr_value2;
+
+            auto  last_i_max = hand.maxMuscleLast (muscle_i),
+                  last_j_max = hand.maxMuscleLast (muscle_j);
+
+            bool target_contain = true;
+
+            for ( Hand::frames_t last_i = /*lasts_init_value2*/borders_[muscle_i].first /*- 50*/; 
+                                        target_contain || last_i <= borders_[muscle_i].second /*+ 50*/; last_i += last_step )
+            // for ( Hand::frames_t last_i = 1U; last_i <= last_i_max; last_i += last_step )
+            {
+              for ( Hand::frames_t last_j = /*lasts_init_value2*/borders_[muscle_j].first /*- 50*/; 
+                                             target_contain || last_j <= borders_[muscle_j].second /*+ 50*/; last_j += last_step )
+              // for ( Hand::frames_t last_j = 1U; last_j <= last_j_max; last_j += last_step)
+              {
+                Point end = hand_pos_base;
+                pd.predict (muscle_i, last_i, end);
+                pd.predict (muscle_j, last_j, end);
+
+                checking (hand, target,
+                          std::vector<Hand::MusclesEnum>{ muscle_i, muscle_j },
+                          std::vector<Hand::frames_t>{ last_i, last_j }, end);
+                
+                if ( target.contain (end) )
+                {
+                  /* !!! НА МИШЕНИ !!! */
+                  Hand::Control  control_i (muscle_i, 0U, last_i);
+                  Hand::Control  control_j (muscle_j, 0U /* start_j */, last_j);
+
+                  HandMoves::trajectory_t  trajectory;
+                  hand.SET_DEFAULT;
+                  hand.move ({ control_i, control_j }, &trajectory);
+
+                  Point  hand_pos_j = hand.position;
+                  if ( last_j == lasts_init_value2 )
+                    hand_pos_i = hand_pos_j;
+                  //----------------------------------------------
+                  target_contain = target.contain (hand_pos_j);
+                  // std::wcout << tstring(hand_pos_j) << std::endl;
+                  //----------------------------------------------
+                  HandMoves::Record  rec (hand_pos_j, hand_pos_base, hand_pos_j,
+                  { control_i, control_j }, trajectory);
+                  store.insert (rec);
+
+                  draftDistance (hand_pos_prev_j, hand_pos_j, last_step, last_j, last_j_max, lasts_incr_value2, detail_distance);
+                  hand_pos_prev_j = hand_pos_j;
+                  
+                  ++complexity;
+
+                  try
+                  { boost::this_thread::interruption_point (); }
+                  catch ( boost::thread_interrupted& )
+                  { return; } // end catch
+
+                }
+                else
+                { target_contain = false; }
+              } // end for
+
+              draftDistance (hand_pos_prev_i, hand_pos_i, last_step, last_i, last_i_max, lasts_incr_value2, detail_distance);
+              hand_pos_prev_i = hand_pos_i;
+            } // end for
+          } // end if
+    // } // end for
+
+      if ( 1 )
       {
-        Hand::MusclesEnum  m = hand.selectControl (i);
-        Point end = pd.predict (m, 11U);
+        std::cout << "count = " << count << std::endl;
+        std::cout << "TP = " << count_TP << std::endl;
+        std::cout << "TN = " << count_TN << std::endl;
+        std::cout << "FP = " << count_FP << std::endl;
+        std::cout << "FN = " << count_FN << std::endl;
 
-        if ( target.isOnTarget (end) )
-        {
-          /* !!! НА МИШЕНИ !!! */
-        }
+        std::cout << "\t< T >\t < F >" << std::endl;
+        std::cout << "< P > " << count_TP << '\t' << count_FP << std::endl;
+        std::cout << "< N > " << count_TN << '\t' << count_FN << std::endl;
       }
-
-
+      // ----------------------------------------------------
+      std::wcout << _T ("\nStage 2 Complexity ") << complexity << std::endl;
+      // ----------------------------------------------------
+      hand.SET_DEFAULT;
     }
     /* Попадание в оставшиеся непокрытыми точки мишени */
-    void  testStage3 (Store &store, Hand &hand, RecTarget &target, std::list<Point> &uncovered)
+    void  testStage3 (HandMoves::Store &store, Hand &hand, RecTarget &target, std::list<Point> &uncovered)
     {
       // std::list<Point> uncovered;
       // store.uncoveredTargetPoints (target, uncovered);
       for ( auto &pt : target.coords () )
       {
-        std::list<std::shared_ptr<Record>> range;
-        store.adjacencyPoints (range, pt, 2. * target.pts_distance ());
+        std::list<std::shared_ptr<HandMoves::Record>> range;
+        store.adjacencyPoints (range, pt, 2. * target.thickness ());
 
         if ( range.empty () )
         {
@@ -412,20 +720,20 @@ namespace Positions
         }
         else
         {
-          for ( auto p : range )
+          double precision = target.precision ();
+          if ( boost::algorithm::none_of (range, [&pt, precision](const std::shared_ptr<HandMoves::Record> &rec)
+                                                 { return  (boost_distance (pt, rec->hit) <= precision); }) )            
           {
-            if ( boost_distance (pt, p->hit) > target.precision () )
-            {
-              /* UNCOVERED */
-              uncovered.push_back (pt);
+            /* UNCOVERED */
+            uncovered.push_back (pt);
 
-            } // end if
-          } // emd for
+          } // end if
+
         } // end else
       } // end for
     }
 
-    void  testCoverTarget (Store &store, Hand &hand, RecTarget &target)
+    void  testCoverTarget (HandMoves::Store &store, Hand &hand, RecTarget &target)
     {
       hand.reset ();
       hand.SET_DEFAULT;
@@ -472,7 +780,7 @@ namespace Positions
                     {
                       boost::this_thread::interruption_point ();
        
-                      trajectory_t  trajectory;
+                      HandMoves::trajectory_t  trajectory;
                       Hand::Control control_j (muscle_j, start_j, last_j);
        
                       hand.SET_DEFAULT;
@@ -482,11 +790,11 @@ namespace Positions
                       //   && hand.position.y < y_topBorder && hand.position.y > y_bottomBorder )
        
                       const Point&  hand_pos = hand.position;
-                      if ( target.isOnTarget (hand_pos) )
+                      if ( target.contain (hand_pos) )
                       {
-                        store.insert (Record (hand_pos, hand_base, hand_pos,
-                                              { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
-                                              trajectory));
+                        store.insert (HandMoves::Record (hand_pos, hand_base, hand_pos,
+                                                         { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
+                                                         trajectory));
                         // trajectories.push_back (make_shared<trajectory_t> (trajectory));
        
                              if ( store.size () == 200000 )
@@ -552,9 +860,7 @@ namespace Positions
                       hand_prev = hand_pos;
 #endif // _HAND_TEST_BREAK
                       try
-                      {
-                        boost::this_thread::interruption_point ();
-                      }
+                      { boost::this_thread::interruption_point (); }
                       catch ( boost::thread_interrupted& )
                       {
 #ifdef    _HAND_TEST_CONSOLE_PRINTF
@@ -669,9 +975,22 @@ namespace Positions
       hand.move (d.control, last);
     }
     //------------------------------------------------------------------------------
+    bool  tryToHitTheAim (HandMoves::Store &store, Hand &hand, const Point &aim,
+                          size_t tries, double precision)
+    {
+      bool result = 0;
+      std::list<std::shared_ptr<HandMoves::Record>>  exact_range;
+      /* While there is no exact trajectory */
+      for ( size_t n_try = 0U; (result = exact_range.empty ()) || n_try < tries; ++n_try )
+      {
+        store.adjacencyPoints (exact_range, aim, precision);
+
+      }
+      return !result;
+    }
   };
 
-  static void  testCoverTarget1 (Store &store, Hand &hand, RecTarget &target)
+   static void  testCoverTarget1 (HandMoves::Store &store, Hand &hand, RecTarget &target)
   {
     hand.SET_DEFAULT;
     // std::list<std::list<Point>> trajectories;
@@ -866,30 +1185,6 @@ namespace Positions
     //hand.SET_DEFAULT;
 
 
-  }
-  //------------------------------------------------------------------------------
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  static  bool  tryToHitTheAim (Store &store, Hand &hand, const Point &aim,
-                        size_t maxTries, double epsilont = EPS)
-  {
-    bool result = 0;
-    std::list<std::shared_ptr<HandMoves::Record>>  exact_range;
-    /* While there is no exact trajectory */
-    for ( size_t n_try = 0U; (result = exact_range.empty ()) || n_try < maxTries; ++n_try )
-    {
-      store.adjacencyPoints (exact_range, aim, epsilont);
-
-    }
-    return !result;
   }
   //------------------------------------------------------------------------------
 };

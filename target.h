@@ -17,27 +17,27 @@ private:
   vec_t  coords_; /* main content */
 
   // --- rectangle range -------------
-  double  lft, rgh, top, btm;
+  // double  lft, rgh, top, btm;
   size_t  c_rows, c_cols;
   // ---------------------------------
-  Point center_;
+  Point  center_, min_, max_, thickness_;
   // ---------------------------------
-  double x_distance;
-  double y_distance;
   
 public:
   // ---------------------------------
-  RecTarget () : 
-    c_rows (0), c_cols (0), lft (0), rgh (0), top (0), btm (0), center_ (0., 0.) {}
+  // RecTarget () : c_rows (0), c_cols (0) /* , lft (0), rgh (0), top (0), btm (0) */ {}
 
   RecTarget (size_t r, size_t c, const Point &min, const Point &max):
-    c_rows (r), c_cols (c), lft (min.x), rgh (max.x), top (max.y), btm(min.y),
-    center_ ( (min.x + max.x) / 2., (min.y + max.y) / 2. ), coords_ (c_rows * c_cols)
+    c_rows (r), c_cols (c), // lft (min.x), rgh (max.x), top (max.y), btm(min.y),
+    center_ ( (min.x + max.x) / 2., (min.y + max.y) / 2. ), 
+    min_ (min), max_ (max), coords_ (c_rows * c_cols)
   { generate (); }
 
   RecTarget (size_t r, size_t c, double lft, double rgh, double top, double btm):
-    c_rows (r), c_cols (c), lft (lft), rgh (rgh), top (top), btm (btm),
-    center_ ((lft + rgh) / 2., (btm + top) / 2. ), coords_ (c_rows * c_cols)
+    c_rows (r), c_cols (c), // lft (lft), rgh (rgh), top (top), btm (btm),
+    center_ ((lft + rgh) / 2., (btm + top) / 2. ), 
+    min_ (lft, btm), max_ (rgh, top),
+    coords_ (c_rows * c_cols)
   { generate (); }
   // ---------------------------------
   size_t  coordsCount () const { return coords_.size (); }
@@ -50,17 +50,29 @@ public:
               bool internalPoints,
               bool ellipseOrPixel) const;
 
-  bool  isOnTarget (const Point &p) const
-  { return  (p.x >= lft && p.x <= rgh && p.y >= btm && p.y <= top); }
+  bool  contain (const Point &p) const
+  { return  (p.x >= min_.x && p.x <= max_.x
+          && p.y >= min_.y && p.y <= max_.y);
+  }
+  // { return  (p.x >= lft && p.x <= rgh
+  //         && p.y >= btm && p.y <= top);
+  // }
+  // Point  Min () const { return  Point (lft, btm); }
+  // Point  Max () const { return  Point (rgh, top); }
 
-  Point  Min () const { return  Point (lft, btm); }
-  Point  Max () const { return  Point (rgh, top); }
+  const Point&  (RecTarget::min)   () const { return     min_; }
+  const Point&  (RecTarget::max)   () const { return     max_; }
+  const Point&   RecTarget::center () const { return  center_; }
 
-  const Point&  center () const { return  center_; }
   double     precision () const
-  { return  min (x_distance, y_distance) / 2.; }
-  double     pts_distance () const
-  { return  max (x_distance, y_distance); }
+  { return  (min (thickness_.x, thickness_.y) / 3.); }
+  double     thickness () const
+  { return   max (thickness_.x, thickness_.y); }
+
+  // double     distance (const Point &p) const
+  // {
+  //   return 
+  // }
   // ---------------------------------
 };
 //------------------------------------------------------------------------------

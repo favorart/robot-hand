@@ -62,22 +62,19 @@ void  HandMoves::Store::draw (HDC hdc, double circleRadius, HPEN hPen) const
   // --------------------------------------------------------------
   SelectObject (hdc, hPen_old);
 }
-void  HandMoves::Store::draw (HDC hdc, gradient_t gradient) const
+void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius) const
 {
-  
-
-  int i = 0;
-  for ( auto c : gradient )
+  vector<HPEN> hPens (gradient.size());
+  for ( int i = 0; i < gradient.size (); ++i )
   {
-    std::wcout << '(' << GetRValue (c) << ' '
-                      << GetGValue (c) << ' '
-                      << GetBValue (c) << ' '
-               << ')' << ' '; // std::endl;
+    // std::wcout << '(' << GetRValue (c) << ' '
+    //                   << GetGValue (c) << ' '
+    //                   << GetBValue (c) << ' '
+    //            << ')' << ' '; // std::endl;
   
-    HPEN Pen = CreatePen (PS_SOLID, 1, c);
-    DrawCircle (hdc, Point (0.01 * i - 0.99, 0.9), 0.01, Pen);
-    DeleteObject (Pen);
-    ++i;
+    HPEN hPen = CreatePen (PS_SOLID, 1, gradient[i]);
+    DrawCircle (hdc, Point (0.01 * i - 0.99, 0.9), 0.01, hPen);
+    hPens[i] = hPen;
   }
 
   boost::lock_guard<boost::mutex>  lock (store_mutex_);
@@ -100,7 +97,7 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient) const
       size_t index;
       if ( longs > 500U )
         index = 2U;
-      else if ( longs > 150U )
+      else if ( longs > 200U )
         index = 1U;
       else
         index = 0U;
@@ -116,12 +113,10 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient) const
       // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
       // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
 
-      SetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y), gradient[index]);
-
-      // HPEN Pen = CreatePen (PS_SOLID, 1, gradient[index]);
-      // DrawCircle (hdc, rec.hit, 0.01, Pen);
-      // DeleteObject (Pen);
-
+      if ( !circleRadius )
+      { SetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y), gradient[index]); }
+      else
+      { DrawCircle (hdc, rec.hit, 0.01, hPens[index]); }
 
       // ++i;
       // if ( !(i % 100) )
@@ -135,10 +130,12 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient) const
 
       boost::this_thread::interruption_point ();
     }
-    // --------------------------------------------------------------
   }
   catch ( boost::thread_interrupted& )
   { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
+  // --------------------------------------------------------------
+  for ( auto hPen : hPens )
+  { DeleteObject (hPen); }
 }
 void  HandMoves::Store::save (tstring filename) const
 {

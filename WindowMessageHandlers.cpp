@@ -8,6 +8,9 @@
 
 using namespace std;
 using namespace HandMoves;
+
+
+bool zoom = false;
 //------------------------------------------------------------------------------
 win_point*  WindowSize (void)
 { static win_point Width_Height;
@@ -18,12 +21,20 @@ void     SetWindowSize (int Width_, int Height_)
   WindowSize ()->y = Height_;
 }
 
-int  Tx  (double logic_x) { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
-int  Ty  (double logic_y) { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
+
+int  T2x  (double logic_x)
+{ return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
+int  T2y  (double logic_y)
+{ return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
 /* zoom */
-int  T1x (double logic_x) { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
-int  T1y (double logic_y) { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
+int  T1x (double logic_x) { return  (int) (MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
+int  T1y (double logic_y) { return  (int) (MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
+
+int  Tx (double logic_x)
+{ return  (zoom) ? T1x (logic_x) : T2x (logic_x); }
+int  Ty (double logic_y)
+{ return  (zoom) ? T1y (logic_y) : T2y (logic_y); }
 
 Point  logic_coord (win_point* coord)
 { Point p;
@@ -313,11 +324,12 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     FillRect (wd.hStaticDC, &myRect, wd.hBrush_back);
     /* set transparent brush to fill shapes */
     SelectObject (wd.hStaticDC, wd.hBrush_null);
-    SetBkMode (wd.hStaticDC, TRANSPARENT);
+    SetBkMode    (wd.hStaticDC, TRANSPARENT);
     //-------------------------------------
     DrawDecardsCoordinates (wd.hStaticDC);
-    wd.target.draw (wd.hStaticDC, wd.hPen_grn,
-                    true /*false*/, false, false);
+    wd.target.draw (wd.hStaticDC, wd.hPen_grn, true,
+                    false, false);
+                    // true, false);
 
     //-------------------------------------
     /* Здесь рисуем на контексте hCmpDC */
@@ -483,9 +495,6 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       // WorkerThreadRunStoreTask (wd, _T (" *** target cover test ***  "),
       //                           Positions::testCoverTarget, wd.hand, wd.target);
       // Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
-
-      
-
       WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
                                 // Positions::test_1_stage
                                 [](Store &store, Hand &hand, RecTarget &target)
@@ -509,23 +518,29 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
       // HandMoves::testCover (wd.store, wd.hand, Hand::EmptyMov, wd.testing_trajectories); // , step, wd.testing_trajectories.back ());
       
-      // Point center = Point ((wd.target.Min ().x + wd.target.Max ().x) / 2.,
-      //                       (wd.target.Min ().y + wd.target.Max ().y) / 2.);
+      Point center = Point (((wd.target.min) ().x + (wd.target.max) ().x) / 2.,
+                            ((wd.target.min) ().y + (wd.target.max) ().y) / 2.);
       // Positions::getTargetCenter (wd.hand, center);
 
-      // WorkerThreadRunStoreTask (wd, _T (" *** stage 3 test ***  "),
-      //                           [&uncovered] (Store &store, Hand &hand, RecTarget &target)
-      //                           {
-      //                             Positions::LearnMovements lm;
-      //                             lm.testStage3 (store, hand, target, uncovered);
-      //                           }
-      //                           , wd.hand, wd.target);
-      // WorkerThreadTryJoin (wd);
+      WorkerThreadRunStoreTask (wd, _T (" *** stage 2 test ***  "),
+                                [] (Store &store, Hand &hand, RecTarget &target)
+                                { 
+                                  Positions::LearnMovements lm;
+                                  lm.testStage2 (store, hand, target);
+                                }
+                                , wd.hand, wd.target);
+      WorkerThreadTryJoin (wd);
+      
+      // lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+    }
+    break;
 
-      {
-        Positions::LearnMovements lm;
-        lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
-      }
+    case 'j':
+    {
+      Positions::LearnMovements lm;
+      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
     }
@@ -597,6 +612,16 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       InvalidateRect (hWnd, &myRect, FALSE);
       break;
     } 
+
+    case 'b':
+    {
+      //========================================
+      zoom = !zoom;
+      //========================================
+      wd.hStaticBitmapChanged = true;
+      InvalidateRect (hWnd, &myRect, FALSE);
+      break;
+    }
 
     //========================================
     /* Clavicle */

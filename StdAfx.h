@@ -62,17 +62,30 @@
 #include <boost/format.hpp>
 
 #include <boost/functional/hash.hpp>
-#include <boost/algorithm/cxx11/none_of.hpp>
 
-#include <boost/range/adaptor/sliced.hpp>
-#include <boost/range/adaptor/filtered.hpp>
+#include <boost/algorithm/algorithm.hpp>
+#include <boost/algorithm/cxx11/all_of.hpp>
+#include <boost/algorithm/cxx11/any_of.hpp>
+#include <boost/algorithm/cxx11/none_of.hpp>
+#include <boost/algorithm/cxx11/one_of.hpp>
+#include <boost/algorithm/cxx11/copy_if.hpp>
+#include <boost/algorithm/cxx11/copy_n.hpp>
+#include <boost/algorithm/cxx11/iota.hpp>
+#include <boost/algorithm/cxx11/find_if_not.hpp>
+#include <boost/algorithm/cxx11/is_sorted.hpp>
+// #include <boost/algorithm/cxx11/is_partitioned.hpp>
+// #include <boost/algorithm/cxx11/is_permutation.hpp>
+//#include <boost/algorithm/cxx11/partition_copy.hpp>
+//#include <boost/algorithm/cxx11/partition_point.hpp>
+
 #include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
-#include <boost/range/algorithm/copy.hpp>
+
 #include <boost/assign.hpp>
 
 #include <boost/thread.hpp>
 #include <boost/atomic/atomic.hpp>
+
 #include <boost/date_time.hpp>
 
 #include <boost/geometry/geometry.hpp>

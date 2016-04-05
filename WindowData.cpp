@@ -3,6 +3,8 @@
 #include "Draw.h"
 #include "littleTests.h"
 
+extern bool zoom;
+
 using namespace std;
 using namespace HandMoves;
 //-------------------------------------------------------------------------------
@@ -17,7 +19,7 @@ MyWindowData:: MyWindowData () :
                         // -0.39, 0.41, -0.05, -0.85
                         // 200U, 200U, -1., 1., -1., 1.
           ),
-  scaleLetters (target.Min (), target.Max ())
+  scaleLetters ((target.min) (), (target.max) ())
 {
   std::srand ((unsigned int) clock ());
 
@@ -78,6 +80,9 @@ MyWindowData::~MyWindowData ()
 //-------------------------------------------------------------------------------
 void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
 {
+  // --------------------------------------------------------------
+  if ( wd.working_space_show ) /* u */
+    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
   // ----- Отрисовка точек БД -------------------------------------
   if ( !wd.testing && wd.allPointsDB_show && !wd.store.empty () )
   { /* command  <q>  */
@@ -94,15 +99,26 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
     gradient_t  gradient ({ RGB (25, 255, 25),
                             RGB (25, 25, 255),
                             // RGB (0, 0, 255),
-                            RGB (255, 25, 25)// ,
+                            RGB (255, 25, 25) // ,
                             // RGB (255, 0, 0)
                           });
 
     WorkerThreadRunStoreTask ( wd, _T (" *** drawing ***  "),
                                [hdc](HandMoves::Store &store,
-                                     gradient_t gradient)
-                               { store.draw (hdc, gradient); },
-                              gradient);
+                                     gradient_t gradient, double r,
+                                     HandMoves::trajectory_t uncoveredPoints,
+                                     HPEN hPen)
+                               { 
+                                 store.draw (hdc, gradient, r);
+
+                                 for ( auto &pt : uncoveredPoints )
+                                   if ( zoom )
+                                   { DrawCircle (hdc, pt, 0.005, hPen); }
+                                   else
+                                   { SetPixel (hdc, Tx (pt.x), Ty (pt.y), RGB (255, 0, 0)); }
+                               },
+                              gradient, /* (zoom) ? 0.0005 : */ 0.,
+                              wd.uncoveredPoints, wd.hPen_red);
   }
   // --------------------------------------------------------------
 }
@@ -117,12 +133,8 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
   DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
   // --------------------------------------------------------------
-  if ( wd.working_space_show ) /* u */
-    DrawTrajectory (hdc, wd.working_space, wd.hPen_orng);
-  // --------------------------------------------------------------
-
-  for ( auto pt : wd.uncoveredPoints )
-  { SetPixel (hdc, Tx (pt.x), Ty (pt.y), RGB (255, 0, 0)); }
+  
+  
 
   if ( wd.trajectory_frames_show )
   { DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng); }

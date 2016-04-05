@@ -1,0 +1,336 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Point" Collapsed="true">
+    <Position X="11.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAIiAggAAAAAUAQYAAABAAAAAAADgAAQAIEA=</HashCode>
+      <FileName>Point.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CanvasScaleLetters" Collapsed="true">
+    <Position X="7.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAIAoEAAQAAAYABAAIAAAAAAAAAAAAQFAkAAAAQBAA=</HashCode>
+      <FileName>DrawLetters.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LittleTest" Collapsed="true">
+    <Position X="7.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAABAEAAABIAACAAAAAAQAAAAAAAIAAAABA=</HashCode>
+      <FileName>littleTests.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RecTarget" Collapsed="true">
+    <Position X="9.5" Y="2.5" Width="1.5" />
+    <NestedTypes>
+      <Typedef Name="RecTarget::vec_t" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>Target.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAABEAJQAAEgIAAEgAAgBAAAAAXACQgAAQAAA=</HashCode>
+      <FileName>Target.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MyWindowData" Collapsed="true">
+    <Position X="9.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAASMCABChACAIAyOBAwKwAhYNAIQAABBCBQ4AABAAA=</HashCode>
+      <FileName>WindowData.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::MotionLaws::JointMoveLaw" Collapsed="true">
+    <Position X="3" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::MotionLaws::JointStopLaw" Collapsed="true">
+    <Position X="0.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::MotionLaws::ContinuousAcceleration" Collapsed="true">
+    <Position X="0.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::MotionLaws::ContinuousAccelerationThenStabilization" Collapsed="true">
+    <Position X="3" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAQAAAAAAIAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::MotionLaws::ContinuousDeceleration" Collapsed="true">
+    <Position X="0.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::MotionLaws::ElbowMoveLaw" Collapsed="true">
+    <Position X="5.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HandMoves::Store" Collapsed="true">
+    <Position X="11.25" Y="2.5" Width="1.5" />
+    <NestedTypes>
+      <Struct Name="HandMoves::Store::ControlingHasher" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>HandMovesStore.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Struct>
+      <Typedef Name="HandMoves::Store::MultiIndexMoves" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>HandMovesStore.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Typedef>
+      <Class Name="HandMoves::Store::RangeInserter" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>HandMovesStore.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>gEAgAAACAIDAAAAAQYIAAAASAAAAAAABCAgAAUgDAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HandMoves::ClosestPredicate" Collapsed="true">
+    <Position X="9.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAABAAAAEAAAAAIAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HandMoves::Record" Collapsed="true">
+    <Position X="13" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EUAECAAAAIKBBkAAApAIQwQAgAISiCEIAQAAEAwIBAA=</HashCode>
+      <FileName>Record.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HandMoves::RecordHasher" Collapsed="true">
+    <Position X="7.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Record.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="NewHand::Hand" Collapsed="true">
+    <Position X="11.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAgAAAQMZCQBAgCCAAYAI6AwAEIgGDGIoABAQSBDAEA=</HashCode>
+      <FileName>NewHand.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Positions::LearnMovements" Collapsed="true">
+    <Position X="13" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAAAAAAAABAAAAOACAIAAAAAAAhAEAAAAAAAAKAAAA=</HashCode>
+      <FileName>Position.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="boost::uint_t&lt;Bits&gt;" Collapsed="true">
+    <Position X="9.5" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAACAAAAAAAAA=</HashCode>
+      <FileName>c:\Users\MainUser\Documents\Visual Studio 2015\boost_1\boost\integer.hpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="PointHasher" Collapsed="true">
+    <Position X="7.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Point.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="win_point" Collapsed="true">
+    <Position X="11.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAA=</HashCode>
+      <FileName>MyWindow.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="LabelsPositions" Collapsed="true">
+    <Position X="13" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EGAAAAQAIAAAAAAAAAAAAEAEAAAAQACAAEAABAAAAAA=</HashCode>
+      <FileName>MyWindow.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="NewHand::MotionLaws::JointMotionLaw" Collapsed="true">
+    <Position X="11.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAACAAAAAAAAAAAAAEAAAAAAAAAAAQAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HandMoves::ByP" Collapsed="true">
+    <Position X="13" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HandMoves::ByA" Collapsed="true">
+    <Position X="7.75" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HandMoves::ByX" Collapsed="true">
+    <Position X="7.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HandMoves::ByY" Collapsed="true">
+    <Position X="9.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HandMoves::ByD" Collapsed="true">
+    <Position X="11.25" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="HandMoves::ByC" Collapsed="true">
+    <Position X="9.5" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMovesStore.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Typedef Name="boost_point2_t" Collapsed="true">
+    <Position X="7.75" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="tstring" Collapsed="true">
+    <Position X="9.5" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="tistream" Collapsed="true">
+    <Position X="9.5" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="tostream" Collapsed="true">
+    <Position X="11.25" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="tfstream" Collapsed="true">
+    <Position X="7.75" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="tstringstream" Collapsed="true">
+    <Position X="11.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="uchar_t" Collapsed="true">
+    <Position X="13" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="ulong_t" Collapsed="true">
+    <Position X="7.75" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>StdAfx.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="NewHand::MotionLaws::VectorDoublesIterator" Collapsed="true">
+    <Position X="9.5" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>HandMotionLaw.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="HandMoves::trajectory_t" Collapsed="true">
+    <Position X="7.75" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Record.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="HandMoves::trajectories_t" Collapsed="true">
+    <Position X="13" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Record.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="HandMoves::controling_t" Collapsed="true">
+    <Position X="11.25" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Record.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="figure_t" Collapsed="true">
+    <Position X="4.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Draw.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="color_interval_t" Collapsed="true">
+    <Position X="9.5" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>MyWindow.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="gradient_t" Collapsed="true">
+    <Position X="13" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>MyWindow.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Enum Name="__unnamed_enum_0003_1" Collapsed="true">
+    <Position X="4.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <FileName>Draw.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

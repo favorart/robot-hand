@@ -76,7 +76,6 @@ namespace NewHand
 
     MusclesEnum musclesCumul;
     
-
     frames_t  visitedSaveEach;
 
   private:
@@ -226,7 +225,7 @@ namespace NewHand
         for ( frames_t time = iter->start; iter != end; ++time )
         {
           if ( time == iter->start ) /* А ЕСЛИ ОНИ СТАРТУЮТ ОДНОВРЕМЕННО НО С РАЗНОЙ ПРОДОЛЖИТЕЛЬНОСТЬЮ РАБОТАЮТ !?!? */
-            while ( time == iter->start )
+            while ( iter != end && time == iter->start )
           {
             step (iter->muscle, iter->last);
             if ( iter != begin )
@@ -306,6 +305,6 @@ namespace NewHand
   //------------------------------------------------------------------------------
 };
 //------------------------------------------------------------------------------
-#endif // _HAND_H_
+#endif // _NEW_HAND_H_
 
 

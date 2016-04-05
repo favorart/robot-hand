@@ -15,8 +15,10 @@ namespace HandMoves
   struct ByD {};
   struct ByC {};
 
-  using namespace ::boost::multi_index;
+  typedef std::list<Record> adjacency_t;
+  typedef std::list<std::shared_ptr<Record>> adjacency_refs_t;
 
+  using namespace boost::multi_index;
   class Store // DataBase
   {
     struct ControlingHasher : std::unary_function<const controling_t&, size_t>
@@ -33,6 +35,7 @@ namespace HandMoves
         return seed;
       }
     };
+
     //------------------------------------------------------------------------------
     typedef boost::multi_index_container
     < Record,
@@ -73,17 +76,21 @@ namespace HandMoves
     class RangeInserter
     {
     public:
-      void operator () (std::list<Record> &range, const Record &rec)
+      void operator () (adjacency_t &range, const Record &rec)
       { range.push_back (rec); }
-      void operator () (std::list<std::shared_ptr<Record>> &range, const Record &rec)
+      void operator () (adjacency_refs_t &range, const Record &rec)
       { range.push_back (std::make_shared<Record> (rec)); }
     };
     //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */
-    template <class T>
-    size_t  adjacencyRectPoints (std::list<T> &range, const Point &left_down, const Point &right_up)
+    template <class range_t>
+    size_t  adjacencyRectPoints (range_t &range, const Point &left_down, const Point &right_up)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
+
+      static_assert ( boost::is_same<range_t, adjacency_t>::value
+                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                      "Incorrect type to template function." );
       
       typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
@@ -103,11 +110,15 @@ namespace HandMoves
       return count;
     }
     /* круглая окрестность точки */
-    template <class T>
-    size_t  adjacencyPoints (std::list<T> &range, const Point &center, double radius)
+    template <class range_t>
+    size_t  adjacencyPoints (range_t &range, const Point &center, double radius)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      
+
+      static_assert ( boost::is_same<range_t, adjacency_t>::value
+                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                      "Incorrect type to template function." );
+
       typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
     
@@ -131,11 +142,16 @@ namespace HandMoves
       return count;
     }
     //------------------------------------------------------------------------------
-    template <class T>
-    size_t  similDistances  (std::list<T> &range, double min_distance, double max_distance)
+    template <class range_t>
+    size_t  similDistances  (range_t &range, double min_distance, double max_distance)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
       
+      
+      static_assert ( boost::is_same<range_t, adjacency_t>::value
+                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                      "Incorrect type to template function." );
+
       typedef MultiIndexMoves::index<ByD>::type::const_iterator IndexDcIter;
       MultiIndexMoves::index<ByD>::type  &index = store_.get<ByD> ();
     
@@ -168,10 +184,14 @@ namespace HandMoves
       return  (equal != index.end ()) ? (&(*equal)) : (nullptr);
     }
     //------------------------------------------------------------------------------
-    template <class T>
-    size_t  FindEndPoint (std::list<T> &range, const Point &point)
+    template <class range_t>
+    size_t  FindEndPoint (range_t &range, const Point &point)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      
+      static_assert < boost::is_same<range_t, adjacency_t>::value
+                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                      "Incorrect type to template function.">;
 
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
       auto result = index.equal_range (boost::tuple<double, double> (point));
@@ -186,7 +206,7 @@ namespace HandMoves
       return  count;
     }
     //------------------------------------------------------------------------------
-    void  draw (HDC hdc, gradient_t gradient) const;
+    void  draw (HDC hdc, gradient_t gradient, double circleRadius=(0.)) const;
     void  draw (HDC hdc, double circleRadius, HPEN hPen) const;
     //------------------------------------------------------------------------------
     /* сериализация */
@@ -194,6 +214,19 @@ namespace HandMoves
     void  load (tstring filename);
     //------------------------------------------------------------------------------
     void  insert (const Record &rec);
+    //------------------------------------------------------------------------------
+    // template <class T>
+    auto  begin () -> decltype(store_.begin ()) 
+    { return  store_.begin (); }
+    // template <class T>
+    auto  begin () const -> decltype(store_.begin ())
+    { return store_.begin (); }
+    // template <class T>
+    auto  end () -> decltype(store_.end ())
+    { return store_.end (); }
+    // template <class T>
+    auto  end () const -> decltype(store_.end ())
+    { return store_.end (); }
     //------------------------------------------------------------------------------
     void  clear ()
     { 

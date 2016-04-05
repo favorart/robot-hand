@@ -5,17 +5,20 @@
 //------------------------------------------------------------------------------
 void  RecTarget::generate ()
 {
-  double r_step = (top - btm) / (c_rows - 1U);
-  double c_step = (rgh - lft) / (c_cols - 1U);
+  // double r_step = (top - btm) / (c_rows - 1U);
+  // double c_step = (rgh - lft) / (c_cols - 1U);
+  double r_step = (max_.y - min_.y) / (c_rows - 1U);
+  double c_step = (max_.x - min_.x) / (c_cols - 1U);
 
   for ( uint_t i = 0U; i < c_rows; ++i )
   { for ( uint_t j = 0U; j < c_cols; ++j )
-    { coords_.push_back (Point (lft + j * c_step,
-                                btm + i * r_step));
+    { coords_.push_back (Point (/* lft */ min_.x + j * c_step,
+                                /* btm */ min_.y + i * r_step));
     }
   }
-  x_distance = r_step;
-  y_distance = c_step;
+  thickness_ = Point (r_step, c_step);
+  // x_distance = r_step;
+  // y_distance = c_step;
 }
 //------------------------------------------------------------------------------
 void  RecTarget::draw (HDC hdc, HPEN hPen,
@@ -25,23 +28,25 @@ void  RecTarget::draw (HDC hdc, HPEN hPen,
 {
   HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
   //---target--------------------------------------------------------
-  double r = (top - btm) / (c_rows - 1U);
-  double c = (rgh - lft) / (c_cols - 1U);
+  double r = (max_.y - min_.y) / (c_rows - 1U);
+  double c = (max_.x - min_.x) / (c_cols - 1U);
+  // double r = (top - btm) / (c_rows - 1U);
+  // double c = (rgh - lft) / (c_cols - 1U);
 
-  Rectangle (hdc, Tx (lft - c / 2.0), Ty (top + r / 2.0),
-                  Tx (rgh + c / 2.0), Ty (btm - r / 2.0));
+  Rectangle (hdc, Tx (/* lft */ min_.x - c / 2.), Ty (/* top */ min_.y - r / 2.),
+                  Tx (/* rgh */ max_.x + c / 2.), Ty (/* btm */ max_.y + r / 2.));
   //-----------------------------------------------------------------
   if ( internalLines )
   {
     for ( uint_t i = 1U; i < c_cols; ++i )
     {
-      MoveToEx (hdc, Tx (lft + i*c - c / 2.0), Ty (btm - r / 2.0), NULL);
-      LineTo   (hdc, Tx (lft + i*c - c / 2.0), Ty (top + r / 2.0));
+      MoveToEx (hdc, Tx (/* lft */ min_.x + i*c - c / 2.), Ty (/* top */ min_.y - r / 2.), NULL);
+      LineTo   (hdc, Tx (/* lft */ min_.x + i*c - c / 2.), Ty (/* btm */ max_.y + r / 2.));
     }
     for ( uint_t i = 1U; i < c_rows; ++i )
     {
-      MoveToEx (hdc, Tx (lft - c / 2.0), Ty (btm + i*r - r / 2.0), NULL);
-      LineTo   (hdc, Tx (rgh + c / 2.0), Ty (btm + i*r - r / 2.0));
+      MoveToEx (hdc, Tx (/* lft */ min_.x - c / 2.), Ty (/* btm */ min_.y + i*r - r / 2.), NULL);
+      LineTo   (hdc, Tx (/* rgh */ max_.x + c / 2.), Ty (/* btm */ min_.y + i*r - r / 2.));
     } // end for
   } // end if
   //-----------------------------------------------------------------
