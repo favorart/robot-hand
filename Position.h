@@ -21,7 +21,7 @@ using namespace NewHand;
 
 namespace Positions
 {
-#define _HAND_TEST_CONSOLE_PRINTF
+//#define _HAND_TEST_CONSOLE_PRINTF
 
   //void  /*HandMoves::*/testCover (Store &store, Hand &hand,
   //                            Hand::MusclesEnum muscles /* recursive */,
@@ -93,15 +93,19 @@ namespace Positions
     struct  MainDirection
     {
       //------------------------------------------
-      Hand::MusclesEnum  muscle;
-      std::vector<Point>  shifting;
-      Point  center;
+      Hand::MusclesEnum   muscle;
+
+      std::vector<Point>  shifts;
+      Point               center;
+
+      double            min_radius;
+      double            max_radius;
       //------------------------------------------
-      MainDirection (Hand::MusclesEnum m, Hand &hand, const Point &base) :
+      MainDirection () {}
+      MainDirection (Hand::MusclesEnum m, Hand &hand) :
         muscle (m),
         center (hand.jointPosition (jointByMuscle (m)))
       {
-        // Point base = hand.position;
         std::list<Point>  trajectory;
         //-----Must be !!! EACH !!!--------
         auto oldEach = hand.visitedSaveEach;
@@ -109,92 +113,52 @@ namespace Positions
         hand.move (m, hand.maxMuscleLast (m), trajectory /*, !!! */);
         hand.visitedSaveEach = oldEach;
         //---------------------------------
+        Point &front = trajectory.front ();
+        max_radius = boost_distance (center, front);
+        min_radius = boost_distance (center, front);
+        //---------------------------------
         for ( auto pt : trajectory )
         {
-          shifting.push_back (Point (pt.x - trajectory.front ().x,
-                              pt.y - trajectory.front ().y));
+          double radius = boost_distance (center, pt);
+          //---------------------------------
+          if ( radius > max_radius ) max_radius = radius;
+          if ( radius < min_radius ) min_radius = radius;
+          //---------------------------------
+          shifts.push_back (Point (pt.x - front.x,
+                                   pt.y - front.y));
         }
       }
       //------------------------------------------
-      bool operator== (Hand::MusclesEnum m) const
+      bool  operator<  (const MainDirection &md) const
+      { return  (muscle  < md.muscle); }
+      bool  operator== (const MainDirection &md) const
+      { return  (muscle == md.muscle); }
+      bool  operator!= (const MainDirection &md) const
+      { return  (muscle != md.muscle); }
+
+      bool  operator== (Hand::MusclesEnum m) const
       { return  (muscle == m); }
-      bool operator!= (Hand::MusclesEnum m) const
+      bool  operator!= (Hand::MusclesEnum m) const
       { return  (muscle != m); }
     };
     //------------------------------------------
-    std::list<MainDirection>  mainDirections;
+    std::map<Hand::MusclesEnum, MainDirection>  main_directions;
     Point hand_base;
     //------------------------------------------
   public:
-    DirectionPredictor (Hand &hand)
-    {
-      hand.SET_DEFAULT;
-      hand_base = hand.position;
-
-      for ( auto j : hand.joints_ )
-      {
-        hand.SET_DEFAULT;
-
-        hand.set (j, { 100. });
-        mainDirections.push_back (MainDirection (muscleByJoint (j, true), hand, hand.position));
-
-        hand.set (j, { 0. });
-        mainDirections.push_back (MainDirection (muscleByJoint (j, false), hand, hand.position));
-      }
-      // for ( auto m : hand.muscles_ )
-      //   mainDirections.push_back (MainDirection (m, hand, hand_base));
-    }
+    DirectionPredictor (IN Hand &hand);
     //------------------------------------------
-    void  predict (IN Hand::Control control, OUT Point &end) const
-    {
-      for ( auto m : muscles )
-        for ( auto &md : mainDirections ) // !!!!!!!!!!!!
-          if ( md == (control.muscle & m) && (control.last < md.shifting.size ()) )
-          {
-            end.x += md.shifting[control.last].x;
-            end.y += md.shifting[control.last].y;
-          }
-    }
-
+    void  predict (IN Hand::Control control, OUT Point &end);
     void  predict (IN  Hand::MusclesEnum m,
-                   IN  Hand::frames_t l,
-                   OUT Point &end) const
-    {
-      predict (Hand::Control (m, 0U, l), end);
-    }
+                   IN  Hand::frames_t    l,
+                   OUT Point &end)
 
-    void  measure (IN  const Point &aim,
-                   OUT HandMoves::controling_t &controls) const
-    {
-      Point base = hand_base;
-      /*
-      *  У нас есть 4 линейки, их надо сопоставить так,
-      *  чтобы приблизить aim.
-      */
+    { predict (Hand::Control (m, 0U, l), end); }
+    void  measure (IN Hand &hand, IN  const Point &aim,
+                   OUT HandMoves::controling_t &controls);
 
-      /*
-      *  Система линейных уравнений
-      *
-      *
-      */
-
-      if ( base.x > aim.x )
-      {}
-      if ( base.y > aim.y )
-      {}
-
-      while ( base.x < aim.x )
-      {}
-      while ( base.y < aim.y )
-      {}
-
-      for ( auto &md : mainDirections )
-      {
-        int  j = 0, const_t = 5;
-        Hand::Control  control (md.muscle, 0U, j - const_t);
-      }
-    }
-    //------------------------------------------
+    bool  shifting_gt (Hand::MusclesEnum m, unsigned int &inx, const Point &aim);
+    bool  shifting_ls (Hand::MusclesEnum m, unsigned int &inx, const Point &aim);
   };
 
   class LearnMovements
@@ -224,12 +188,6 @@ namespace Positions
     Hand::frames_t   lasts_init_value1 = 50U;
     /* Изменение шага времени */
     Hand::frames_t   lasts_incr_value1 = 10U;
-    /*  Примерное количество точек
-     *  от базового состояния до
-     *  крайнего положения в каждую
-     *  из возможных сторон движения.
-     */
-     // Hand::frames_t   count_points = 20U;
      //==============================================
 
      /* stage_2 */
@@ -238,16 +196,12 @@ namespace Positions
     /* Время преодоления инерции */
     Hand::frames_t   lasts_init_value2 = 1U;
     /* Изменение шага времени */
-    Hand::frames_t   lasts_incr_value2 = 1U;
-    // Hand::frames_t   count_points = 20U;
+    Hand::frames_t   lasts_incr_value2 = 3U;
      //==============================================
-    borders_t  borders_;
-    // !!! НУЖНО ТОРМОЗИТЬ УЖЕ НА ЭТОЙ СТАДИИ !!!
-    //==============================================
-
 
     /* stage_3 */
     //==============================================
+
     //==============================================
 
   public:
@@ -261,7 +215,8 @@ namespace Positions
     //   lasts_incr_value1 /= count_points;
     // }
 
-    void  STAGE2 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    void  STAGE_1 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    void  STAGE_2 (HandMoves::Store &store, Hand &hand, RecTarget &target);
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
     void  testStage1 (HandMoves::Store &store, Hand &hand, RecTarget &target);
@@ -279,5 +234,6 @@ namespace Positions
     bool  tryToHitTheAim (HandMoves::Store &store, Hand &hand, const Point &aim, size_t tries, double precision);
     //------------------------------------------------------------------------------
   };
+  void testGradientMethod (HandMoves::Store &store, Hand &hand, const Point &aim);
 };
 #endif // _POSITION_H_

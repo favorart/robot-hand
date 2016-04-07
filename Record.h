@@ -97,8 +97,11 @@ namespace HandMoves
 
     // ----------------------------------------
     operator tstring () const
-    { return  str (boost::wformat (_T ("rec<x=%1%, y=%2%>")) % hit.x % hit.y); }
-
+    { 
+      tstringstream ss;
+      ss << _T ("rec<x=") << hit.x << _T (", y=") << hit.y << _T (">");
+      return  ss.str ();
+    }
     // ----------------------------------------
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_aim)) const Point &aim;

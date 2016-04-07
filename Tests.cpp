@@ -30,24 +30,28 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
     /* Для нового потока нужно снова переинициализировать rand */
     std::srand ((unsigned int) clock ());
 
+    hand.SET_DEFAULT;
+    Point hand_pos_base = hand.position;
+
     for ( size_t i = 0U; i < tries; ++i )
     {
-      trajectory_t visited;
-      Record::muscles_array  muscles = {};
-      Record::times_array    start_times = {};
-      Record::times_array    lasts = {};
+      controling_t controls;
 
-      size_t  moves_count = random<size_t> (1, Record::maxControlsCount);
+      Hand::MusclesEnum  muscle = Hand::EmptyMov;
+      Hand::frames_t       last = 0U;
+      Hand::frames_t      start = 0U;
+      // trajectory_t      visited;
 
-      hand.SET_DEFAULT;
-      Point hand_base = hand.position;
-
+      size_t  moves_count = random (1, 2); // Record::maxControlsCount);
       for ( size_t j = 0U; j < moves_count; ++j )
       {
-
-        auto muscle = hand.selectControl ();
-        auto last = random (hand.maxMuscleLast (muscle));
-        auto actual_last = hand.move (muscle, last, visited);
+        muscle = hand.selectControl ();
+        last = random (1U, hand.maxMuscleLast (muscle));
+        
+        controls.push_back (Hand::Control (muscle, start, last));
+        start = last;
+        // start /* actual_last */ = hand.move (muscle, last, visited);
+        // hand.SET_DEFAULT;
 
         /*
            start_times[0] = 0U
@@ -57,24 +61,28 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
            lasts[1] = random (1U, maxFrames_activeMuscles_correctedByCurrentPosition)
         */
 
-        muscles[j] = muscle;
-        start_times[j] = (j) ? actual_last : 0;
-        lasts[j] = last;
+        // muscles[j] = muscle;
+        // start_times[j] = (j) ? actual_last : 0;
+        // lasts[j] = last;
 
-        // times_stop[j]  = (j) ? (times_stop[j - 1] + last) : last;
+        // // times_stop[j]  = (j) ? (times_stop[j - 1] + last) : last;
         boost::this_thread::interruption_point ();
       }
 
+      trajectory_t visited;
+      hand.move (controls.begin (), controls.end (), &visited);
+      hand.SET_DEFAULT;
+
       const Point &hand_pos = hand.position;
-      store.insert (Record (hand_pos, hand_base, hand_pos,
-                            muscles, start_times, lasts,
-                            moves_count, visited) );
+      store.insert (Record (hand_pos, hand_pos_base,
+                            hand_pos, controls,
+                            visited) );
 
       boost::this_thread::interruption_point ();
     } // for tries
   }
   catch ( boost::thread_interrupted& )
-  { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
+  { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
 }
 void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
 {
@@ -142,17 +150,23 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
                     ++tail_k;
 
                     trajectory.erase (tail_k, trajectory.end ());
-                    hand.set (jointByMuscle (muscle_k), { (jointByMuscle (muscle_k) == Hand::Elbow) ? 70. : 0. });
+                    auto joint_k = jointByMuscle (muscle_k);
+                    hand.set (Hand::JointsSet{ {joint_k, (joint_k == Hand::Elbow) ? 70. :
+                                                         (joint_k == Hand::Wrist) ? 50. : 0.} });
                   }
                 }
               //=================================================
               trajectory.erase (tail_j, trajectory.end ());
-              hand.set (jointByMuscle (muscle_j), { (jointByMuscle (muscle_j) == Hand::Elbow) ? 70. : 0. });
+              auto joint_j = jointByMuscle (muscle_j);
+              hand.set (Hand::JointsSet{ {joint_j, (joint_j == Hand::Elbow) ? 70. :
+                                                   (joint_j == Hand::Wrist) ? 50. : 0.} });
 
               boost::this_thread::interruption_point ();
             }
           }
-        hand.set (jointByMuscle (muscle_i), { (jointByMuscle (muscle_i) == Hand::Elbow) ? 70. : 0. });
+        auto joint_i = jointByMuscle (muscle_i);
+        hand.set (Hand::JointsSet{ {joint_i, (joint_i == Hand::Elbow) ? 70. :
+                                             (joint_i == Hand::Wrist) ? 50. : 0.} });
 
         boost::this_thread::interruption_point ();
       }
@@ -162,7 +176,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
   catch ( exception )
   { MessageBox (NULL, _T ("Error"), _T ("Error"), MB_OK); }
   catch ( boost::thread_interrupted& )
-  { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
+  { /* tcout << _T("WorkingThread interrupted" )<< std::endl; */ }
 }
 //------------------------------------------------------------------------------
 

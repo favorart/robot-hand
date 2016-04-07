@@ -9,7 +9,6 @@
 using namespace std;
 using namespace HandMoves;
 
-
 bool zoom = false;
 //------------------------------------------------------------------------------
 win_point*  WindowSize (void)
@@ -21,10 +20,10 @@ void     SetWindowSize (int Width_, int Height_)
   WindowSize ()->y = Height_;
 }
 
-
-int  T2x  (double logic_x)
+/* normal */
+int  T2x (double logic_x)
 { return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
-int  T2y  (double logic_y)
+int  T2y (double logic_y)
 { return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
 /* zoom */
@@ -33,9 +32,9 @@ int  T1x (double logic_x)
 int  T1y (double logic_y)
 { return  (int) (MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
 
-int  Tx (double logic_x)
+int  Tx  (double logic_x)
 { return  (zoom) ? T1x (logic_x) : T2x (logic_x); }
-int  Ty (double logic_y)
+int  Ty  (double logic_y)
 { return  (zoom) ? T1y (logic_y) : T2y (logic_y); }
 
 Point  logic_coord (win_point* coord)
@@ -328,11 +327,7 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     SelectObject (wd.hStaticDC, wd.hBrush_null);
     SetBkMode    (wd.hStaticDC, TRANSPARENT);
     //-------------------------------------
-    DrawDecardsCoordinates (wd.hStaticDC);
-    wd.target.draw (wd.hStaticDC, wd.hPen_grn, true,
-                    false, false);
-                    // true, false);
-
+    OnPaintStaticBckGrnd (wd.hStaticDC, wd);
     //-------------------------------------
     /* Здесь рисуем на контексте hCmpDC */
     OnPaintStaticFigures (wd.hStaticDC, wd);
@@ -378,9 +373,7 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     SelectObject (hCmpDC, wd.hBrush_null);
     SetBkMode (hCmpDC, TRANSPARENT);
     //-------------------------------------
-    DrawDecardsCoordinates (hCmpDC);
-    wd.target.draw (hCmpDC, wd.hPen_grn,
-                    true /*false*/, false, false);
+    OnPaintStaticBckGrnd (hCmpDC, wd);
     //-------------------------------------
   }
   //-------------------------------------
@@ -548,16 +541,34 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
+    case 'm':
+    {
+      // Positions::LearnMovements lm;
+      // lm.STAGE2 (wd.store, wd.hand, wd.target);
+
+      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 1 test ***  "),
+                                [](Store &store, Hand &hand, RecTarget &target)
+                                {
+                                  Positions::LearnMovements lm;
+                                  lm.STAGE_1 (store, hand, target);
+                                }
+                                , wd.hand, wd.target);
+      WorkerThreadTryJoin (wd);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+
     case 'n':
     {
       // Positions::LearnMovements lm;
       // lm.STAGE2 (wd.store, wd.hand, wd.target);
 
-      WorkerThreadRunStoreTask (wd, _T (" *** stage 2 test ***  "),
+      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 2 test ***  "),
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {
                                   Positions::LearnMovements lm;
-                                  lm.STAGE2 (store, hand, target);
+                                  lm.STAGE_2 (store, hand, target);
                                 }
                                 , wd.hand, wd.target);
       WorkerThreadTryJoin (wd);
@@ -586,7 +597,12 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       if ( !wd.working_space.size () )
       {
         Hand::MusclesEnum muscle;
-        wd.hand.set (Hand::Clvcl | Hand::Shldr | Hand::Elbow, { 0.,0.,0. });
+        wd.hand.set (   Hand::JointsSet
+                     { {Hand::Clvcl, 0.},
+                       {Hand::Shldr, 0.},
+                       {Hand::Elbow, 0.},
+                       {Hand::Wrist, 0.},
+                     });
     
         muscle = Hand::ClvclOpn;
         wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
@@ -769,7 +785,7 @@ tstring   SaveFileDialog (HWND hWnd)
   return SaveFileName.lpstrFile;
 }
 //-------------------------------------------------------------------------------
-tstring  GetTextToString (HWND hWnd)
+tstring   GetTextToString (HWND hWnd)
 {
   int  len = GetWindowTextLength (hWnd) + 1U;
   std::vector<TCHAR>  buffer (len);

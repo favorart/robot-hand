@@ -202,11 +202,38 @@ namespace NewHand
       virtual void  generate (VectorDoublesIterator first, size_t frames_count,
                               double left_border, double right_border) const {}
     };
+    //------------------------------------------------------------------------------
+    /* ??? Зависимость от сил, масс, трения и моментов инерции */
+    class PhisicalAcceleration
+    {
+      double  EngineForce;     /* Сила привода двигателя */
+      double  MaxVelosity;     /* Максимальная развиваемая моментальная скорость */
+      double  Acceleration;    /* Ускорение придаваемое за счёт усилия двигателя */
 
+      double  SectionMass;     /* Масса звена и всего, что удерживается сочленением */
+      double    JountMass;     /* Масса сочленения */
+      double    JountFriction; /* Трение в сочленении */
+    public:
+      // template <typename ForwardIterator>
+      virtual void  generate (VectorDoublesIterator first, size_t frames_count,
+                              double left_border, double right_border) const {}
+    };
+    class PhisicalDeceleration
+    {
+      /* ??? Коэффициент взаимодействия приводов */
+      double FrictionForce;    /* Сила трения */
+      double InrtiaMoment;     /* Момент инерции */
+    public:
+      // template <typename ForwardIterator>
+      virtual void  generate (VectorDoublesIterator first, size_t frames_count,
+                              double left_border, double right_border,
+                              double max_velosity) const {}
+    };
+    //------------------------------------------------------------------------------
+    /* OLD FUNCTIONS -->> to delete */
     std::vector<double>  generateJointMoveFrames_cos (double a, double b, size_t n);
     std::vector<double>  generateJointMoveFrames     (double a, double b, size_t n);
     std::vector<double>  generateJointStopFrames     (double a, double b, size_t n);
-
   }
 }
 //------------------------------------------------------------------------------

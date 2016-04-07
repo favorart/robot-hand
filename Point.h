@@ -40,7 +40,11 @@ public:
   { return boost::geometry::model::d2::point_xy<double> (x, y); }
 
   operator tstring () const
-  { return  boost::str (boost::wformat (_T ("pt<x=%1%, y=%2%>")) % x % y); }
+  {
+    tstringstream ss;
+    ss << _T ("pt<x=") << x << _T (", y=") << y << _T (">");
+    return  ss.str ();
+  }
   //-----------------------------------------
 private:
   /* serialization */

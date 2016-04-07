@@ -67,7 +67,7 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius)
   vector<HPEN> hPens (gradient.size());
   for ( int i = 0; i < gradient.size (); ++i )
   {
-    // std::wcout << '(' << GetRValue (c) << ' '
+    // tcout << '(' << GetRValue (c) << ' '
     //                   << GetGValue (c) << ' '
     //                   << GetBValue (c) << ' '
     //            << ')' << ' '; // std::endl;
@@ -86,7 +86,7 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius)
     for ( auto &rec : store_ )
     {
       // double elegance = rec.eleganceMove ();
-      // std::wcout << elegance << std::endl;
+      // tcout << elegance << std::endl;
       // size_t index = static_cast<size_t> (elegance * (gradient.size () - 1));
       // // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       // index = index >= gradient.size () ? gradient.size () - 1 : index;
@@ -124,7 +124,7 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius)
       //   // tstringstream ss; ss << i << _T ("  ");
       //   // SendMessage (wd.hLabMAim, WM_SETTEXT, NULL,
       //   //              reinterpret_cast<LPARAM> (ss.str().c_str()) );
-      //   std::wcout << '(' << longs << ' ' << index << ')' << ' '; // std::endl;
+      //   tcout << '(' << longs << ' ' << index << ')' << ' '; // std::endl;
       // 
       // }
 
@@ -132,7 +132,7 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius)
     }
   }
   catch ( boost::thread_interrupted& )
-  { /* std::cout << "WorkingThread interrupted" << std::endl; */ }
+  { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
   // --------------------------------------------------------------
   for ( auto hPen : hPens )
   { DeleteObject (hPen); }

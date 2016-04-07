@@ -19,7 +19,8 @@ MyWindowData:: MyWindowData () :
                         // -0.39, 0.41, -0.05, -0.85
                         // 200U, 200U, -1., 1., -1., 1.
           ),
-  scaleLetters ((target.min) (), (target.max) ())
+  scaleLetters ((target.min) (), (target.max) ()),
+  pd (hand)
 {
   std::srand ((unsigned int) clock ());
 
@@ -78,6 +79,14 @@ MyWindowData::~MyWindowData ()
   //=======================
 }
 //-------------------------------------------------------------------------------
+void  OnPaintStaticBckGrnd (HDC hdc, MyWindowData &wd)
+{
+  DrawDecardsCoordinates (hdc);
+  wd.target.draw (hdc, wd.hPen_grn,
+                  false, // true,
+                  false, false);
+                  // true, false);
+}
 void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
 {
   // --------------------------------------------------------------
@@ -213,6 +222,13 @@ void  MakeHandMove (MyWindowData &wd)
     SendMessage (wd.hLabMAim, WM_SETTEXT, NULL, (LPARAM) ss.str ().c_str ());
     //-------------------------------------------------
   }
+  // else
+  // {
+  //   wd.hand.SET_DEFAULT;
+  //   controling_t controls;
+  //   wd.pd.measure (wd.hand, wd.mouse_aim, controls);
+  //   wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
+  // }
 
   
 

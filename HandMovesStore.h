@@ -66,7 +66,6 @@ namespace HandMoves
 
     gradient_t  gradient;
 
-
     mutable boost::mutex    store_mutex_;
     Hand::frames_t          minTimeLong, maxTimeLong;
     //==============================================================================
@@ -146,7 +145,6 @@ namespace HandMoves
     size_t  similDistances  (range_t &range, double min_distance, double max_distance)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      
       
       static_assert ( boost::is_same<range_t, adjacency_t>::value
                    || boost::is_same<range_t, adjacency_refs_t>::value,

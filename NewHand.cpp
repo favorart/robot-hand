@@ -1,10 +1,11 @@
 ﻿#include "StdAfx.h"
 #include "MyWindow.h"
 #include "NewHand.h"
+
 #define HAND_VER 2
 #include "HandMuscles.h"
 //--------------------------------------------------------------------------------
-NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (MusclesEnum  muscle)
+NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (IN MusclesEnum  muscle)
 {
   uint_t last = 0U;
   for ( auto m : muscles_ )
@@ -25,9 +26,13 @@ NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (MusclesEnum  muscle)
   return last;
 }
 //--------------------------------------------------------------------------------
-// ??? min velosity
+// ??? minimum velosity
 // ??? current velosity
+
+// ??? momentum velosity
+/* ??? Зависимость от сил, масс, трения и моментов инерции */
 /* ??? Коэффициент взаимодействия приводов */
+/* ??? Торможение включением противоположного двигателя */
 double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atStop)
 {
   const bool USE_SPEED = true;
@@ -46,12 +51,12 @@ double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atS
                              this->framesMove[index][this->hs.lasts_[index]];
 
           // // if ( !this )
-          // // { std::wcout << _T ("not this!!!!") << std::endl; }
+          // // { tcout << _T ("not this!!!!") << std::endl; }
           // // if ( index >= this->hs.lasts_.size ()
           // //     || index >= this->hs.prevFrame_.size ()
           // //     || index >= this->minStopFrames.size () )
           // // {
-          // //   std::wcout << _T ("index!!!!") << std::endl;
+          // //   tcout << _T ("index!!!!") << std::endl;
           // // }
 
         } while ( USE_SPEED && atStop
@@ -207,10 +212,10 @@ void    NewHand::Hand::muscleMove  (JointsIndexEnum jointIndex, MusclesEnum musc
   ++hs.lasts_[jointIndex];
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::Hand (const Point &palm,
-                     const Point &hand, const Point &arm,
-                     const Point &shoulder, const Point &clavicle,
-                     const JointsMotionLaws &jointsFrames) throw (...) :
+NewHand::Hand::Hand (IN const Point &palm,
+                     IN const Point &hand,     IN const Point &arm,
+                     IN const Point &shoulder, IN const Point &clavicle,
+                     IN const JointsMotionLaws &jointsFrames) throw (...) :
                      
                      StopDistaceRatio (0.3), // 30% от общего пробега
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
@@ -221,13 +226,12 @@ NewHand::Hand::Hand (const Point &palm,
 
                      palm_ (palm), hand_ (hand), arm_ (arm),
                      shoulder_ (shoulder), clavicle_ (clavicle),
-                     jointsCount (joints.size ()),
                      drawPalm_ (false)
 { 
   for ( auto j : jointsFrames )
   { joints_.push_back (j.first); }
 
-  if ( !jointsCount || jointsCount > JointsCount )
+  if ( !jointsFrames.size () || jointsFrames.size () > JointsCount )
     throw new std::exception ("Incorrect joints count"); // _T ??
 
   for ( auto joint : joints_ )
@@ -283,7 +287,7 @@ NewHand::Hand::Hand (const Point &palm,
   reset ();
 }
 
-void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t last)
+void                     NewHand::Hand::step (IN  MusclesEnum muscle, IN frames_t last)
 {
   if ( muscle )
   {
@@ -314,7 +318,7 @@ void                     NewHand::Hand::step (IN MusclesEnum muscle, IN frames_t
       }
     }
 }
-NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last)
+NewHand::Hand::frames_t  NewHand::Hand::move (IN  MusclesEnum muscle, IN frames_t last)
 {
   frames_t  actual_last = 0U;
   /* simultaniusly moving */
@@ -330,7 +334,7 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
   } // end if
   return  actual_last;
 }
-NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t last,
+NewHand::Hand::frames_t  NewHand::Hand::move (IN  MusclesEnum muscle, IN frames_t last,
                                               OUT std::list<Point> &visited)
 {
   frames_t  frame = 0U;
@@ -341,13 +345,13 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN MusclesEnum muscle, IN frames_t
     /* start movement */
     step (muscle, last);
     // visited.push_back (position);
-    // std::wcout << std::endl << tstring (position) << std::endl;
+    // tcout << std::endl << tstring (position) << std::endl;
     while ( hs.musclesMove_ && !hs.moveEnd_ )
     { /* just moving */
       step ();
       if ( !(frame % visitedSaveEach) )
         visited.push_back (position);
-      // std::wcout << tstring (position) << std::endl;
+      // tcout << tstring (position) << std::endl;
       ++actual_last;
       ++frame;
     }
@@ -383,44 +387,43 @@ void  NewHand::Hand::reset ()
   hs.moveEnd_ = false; 
   // hs.velosity_ = 0.;
 }
-
-/* NewHand::Hand:: (Clvcl < Shldr < Elbow < Wrist) index */
-void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jOp)
+void  NewHand::Hand::set   (IN NewHand::Hand::JointsSet &jointsOpenPercent)
+                          //JointsEnum joint, const std::array<double, Hand::JointsCount> &jOp)
 {
-  if ( joint )
+  if ( jointsOpenPercent.size () )
   {
     int index = 0;
     double  shiftClvcl, angleShldr, angleElbow, angleWrist;
     //------------------------------------------------------
-    if ( joint & Clvcl )
+    if ( jointsOpenPercent.find(Clvcl) != jointsOpenPercent.end () ) // joint & Clvcl )
     { // ?? index --> ClvclIndex
       double maxClvcl = static_cast<double>(maxJointAngles[ClvclIndex]) / 100.; // maxClvclShift;
 
-      shiftClvcl = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      shiftClvcl = (jointsOpenPercent[Clvcl] > 100.0) ? 100.0 : jointsOpenPercent[Clvcl];
       shiftClvcl = shiftClvcl / 100.0 * maxClvcl;
       ++index;
     }
     else shiftClvcl = hs.shiftClvcl_;
 
-    if ( joint & Shldr )
+    if ( jointsOpenPercent.find (Shldr) != jointsOpenPercent.end () ) // joint & Shldr )
     { // ?? index --> ShldrIndex
-      angleShldr = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      angleShldr = (jointsOpenPercent[Shldr] > 100.0) ? 100.0 : jointsOpenPercent[Shldr];
       angleShldr = angleShldr / 100.0 * maxJointAngles[ShldrIndex]; // maxShldrAngle;
       ++index;
     }
     else angleShldr = hs.angleShldr_;
 
-    if ( joint & Elbow )
+    if ( jointsOpenPercent.find (Elbow) != jointsOpenPercent.end () ) // joint & Elbow )
     { // ?? index --> ElbowIndex
-      angleElbow = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      angleElbow = (jointsOpenPercent[Elbow] > 100.0) ? 100.0 : jointsOpenPercent[Elbow];
       angleElbow = angleElbow / 100.0 * maxJointAngles[ElbowIndex]; // maxElbowAngle;
       ++index;
     }
     else angleElbow = hs.angleElbow_;
 
-    if ( joint & Wrist )
+    if ( jointsOpenPercent.find (Wrist) != jointsOpenPercent.end () ) // joint & Wrist )
     { // ?? index --> WristIndex
-      angleWrist = (jOp[index] > 100.0) ? 100.0 : jOp[index];
+      angleWrist = (jointsOpenPercent[Wrist] > 100.0) ? 100.0 : jointsOpenPercent[Wrist];
       angleWrist = angleElbow / 100.0 * maxJointAngles[WristIndex]; // maxWristAngle;
       ++index;
     }
@@ -449,7 +452,7 @@ void  NewHand::Hand::set (JointsEnum joint, const std::array<double, Hand::Joint
   }
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesIndexEnum  NewHand::Hand::muscleIndex (NewHand::Hand::MusclesEnum  muscle) const
+NewHand::Hand::MusclesIndexEnum  NewHand::Hand::muscleIndex (IN NewHand::Hand::MusclesEnum  muscle) const
 {
   if ( !muscle ) return MusclesCount; // EmptyMov
   for ( MusclesEnum m : muscles_ )
@@ -470,7 +473,7 @@ NewHand::Hand::MusclesIndexEnum  NewHand::Hand::muscleIndex (NewHand::Hand::Musc
   }
   return MusclesCount;
 }
-NewHand::Hand::JointsIndexEnum   NewHand::Hand::jointIndex  (NewHand::Hand:: JointsEnum  joint ) const
+NewHand::Hand::JointsIndexEnum   NewHand::Hand::jointIndex  (IN NewHand::Hand:: JointsEnum  joint ) const
 {
   if ( !joint ) return JointsCount; // Empty
   for ( JointsEnum j : joints_ )
@@ -488,7 +491,7 @@ NewHand::Hand::JointsIndexEnum   NewHand::Hand::jointIndex  (NewHand::Hand:: Joi
   return JointsCount;
 }
 //--------------------------------------------------------------------------------
-void  NewHand::Hand::draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const
+void  NewHand::Hand::draw (IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 { 
   //--- draw constants ----------------------------------------------
   const double    PalmRadius = 0.05;
@@ -638,7 +641,7 @@ void  NewHand::Hand::createControls ()
     recursiveControlsAppend (Hand::EmptyMov, Hand::Empty, 0U, SimultMoves);
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl (NewHand::Hand::MusclesEnum  muscle)
+NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl (IN NewHand::Hand::MusclesEnum  muscle)
 { 
   if ( !muscle )
     return controls[random (controls.size ())];

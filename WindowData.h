@@ -69,9 +69,6 @@ public:
 
   RecTarget  target;
   CanvasScaleLetters scaleLetters;
-
-  std::list<Point> uncoveredPoints;
-  bool             uncovered_show = true;
   
   // ---------------------------------
   Hand hand;
@@ -93,6 +90,11 @@ public:
   LittleTest *lt;
   size_t no;
   // ---------------------------------
+
+  std::list<Point> uncoveredPoints;
+  bool             uncovered_show = true;
+
+  Positions::DirectionPredictor  pd;
 
   /* Набор пользователем чисел */
   // static int  flag_m, flag_n;
@@ -117,6 +119,7 @@ inline void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Functi
 }
        void  WorkerThreadTryJoin      (MyWindowData &wd);
 //-------------------------------------------------------------------------------
+void  OnPaintStaticBckGrnd (HDC hdc, MyWindowData &wd);
 void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd);
 void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd);
 //-------------------------------------------------------------------------------
@@ -129,6 +132,6 @@ void  OnWindowMouse (MyWindowData &wd);
 void  OnShowTrajectoryFrames (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 void  OnShowDBPoints (MyWindowData &wd);
-void  OnShowDBTrajectories (MyWindowData &wd);
+// void  OnShowDBTrajectories (MyWindowData &wd);
 //------------------------------------------------------------------------------
 #endif // _WINDOW_DATA_H_

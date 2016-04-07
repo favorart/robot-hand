@@ -17,7 +17,6 @@ private:
   vec_t  coords_; /* main content */
 
   // --- rectangle range -------------
-  // double  lft, rgh, top, btm;
   size_t  c_rows, c_cols;
   // ---------------------------------
   Point  center_, min_, max_, thickness_;
@@ -25,10 +24,8 @@ private:
   
 public:
   // ---------------------------------
-  // RecTarget () : c_rows (0), c_cols (0) /* , lft (0), rgh (0), top (0), btm (0) */ {}
-
   RecTarget (size_t r, size_t c, const Point &min, const Point &max):
-    c_rows (r), c_cols (c), // lft (min.x), rgh (max.x), top (max.y), btm(min.y),
+    c_rows (r), c_cols (c), 
     center_ ( (min.x + max.x) / 2., (min.y + max.y) / 2. ), 
     min_ (min), max_ (max), coords_ (c_rows * c_cols)
   { generate (); }
@@ -68,11 +65,6 @@ public:
   { return  (min (thickness_.x, thickness_.y) / 3.); }
   double     thickness () const
   { return   max (thickness_.x, thickness_.y); }
-
-  // double     distance (const Point &p) const
-  // {
-  //   return 
-  // }
   // ---------------------------------
 };
 //------------------------------------------------------------------------------

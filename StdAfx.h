@@ -138,6 +138,12 @@ typedef std::basic_fstream<TCHAR> tfstream;
 // TCHAR based std::stringstream
 typedef std::basic_stringstream<TCHAR> tstringstream;
 
+#if defined(UNICODE) || defined(_UNICODE)
+#define tcout std::wcout
+#else
+#define tcout std::cout
+#endif
+
 //---defines---------------------------
 #define   EPS        1e-4
 #define   EPS_VIS    1e-2

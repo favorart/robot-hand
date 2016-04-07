@@ -59,27 +59,23 @@ namespace NewHand
       JointsCount = 4
     } JointsIndexEnum;
     //----------------------------------------------------
-
-    size_t   jointsCount;
-    size_t  musclesCount;
-
     typedef std::array< JointsEnum,  JointsCount> j_array;
     typedef std::array<MusclesEnum, MusclesCount> m_array;
-
+    //----------------------------------------------------
     std::vector< JointsEnum>  joints_;
     std::vector<MusclesEnum>  muscles_;
-    
-    MusclesIndexEnum   muscleIndex (MusclesEnum  muscle) const;
-     JointsIndexEnum    jointIndex ( JointsEnum   joint) const;
-
-    frames_t  maxMuscleLast (MusclesEnum  muscle);
-
-    MusclesEnum musclesCumul;
-    
+    //----------------------------------------------------
+    MusclesEnum  musclesCumul;
+    //----------------------------------------------------
+    MusclesIndexEnum   muscleIndex (IN MusclesEnum  muscle) const;
+     JointsIndexEnum    jointIndex (IN  JointsEnum   joint) const;
+     //----------------------------------------------------
+    frames_t  maxMuscleLast (IN MusclesEnum  muscle);
+    //----------------------------------------------------
     frames_t  visitedSaveEach;
 
   private:
-
+    //----------------------------------------------------
     struct HandStatus
     {
       //---current position---------------------------------
@@ -132,7 +128,8 @@ namespace NewHand
 
     void    muscleMove  (JointsIndexEnum jointIndex, MusclesEnum muscle,
                          frames_t last, bool control);
-    
+
+    //----------------------------------------------------
     std::vector<MusclesEnum>  controls;
     void  createControls ();
     void  recursiveControlsAppend (MusclesEnum  muscles,
@@ -141,15 +138,15 @@ namespace NewHand
                                    size_t       max_deep);
 
     //----------------------------------------------------
-    const double minFrameMove = EPS; // 0.1;
+    const double  minFrameMove = EPS;
 
   public:
     typedef  std::map<JointsEnum, MotionLaws::JointMotionLaw>  JointsMotionLaws;
     //----------------------------------------------------
-    Hand (const Point &palm     = { -0.75, 1.05 },
-          const Point &hand     = { -0.70, 1.00 }, const Point &arm      = { 0.10, 0.85 },
-          const Point &shoulder = {  0.75, 0.25 }, const Point &clavicle = { 0.75, 0.25 },
-          const JointsMotionLaws &jointsFrames = 
+    Hand (IN const Point &palm     = { -0.75, 1.05 },
+          IN const Point &hand     = { -0.70, 1.00 }, IN const Point &arm      = { 0.10, 0.85 },
+          IN const Point &shoulder = {  0.75, 0.25 }, IN const Point &clavicle = { 0.75, 0.25 },
+          IN const JointsMotionLaws &jointsFrames = 
           { { Hand::Elbow, { new MotionLaws::ContinuousAcceleration (),
                              // new MotionLaws::ContinuousAccelerationThenStabilization (),
                              new MotionLaws::ContinuousDeceleration () } },
@@ -159,12 +156,12 @@ namespace NewHand
             // { Hand::Wrist, { // new MotionLaws::ContinuousAcceleration (),
             //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
             //                  new MotionLaws::ContinuousDeceleration () } },
-            // { Hand::Clvcl, { // new MotionLaws::ContinuousAcceleration (),
-            //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+            // { Hand::Clvcl, { new MotionLaws::ContinuousAcceleration (),
+            //                  // new MotionLaws::ContinuousAccelerationThenStabilization (),
             //                  new MotionLaws::ContinuousDeceleration () } }
           }) throw (...);
 
-    void  draw (HDC hdc, HPEN hPen, HBRUSH hBrush) const;
+    void  draw (IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
 
     struct Control
     {
@@ -205,7 +202,6 @@ namespace NewHand
       {
         tstringstream ss;
         ss << muscle << _T(" ") << start << _T(" ") << last;
-        // ss << *this;
         return  ss.str ();
       }
     };
@@ -271,7 +267,7 @@ namespace NewHand
 
     void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
 
-    const Point&  jointPosition (Hand::JointsEnum joint) const throw (...)
+    const Point&  jointPosition (IN Hand::JointsEnum joint) const throw (...)
     {
       switch ( joint )
       {
@@ -283,17 +279,16 @@ namespace NewHand
       }
     }
 
-    /*  NewHand::Hand:: (Clvcl < Shldr < Elbow < Wrist) index
-     *  jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 %
-     */
-    void  set (JointsEnum joint, const std::array<double, Hand::JointsCount> &jointsOpenPercent);
+    typedef std::map<Hand::JointsEnum, double> JointsSet;
+    /*  jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 %  */
+    void  set (IN Hand::JointsSet &jointsOpenPercent);
     void  reset ();
 
     std::vector<const Point*>  jointsPositions () const;
 
-    MusclesEnum  selectControl (size_t choose)
+    MusclesEnum  selectControl (IN size_t choose)
     { return  (choose < controls.size ()) ? controls[choose] : Hand::EmptyMov; }
-    MusclesEnum  selectControl (MusclesEnum muscle=EmptyMov);
+    MusclesEnum  selectControl (IN MusclesEnum muscle=EmptyMov);
     // { return  controls[random (controls.size ())]; }
     
     /* Microsoft specific: C++ properties */
@@ -309,7 +304,12 @@ namespace NewHand
   };
   //------------------------------------------------------------------------------
   const tstring  HAND_NAME = _T ("NewHand");
-#define SET_DEFAULT set(NewHand::Hand::Shldr|NewHand::Hand::Elbow,{0.,70.});
+#define SET_DEFAULT  set(   NewHand::Hand::JointsSet    \
+                         { {NewHand::Hand::Clvcl,  0.}, \
+                           {NewHand::Hand::Shldr,  0.}, \
+                           {NewHand::Hand::Elbow, 70.}, \
+                           {NewHand::Hand::Wrist, 50.}  \
+                         });
   //------------------------------------------------------------------------------
 };
 //------------------------------------------------------------------------------
