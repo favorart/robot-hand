@@ -107,7 +107,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
         if ( nesting > 1U )
           for ( Hand::MusclesEnum muscle_j : hand.muscles_ )
           {
-            if ( (muscle_i == muscle_j) || !muscleValidAtOnce (muscle_i | muscle_j) )
+            if ( (muscle_i == muscle_j) || !musclesValidUnion (muscle_i | muscle_j) )
               continue;
 
             for ( uint_t last_j = 1U; last_j < hand.maxMuscleLast (muscle_j); ++last_j )
@@ -130,7 +130,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
                 for ( Hand::MusclesEnum muscle_k : hand.muscles_ )
                 {
                   if ( (muscle_i == muscle_k || muscle_k == muscle_j)
-                      || !muscleValidAtOnce (muscle_i | muscle_j | muscle_k) )
+                      || !musclesValidUnion (muscle_i | muscle_j | muscle_k) )
                     continue;
 
                   for ( auto last_k = 1U; last_k < hand.maxMuscleLast (muscle_k); ++last_k )

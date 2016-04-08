@@ -21,9 +21,9 @@ namespace HandMoves
   // Point  hand_;
   // Point  close_network_;
   //------------------------------------------------------------------------------
-  typedef std::list<Point>          trajectory_t;
+  typedef std::list<Point>            trajectory_t;
   typedef std::list<trajectory_t>   trajectories_t;
-  typedef std::list<Hand::Control>  controling_t;
+  typedef std::list<Hand::Control>    controling_t;
   //------------------------------------------------------------------------------
   class Record
   {
@@ -31,8 +31,8 @@ namespace HandMoves
     const static size_t  maxControlsCount = 50U; // !!!!!!!!!!!!!
 
     const static size_t  arrays_size = 4U;
-    typedef std::array<Hand::frames_t, arrays_size> times_array;
-    typedef std::array<Hand::MusclesEnum, arrays_size> muscles_array;
+    typedef std::array<Hand::frames_t,    arrays_size>    times_array;
+    typedef std::array<Hand::MusclesEnum, arrays_size>  muscles_array;
 
   private:
     // ----------------------------------------

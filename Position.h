@@ -63,7 +63,8 @@ namespace Positions
 
 
   //------------------------------------------------------------------------------
-  void  testCover (HandMoves::Store &store, Hand &hand, HandMoves::trajectories_t &trajectories);
+  void  testCover (HandMoves::Store &store, Hand &hand,
+                   HandMoves::trajectories_t &trajectories);
   //------------------------------------------------------------------------------
   typedef std::map
   < Hand::MusclesEnum /* -------------muscle---*/,
@@ -156,7 +157,8 @@ namespace Positions
     { predict (Hand::Control (m, 0U, l), end); }
     void  measure (IN Hand &hand, IN  const Point &aim,
                    OUT HandMoves::controling_t &controls);
-
+    //------------------------------------------
+  private:
     bool  shifting_gt (Hand::MusclesEnum m, unsigned int &inx, const Point &aim);
     bool  shifting_ls (Hand::MusclesEnum m, unsigned int &inx, const Point &aim);
   };

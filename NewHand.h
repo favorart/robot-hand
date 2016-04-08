@@ -90,13 +90,13 @@ namespace NewHand
       bool   moveEnd_;
 
       //---parameters of hydraulic force--------------------
-      std::array<frames_t, JointsCount> lastsMove;
-      std::array<frames_t, JointsCount> lastsStop;
-      std::array<frames_t, JointsCount> lasts_;
+      std::array<frames_t, MusclesCount> lastsMove;
+      std::array<frames_t, MusclesCount> lastsStop;
+      std::array<frames_t, MusclesCount> lasts_;
 
       MusclesEnum  musclesMove_;
       //----------------------------------------------------
-      std::array<double, JointsCount> prevFrame_;
+      std::array<double, MusclesCount> prevFrame_;
       //----------------------------------------------------
       double  velosity_;
     };
@@ -109,7 +109,8 @@ namespace NewHand
 
     //---angle limits-------------------------------------
     const std::array<size_t, JointsCount> maxJointAngles;
-    // maxClvclShift, maxShldrAngle, maxElbowAngle, maxWristAngle
+    // maxClvclShift, maxShldrAngle, 
+    // maxElbowAngle, maxWristAngle
     const double  StopDistaceRatio;
 
     //---internal phisical parameters---------------------
@@ -123,10 +124,9 @@ namespace NewHand
     double    nextFrame (MusclesEnum muscle, frames_t frame, bool atStop);
     bool    muscleFrame (MusclesEnum muscle, frames_t frame, bool atStop);
 
-    void    muscleFinal (JointsIndexEnum jointIndex);
-    void    muscleBrake (JointsIndexEnum jointIndex);
-
-    void    muscleMove  (JointsIndexEnum jointIndex, MusclesEnum muscle,
+    void    muscleBrake (MusclesIndexEnum MuscleIndex, JointsIndexEnum JointIndex);
+    void    muscleFinal (MusclesIndexEnum MuscleIndex, MusclesEnum muscle);
+    void    muscleMove  (MusclesIndexEnum MuscleIndex, MusclesEnum muscle,
                          frames_t last, bool control);
 
     //----------------------------------------------------
@@ -146,7 +146,7 @@ namespace NewHand
     Hand (IN const Point &palm     = { -0.75, 1.05 },
           IN const Point &hand     = { -0.70, 1.00 }, IN const Point &arm      = { 0.10, 0.85 },
           IN const Point &shoulder = {  0.75, 0.25 }, IN const Point &clavicle = { 0.75, 0.25 },
-          IN const JointsMotionLaws &jointsFrames = 
+          IN const JointsMotionLaws &joints_frames =
           { { Hand::Elbow, { new MotionLaws::ContinuousAcceleration (),
                              // new MotionLaws::ContinuousAccelerationThenStabilization (),
                              new MotionLaws::ContinuousDeceleration () } },
@@ -264,6 +264,8 @@ namespace NewHand
     frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL) throw (...);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited);
+
+    bool  timeValidStartOppositeMuscle (IN  MusclesEnum muscle);
 
     void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
 

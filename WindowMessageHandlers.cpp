@@ -2,10 +2,6 @@
 #include "WindowData.h"
 #include "Draw.h"
 
-
-#pragma warning (disable: 4996) // allow ANSI C functions
-#define _CRT_SECURE_NO_WARNINGS
-
 using namespace std;
 using namespace HandMoves;
 
@@ -174,27 +170,29 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
     MessageBox (hWnd, _T ("Could not create hLabStat."), _T ("Error"), MB_OK | MB_ICONERROR);
 
   // Generate the help string
-  { TCHAR string_help[1024];
-
-  _stprintf (string_help,
-             _T ("Клавиши управления:  \rEsc - выход  \rR - сбросить всё  \r\r") // Enter - авто-тест  \r
-             _T ("Z - двинуть ключицей вправо  \rX - сомкнуть плечо  \rС - сомкнуть локоть  \rV - сомкнуть ладонь  \r")
-             _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \rD - раскрыть локоть  \rF - раскрыть ладонь  \r\r")
-             _T ("Повторное нажатие на кнопку во время движения  \rостанавливает соответствующее движение.  \r\r")
-             _T ("U - нарисовать рабочую область руки  \rO - нарисовать случайную траекторию  \r\r")
-             _T ("P - Cover Test  \rT - Random Test  \r")
-             _T ("Y - TargetCoverTest  \r\rG - Show scales  \r\r")
-             _T ("Ctrl+O - OpenFile  \rCtrl+S - SaveFile  \r\r")
-             //_T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
-             //_T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r, где 0 <= !no! - номер строки/столбца"),
-             );
+  tstringstream ss;
+  ss << _T ("Клавиши управления:  \rEsc - выход  \r")
+     << _T ("R - сбросить всё  \r\r") // Enter - авто-тест  \r
+     << _T ("Z - двинуть ключицей вправо  \rX - сомкнуть плечо  \r")
+     << _T ("С - сомкнуть локоть  \rV - сомкнуть ладонь  \r")
+     << _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \r")
+     << _T ("D - раскрыть локоть  \rF - раскрыть ладонь  \r\r")
+     << _T ("Повторное нажатие на кнопку во время движения  \r")
+     << _T ("останавливает соответствующее движение.  \r\r")
+     << _T ("U - нарисовать рабочую область руки  \r")
+     << _T ("O - нарисовать случайную траекторию  \r\r")
+     << _T ("P - Cover Test  \rT - Random Test  \r")
+     << _T ("Y - TargetCoverTest  \r\rG - Show scales  \r\r")
+     << _T ("Ctrl+O - OpenFile  \rCtrl+S - SaveFile  \r\r");
+  // << _T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
+  // << _T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r")
+  // << _T (", где 0 <= !no! - номер строки/столбца"),
 
   // Setting the Label's text
   SendMessage (hLabHelp,         /* Label   */
                WM_SETTEXT,       /* Message */
                (WPARAM) NULL,    /* Unused  */
-               (LPARAM) string_help);
-  }
+               (LPARAM) ss.str ().c_str ());
 
   // RegisterHotKey (NULL /* hWnd */, HK_OPEN, MOD_CONTROL | MOD_NOREPEAT, 0x4f); // 'O'
   // RegisterHotKey (NULL /* hWnd */, HK_SAVE, MOD_CONTROL | MOD_NOREPEAT, 0x53); // 'S'
@@ -556,6 +554,40 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       WorkerThreadTryJoin (wd);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+
+
+    case 'e':
+    {
+      wd.hand.SET_DEFAULT;
+      wd.trajectory_frames.clear ();
+
+      controling_t controls;
+      // Hand::Control (Hand::ShldrCls, 0U, 200U);
+
+      controls.push_back (Hand::Control (Hand::ShldrCls, 0U, 200U));
+      controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 194U));
+      controls.push_back (Hand::Control (Hand::ElbowCls, 195U, 5U));
+
+      // trajectory_t  visited;
+      wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
+      break;
+    }
+
+    case 'w':
+    {
+      wd.hand.SET_DEFAULT;
+      wd.trajectory_frames.clear ();
+      
+      controling_t controls;
+      // Hand::Control (Hand::ShldrCls, 0U, 200U);
+
+      controls.push_back (Hand::Control (Hand::ShldrCls, 0U, 200U));
+      controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
+
+      // trajectory_t  visited;
+      wd.hand.move (controls.begin (), controls. end (), &wd.trajectory_frames);
       break;
     }
 

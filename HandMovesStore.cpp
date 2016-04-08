@@ -188,6 +188,8 @@ void  HandMoves::Store::insert (const Record &rec)
   // } else
   try
   {
+    // tcout << tstring (rec) << std::endl; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     boost::this_thread::disable_interruption  no_interruption;
     boost::lock_guard<boost::mutex>  lock (store_mutex_);
 

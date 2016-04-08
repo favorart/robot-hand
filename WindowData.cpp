@@ -12,12 +12,11 @@ MyWindowData:: MyWindowData () :
   pWorkerThread (NULL),
   lt (NULL),
   target ( // 200U, 200U,
-           64U, 64U,
+           100U, 100U,
            // 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
                         //  -0.70,  0.90,  0.90, -0.99)
                          -0.41,  0.46, -0.05, -0.90
                         // -0.39, 0.41, -0.05, -0.85
-                        // 200U, 200U, -1., 1., -1., 1.
           ),
   scaleLetters ((target.min) (), (target.max) ()),
   pd (hand)

@@ -60,14 +60,14 @@ tostream&  NewHand::operator<< (tostream &out, Hand::JointsEnum   joint)
   return out;
 }
 //--------------------------------------------------------------------------------
-bool  NewHand::muscleValidAtOnce (Hand::MusclesEnum muscle)
+bool  NewHand::musclesValidUnion (Hand::MusclesEnum muscle)
 {
   if ( !muscle
       || ((Hand::ClvclOpn & muscle) && (Hand::ClvclCls & muscle))
       || ((Hand::ShldrOpn & muscle) && (Hand::ShldrCls & muscle))
       || ((Hand::ElbowOpn & muscle) && (Hand::ElbowCls & muscle))
       || ((Hand::WristOpn & muscle) && (Hand::WristCls & muscle))
-      )
+     )
   { return false; }
   return true;
 }
