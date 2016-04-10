@@ -557,7 +557,6 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
-
     case 'e':
     {
       wd.hand.SET_DEFAULT;
@@ -566,8 +565,9 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       controling_t controls;
       // Hand::Control (Hand::ShldrCls, 0U, 200U);
 
-      controls.push_back (Hand::Control (Hand::ShldrCls, 0U, 200U));
+      controls.push_back (Hand::Control (Hand::ShldrCls, 0U, 194U));
       controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 194U));
+      controls.push_back (Hand::Control (Hand::ElbowCls, 195U, 5U));
       controls.push_back (Hand::Control (Hand::ElbowCls, 195U, 5U));
 
       // trajectory_t  visited;

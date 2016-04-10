@@ -1,4 +1,4 @@
-# include <cstdlib>
+﻿# include <cstdlib>
 # include <iostream>
 # include <iomanip>
 # include <cmath>
@@ -89,49 +89,49 @@ void llsq (int n, double x[], double y[], double &a, double &b)
 }
 //****************************************************************************80
 
-void timestamp ()
-
-//****************************************************************************80
-//
-//  Purpose:
-//
-//    TIMESTAMP prints the current YMDHMS date as a time stamp.
-//
-//  Example:
-//
-//    31 May 2001 09:45:54 AM
-//
-//  Licensing:
-//
-//    This code is distributed under the GNU LGPL license. 
-//
-//  Modified:
-//
-//    08 July 2009
-//
-//  Author:
-//
-//    John Burkardt
-//
-//  Parameters:
-//
-//    None
-//
-{
-# define TIME_SIZE 40
-
-  static char time_buffer[TIME_SIZE];
-  const struct std::tm *tm_ptr;
-  size_t len;
-  std::time_t now;
-
-  now = std::time (NULL);
-  tm_ptr = std::localtime (&now);
-
-  len = std::strftime (time_buffer, TIME_SIZE, "%d %B %Y %I:%M:%S %p", tm_ptr);
-
-  std::cout << time_buffer << "\n";
-
-  return;
-# undef TIME_SIZE
-}
+// void timestamp ()
+// 
+// //****************************************************************************80
+// //
+// //  Purpose:
+// //
+// //    TIMESTAMP prints the current YMDHMS date as a time stamp.
+// //
+// //  Example:
+// //
+// //    31 May 2001 09:45:54 AM
+// //
+// //  Licensing:
+// //
+// //    This code is distributed under the GNU LGPL license. 
+// //
+// //  Modified:
+// //
+// //    08 July 2009
+// //
+// //  Author:
+// //
+// //    John Burkardt
+// //
+// //  Parameters:
+// //
+// //    None
+// //
+// {
+// # define TIME_SIZE 40
+// 
+//   static char time_buffer[TIME_SIZE];
+//   const struct std::tm *tm_ptr;
+//   size_t len;
+//   std::time_t now;
+// 
+//   now = std::time (NULL);
+//   tm_ptr = std::localtime (&now);
+// 
+//   len = std::strftime (time_buffer, TIME_SIZE, "%d %B %Y %I:%M:%S %p", tm_ptr);
+// 
+//   std::cout << time_buffer << "\n";
+// 
+//   return;
+// # undef TIME_SIZE
+// }

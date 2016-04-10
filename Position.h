@@ -73,6 +73,20 @@ namespace Positions
   > borders_t;
   //------------------------------------------------------------------------------
 
+  class LinearOperator
+  {
+    double *coefs_ = NULL;
+    Point  min_, max_;
+  public:
+    LinearOperator () {}
+    void solveQR (HandMoves::Store &store, const Point &aim, double side) throw (...);
+
+    ~LinearOperator ()
+    {
+      delete[] coefs_;
+    }
+  };
+
   // class PredictedDirection
   // {
   //   Hand::MusclesEnum  muscle;

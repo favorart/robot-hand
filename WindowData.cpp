@@ -196,6 +196,14 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
 //-------------------------------------------------------------------------------
 void  MakeHandMove (MyWindowData &wd)
 {
+  try
+  {
+    Positions::LinearOperator lp;
+    lp.solveQR (wd.store, wd.mouse_aim, 0.01);
+  }
+  catch ( ... )
+  {}
+
   wd.store.adjacencyPoints (wd.adjPointsDB,
                             wd.mouse_aim, wd.radius);
 

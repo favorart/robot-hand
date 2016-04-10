@@ -458,7 +458,7 @@ namespace Positions
           start_i = 0U;
           target_contain = true;
 
-          for ( Hand::frames_t last_i = ((*borders)[muscle_i].first + (*borders)[muscle_i].second) / 3U;
+          for ( Hand::frames_t last_i = ((*borders)[muscle_i].first); // +(*borders)[muscle_i].second) / 3U;
                               (last_i  < lasts_i_max) && (target_contain || /* only last */ !was_on_target) &&
                               (last_i <= (*borders)[muscle_i].second - start_i);
                                last_i += lasts_step )
@@ -477,7 +477,7 @@ namespace Positions
                   Point end = hand_pos_base;
                   for ( auto c : controls )
                     pd->predict (c, end);
-
+              
                   if ( target.contain (end) )
                     was_on_target = true;
                   else
@@ -525,7 +525,8 @@ namespace Positions
             start_i = 0U;
             target_contain = true;
           
-            for ( Hand::frames_t last_i = INIT;// (*borders)[muscle_i].first;
+            for ( // Hand::frames_t last_i = ((*borders)[muscle_i].first + (*borders)[muscle_i].second) / 3U;
+                  Hand::frames_t last_i = (*borders)[muscle_i].first;
                                 (last_i  - lasts_step) < lasts_i_max && target_contain;
                                  last_i -= lasts_step )
             {
