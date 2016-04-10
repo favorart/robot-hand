@@ -199,7 +199,7 @@ void  MakeHandMove (MyWindowData &wd)
   try
   {
     Positions::LinearOperator lp;
-    lp.solveQR (wd.store, wd.mouse_aim, 0.01);
+    // lp.solveQR1 (wd.store, wd.mouse_aim, 0.01);
   }
   catch ( ... )
   {}

@@ -2,6 +2,8 @@
 
 #ifndef  _WINDOW_H_
 #define  _WINDOW_H_
+
+#include <commdlg.h>
 //--------------------------------------------------------------------------------
 #define   SCALE      1/100
 #define   MARGIN     10

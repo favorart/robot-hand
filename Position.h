@@ -79,7 +79,8 @@ namespace Positions
     Point  min_, max_;
   public:
     LinearOperator () {}
-    void solveQR (HandMoves::Store &store, const Point &aim, double side) throw (...);
+    void solveQR  (HandMoves::Store &store, const Point &aim, double side) throw (...);
+    void solveQR1 (HandMoves::Store &store, const Point &aim, double side) throw (...);
 
     ~LinearOperator ()
     {

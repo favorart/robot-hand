@@ -124,6 +124,8 @@ inline double  boost_distance (boost_point2_t a, boost_point2_t b)
 // #include <vld.h>
 
 /* Windows */
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <tchar.h>
 

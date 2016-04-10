@@ -366,13 +366,14 @@ namespace Positions
     //---iterating--------------------------------------------
     HandMoves::controling_t  controls;
     //---braking----------------------------------------------
-    std::vector<std::list<Hand::Control>>  arr_controlings;
+    std::vector</*std::list<*/Hand::Control/*>*/>  arr_controlings;
     //--------------------------------------------------------
     borders_t           *borders;
     DirectionPredictor  *pd;
     //--------------------------------------------------------
     double                 step_distance;
     Hand::frames_t   lasts_step_increment;
+    Hand::frames_t   lasts_step_braking = 1U;
     //--------------------------------------------------------
     Point     hand_pos_base;
     //--------------------------------------------------------
@@ -459,7 +460,7 @@ namespace Positions
           target_contain = true;
 
           for ( Hand::frames_t last_i = ((*borders)[muscle_i].first); // +(*borders)[muscle_i].second) / 3U;
-                              (last_i  < lasts_i_max) && (target_contain || /* only last */ !was_on_target) &&
+                              (last_i  < lasts_i_max) && (target_contain) && // || /* only last */ !was_on_target) &&
                               (last_i <= (*borders)[muscle_i].second - start_i);
                                last_i += lasts_step )
           {
@@ -470,23 +471,30 @@ namespace Positions
             else
             { 
               
-              if ( b_target && !was_on_target )
+              // if ( b_target && !was_on_target )
+              // {
+              //   // while ( !was_on_target )
+              //   {
+              //     Point end = hand_pos_base;
+              //     for ( auto c : controls )
+              //       pd->predict (c, end);
+              // 
+              //     if ( target.contain (end) )
+              //       was_on_target = true;
+              //     else
+              //       continue;
+              //   }
+              // }
+              
+              auto it = controls.begin ();
+              for ( size_t ji = 0; ji <= joint_index; ++ji, ++it ) // auto &control : controls )
               {
-                // while ( !was_on_target )
-                {
-                  Point end = hand_pos_base;
-                  for ( auto c : controls )
-                    pd->predict (c, end);
-              
-                  if ( target.contain (end) )
-                    was_on_target = true;
-                  else
-                    continue;
-                }
+                // control.last -= lasts_step_braking;
+                if ( arr_controlings[ji].last )
+                  arr_controlings[ji].start = it->last + 1;
               }
-              
+
               target_contain = runNestedInserting (hand_pos_curr) || !b_target;
-            
             }
 
             //if ( !was_on_target && target_contain )
@@ -503,28 +511,59 @@ namespace Positions
             {
               if ( lasts_step >= 2 * lasts_step_increment )
                 lasts_step -= lasts_step_increment;
+              else if ( lasts_step > lasts_step_increment )
+                lasts_step -= lasts_step_increment;
+              else if ( (lasts_step_increment > 1) && (lasts_step > lasts_step_increment / 2) )
+                lasts_step -= lasts_step_increment / 2;
               else if ( b_braking && (lasts_step_increment == 1U) )
               {
-                arr_controlings[joint_index].push_back (Hand::Control (muscle_i, start_i, last_i));
-                control_i.start = start_i = last_i;
-                last_i = 1;
+                auto it = controls.begin ();
+                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+                // for ( auto &control : controls )
+                {
+                  // control.last -= lasts_step_braking;
+                  auto j = jointByMuscle (it->muscle);
+                  auto mo = muscleByJoint (j, true);
+                  auto mc = muscleByJoint (j, false);
+                  auto opposite_muscle = (it->muscle & mo) ? mc : mo;
+                  // auto opposite_muscle = (control.muscle % 2) ? mc : mo;
+
+                  auto prev_last = arr_controlings[ji].last;
+                  arr_controlings[ji] = (Hand::Control (opposite_muscle, it->last + 1,
+                                                        (prev_last ? prev_last : 30) + lasts_step_braking));
+                }
+                // arr_controlings[joint_index].push_back (Hand::Control (muscle_i, start_i, last_i));
+                // control_i.start = start_i = last_i;
+                // last_i = 1;
               }
             }
             else if ( boost_distance (hand_pos_prev, hand_pos_curr) < step_distance )
-            { lasts_step += lasts_step_increment; }
+            { 
+              if ( arr_controlings[0].last )
+              {
+                if ( arr_controlings[0].last > lasts_step_braking )
+                  for ( size_t ji = 0; ji <= joint_index; ++ji )
+                    arr_controlings[ji].last -= lasts_step_braking;
+              }
+              else
+              { lasts_step += lasts_step_increment; }
+            }
             //-----------------------------
             hand_pos_prev = hand_pos_curr;
-
-            // last_lasts = last_i;
           } // end for (last)
           //------------------------------------------
-          arr_controlings[joint_index].clear ();
+          for ( size_t ji = 0; ji <= joint_index; ++ji)
+            arr_controlings[ji].last = 0U;
+          // arr_controlings[joint_index].clear ();
           //------------------------------------------
           if ( b_target )
           {
             start_i = 0U;
             target_contain = true;
-          
+
+            const Hand::frames_t lasts_step_increment_thick = 10U;
+
+            lasts_step = lasts_step_increment_thick + 1U;
             for ( // Hand::frames_t last_i = ((*borders)[muscle_i].first + (*borders)[muscle_i].second) / 3U;
                   Hand::frames_t last_i = (*borders)[muscle_i].first;
                                 (last_i  - lasts_step) < lasts_i_max && target_contain;
@@ -536,17 +575,17 @@ namespace Positions
               { target_contain = runNestedForMuscle (hand_pos_curr, joint_index + 1) || !b_target; }
               else
               { target_contain = runNestedInserting (hand_pos_curr) || !b_target; }
-
+          
               if ( last_i == (*borders)[muscle_i].first )
                 hand_pos_high = hand_pos_curr;
-
+          
               if ( boost_distance (hand_pos_prev, hand_pos_curr) > step_distance )
               {
-                if ( lasts_step >= 2 * lasts_step_increment )
-                  lasts_step -= lasts_step_increment;
+                if ( lasts_step > lasts_step_increment_thick )
+                  lasts_step -= lasts_step_increment_thick;
               }
               else if ( boost_distance (hand_pos_prev, hand_pos_curr) < step_distance )
-              { lasts_step += lasts_step_increment; }
+              { lasts_step += lasts_step_increment_thick; }
               //-----------------------------
               hand_pos_prev = hand_pos_curr;
             } // end for (lasts)
@@ -565,8 +604,9 @@ namespace Positions
       Point end = hand_pos_base;
       //----------------------------------------------
       bool  has_braking = b_braking && boost::algorithm::any_of (arr_controlings,
-                                                                 [](const controling_t &item)
-                                                                 { return  item.size (); });
+                                                                 [](const Hand::Control &item)
+                                                                 // { return  item.size (); });
+                                                                 { return  item.last; });
       controling_t  new_controling;
       if ( has_braking )
       {
@@ -575,11 +615,11 @@ namespace Positions
         // controling_t stop_controls;
       
         /* записываем все разрывы */
-        for ( auto &lst : arr_controlings )
+        for ( auto &c : arr_controlings )
           // controls.splice (controls.end (), lst);
-          for ( auto &c : lst )
+          // for ( auto &c : lst )
             // stop_controls.push_back (c);
-            new_controling.push_back (c);
+          new_controling.push_back (c);
       
         // stop_controls.sort ();
         // controls.splice (controls.begin (), stop_controls);
@@ -633,7 +673,7 @@ namespace Positions
     DirectionPredictor  pd (hand);
 
     TourWorkSpace  tour (store, hand, target);
-    tour.run (borders, pd, false, false, 0.005, 10U);
+    tour.run (borders, pd, false, false, 0.05, 5U);
   }
   void  LearnMovements::STAGE_2 (HandMoves::Store &store, Hand &hand, RecTarget &target)
   {
@@ -642,7 +682,7 @@ namespace Positions
     DirectionPredictor  pd (hand);
 
     TourWorkSpace  tour (store, hand, target);
-    tour.run (borders, pd, /* target */ true, false, 0.0005, 1U);
+    tour.run (borders, pd, /* target */ true, /* braking */ true, 0.005, 1U);
   }
   //------------------------------------------------------------------------------
   void  draftDistance (IN  Point  &hand_pos_prev,
@@ -879,7 +919,8 @@ namespace Positions
       else
       {
         double precision = target.precision ();
-        if ( boost::algorithm::none_of (range, [&pt, precision](const std::shared_ptr<HandMoves::Record> &rec) { return  (boost_distance (pt, rec->hit) <= precision); }) )
+        if ( boost::algorithm::none_of (range, [&pt, precision](const std::shared_ptr<HandMoves::Record> &rec)
+                                               { return  (boost_distance (pt, rec->hit) <= precision); }) )
         {
           /* UNCOVERED */
           uncovered.push_back (pt);

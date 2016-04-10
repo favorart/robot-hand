@@ -565,10 +565,10 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       controling_t controls;
       // Hand::Control (Hand::ShldrCls, 0U, 200U);
 
-      controls.push_back (Hand::Control (Hand::ShldrCls, 0U, 194U));
-      controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 194U));
-      controls.push_back (Hand::Control (Hand::ElbowCls, 195U, 5U));
-      controls.push_back (Hand::Control (Hand::ElbowCls, 195U, 5U));
+      controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
+      // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
+      controls.push_back (Hand::Control (Hand::ShldrOpn | Hand::ElbowCls, 201U, 55U));
+      // controls.push_back (Hand::Control (Hand::ElbowCls, 202U, 35U));
 
       // trajectory_t  visited;
       wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
@@ -583,8 +583,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       controling_t controls;
       // Hand::Control (Hand::ShldrCls, 0U, 200U);
 
-      controls.push_back (Hand::Control (Hand::ShldrCls, 0U, 200U));
-      controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
+      controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
+      // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
 
       // trajectory_t  visited;
       wd.hand.move (controls.begin (), controls. end (), &wd.trajectory_frames);

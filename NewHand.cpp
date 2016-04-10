@@ -13,14 +13,14 @@ NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (IN MusclesEnum  muscle)
     if ( m & muscle )
       switch ( m )
       {
-        case ClvclOpn: last = last ? min (last, maxMoveFrames[ClvclIndex]) : maxMoveFrames[ClvclIndex]; break;
-        case ClvclCls: last = last ? min (last, maxMoveFrames[ClvclIndex]) : maxMoveFrames[ClvclIndex]; break;
-        case ShldrOpn: last = last ? min (last, maxMoveFrames[ShldrIndex]) : maxMoveFrames[ShldrIndex]; break;
-        case ShldrCls: last = last ? min (last, maxMoveFrames[ShldrIndex]) : maxMoveFrames[ShldrIndex]; break;
-        case ElbowOpn: last = last ? min (last, maxMoveFrames[ElbowIndex]) : maxMoveFrames[ElbowIndex]; break;
-        case ElbowCls: last = last ? min (last, maxMoveFrames[ElbowIndex]) : maxMoveFrames[ElbowIndex]; break;
-        case WristOpn: last = last ? min (last, maxMoveFrames[WristIndex]) : maxMoveFrames[WristIndex]; break;
-        case WristCls: last = last ? min (last, maxMoveFrames[WristIndex]) : maxMoveFrames[WristIndex]; break;
+        case ClvclOpn: last = last ? std::min (last, maxMoveFrames[ClvclIndex]) : maxMoveFrames[ClvclIndex]; break;
+        case ClvclCls: last = last ? std::min (last, maxMoveFrames[ClvclIndex]) : maxMoveFrames[ClvclIndex]; break;
+        case ShldrOpn: last = last ? std::min (last, maxMoveFrames[ShldrIndex]) : maxMoveFrames[ShldrIndex]; break;
+        case ShldrCls: last = last ? std::min (last, maxMoveFrames[ShldrIndex]) : maxMoveFrames[ShldrIndex]; break;
+        case ElbowOpn: last = last ? std::min (last, maxMoveFrames[ElbowIndex]) : maxMoveFrames[ElbowIndex]; break;
+        case ElbowCls: last = last ? std::min (last, maxMoveFrames[ElbowIndex]) : maxMoveFrames[ElbowIndex]; break;
+        case WristOpn: last = last ? std::min (last, maxMoveFrames[WristIndex]) : maxMoveFrames[WristIndex]; break;
+        case WristCls: last = last ? std::min (last, maxMoveFrames[WristIndex]) : maxMoveFrames[WristIndex]; break;
       }
   }
   return last;
@@ -187,7 +187,7 @@ void    NewHand::Hand::muscleMove  (MusclesIndexEnum MuscleIndex, MusclesEnum mu
     { hs.lasts_[MuscleIndex] = 0U; }
 
     auto  lastMax = maxMoveFrames[JointIndex] - hs.lasts_[MuscleIndex];
-    hs.lastsMove[MuscleIndex] = last ? min (last, lastMax) : lastMax;
+    hs.lastsMove[MuscleIndex] = last ? std::min (last, lastMax) : lastMax;
     hs.lastsStop[MuscleIndex] = 0U;
   }
   else if ( hs.lastsMove[MuscleIndex] && control )
@@ -227,7 +227,7 @@ void    NewHand::Hand::muscleMove  (MusclesIndexEnum MuscleIndex, MusclesEnum mu
 NewHand::Hand::Hand (IN const Point &palm,
                      IN const Point &hand,     IN const Point &arm,
                      IN const Point &shoulder, IN const Point &clavicle,
-                     IN const JointsMotionLaws &joints_frames) throw (...) :
+                     IN const JointsMotionLaws &joints_frames ) throw (...) :
                      
                      StopDistaceRatio (0.5), // 50% от общего пробега
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,

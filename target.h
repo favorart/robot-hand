@@ -57,14 +57,14 @@ public:
   // Point  Min () const { return  Point (lft, btm); }
   // Point  Max () const { return  Point (rgh, top); }
 
-  const Point&  (RecTarget::min)   () const { return     min_; }
-  const Point&  (RecTarget::max)   () const { return     max_; }
+  const Point&   RecTarget::min    () const { return     min_; }
+  const Point&   RecTarget::max    () const { return     max_; }
   const Point&   RecTarget::center () const { return  center_; }
 
   double     precision () const
-  { return  (min (thickness_.x, thickness_.y) / 3.); }
+  { return  (std::min (thickness_.x, thickness_.y)); }
   double     thickness () const
-  { return   max (thickness_.x, thickness_.y); }
+  { return   std::max (thickness_.x, thickness_.y); }
   // ---------------------------------
 };
 //------------------------------------------------------------------------------

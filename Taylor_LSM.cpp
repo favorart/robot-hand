@@ -27,7 +27,145 @@ namespace Positions
 
   typedef std::array<double, (N_MSCL_LASTS + N_MSCL_START)> lin_op_t;
 
- 
+#define LSO 0
+#define LSC 1
+#define LEO 2
+#define LEC 3
+
+#define BSO 4
+#define BEO 5
+
+  void  LinearOperator::solveQR1 (HandMoves::Store &store, const Point &aim, double side) throw (...)
+  {
+    HandMoves::adjacency_t     range;
+    store.adjacencyRectPoints (range, Point (aim.x - side, aim.y - side),
+                                      Point (aim.x + side, aim.y + side));
+
+    if ( range.size () > 2 )
+    { // throw new std::exception ("solveQR: no points in adjacency"); }
+
+      int m = (int) range.size ();
+      int n = (N_MSCL_LASTS + N_MSCL_START);
+
+      std::vector<double> A (m*n);
+      std::vector<double> B (m);
+      std::vector<double> C (m);
+
+      int i = 0;
+      for ( auto &rec : range )
+      {
+        B[i] = rec.hit.y;
+        C[i] = rec.hit.x;
+
+        int j = 0;
+        printf ("controls: %d\n", (int) rec.controls ().size ());
+        for ( const Hand::Control &control : rec.controls () )
+        {
+          if ( control.muscle & Hand::ShldrOpn )
+          {
+            A[i * n + LSO] = (double) control.last;
+            tcout << _T ("so ") << control.last << ' ' << A[i * n + LSO] << std::endl;
+          }
+          else if ( control.muscle & Hand::ShldrCls )
+          {
+            A[i * n + LSC] = (double) control.last;
+            tcout << _T ("sc ") << control.last << ' ' << A[i * n + LSC] << std::endl;
+          }
+          else if ( control.muscle & Hand::ElbowOpn )
+          {
+            A[i * n + LEO] = (double) control.last;
+            tcout << _T ("eo ") << control.last << ' ' << A[i * n + LEO] << std::endl;
+          }
+          else if ( control.muscle & Hand::ElbowCls )
+          {
+            A[i * n + LEC] = (double) control.last;
+            tcout << _T ("ec ") << control.last << ' ' << A[i * n + LEC] << std::endl;
+          }
+          ++j;
+        }
+        tcout << std::endl;
+        ++i;
+      }
+
+      for ( int i = 0; i < m; ++i )
+      {
+        for ( int j = 0; j < n; ++j )
+          printf ("%.4lf ", A[i * n + j]);
+        // tcout << A[i * n + j] << _T (" ");
+        printf (" | %.4lf\n", B[i]);
+        // tcout << _T (" | ") << B[i] << std::endl;
+      }
+
+      double *coefs1 = qr_solve (m, n, A.data (), C.data ());
+      double *coefs2 = qr_solve (m, n, A.data (), B.data ());
+
+      tcout << std::endl << std::endl;
+
+      for ( int j = 0; j < n; ++j )
+        printf ("%.4lf ", coefs1[j]);
+      printf ("\n\n");
+
+      for ( int j = 0; j < n; ++j )
+        printf ("%.4lf ", coefs2[j]);
+      printf ("\n");
+
+      std::vector<double> cc (2 * n);
+      for ( int i = 0; i < n; ++i )
+        cc[i] = coefs1[i];
+      for ( int i = 0; i < n; ++i )
+        cc[n + i] = coefs2[i];
+
+
+      double x[] = { aim.x, aim.y };
+
+      // double *coefs_ = qr_solve (m, n, cc.data (), x);
+
+      double sum = 0.;
+      for ( int j = 0; j < n; ++j )
+        sum = A[j] * coefs1[j];
+      tcout << sum << ' ' << C[0] << '\n';
+
+
+      delete[] coefs1;
+      delete[] coefs2;
+
+      // for ( int j = 0; j < n; ++j )
+      //   printf ("%d ", (int) coefs_[j]);
+      // printf ("\n");
+
+      int solution[4];
+      for ( int i = 0; i < 4; ++i )
+        if ( solution[i] < 0 )
+          throw new std::exception ("!!!");
+
+      controling_t cntrls;
+      auto createJointControl = [](controling_t &controls, int *solution, size_t opn, size_t cls)
+      {
+        if ( solution[LSO] && solution[LSC] )
+        {
+          if ( solution[LSO] > solution[LSC] )
+          {
+            controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[opn]));
+            controls.push_back (Hand::Control (Hand::ShldrCls, solution[opn] + 1U, solution[cls]));
+          }
+          else
+          {
+            controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[cls]));
+            controls.push_back (Hand::Control (Hand::ShldrCls, solution[cls] + 1U, solution[opn]));
+          }
+        }
+        else if ( solution[LSO] )
+        { controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[opn])); }
+        else if ( solution[LSC] )
+        { controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[cls])); }
+      };
+
+      createJointControl (cntrls, solution, LSO, LSC);
+      createJointControl (cntrls, solution, LEO, LEC);
+
+      // double *T = new double[];
+    }
+  }
   void  LinearOperator::solveQR (HandMoves::Store &store, const Point &aim, double side) throw (...)
   {
     HandMoves::adjacency_t  range;
@@ -45,13 +183,6 @@ namespace Positions
       std::vector<double> C (m);
       // double *A = new double[m * n];
       // double *B = new double[m];
-
-#define LSO 0
-#define LSC 1
-#define LEO 2
-#define LEC 3
-#define BSO 4
-#define BEO 5
 
       int i = 0;
       for ( auto &rec : range )
