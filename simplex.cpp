@@ -13,10 +13,11 @@
 namespace SimplexMethod
 {
   // using namespace std;
-/* Обертка для вещественных чисел. Нужна для M-задачи.
-* Такое число представляет две компоненты - вещественную часть
-* и коэффициент при некотором числе M.
-*/
+
+  /* Обертка для вещественных чисел. Нужна для M-задачи.
+   * Такое число представляет две компоненты - вещественную часть
+   * и коэффициент при некотором числе M.
+   */
   class number
   {
   private:
@@ -44,20 +45,15 @@ namespace SimplexMethod
     }
 
     double get_real ()
-    {
-      return real;
-    }
-
+    { return real; }
     double get_coef ()
-    {
-      return coef;
-    }
+    { return coef; }
 
     /**
     * Далее идут методы перегрузки арифметических операторов.
     */
 
-    number operator+(number num)
+    number operator+  (number num)
     {
       number res;
       res.real = real + num.real;
@@ -65,13 +61,13 @@ namespace SimplexMethod
       return res;
     }
 
-    void operator+=(number num)
+    void   operator+= (number num)
     {
       real += num.real;
       coef += num.coef;
     }
 
-    number operator-(number num)
+    number operator-  (number num)
     {
       number res;
       res.real = real - num.real;
@@ -79,13 +75,13 @@ namespace SimplexMethod
       return res;
     }
 
-    void operator-=(number num)
+    void   operator-= (number num)
     {
       real -= num.real;
       coef -= num.coef;
     }
 
-    number operator*(number num)
+    number operator*  (number num)
     {
       number res;
       res.real = real * num.real;
@@ -100,7 +96,7 @@ namespace SimplexMethod
       return res;
     }
 
-    void operator*=(number num)
+    void   operator*= (number num)
     {
       real *= num.real;
       if ( real != 0 && coef == 0 && num.coef != 0 )
@@ -113,29 +109,29 @@ namespace SimplexMethod
       }
     }
 
-    number operator/(number num)
+    number operator/  (number num)
     {
       number res;
       res.real = real / num.real;
       return res;
     }
 
-    void operator/=(number num)
+    void   operator/= (number num)
     {
       real /= num.real;
     }
 
-    bool operator!=(number num)
+    bool   operator!= (number num)
     {
       return (real != num.real && coef != num.coef);
     }
 
-    bool operator!=(double num)
+    bool   operator!= (double num)
     {
       return (real != num);
     }
 
-    bool operator<(number num)
+    bool   operator<  (number num)
     {
       if ( coef != num.coef )
       {
@@ -144,7 +140,7 @@ namespace SimplexMethod
       return (real < num.real);
     }
 
-    bool operator>(number num)
+    bool   operator>  (number num)
     {
       if ( coef != num.coef )
       {
@@ -153,17 +149,17 @@ namespace SimplexMethod
       return (real > num.real);
     }
 
-    bool operator==(number num)
+    bool   operator== (number num)
     {
       return (real == num.real && coef == num.coef);
     }
 
-    bool operator>=(number num)
+    bool   operator>= (number num)
     {
       return this->operator>(num) || this->operator==(num);
     }
 
-    bool operator<=(number num)
+    bool   operator<= (number num)
     {
       return this->operator<(num) || this->operator==(num);
     }
@@ -209,29 +205,19 @@ namespace SimplexMethod
       return ss.str ();
     }
 
-    /**
-    * Возврашает дробную часть вещественной компоненты
-    */
+    /*  Возврашает дробную часть вещественной компоненты  */
     number fract ()
     {
       return (real > 0) ? number (real - floor (real)) : number (abs (floor (real)) + (real));
     }
 
-    /**
-    * Проверяет является ли число (почти) целым
-    */
+    /*  Проверяет является ли число (почти) целым  */
     bool is_integer ()
-    {
-      return this->fract () < 0.00001;
-    }
+    { return  this->fract () < 0.00001; }
 
-    /**
-    * Модуль числа
-    */
+    /*  Модуль числа  */
     number absolute ()
-    {
-      return number (fabs (real));
-    }
+    { return number (fabs (real)); }
   };
 
   /****************************************************************************
@@ -528,13 +514,9 @@ namespace SimplexMethod
       // определяем разрешающий столбец
       number deltaExtr;
       if ( negative )
-      {
-        deltaExtr = 1000000;
-      }
+      { deltaExtr = 1000000; }
       else
-      {
-        deltaExtr = delta[0];
-      }
+      { deltaExtr = delta[0]; }
       size_t  r = -1;
       for ( j = 0; j < n; ++j )
       {
@@ -542,9 +524,7 @@ namespace SimplexMethod
         for ( i = 0; i < m; ++i )
         {
           if ( task.bp[i] == -1 )
-          {
-            continue;
-          }
+          { continue; }
           z[j] += cib[i] * task.a[i][j];
         }
         delta[j] = task.c[j] - z[j];
@@ -577,12 +557,10 @@ namespace SimplexMethod
       print_matrix ("Coefs of system (a)", task.a);
       print_vector ("Values (z)", z);
       print_vector ("Relative valuations (delta)", delta);
-      print_num ("Permitted column number (r): ", r);
+      print_num    ("Permitted column number (r): ", r);
 
       if ( r == -1 )
-      {
-        break;
-      }
+      { break; }
 
       // определяем разрешающую строку
       number min_row = number (100000);
@@ -616,12 +594,10 @@ namespace SimplexMethod
         }
       }
 
-      //print_vector("Relations x/a (br[i]/a[i][r], min): ", min);
+      // print_vector("Relations x/a (br[i]/a[i][r], min): ", min);
 
       if ( s == -1 )
-      {
-        throw simplex_error ("Permitted row not found");
-      }
+      { throw simplex_error ("Permitted row not found"); }
 
       print_num ("Permitted row number (s): ", s);
 
@@ -632,9 +608,7 @@ namespace SimplexMethod
       for ( i = 0; i < m; ++i )
       {
         for ( j = 0; j < n; ++j )
-        {
-          tmp_a[i][j] = task.a[i][j];
-        }
+        { tmp_a[i][j] = task.a[i][j]; }
         tmp_br[i] = task.br[i];
       }
 
@@ -643,33 +617,24 @@ namespace SimplexMethod
       task.bp[s] = r;
       cib[s] = task.c[r];
       for ( j = 0; j < n; ++j )
-      {
-        task.a[s][j] /= element;
-      }
+      { task.a[s][j] /= element; }
       task.br[s] /= element;
 
 
       for ( i = 0; i < m; ++i )
       {
         if ( i == s )
-        {
-          continue;
-        }
+        { continue; }
 
         number air = tmp_a[i][r];
 
         for ( j = 0; j < n; ++j )
-        {
-          task.a[i][j] -= (air * tmp_a[s][j]) / element;
-        }
-
+        { task.a[i][j] -= (air * tmp_a[s][j]) / element; }
         task.br[i] -= (air * tmp_br[s]) / element;
       }
 
       if ( int_break && vector_is_integer (task.br) )
-      {
-        break;
-      }
+      { break; }
     }
 
     print_line ();
@@ -691,9 +656,7 @@ namespace SimplexMethod
   * Сравнение по модулю 1
   */
   bool cmp_mod_one (number a, number b)
-  {
-    return (a - b).is_integer ();
-  }
+  { return (a - b).is_integer (); }
 
   /****************************************************************************
   * Проверка значения элемента в массиве
@@ -718,10 +681,8 @@ namespace SimplexMethod
     tab = simplex_max (tab, false, false);
 
     int i, j;
-
     // общее количество переменных
     size_t  n = tab.c.size ();
-
     // количество базисных переменных
     size_t  m = tab.bp.size ();
 
@@ -733,9 +694,7 @@ namespace SimplexMethod
 
       // условие выхода
       if ( vector_is_integer (tab.br) )
-      {
-        return tab;
-      }
+      { return tab; }
 
       // максимальная дробная часть
       number max_fract = 0;
@@ -814,106 +773,146 @@ namespace SimplexMethod
 */
 using namespace SimplexMethod;
 
-int main (int argc, char* argv[])
+int main1 (int argc, char* argv[])
 {
-  int n = 5;
-  int m = 2;
+  {
+    int n = 5;
+    int m = 2;
 
-  vector_nums c (n);
-  c[0] = number (1);
-  c[1] = number (-1);
-  c[2] = number (0);
-  c[3] = number (0);
-  c[4] = number (0, -1);
+    vector_nums c (n);
+    c[0] = number (1);
+    c[1] = number (-1);
+    c[2] = number (0);
+    c[3] = number (0);
+    c[4] = number (0, -1);
 
-  matrix_nums a (m, vector_nums (n));
-  a[0][0] = number (-1);
-  a[0][1] = number (2);
-  a[0][2] = number (-1);
-  a[0][3] = number (0);
-  a[0][4] = number (1);
-  a[1][0] = number (3);
-  a[1][1] = number (2);
-  a[1][2] = number (0);
-  a[1][3] = number (1);
-  a[1][4] = number (0);
+    matrix_nums a (m, vector_nums (n));
+    a[0][0] = number (-1);
+    a[0][1] = number (2);
+    a[0][2] = number (-1);
+    a[0][3] = number (0);
+    a[0][4] = number (1);
+    a[1][0] = number (3);
+    a[1][1] = number (2);
+    a[1][2] = number (0);
+    a[1][3] = number (1);
+    a[1][4] = number (0);
 
-  vector_ints bp (m);
-  bp[0] = 4;
-  bp[1] = 3;
+    vector_ints bp (m);
+    bp[0] = 4;
+    bp[1] = 3;
 
-  vector_nums br (m);
-  br[0] = number (4);
-  br[1] = number (14);
+    vector_nums br (m);
+    br[0] = number (4);
+    br[1] = number (14);
 
-  opt_table task;
-  task.a = a;
-  task.bp = bp;
-  task.br = br;
-  task.c = c;
+    opt_table task;
+    task.a = a;
+    task.bp = bp;
+    task.br = br;
+    task.c = c;
 
-  /*opt_table task;
+    /*opt_table task;
 
-  task.c = vector_nums(n);
-  task.c[0] = number(2);
-  task.c[1] = number(1);
-  task.c[2] = number(0);
+    task.c = vector_nums(n);
+    task.c[0] = number(2);
+    task.c[1] = number(1);
+    task.c[2] = number(0);
 
-  task.a = matrix_nums(m, vector_nums(n));
-  task.a[0][0] = number(15);
-  task.a[0][1] = number(30);
-  task.a[0][2] = number(1);
+    task.a = matrix_nums(m, vector_nums(n));
+    task.a[0][0] = number(15);
+    task.a[0][1] = number(30);
+    task.a[0][2] = number(1);
 
-  task.bp = vector_ints(m);
-  task.bp[0] = 2;
+    task.bp = vector_ints(m);
+    task.bp[0] = 2;
 
-  task.br = vector_nums(m);
-  task.br[0] = number(96);*/
+    task.br = vector_nums(m);
+    task.br[0] = number(96);*/
 
-  /*opt_table task;
+    /*opt_table task;
 
-  task.c = vector_nums(n);
-  task.c[0] = number(1);
-  task.c[1] = number(0);
-  task.c[2] = number(0);
-  task.c[3] = number(0);
-  task.c[4] = number(0);
-  task.c[5] = number(0, -1);
+    task.c = vector_nums(n);
+    task.c[0] = number(1);
+    task.c[1] = number(0);
+    task.c[2] = number(0);
+    task.c[3] = number(0);
+    task.c[4] = number(0);
+    task.c[5] = number(0, -1);
 
-  task.a = matrix_nums(m, vector_nums(n));
+    task.a = matrix_nums(m, vector_nums(n));
 
-  task.a[0][0] = number(1);
-  task.a[0][1] = number(-2);
-  task.a[0][2] = number(1);
-  task.a[0][3] = number(0);
-  task.a[0][4] = number(0);
-  task.a[0][5] = number(0);
+    task.a[0][0] = number(1);
+    task.a[0][1] = number(-2);
+    task.a[0][2] = number(1);
+    task.a[0][3] = number(0);
+    task.a[0][4] = number(0);
+    task.a[0][5] = number(0);
 
-  task.a[1][0] = number(1);
-  task.a[1][1] = number(-1);
-  task.a[1][2] = number(0);
-  task.a[1][3] = number(-1);
-  task.a[1][4] = number(0);
-  task.a[1][5] = number(1);
+    task.a[1][0] = number(1);
+    task.a[1][1] = number(-1);
+    task.a[1][2] = number(0);
+    task.a[1][3] = number(-1);
+    task.a[1][4] = number(0);
+    task.a[1][5] = number(1);
 
-  task.a[2][0] = number(1);
-  task.a[2][1] = number(1);
-  task.a[2][2] = number(0);
-  task.a[2][3] = number(0);
-  task.a[2][4] = number(1);
-  task.a[2][5] = number(0);
+    task.a[2][0] = number(1);
+    task.a[2][1] = number(1);
+    task.a[2][2] = number(0);
+    task.a[2][3] = number(0);
+    task.a[2][4] = number(1);
+    task.a[2][5] = number(0);
 
-  task.bp = vector_ints(m);
-  task.bp[0] = 2;
-  task.bp[1] = 5;
-  task.bp[2] = 4;
+    task.bp = vector_ints(m);
+    task.bp[0] = 2;
+    task.bp[1] = 5;
+    task.bp[2] = 4;
 
-  task.br = vector_nums(m);
-  task.br[0] = number(4);
-  task.br[1] = number(-1);
-  task.br[2] = number(2);*/
+    task.br = vector_nums(m);
+    task.br[0] = number(4);
+    task.br[1] = number(-1);
+    task.br[2] = number(2);*/
 
-  gomory (task);
+    gomory (task);
+  }
+  //****************************************************************************
+
+  {
+
+    int n = 4;
+    int m = 2;
+
+    vector_nums c (n);
+    c[0] = number (1);
+    c[1] = number (1);
+    c[2] = number (1);
+    c[3] = number (1);
+
+    matrix_nums a (m, vector_nums (n));
+    a[0][0] = number (0);
+    a[0][1] = number (230);
+    a[0][2] = number (150);
+    a[0][3] = number (0);
+
+    a[1][0] = number (0);
+    a[1][1] = number (220);
+    a[1][2] = number (160);
+    a[1][3] = number (0);
+
+    vector_ints bp (m);
+    bp[0] = 0.0178;
+    bp[1] = 0.0179;
+
+    vector_nums br (m);
+    br[0] = number (4);
+    br[1] = number (14);
+
+    opt_table task;
+    task.a = a;
+    task.bp = bp;
+    task.br = br;
+    task.c = c;
+  }
 
   return 0;
 }

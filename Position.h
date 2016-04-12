@@ -75,17 +75,30 @@ namespace Positions
 
   class LinearOperator
   {
-    double *coefs_ = NULL;
     Point  min_, max_;
+    std::vector<double>  xCoefs, yCoefs;
+
+    static const int     n_muscles;
+    static const double normilizer;
+
+    const int  LSO = 0;
+    const int  LSC = 1;
+    const int  LEO = 2;
+    const int  LEC = 3;
+
+    void createJointControl (IN HandMoves::controling_t &controls,
+                             IN int *solution, IN size_t opn, IN size_t cls,
+                             IN Hand::MusclesEnum Opn, IN Hand::MusclesEnum Cls);
+
   public:
     LinearOperator () {}
-    void solveQR  (HandMoves::Store &store, const Point &aim, double side) throw (...);
-    void solveQR1 (HandMoves::Store &store, const Point &aim, double side) throw (...);
+    LinearOperator (IN HandMoves::Store &store,
+                    IN const Point &aim,
+                    IN double radius,
+                    IN bool verbose=false) throw (...);
 
-    ~LinearOperator ()
-    {
-      delete[] coefs_;
-    }
+    void  predict (IN const Point &aim,
+                   OUT HandMoves::controling_t &controls);
   };
 
   // class PredictedDirection

@@ -198,8 +198,13 @@ void  MakeHandMove (MyWindowData &wd)
 {
   try
   {
-    Positions::LinearOperator lp;
-    // lp.solveQR1 (wd.store, wd.mouse_aim, 0.01);
+    HandMoves::controling_t controls;
+    Positions::LinearOperator lp (wd.store, wd.mouse_aim, 0.007);
+    lp.predict (wd.mouse_aim, controls);
+
+    wd.hand.SET_DEFAULT;
+    wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
+    return;
   }
   catch ( ... )
   {}

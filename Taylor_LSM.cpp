@@ -8,381 +8,275 @@ using namespace NewHand;
 #include "HandMuscles.h"
 #endif
 
-//------------------------------------------------------------------------------
-// #include "MyWindow.h"
-// #include "target.h"
+#include "Position.h"  
 #include "HandMovesStore.h"
+//------------------------------------------------------------------------------
+namespace SimplexMethod
+{
+  extern "C"
+  {
+    int  calculate (IN  int nCols /* variables in the model */,
+                    IN  int nRows,
+                    IN  double** rows,
+                    IN  double*  rights,
+                    IN  double*  objectives,
+                    OUT int* answer,
+                    IN  int verbose);
+  };
+};
+//------------------------------------------------------------------------------
 
-#include "llsq.hpp"
+// extern "C"
+//{
 #include "qr_solve.hpp"
+//};
 
+extern "C"
+{
+#define N_MUSCLES 4
 
+  int  muscles_interpolate (IN  int m, int n,
+                            IN  double *matrix,
+                            IN  double *xes,
+                            IN  double *yes,
+                            IN  double *rights,
+                            OUT int    *answers,
+                            OUT double *xCoefs,
+                            OUT double *yCoefs,
+                            IN  int     verbose)
+  {
+    int result = 0;
+    //======================================================
+    double *x_coefs = qr_solve (m, n, matrix, xes);
+    double *y_coefs = qr_solve (m, n, matrix, yes);
+    //======================================================
+    if ( !x_coefs || !y_coefs )
+    {
+      result = 1;
+      goto RESULT;
+    }
 
+    for ( int j = 0; j < n; ++j )
+      xCoefs[j] = x_coefs[j];
+    for ( int j = 0; j < n; ++j )
+      yCoefs[j] = y_coefs[j];
+
+    if ( verbose )
+    {
+      printf ("\n\n");
+      for ( int j = 0; j < n; ++j )
+        printf ("%.4lf ", x_coefs[j]);
+      printf ("\n");
+
+      for ( int j = 0; j < n; ++j )
+        printf ("%.4lf ", y_coefs[j]);
+      printf ("\n\n");
+
+      // --- checking ------------
+      double sum_x = 0.;
+      double sum_y = 0.;
+      for ( int j = 0; j < n; ++j )
+      {
+        sum_x += matrix[j] * x_coefs[j];
+        sum_y += matrix[j] * y_coefs[j];
+      }
+
+      printf ("%.4lf == %.4lf\n", sum_x, xes[0]);
+      printf ("%.4lf == %.4lf\n", sum_y, yes[0]);
+      printf ("\n");
+    } // end if verbose
+      //--------------------------------
+    double *maxtix[] = { x_coefs, y_coefs };
+    double objects[] = { 1., 1.,  1., 1.  };
+
+    if ( SimplexMethod::calculate (n, 2, maxtix, rights, objects, answers, verbose) )
+    {
+      result = 1;
+      goto RESULT;
+    }
+
+    if ( verbose )
+    {
+      double sum_x = 0.;
+      double sum_y = 0.;
+      for ( int j = 0; j < n; ++j )
+      {
+        sum_x += matrix[j] * answers[j];
+        sum_y += matrix[j] * answers[j];
+      }
+      printf ("%lf == %lf\n", sum_x, rights[0]);
+      printf ("%lf == %lf\n", sum_y, rights[1]);
+    }
+
+RESULT:;
+    if ( x_coefs ) free (x_coefs);
+    if ( y_coefs ) free (y_coefs);
+
+    return result;
+  }
+};
+//------------------------------------------------------------------------------
 namespace Positions
 {
-#define N_MSCL_LASTS 4
-#define N_MSCL_START 2
-
   using namespace HandMoves;
-
-  typedef std::array<double, (N_MSCL_LASTS + N_MSCL_START)> lin_op_t;
-
-#define LSO 0
-#define LSC 1
-#define LEO 2
-#define LEC 3
-
-#define BSO 4
-#define BEO 5
-
-  void  LinearOperator::solveQR1 (HandMoves::Store &store, const Point &aim, double side) throw (...)
+  //------------------------------------------------------------------------------
+  const int    LinearOperator::n_muscles  = 4;
+  const double LinearOperator::normilizer = 10.;
+  //------------------------------------------------------------------------------
+  LinearOperator::LinearOperator (IN HandMoves::Store &store,
+                                  IN const Point &aim,
+                                  IN double radius,
+                                  IN bool verbose) throw (...):
+    min_ (Point (aim.x - radius, aim.y - radius)),
+    max_ (Point (aim.x + radius, aim.y + radius))
   {
+
     HandMoves::adjacency_t     range;
-    store.adjacencyRectPoints (range, Point (aim.x - side, aim.y - side),
-                                      Point (aim.x + side, aim.y + side));
+    store.adjacencyRectPoints (range, min_, max_);
 
     if ( range.size () > 2 )
     { // throw new std::exception ("solveQR: no points in adjacency"); }
 
-      int m = (int) range.size ();
-      int n = (N_MSCL_LASTS + N_MSCL_START);
+      int  m = static_cast<int> (range.size ());
+      int  n = LinearOperator::n_muscles;
+      
+      std::vector<double>  matrix (m * n);
+      std::vector<double>  xes (m);
+      std::vector<double>  yes (m);
 
-      std::vector<double> A (m*n);
-      std::vector<double> B (m);
-      std::vector<double> C (m);
-
-      int i = 0;
+      int i = 0, j = 0;
       for ( auto &rec : range )
       {
-        B[i] = rec.hit.y;
-        C[i] = rec.hit.x;
+        xes[i] = rec.hit.x * LinearOperator::normilizer;
+        yes[i] = rec.hit.y * LinearOperator::normilizer;
+        
+        if ( verbose )
+        { tcout << _T ("controls: ") << rec.controls ().size () << std::endl; }
 
-        int j = 0;
-        printf ("controls: %d\n", (int) rec.controls ().size ());
+        j = 0;
         for ( const Hand::Control &control : rec.controls () )
         {
-          if ( control.muscle & Hand::ShldrOpn )
+               if ( control.muscle & Hand::ShldrOpn )
           {
-            A[i * n + LSO] = (double) control.last;
-            tcout << _T ("so ") << control.last << ' ' << A[i * n + LSO] << std::endl;
+            matrix[i * n + LSO] = static_cast<double> (control.last);
+            if ( verbose )
+            { tcout << _T ("so ") << control.last << ' ' << matrix[i * n + LSO] << std::endl; }
           }
           else if ( control.muscle & Hand::ShldrCls )
           {
-            A[i * n + LSC] = (double) control.last;
-            tcout << _T ("sc ") << control.last << ' ' << A[i * n + LSC] << std::endl;
+            matrix[i * n + LSC] = static_cast<double> (control.last);
+            if ( verbose )
+            { tcout << _T ("sc ") << control.last << ' ' << matrix[i * n + LSC] << std::endl; }
           }
           else if ( control.muscle & Hand::ElbowOpn )
           {
-            A[i * n + LEO] = (double) control.last;
-            tcout << _T ("eo ") << control.last << ' ' << A[i * n + LEO] << std::endl;
+            matrix[i * n + LEO] = static_cast<double> (control.last);
+            if ( verbose )
+            { tcout << _T ("eo ") << control.last << ' ' << matrix[i * n + LEO] << std::endl; }
           }
           else if ( control.muscle & Hand::ElbowCls )
           {
-            A[i * n + LEC] = (double) control.last;
-            tcout << _T ("ec ") << control.last << ' ' << A[i * n + LEC] << std::endl;
-          }
-          ++j;
-        }
-        tcout << std::endl;
-        ++i;
-      }
-
-      for ( int i = 0; i < m; ++i )
-      {
-        for ( int j = 0; j < n; ++j )
-          printf ("%.4lf ", A[i * n + j]);
-        // tcout << A[i * n + j] << _T (" ");
-        printf (" | %.4lf\n", B[i]);
-        // tcout << _T (" | ") << B[i] << std::endl;
-      }
-
-      double *coefs1 = qr_solve (m, n, A.data (), C.data ());
-      double *coefs2 = qr_solve (m, n, A.data (), B.data ());
-
-      tcout << std::endl << std::endl;
-
-      for ( int j = 0; j < n; ++j )
-        printf ("%.4lf ", coefs1[j]);
-      printf ("\n\n");
-
-      for ( int j = 0; j < n; ++j )
-        printf ("%.4lf ", coefs2[j]);
-      printf ("\n");
-
-      std::vector<double> cc (2 * n);
-      for ( int i = 0; i < n; ++i )
-        cc[i] = coefs1[i];
-      for ( int i = 0; i < n; ++i )
-        cc[n + i] = coefs2[i];
-
-
-      double x[] = { aim.x, aim.y };
-
-      // double *coefs_ = qr_solve (m, n, cc.data (), x);
-
-      double sum = 0.;
-      for ( int j = 0; j < n; ++j )
-        sum = A[j] * coefs1[j];
-      tcout << sum << ' ' << C[0] << '\n';
-
-
-      delete[] coefs1;
-      delete[] coefs2;
-
-      // for ( int j = 0; j < n; ++j )
-      //   printf ("%d ", (int) coefs_[j]);
-      // printf ("\n");
-
-      int solution[4];
-      for ( int i = 0; i < 4; ++i )
-        if ( solution[i] < 0 )
-          throw new std::exception ("!!!");
-
-      controling_t cntrls;
-      auto createJointControl = [](controling_t &controls, int *solution, size_t opn, size_t cls)
-      {
-        if ( solution[LSO] && solution[LSC] )
-        {
-          if ( solution[LSO] > solution[LSC] )
-          {
-            controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[opn]));
-            controls.push_back (Hand::Control (Hand::ShldrCls, solution[opn] + 1U, solution[cls]));
-          }
-          else
-          {
-            controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[cls]));
-            controls.push_back (Hand::Control (Hand::ShldrCls, solution[cls] + 1U, solution[opn]));
-          }
-        }
-        else if ( solution[LSO] )
-        { controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[opn])); }
-        else if ( solution[LSC] )
-        { controls.push_back (Hand::Control (Hand::ShldrOpn, 0U, solution[cls])); }
-      };
-
-      createJointControl (cntrls, solution, LSO, LSC);
-      createJointControl (cntrls, solution, LEO, LEC);
-
-      // double *T = new double[];
-    }
-  }
-  void  LinearOperator::solveQR (HandMoves::Store &store, const Point &aim, double side) throw (...)
-  {
-    HandMoves::adjacency_t  range;
-    store.adjacencyRectPoints (range, Point (aim.x - side, aim.y - side),
-                                      Point (aim.x + side, aim.y + side));
-  
-    if ( range.size () > 2 )
-    { // throw new std::exception ("solveQR: no points in adjacency"); }
-
-      int m = (int) range.size ();
-      int n = (N_MSCL_LASTS + N_MSCL_START);
-
-      std::vector<double> A (m*n);
-      std::vector<double> B (m);
-      std::vector<double> C (m);
-      // double *A = new double[m * n];
-      // double *B = new double[m];
-
-      int i = 0;
-      for ( auto &rec : range )
-      {
-        B[i] = rec.hit.y;
-        //A[i * n + 6] = rec.hit.x;
-        C[i] = rec.hit.x;
-
-        int j = 0;
-        printf ("controls: %d\n", (int) rec.controls ().size ());
-        for ( const Hand::Control &control : rec.controls () )
-        {
-          if ( control.muscle & Hand::ShldrOpn )
-          {
-            A[i * n + LSO] = (double) control.last;
-            tcout << _T ("so ") << control.last << ' ' << A[i * n + LSO] << std::endl;
-
-            if ( !control.start )
-            { // so = true;
-              A[i * n + BSO] = true;
-              tcout << _T ("bso ") << true << ' ' << A[i * n + 4] << std::endl;
-
-            }
-          }
-          else if ( control.muscle & Hand::ShldrCls )
-          {
-            A[i * n + LSC] = (double) control.last;
-            tcout << _T ("sc ") << control.last << ' ' << A[i * n + LSC] << std::endl;
-
-            if ( !control.start )
-            { // sc = false;
-              A[i * n + BSO] = false;
-              tcout << _T ("bsc ") << false << ' ' << A[i * n + 4] << std::endl;
-
-            }
-          }
-          else if ( control.muscle & Hand::ElbowOpn )
-          {
-            A[i * n + LEO] = (double) control.last;
-            tcout << _T ("eo ") << control.last << ' ' << A[i * n + LEO] << std::endl;
-
-            if ( !control.start )
-            { // eo = true;
-              A[i * n + BEO] = true;
-              tcout << _T ("beo ") << true << ' ' << A[i * n + 5] << std::endl;
-
-            }
-          }
-          else if ( control.muscle & Hand::ElbowCls )
-          {
-            A[i * n + LEC] = (double) control.last;
-            tcout << _T ("ec ") << control.last << ' ' << A[i * n + LEC] << std::endl;
-
-            if ( !control.start )
-            { // ec = false;
-              A[i * n + BEO] = false;
-              tcout << _T ("bec ") << false << ' ' << A[i * n + 5] << std::endl;
-
-            }
+            matrix[i * n + LEC] = static_cast<double> (control.last);
+            if ( verbose )
+            { tcout << _T ("ec ") << control.last << ' ' << matrix[i * n + LEC] << std::endl; }
           }
 
           ++j;
         }
+
+        if ( verbose )
+        { tcout << std::endl; }
+
         ++i;
       }
 
-      for ( int i = 0; i < m; ++i )
+      if ( verbose )
       {
+        auto old_prec = tcout.precision (4);
+
         for ( int j = 0; j < n; ++j )
-          printf ("%.4lf ", A[i * n + j]);
-        // tcout << A[i * n + j] << _T (" ");
-        printf (" | %.4lf\n", B[i]);
-        // tcout << _T (" | ") << B[i] << std::endl;
+        { tcout << _T ("\t") << j << _T ("\t"); }
+        tcout << _T (" | x  \t| y") << std::endl;
+
+        for ( int i = 0; i < m; ++i )
+        {
+          for ( int j = 0; j < n; ++j )
+            tcout << matrix[i * n + j] << _T (" ");
+            // printf ("%.4lf ", matrix[i * n + j]);
+          // printf (" | %.4lf | %.4lf\n", xes[i], yes[i]);
+          tcout << _T (" | ") << xes[i] << _T (" | ") << yes[i] << std::endl;
+        }
+        tcout.precision (old_prec);
       }
-      double *coefs1 = qr_solve (m, n, A.data (), C.data ());
-      double *coefs2 = qr_solve (m, n, A.data (), B.data ());
+      
+      int   solution[LinearOperator::n_muscles];
+      double  rights[] = { aim.x * 100., aim.y * 100. };
 
-      tcout << std::endl << std::endl;
+      xCoefs.resize (LinearOperator::n_muscles);
+      yCoefs.resize (LinearOperator::n_muscles);
 
-      for ( int j = 0; j < n; ++j )
-        printf ("%.4lf ", coefs1[j]);
-      printf ("\n\n");
+      muscles_interpolate (m, n, matrix.data (), xes.data (), yes.data (),
+                           rights, solution, xCoefs.data (), yCoefs.data (),
+                           static_cast<int> (verbose));
 
-      for ( int j = 0; j < n; ++j )
-        printf ("%.4lf ", coefs2[j]);
-      printf ("\n");
+      // for ( int i = 0; i < 4; ++i )
+      //   if ( solution[i] < 0 )
+      //     throw std::exception ("!!!");
 
-      std::vector<double> cc (2 * n);
-      for ( int i = 0; i < n; ++i )
-        cc[i] = coefs1[i];
-      for ( int i = 0; i < n; ++i )
-        cc[n + i] = coefs2[i];
-
-
-      double x[] = { aim.x, aim.y };
-
-      // double *coefs_ = qr_solve (m, n, cc.data (), x);
-
-      double sum = 0.;
-      for ( int j = 0; j < n; ++j )
-        sum = A[j] * coefs1[j];
-      tcout << sum << ' ' << C[0] << '\n';
-
-
-      delete[] coefs1;
-      delete[] coefs2;
-
-      // for ( int j = 0; j < n; ++j )
-      //   printf ("%d ", (int) coefs_[j]);
-      // printf ("\n");
-
-      // int min_so = 
-      //   int min_eo = 
-      //   int min_
-      // for ( int i = )
-
-
-      //controling_t cntrls;
-      //if ( coefs_[BSO] > 0.5 )
-      //{
-      //  cntrls.push_back (Hand::Control (Hand::ShldrOpn, 0U, coefs_[LSO]));
-      //  if ( coefs_[LSC] > EPS )
-      //    cntrls.push_back (Hand::Control (Hand::ShldrCls, coefs_[LSO] + 1U, coefs_[LSC]));
-      //}
-      //else
-      //{
-      //  cntrls.push_back (Hand::Control (Hand::ShldrCls, 0U, coefs_[LSC]));
-      //  if ( coefs_[LSC] > EPS )
-      //    cntrls.push_back (Hand::Control (Hand::ShldrOpn, coefs_[LSC] + 1U, coefs_[LSO]));
-      //}
-
-      //if ( coefs_[BSO] > 0.5 )
-      //{
-      //  cntrls.push_back (Hand::Control (Hand::ElbowOpn, 0U, coefs_[LEO]));
-      //  if ( coefs_[LSC] > EPS )
-      //    cntrls.push_back (Hand::Control (Hand::ElbowCls, coefs_[LEO] + 1U, coefs_[LEC]));
-      //}
-      //else
-      //{
-      //  cntrls.push_back (Hand::Control (Hand::ElbowCls, 0U, coefs_[LEC]));
-      //  if ( coefs_[LSC] > EPS )
-      //    cntrls.push_back (Hand::Control (Hand::ElbowOpn, coefs_[LEC] + 1U, coefs_[LEO]));
-      //}
-
-      //// double *T = new double[];
-    }
+      // controling_t controls;
+      // createJointControl (controls, solution, LSO, LSC);
+      // createJointControl (controls, solution, LEO, LEC);
+    } // end if
   }
-
-  void  constructLinearOperator (Hand::frames_t last_so, Hand::frames_t last_sc,
-                                 Hand::frames_t last_eo, Hand::frames_t last_ec,
-                                 bool eo,
-                                 bool so,
-                                 lin_op_t LinOp)
+  //------------------------------------------------------------------------------
+  void LinearOperator::createJointControl (IN HandMoves::controling_t &controls,
+                                           IN int *solution, IN size_t opn, IN size_t cls,
+                                           IN Hand::MusclesEnum Opn, IN Hand::MusclesEnum Cls)
   {
-    /* int N, the number of data values */
-    const int n = (N_MSCL_LASTS + N_MSCL_START);
-    const int m = 2;
-
-    double x[n];
-    double y[n];
-    double a;
-    double b;
-
-    /* LLSQ solves a linear least squares problem matching a line to data */
-    llsq (n, x, y, a, b);
-    /* A formula for a line of the form Y = A * X + B is sought, which           */
-    /* will minimize the root-mean-square error to N data points ( X[I], Y[I] ); */
-    
-    //    Input, double X[N], Y[N], the coordinates of the data points.
-    //    Output, double &A, &B, the slope and Y-intercept of the least-squares
-    //    approximant to the data.
-
-    double A[2 * n];
-    double B[] = { 0., 0. };
-    /* QR_SOLVE solves a linear system in the least squares sense */
-    double* C = qr_solve (m, n, A, B);
-
-    //****************************************************************************80
-    //
-    //    If the matrix A has full column rank, then the solution X should be the
-    //    unique vector that minimizes the Euclidean norm of the residual.
-    //
-    //    If the matrix A does not have full column rank, then the solution is
-    //    not unique; the vector X will minimize the residual norm, but so will
-    //    various other vectors.
-    //
-    //  Parameters:
-    //
-    //    Input, int M, the number of rows of A.
-    //
-    //    Input, int N, the number of columns of A.
-    //
-    //    Input, double A[M*N], the matrix.
-    //
-    //    Input, double B[M], the right hand side.
-    //
-    //    Output, double QR_SOLVE[N], the least squares solution.
-
-    return;
+    if ( solution[opn] && solution[cls] )
+    {
+      if ( solution[opn] > solution[cls] )
+      {
+        controls.push_back (Hand::Control (Opn, 0U, solution[opn]));
+        controls.push_back (Hand::Control (Cls, solution[opn] + 1U, solution[cls]));
+      }
+      else
+      {
+        controls.push_back (Hand::Control (Opn, 0U, solution[cls]));
+        controls.push_back (Hand::Control (Cls, solution[cls] + 1U, solution[opn]));
+      }
+    }
+    else if ( solution[opn] )
+    { controls.push_back (Hand::Control (Opn, 0U, solution[opn])); }
+    else if ( solution[cls] )
+    { controls.push_back (Hand::Control (Cls, 0U, solution[cls])); }
   }
+  //------------------------------------------------------------------------------
+  void  LinearOperator::predict (IN  const Point &aim,
+                                 OUT HandMoves::controling_t &controls)
+  {
+    if ( min_.x <= aim.x && min_.y <= aim.y
+      && max_.x >= aim.x && max_.y >= aim.y )
+    {
+      int   solution[LinearOperator::n_muscles];
+      double objects[] = { 1., 1., 1., 1. };
+      double  rights[] = { aim.x * LinearOperator::normilizer,
+                           aim.y * LinearOperator::normilizer };
+      double *maxtix[] = { xCoefs.data (), yCoefs.data () };
 
+      if ( !SimplexMethod::calculate (LinearOperator::n_muscles, 2, maxtix, rights, objects, solution, 1) )
+      {
+
+        // muscles_interpolate (m, n, A.data (), C.data (), B.data (),
+        //                      rights, solution, 0); // static_cast<int> (verbose));
+
+        createJointControl (controls, solution, LSO, LSC, Hand::ShldrOpn, Hand::ShldrCls);
+        createJointControl (controls, solution, LEO, LEC, Hand::ElbowOpn, Hand::ElbowCls);
+
+        objects[0] = 2;
+      } // end if
+    } // end if
+  }
+  //------------------------------------------------------------------------------
 };
 //------------------------------------------------------------------------------
