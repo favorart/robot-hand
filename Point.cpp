@@ -17,7 +17,7 @@ bool  Point::operator== (const Point &p) const
 bool  Point::operator!= (const Point &p) const
 { return !hit (p); }
 //--------------------------------------------------------------------------------
-bool  Point::hit (const Point &p, double eps) const
+bool  Point::hit    (const Point &p, double eps) const
 { return ((abs (x_ - p.x_) < eps)
        && (abs (y_ - p.y_) < eps));
 }
@@ -36,8 +36,8 @@ void  Point::rotate (const Point &center, double angle)
   y_ += center.y_;
 }
 //--------------------------------------------------------------------------------
-std::istream&  operator>> (std::istream &in,        Point &p)
+tistream&  operator>> (tistream &in,        Point &p)
 { return in >> p.x_ >> p.y_; }
-std::ostream&  operator<< (std::ostream &out, const Point &p)
+tostream&  operator<< (tostream &out, const Point &p)
 { return out << _T ('(') << p.x_ << _T (", ") << p.y_ << _T (')'); }
 //--------------------------------------------------------------------------------

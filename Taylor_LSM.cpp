@@ -121,18 +121,19 @@ namespace Positions
   using namespace HandMoves;
   //------------------------------------------------------------------------------
   const int    LinearOperator::n_muscles  = 4;
-  const double LinearOperator::normilizer = 10.;
+  const double LinearOperator::normilizer = 150.;
   //------------------------------------------------------------------------------
-  LinearOperator::LinearOperator (IN HandMoves::Store &store,
-                                  IN const Point &aim,
-                                  IN double radius,
-                                  IN bool verbose) throw (...):
+  LinearOperator::LinearOperator (IN  HandMoves::Store &store,
+                                  IN  const Point &aim,
+                                  IN  double radius,
+                                  OUT HandMoves::controling_t &controls,
+                                  IN  bool verbose) throw (...):
     min_ (Point (aim.x - radius, aim.y - radius)),
     max_ (Point (aim.x + radius, aim.y + radius))
   {
 
     HandMoves::adjacency_t     range;
-    store.adjacencyRectPoints (range, min_, max_);
+    store.adjacencyRectPoints<adjacency_t, ByP> (range, min_, max_);
 
     if ( range.size () > 2 )
     { // throw new std::exception ("solveQR: no points in adjacency"); }
@@ -215,17 +216,17 @@ namespace Positions
       xCoefs.resize (LinearOperator::n_muscles);
       yCoefs.resize (LinearOperator::n_muscles);
 
-      muscles_interpolate (m, n, matrix.data (), xes.data (), yes.data (),
-                           rights, solution, xCoefs.data (), yCoefs.data (),
-                           static_cast<int> (verbose));
+      if ( !muscles_interpolate (m, n, matrix.data (), xes.data (), yes.data (),
+                                 rights, solution, xCoefs.data (), yCoefs.data (),
+                                 static_cast<int> (verbose)) )
 
-      // for ( int i = 0; i < 4; ++i )
-      //   if ( solution[i] < 0 )
-      //     throw std::exception ("!!!");
+      {
+        // for ( int i = 0; i < 4; ++i )
+        //   if ( solution[i] < 0 ) throw std::exception ("!!!");
 
-      // controling_t controls;
-      // createJointControl (controls, solution, LSO, LSC);
-      // createJointControl (controls, solution, LEO, LEC);
+        createJointControl (controls, solution, LSO, LSC, Hand::ShldrOpn, Hand::ShldrCls);
+        createJointControl (controls, solution, LEO, LEC, Hand::ElbowOpn, Hand::ElbowCls);
+      }
     } // end if
   }
   //------------------------------------------------------------------------------
@@ -253,7 +254,8 @@ namespace Positions
   }
   //------------------------------------------------------------------------------
   void  LinearOperator::predict (IN  const Point &aim,
-                                 OUT HandMoves::controling_t &controls)
+                                 OUT HandMoves::controling_t &controls, 
+                                 IN  bool verbose)
   {
     if ( min_.x <= aim.x && min_.y <= aim.y
       && max_.x >= aim.x && max_.y >= aim.y )
@@ -264,16 +266,13 @@ namespace Positions
                            aim.y * LinearOperator::normilizer };
       double *maxtix[] = { xCoefs.data (), yCoefs.data () };
 
-      if ( !SimplexMethod::calculate (LinearOperator::n_muscles, 2, maxtix, rights, objects, solution, 1) )
+      if ( !SimplexMethod::calculate (LinearOperator::n_muscles, 2, maxtix, 
+                                      rights, objects, solution, static_cast<int> (verbose)) )
       {
-
-        // muscles_interpolate (m, n, A.data (), C.data (), B.data (),
-        //                      rights, solution, 0); // static_cast<int> (verbose));
-
         createJointControl (controls, solution, LSO, LSC, Hand::ShldrOpn, Hand::ShldrCls);
         createJointControl (controls, solution, LEO, LEC, Hand::ElbowOpn, Hand::ElbowCls);
 
-        objects[0] = 2;
+        // objects[0] = 2;
       } // end if
     } // end if
   }

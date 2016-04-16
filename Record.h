@@ -68,15 +68,37 @@ namespace HandMoves
     private:
       Point aim_;
     };
-
+    struct ChangeHitPoint : public std::unary_function<Record, void>
+    {
+      ChangeHitPoint (const Point &hit) : hit_ (hit) {}
+      void operator() (Record rec) { rec.hand_final_ = hit_; }
+    private:
+      Point hit_;
+    };
+    // ----------------------------------------
     double hit_x () const { return hand_final_.x; }
     double hit_y () const { return hand_final_.y; }
-
+    // ----------------------------------------
     double aim_x () const { return aim_.x; }
     double aim_y () const { return aim_.y; }
-
+    // ----------------------------------------
     Hand::MusclesEnum  muscles () const
     { return muscles_; }
+    // ----------------------------------------
+
+    // bool  operator==  (const Point &p) const
+    // { return  boost_distance (hit < p); }
+    // bool  operator== (const Record &rec) const
+    // { return  boost_distance (hit < rec.hit); }
+    // bool  operator== (const boost::tuple<double, double> &t) const
+    // { return  boost_distance (hit, boost_point2_t (t)); }
+    // ----------------------------------------
+    bool  operator<  (const Point &p) const
+    { return (hit < p); }
+    bool  operator< (const Record &rec) const
+    { return (hit < rec.hit); }
+    bool  operator< (const boost::tuple<double, double> &t) const
+    { return (hit.x < t.get<0> ()) && (hit.y < t.get<1> ()); }
     // ----------------------------------------
     Record () {}
 
@@ -107,8 +129,9 @@ namespace HandMoves
     __declspec(property(get = get_aim)) const Point &aim;
     const Point&  get_aim () const { return aim_; }
 
-    __declspec(property(get = get_final)) const Point &hit;
-    const Point&  get_final () const { return hand_final_; }
+    __declspec(property(get = get_final, put = put_final)) const Point &hit;
+    const Point&  get_final () const           { return  hand_final_; }
+    void          put_final (const Point &hit) { hand_final_  =  hit; }
 
     __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
     const trajectory_t  &get_trajectory () const { return visited_; }

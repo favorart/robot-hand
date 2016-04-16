@@ -2,6 +2,8 @@
 
 #ifndef  _HAND_MOVES_H_
 #define  _HAND_MOVES_H_
+
+// #define  _DEBUG_PRINT
 //------------------------------------------------------------------------------
 #include "Record.h"
 #include "MyWindow.h"
@@ -9,6 +11,7 @@
 namespace HandMoves
 {
   struct ByP {};
+  struct ByR {};
   struct ByA {};
   struct ByX {};
   struct ByY {};
@@ -43,6 +46,9 @@ namespace HandMoves
                                         const_mem_fun<Record, const controling_t&, &Record::controls>,
                                         ControlingHasher
                                       >,
+                   ordered_non_unique < tag<ByR>,
+                                        identity<Record>
+                                      >,
                    ordered_non_unique < tag<ByP>,
                                         composite_key < Record,
                                                         const_mem_fun<Record, double, &Record::hit_x>,
@@ -55,8 +61,8 @@ namespace HandMoves
                                                         const_mem_fun<Record, double, &Record::aim_y>
                                                       >
                                       >,
-                   // ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
-                   // ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
+                   ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
+                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
                    ordered_non_unique < tag<ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > // ,
                 // random_access      < > // доступ, как у вектору
                  >
@@ -82,8 +88,10 @@ namespace HandMoves
     };
     //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */
-    template <class range_t>
-    size_t  adjacencyRectPoints (range_t &range, const Point &left_down, const Point &right_up)
+    template <class range_t, class index_t> //, class el_t>
+    size_t  adjacencyRectPoints (range_t &range, 
+                                 Point  &min, Point &max)
+                                 // const el_t &min, const el_t &max)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
 
@@ -91,20 +99,34 @@ namespace HandMoves
                    || boost::is_same<range_t, adjacency_refs_t>::value,
                       "Incorrect type to template function." );
       
-      typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
-      MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+      typedef MultiIndexMoves::index<index_t>::type::const_iterator Index_cIter;
+      MultiIndexMoves::index<index_t>::type  &index = store_.get<index_t> ();     
       /* Range searching, i.e.the lookup of all elements in a given interval */
-      IndexPcIter itFirstLower = index.lower_bound (boost::tuple<double, double> (left_down));
-      IndexPcIter itFirstUpper = index.upper_bound (boost::tuple<double, double> (right_up));
+      Index_cIter itFirstLower = index.lower_bound (boost::tuple<double, double> (min));
+      Index_cIter itFirstUpper = index.upper_bound (boost::tuple<double, double> (max));
     
+      // double  min_x = min.head (), min_y = min.tail(),
+      //         max_x = max.head (), max_y = max.tail();
+
       size_t count = 0U;
       RangeInserter rangeInserter;
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
-        auto &rec = *it;
-        rangeInserter (range, rec);
-        // range.push_back (*it); // range.push_back ( std::make_shared<Record> (*it) );
-        ++count;
+#ifdef _DEBUG_PRINT
+        // tcout << it->hit << std::endl;
+#endif
+        // if ( (min.get<0> () <= it->hit.x && min.get<1> () <= it->hit.y)
+        //   && (max.get<0> () >= it->hit.x && max.get<1> () >= it->hit.y) )
+        if ( (min.x <= it->hit.x && min.y <= it->hit.y)
+          && (max.x >= it->hit.x && max.y >= it->hit.y) )
+        {
+          auto &rec = *it;
+          rangeInserter (range, rec);
+
+          // range.push_back ( *it );
+          // range.push_back ( std::make_shared<Record> (*it) );
+          ++count;
+        }
       }
       return count;
     }
@@ -134,7 +156,6 @@ namespace HandMoves
                                         boost_point2_t (rec.hit)) <= radius )
         {
           rangeInserter (range, rec);
-          // range.push_back (*it); // range.push_back ( make_shared<Record> (*it) );
           ++count;
         }
       }
@@ -161,17 +182,90 @@ namespace HandMoves
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
         auto &rec = *it;
-        rangeInserter (rec);
+        rangeInserter (range, rec);
         ++count;
       }
       return count;
     }
     //------------------------------------------------------------------------------
-    /* Все точки с данным x | y */
-    void  adjacencyYsByXPoints (std::list<Record> &range, double x,
-                                double up = 0., double down =0.) const;
-    void  adjacencyXsByYPoints (std::list<Record> &range, double y,
-                                double left=0., double right=0.) const;
+    /* Все точки в данном index_t, равные x, попадающие в интервал (down, up)  */
+    template <class range_t, class index_t, class index_data_t>
+    size_t  adjacencyBy_Points (range_t &range, double x,
+                                double down=0.,
+                                double up=0.)
+    {
+      // boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      // //-------------------------------------------------------
+      // static_assert (boost::is_same<range_t, adjacency_t>::value
+      //             || boost::is_same<range_t, adjacency_refs_t>::value,
+      //                "Incorrect type to template function."); // _T( ???
+      // //-------------------------------------------------------
+      // typedef MultiIndexMoves::index<index_t>::type::const_iterator Index_cIter;
+      // MultiIndexMoves::index<index_t>::type  &index = store_.get<index_t> ();
+      // //-------------------------------------------------------
+      // Index_cIter  itFirstLower = index.lower_bound (down);
+      // Index_cIter  itFirstUpper = index.upper_bound (up);
+      // //-------------------------------------------------------
+      // size_t count = 0U;
+      // RangeInserter  rangeInserter;
+      // for ( auto it = itFirstLower; it != itFirstUpper; ++it )
+      // {
+      //   auto &rec = *it;
+      //   rangeInserter (rec);
+      //   ++count;
+      // }
+      // //-------------------------------------------------------
+      // return count;
+    }
+    //------------------------------------------------------------------------------
+    template <class range_t>
+    size_t  adjacencyMin (range_t &range, const Point &aim)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      //-------------------------------------------------------
+      static_assert (boost::is_same<range_t, adjacency_t>::value
+                  || boost::is_same<range_t, adjacency_refs_t>::value,
+                     "Incorrect type to template function.");
+      //-------------------------------------------------------
+      typedef MultiIndexMoves::index<ByX>::type::const_iterator IndexXcIter;
+      MultiIndexMoves::index<ByX>::type  &X_index = store_.get<ByX> ();
+      //-------------------------------------------------------
+      typedef MultiIndexMoves::index<ByY>::type::const_iterator IndexYcIter;
+      MultiIndexMoves::index<ByY>::type  &Y_index = store_.get<ByY> ();
+      //-------------------------------------------------------
+      // auto it_x = X_index.find (aim.x);
+      // auto it_y = Y_index.find (aim.y);
+      //-------------------------------------------------------
+      size_t count = 0U;
+      // if ( it_x != X_index.end () || it_y != Y_index.end () )
+      {
+        RangeInserter  rangeInserter;
+        {
+          auto it_next = X_index.find (aim.x); // = it_x;
+          auto it_prev = X_index.find (aim.x); // = it_x;
+          ++it_next;
+          --it_prev;
+
+          // if ( it_next != X_index.end () )
+            rangeInserter (range,*it_next); ++count;
+          // if ( it_prev != Y_index.end () )
+            rangeInserter (range, *it_prev); ++count;
+        }
+        {
+          auto it_next = Y_index.find (aim.y); // = it_y;
+          auto it_prev = Y_index.find (aim.y); // = it_y;
+          ++it_next;
+          --it_prev;
+
+          // if ( it_next != Y_index.end () )
+            rangeInserter (range, *it_next); ++count;
+          // if ( it_prev != Y_index.end () )
+            rangeInserter (range, *it_prev); ++count;
+        }
+      }
+      //-------------------------------------------------------
+      return count;
+    }
     //------------------------------------------------------------------------------
     const Record*  ExactRecordByControl (controling_t controls)
     {

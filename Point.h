@@ -59,8 +59,8 @@ private:
   //-----------------------------------------
   /* printing */
 
-  friend std::istream&  operator>> (std::istream &in, Point &p);
-  friend std::ostream&  operator<< (std::ostream &out, const Point &p);
+  friend tistream&  operator>> (tistream &in, Point &p);
+  friend tostream&  operator<< (tostream &out, const Point &p);
 };
 //-------------------------------------------------------------------------------
 struct PointHasher

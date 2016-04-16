@@ -92,13 +92,15 @@ namespace Positions
 
   public:
     LinearOperator () {}
-    LinearOperator (IN HandMoves::Store &store,
-                    IN const Point &aim,
-                    IN double radius,
-                    IN bool verbose=false) throw (...);
+    LinearOperator (IN  HandMoves::Store &store,
+                    IN  const Point &aim,
+                    IN  double radius,
+                    OUT HandMoves::controling_t &controls,
+                    IN  bool verbose=false) throw (...);
 
-    void  predict (IN const Point &aim,
-                   OUT HandMoves::controling_t &controls);
+    void  predict (IN  const Point &aim,
+                   OUT HandMoves::controling_t &controls,
+                   IN  bool verbose=false);
   };
 
   // class PredictedDirection
@@ -245,8 +247,13 @@ namespace Positions
     //   lasts_incr_value1 /= count_points;
     // }
 
-    void  STAGE_1 (HandMoves::Store &store, Hand &hand, RecTarget &target);
-    void  STAGE_2 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    void    STAGE_1 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    void    STAGE_2 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    size_t  STAGE_3 (HandMoves::Store &store, Hand &hand, RecTarget &target,
+                     const Point &aim, double side,
+                     HandMoves::trajectory_t    *trajectory = NULL,
+                     HandMoves::trajectories_t  *trajectories = NULL,
+                     bool weighted = true);
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
     void  testStage1 (HandMoves::Store &store, Hand &hand, RecTarget &target);

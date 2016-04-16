@@ -4,35 +4,6 @@
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
-// Все точки с данным x 
-void  HandMoves::Store::adjacencyYsByXPoints (std::list<Record> &range,
-                                              double x, double up, double down) const
-{
-  //typedef Store::index<Record::ByX>::type::iterator StoreXiter;
-  //Store::index<Record::ByX>::type& index = store.get<Record::ByX> ();
-  //
-  //StoreXiter itFirstLower = index.lower_bound (up);
-  //StoreXiter itFirstUpper = index.upper_bound (down);
-  //
-  //// Store::index<Record::ByX>::type::const_iterator ity = lsy.find (x);
-  //// if ( ity != lsy.end () ) {}
-  //std::copy (itFirstLower, itFirstUpper, std::back_inserter (range));
-}
-// Все точки с данным y 
-void  HandMoves::Store::adjacencyXsByYPoints (std::list<Record> &range,
-                                              double y, double left, double right) const
-{
-  //typedef Store::index<Record::ByY>::type::iterator StoreYiter;
-  //Store::index<Record::ByY>::type& index = store.get<Record::ByY> ();
-  //
-  //StoreYiter itFirstLower = index.lower_bound (left);
-  //StoreYiter itFirstUpper = index.upper_bound (right);
-  //
-  //// Store::index<Record::ByY>::type::const_iterator ity = lsy.find (fy);
-  //// if ( ity != lsy.end () ) {}
-  //std::copy (itFirstLower, itFirstUpper, std::back_inserter (range));
-}
-//------------------------------------------------------------------------------
 // enum { Pixels, Ellipses };
 void  HandMoves::Store::draw (HDC hdc, double circleRadius, HPEN hPen) const
 {

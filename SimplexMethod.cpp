@@ -108,11 +108,11 @@ namespace SimplexMethod
         /* this only works if this is a console application. If not, use write_lp and a filename */
         write_LP (lp, stdout);
         /* write_lp(lp, "model.lp"); */
-
-        /* I only want to see important messages on screen while solving */
-        // set_verbose (lp, IMPORTANT);
       }
-
+      
+      /* I only want to see important messages on screen while solving */
+      set_verbose (lp, IMPORTANT);
+      
       /* Now let lpsolve calculate a solution */
       result = solve (lp);
       if ( result == OPTIMAL )
