@@ -1,5 +1,4 @@
 ﻿#include "StdAfx.h"
-// #include "Hand.h"
 #include "HandMovesStore.h"
 
 using namespace std;

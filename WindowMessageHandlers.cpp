@@ -467,8 +467,10 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'p':
     {
+      Positions::LearnMovements lm;
+      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
-      OnCoverTest (wd);
+      // OnCoverTest (wd);
 
       // tstring message;
       // for ( auto &t : wd.testing_trajectories )
@@ -488,8 +490,9 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       // WorkerThreadRunStoreTask (wd, _T (" *** target cover test ***  "),
       //                           Positions::testCoverTarget, wd.hand, wd.target);
       // Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
+
+      //========================================
       WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
-                                // Positions::test_1_stage
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {
                                   Positions::LearnMovements lm;
@@ -541,9 +544,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'm':
     {
-      // Positions::LearnMovements lm;
-      // lm.STAGE2 (wd.store, wd.hand, wd.target);
-
+      //========================================
       WorkerThreadRunStoreTask (wd, _T (" *** STAGE 1 test ***  "),
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {

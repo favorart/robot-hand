@@ -4,14 +4,14 @@
 using namespace std;
 using namespace HandMoves;
 //---------------------------------------------------------
-Record::Record (const Point         &aim,
-                const Point         &hand_begin,
-                const Point         &hand_final,
-                const muscles_array &muscles,
-                const times_array   &times,
-                const times_array   &lasts,
-                size_t               controls_count,
-                const trajectory_t  &visited) :
+Record::Record (IN const Point         &aim,
+                IN const Point         &hand_begin,
+                IN const Point         &hand_final,
+                IN const muscles_array &muscles,
+                IN const times_array   &times,
+                IN const times_array   &lasts,
+                IN size_t               controls_count,
+                IN const trajectory_t  &visited) :
   aim_ (aim), hand_begin_ (hand_begin), hand_final_ (hand_final),
   muscles_ (Hand::EmptyMov), visited_ (visited)
 {
@@ -36,11 +36,11 @@ Record::Record (const Point         &aim,
     throw new std::exception ("Invalid muscles constructor Record parameter"); // _T( ??
 }
 
-Record::Record (const Point         &aim,
-                const Point         &hand_begin,
-                const Point         &hand_final,
-                const controling_t  &controls,
-                const trajectory_t  &visited) :
+Record::Record (IN const Point         &aim,
+                IN const Point         &hand_begin,
+                IN const Point         &hand_final,
+                IN const controling_t  &controls,
+                IN const trajectory_t  &visited) :
   aim_ (aim), hand_begin_ (hand_begin), hand_final_ (hand_final),
   muscles_ (Hand::EmptyMov), visited_ (visited)
 {
@@ -91,7 +91,7 @@ bool    Record::validateMusclesTimes () const
   return true;
 }
 //---------------------------------------------------------
-double  Record::eleganceMove ( /* const Point &aim */ ) const
+double  Record::eleganceMove () const
 {
   /* Суммарное время работы двигателей */
   auto sum_time_muscles = 0.;

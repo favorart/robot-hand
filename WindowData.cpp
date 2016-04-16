@@ -12,7 +12,7 @@ MyWindowData:: MyWindowData () :
   pWorkerThread (NULL),
   lt (NULL),
   target ( // 200U, 200U,
-           100U, 100U,
+           18U, 18U,
            // 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
                         //  -0.70,  0.90,  0.90, -0.99)
                          -0.41,  0.46, -0.05, -0.90
@@ -82,9 +82,9 @@ void  OnPaintStaticBckGrnd (HDC hdc, MyWindowData &wd)
 {
   DrawDecardsCoordinates (hdc);
   wd.target.draw (hdc, wd.hPen_grn,
-                  false, // true,
-                  false, false);
-                  // true, false);
+                  /* false, */ true,
+                  // false, false);
+                  true, false);
 }
 void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
 {
@@ -216,8 +216,9 @@ void  MakeHandMove (MyWindowData &wd)
   if ( 1 )
   {
     Positions::LearnMovements lm;
-    lm.STAGE_3 ( wd.store, wd.hand, wd.target, wd.mouse_aim, 0.03,
-                &wd.trajectory_frames, &wd.testing_trajectories, true);
+    lm.STAGE_3 ( wd.store, wd.hand, wd.mouse_aim,
+                &wd.trajectory_frames,
+                &wd.testing_trajectories);
     // return;
   }
   if ( 0 )
@@ -246,7 +247,8 @@ void  MakeHandMove (MyWindowData &wd)
 
   if ( it_min != wd.adjPointsDB.end () )
   {
-    tcout << _T ("prec: ") << boost_distance ((**it_min).hit, aim) << std::endl;
+
+    // tcout << _T ("Prec: ") << boost_distance ((**it_min).hit, aim) << std::endl;
 
     const shared_ptr<Record> &pRec = (*it_min);
     pRec->repeatMove (wd.hand);

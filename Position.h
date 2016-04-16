@@ -21,58 +21,21 @@ using namespace NewHand;
 
 namespace Positions
 {
-//#define _HAND_TEST_CONSOLE_PRINTF
-
-  //void  /*HandMoves::*/testCover (Store &store, Hand &hand,
-  //                            Hand::MusclesEnum muscles /* recursive */,
-  //                            int recursive,
-  //                            std::list<int> step,
-  //                            std::list<Point> trajectory1)
-  //{
-  //  // hand.reset ();
-  //  hand.SET_DEFAULT;
-  //
-  //  Point hand_base = hand.position;
-  //
-  //  for ( int i = step[recursive]; i < hand.muscles_.size (); ++i )
-  //  {
-  //    auto muscle_i = hand.muscles_[i];
-  //    if ( !(muscle_i & muscles) )
-  //    {
-  //      trajectory_t  trajectory;
-  //
-  //      /* Попробуем его варьировать по длительности */
-  //      for ( Hand::frames_t last_i : boost::irange (1U, hand.maxMuscleLast (muscle_i)) )
-  //      {
-  //        hand.move (muscle_i, last_i, trajectory);
-  //        store.insert (Record (hand.position, hand_base, hand.position,
-  //                             { muscle_i }, { 0 }, { last_i }, 1U,
-  //                             trajectory)
-  //                     );
-  //
-  //        std::copy (trajectory.begin (), trajectory.end (), trajectory1.begin ());
-  //        if ( step.size < recursive + 1 )
-  //        {}
-  //
-  //        testCover (store, hand, muscles & muscle_i, recursive + 1, step, trajectory1);
-  //
-  //      } // end for
-  //    } // end if
-  //  } // end for
-  //}
-
-
+  // #define _HAND_TEST_CONSOLE_PRINTF
   //------------------------------------------------------------------------------
-  void  testCover (HandMoves::Store &store, Hand &hand,
-                   HandMoves::trajectories_t &trajectories);
+  void  testCover (IN HandMoves::Store &store, IN Hand &hand,
+                   IN HandMoves::trajectories_t &trajectories);
   //------------------------------------------------------------------------------
-  typedef std::map
+  typedef  std::map
   < Hand::MusclesEnum /* -------------muscle---*/,
     std::pair< Hand::frames_t /*---min lasts---*/,
                Hand::frames_t /*---max lasts---*/ >
-  > borders_t;
+  >  borders_t;
   //------------------------------------------------------------------------------
-
+  void  insertRecordToBorders (borders_t &borders, const HandMoves::Record &rec);
+  void  defineBorders (borders_t &borders, Hand &hand, Hand::frames_t lasts_init);
+  void  defineBorders (borders_t &borders, RecTarget &target, HandMoves::Store &store, double distance);
+  //------------------------------------------------------------------------------
   class LinearOperator
   {
     Point  min_, max_;
@@ -102,6 +65,7 @@ namespace Positions
                    OUT HandMoves::controling_t &controls,
                    IN  bool verbose=false);
   };
+  //------------------------------------------------------------------------------
 
   // class PredictedDirection
   // {
@@ -192,7 +156,57 @@ namespace Positions
     bool  shifting_gt (Hand::MusclesEnum m, unsigned int &inx, const Point &aim);
     bool  shifting_ls (Hand::MusclesEnum m, unsigned int &inx, const Point &aim);
   };
+  //------------------------------------------------------------------------------
+  struct counts_t
+  {
+    int count = 0;
+    int count_TP = 0;
+    int count_FP = 0;
+    int count_TN = 0;
+    int count_FN = 0;
 
+    void  incr (bool model, bool real)
+    {
+      ++count;
+      if ( model & real )
+        ++count_TP;
+      else if ( !model & !real )
+        ++count_TN;
+      else if ( model & !real )
+        ++count_FP;
+      else if ( !model & real )
+        ++count_FN;
+    }
+    void  fill (Hand &hand, RecTarget &target,
+                HandMoves::controling_t &controls,
+                const Point &end)
+    {
+      //-------------------------------------------------------------
+      HandMoves::trajectory_t  trajectory;
+      hand.SET_DEFAULT;
+      hand.move (controls.begin (), controls.end (), &trajectory);
+      //-------------------------------------------------------------
+      bool model = target.contain (end);
+      bool real = target.contain (hand.position);
+      incr (model, real);
+    }
+    void  print ()
+    {
+      tcout << _T ("count = ") << count << std::endl;
+      tcout << _T ("\t< T >\t < F >") << std::endl;
+      tcout << _T ("< P >\t") << count_TP << _T ("\t") << count_FP << std::endl;
+      tcout << _T ("< N >\t") << count_TN << _T ("\t") << count_FN << std::endl;
+    }
+    void  clear ()
+    {
+      count = 0;
+      count_TP = 0;
+      count_FP = 0;
+      count_TN = 0;
+      count_FN = 0;
+    }
+  };
+  //------------------------------------------------------------------------------
   class LearnMovements
   {
     /*  Количество точек, в окресности искомой точки.
@@ -224,7 +238,7 @@ namespace Positions
 
      /* stage_2 */
      //==============================================
-    double            detail_distance = 0.005;
+    double            detail_distance  = 0.005;
     /* Время преодоления инерции */
     Hand::frames_t   lasts_init_value2 = 1U;
     /* Изменение шага времени */
@@ -233,7 +247,22 @@ namespace Positions
 
     /* stage_3 */
     //==============================================
+    /* Точность = 1.5 мм */
+    const double  precision = 0.004;
+    /* Взвешенная арифметическое среднее (иначе обычное) */
+    bool weighted_mean = true;
+    /* половина ребра квадрата, из которого берутся все точки */
+    double side = 0.09;
+    /* шаг уменьшения области поиска для взвешанной суммы */
+    double side_decrease_step = 0.001;
 
+    size_t complexity = 0U;
+    //==============================================
+
+    /* hit the aim */
+    //==============================================
+    size_t hit_tries;
+    double hit_precision;
     //==============================================
 
   public:
@@ -247,30 +276,39 @@ namespace Positions
     //   lasts_incr_value1 /= count_points;
     // }
 
-    void    STAGE_1 (HandMoves::Store &store, Hand &hand, RecTarget &target);
-    void    STAGE_2 (HandMoves::Store &store, Hand &hand, RecTarget &target);
-    size_t  STAGE_3 (HandMoves::Store &store, Hand &hand, RecTarget &target,
-                     const Point &aim, double side,
-                     HandMoves::trajectory_t    *trajectory = NULL,
-                     HandMoves::trajectories_t  *trajectories = NULL,
-                     bool weighted = true);
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
-    void  testStage1 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    void  STAGE_1 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     /* Покрытие всей мишени не слишком плотно */
-    void  testStage2 (HandMoves::Store &store, Hand &hand, RecTarget &target);
+    void  STAGE_2 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     /* Попадание в оставшиеся непокрытыми точки мишени */
-    void  testStage3 (HandMoves::Store &store, Hand &hand, RecTarget &target, std::list<Point> &uncovered);
+    void  STAGE_3 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     //------------------------------------------------------------------------------
-
-    void  testCoverTarget (HandMoves::Store &store, Hand &hand, RecTarget &target);
-
-    void  getTargetCenter (HandMoves::Store &store, Hand &hand, Point &center);
-
+    void  STAGE_3 (IN  HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
+                   OUT HandMoves::trajectory_t   *trajectory=NULL,
+                   OUT HandMoves::trajectories_t *trajectories=NULL);
     //------------------------------------------------------------------------------
-    bool  tryToHitTheAim (HandMoves::Store &store, Hand &hand, const Point &aim, size_t tries, double precision);
+    void  rundownMethod     (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
+                             IN HandMoves::controling_t &init_controls, IN Point &hand_position);
+    void  rundownMethod_old (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
+                             IN HandMoves::controling_t &init_controls, IN Point &hand_position);
+    void  gradientMethod    (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
+                             IN HandMoves::controling_t &init_controls, IN Point &hand_position);
     //------------------------------------------------------------------------------
-  };
-  void testGradientMethod (HandMoves::Store &store, Hand &hand, const Point &aim);
+    /* грубое покрытие всего рабочего пространства */
+    void  testStage1 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
+    /* Покрытие всей мишени не слишком плотно */
+    void  testStage2 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
+    /* Попадание в оставшиеся непокрытыми точки мишени */
+    void  testStage3 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target,
+                      OUT std::list<Point> &uncovered);
+    //------------------------------------------------------------------------------
+    void  testCoverTarget (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
+    //------------------------------------------------------------------------------
+    void  getTargetCenter (IN HandMoves::Store &store, IN Hand &hand, OUT Point &center);
+    //------------------------------------------------------------------------------
+    bool  tryToHitTheAim  (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim);
+    //------------------------------------------------------------------------------
+  }; // end LearnMovements
 };
 #endif // _POSITION_H_

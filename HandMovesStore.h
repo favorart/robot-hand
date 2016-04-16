@@ -43,27 +43,24 @@ namespace HandMoves
     typedef boost::multi_index_container
     < Record,
       indexed_by < hashed_unique      < tag<ByC>,
-                                        const_mem_fun<Record, const controling_t&, &Record::controls>,
+                                        const_mem_fun < Record, const controling_t&, &Record::controls >,
                                         ControlingHasher
-                                      >,
-                   ordered_non_unique < tag<ByR>,
-                                        identity<Record>
                                       >,
                    ordered_non_unique < tag<ByP>,
                                         composite_key < Record,
-                                                        const_mem_fun<Record, double, &Record::hit_x>,
-                                                        const_mem_fun<Record, double, &Record::hit_y>
+                                                        const_mem_fun<Record, double, &Record::hit_x >,
+                                                        const_mem_fun<Record, double, &Record::hit_y >
                                                       >
                                       >,
                    ordered_non_unique < tag<ByA>,
                                         composite_key < Record,
-                                                        const_mem_fun<Record, double, &Record::aim_x>,
-                                                        const_mem_fun<Record, double, &Record::aim_y>
+                                                        const_mem_fun<Record, double, &Record::aim_x >,
+                                                        const_mem_fun<Record, double, &Record::aim_y >
                                                       >
                                       >,
-                   ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x> >,
-                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y> >,
-                   ordered_non_unique < tag<ByD>, const_mem_fun<Record, double, &Record::distanceCovered> > // ,
+                   ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x > >,
+                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y > >,
+                   ordered_non_unique < tag<ByD>, const_mem_fun<Record, double, &Record::distanceCovered > > // ,
                 // random_access      < > // доступ, как у вектору
                  >
     > MultiIndexMoves;

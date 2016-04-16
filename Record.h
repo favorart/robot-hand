@@ -30,9 +30,8 @@ namespace HandMoves
   public:
     const static size_t  maxControlsCount = 50U; // !!!!!!!!!!!!!
 
-    const static size_t  arrays_size = 4U;
-    typedef std::array<Hand::frames_t,    arrays_size>    times_array;
-    typedef std::array<Hand::MusclesEnum, arrays_size>  muscles_array;
+    typedef std::vector<Hand::frames_t>       times_array;
+    typedef std::vector<Hand::MusclesEnum>  muscles_array;
 
   private:
     // ----------------------------------------
@@ -83,39 +82,24 @@ namespace HandMoves
     double aim_y () const { return aim_.y; }
     // ----------------------------------------
     Hand::MusclesEnum  muscles () const
-    { return muscles_; }
-    // ----------------------------------------
-
-    // bool  operator==  (const Point &p) const
-    // { return  boost_distance (hit < p); }
-    // bool  operator== (const Record &rec) const
-    // { return  boost_distance (hit < rec.hit); }
-    // bool  operator== (const boost::tuple<double, double> &t) const
-    // { return  boost_distance (hit, boost_point2_t (t)); }
-    // ----------------------------------------
-    bool  operator<  (const Point &p) const
-    { return (hit < p); }
-    bool  operator< (const Record &rec) const
-    { return (hit < rec.hit); }
-    bool  operator< (const boost::tuple<double, double> &t) const
-    { return (hit.x < t.get<0> ()) && (hit.y < t.get<1> ()); }
+    { return  muscles_; }
     // ----------------------------------------
     Record () {}
 
-    Record (const Point         &aim,
-            const Point         &hand_begin,
-            const Point         &hand_final,
-            const muscles_array &muscles,
-            const times_array   &times,
-            const times_array   &lasts,
-            size_t               controls_count,
-            const trajectory_t  &visited);
+    Record (IN const Point         &aim,
+            IN const Point         &hand_begin,
+            IN const Point         &hand_final,
+            IN const muscles_array &muscles,
+            IN const times_array   &times,
+            IN const times_array   &lasts,
+            IN size_t               controls_count,
+            IN const trajectory_t  &visited);
 
-    Record (const Point         &aim,
-            const Point         &hand_begin,
-            const Point         &hand_final,
-            const controling_t  &controls,
-            const trajectory_t  &visited);
+    Record (IN const Point         &aim,
+            IN const Point         &hand_begin,
+            IN const Point         &hand_final,
+            IN const controling_t  &controls,
+            IN const trajectory_t  &visited);
 
     // ----------------------------------------
     operator tstring () const
@@ -148,8 +132,8 @@ namespace HandMoves
     }
     const controling_t&  controls () const { return hand_controls_; }
     // ----------------------------------------
-    bool    validateMusclesTimes () const;
-    void    repeatMove (Hand &hand) const
+    bool    validateMusclesTimes    () const;
+    void    repeatMove (IN Hand &hand) const
     {
       hand.SET_DEFAULT;
       trajectory_t visited;
@@ -169,7 +153,7 @@ namespace HandMoves
       }
     }
 
-    double  eleganceMove (/* const Point &aim */) const;
+    double  eleganceMove    () const;
     double  distanceCovered () const
     { return boost_distance (hand_final_, hand_begin_); }
     // ----------------------------------------
@@ -198,6 +182,6 @@ namespace HandMoves
   };
   //------------------------------------------------------------------------------
 }
-BOOST_CLASS_VERSION (HandMoves::Record, 1)
+BOOST_CLASS_VERSION (HandMoves::Record, 2)
 //------------------------------------------------------------------------------
 #endif // _RECORD_H_
