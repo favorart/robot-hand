@@ -222,6 +222,9 @@ namespace NewHand
       for ( Iter it = begin; it != end; ++it )
       { control_muscles = control_muscles | it->muscle; }
 
+      if ( std::none_of (begin, end, [](const Hand::Control &c) { return (c.last > 0); }) )
+      { return  0U; }
+
       /* simultaniusly moving */
       if ( musclesCumul & control_muscles )
       { /*  Что-то должно двигаться,

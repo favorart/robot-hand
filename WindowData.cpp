@@ -142,10 +142,6 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
   DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng);
   // --------------------------------------------------------------
-  
-  if ( wd.trajectory_frames_show )
-  { DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng); }
-
   if ( !wd.testing && !wd.testing_trajectories.empty () && 
         wd.testing_trajectories_animation_show )
   {
@@ -161,6 +157,9 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
     //   ++it;
     // } // end for
   } // end if
+
+  if ( wd.trajectory_frames_show )
+  { DrawTrajectory (hdc, wd.trajectory_frames, wd.hPen_orng); }
   // // ----- Отрисовка точек БД -------------------------------------
   // if ( !wd.adjPointsDB.empty () )
   // {
@@ -206,87 +205,62 @@ tostream&  operator << (tostream &out, const HandMoves::controling_t  &controls)
 //-------------------------------------------------------------------------------
 void  MakeHandMove (MyWindowData &wd)
 {
-
   const Point &aim = wd.mouse_aim;
-
+  // -------------------------------------------------
   wd.testing_trajectories.clear ();
   wd.trajectory_frames.clear ();
-
-
-  if ( 1 )
+  // -------------------------------------------------
+  if ( 1 /* gradient || rundown */ )
   {
+    // WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
+    //                             [](Store &store, Hand &hand, const Point &aim,
+    //                                trajectory_t *t, trajectories_t *ts)
+    //                             {
+    //                               Positions::LearnMovements  lm;
+    //                               lm.STAGE_3 (store, hand, aim, t, ts);
+    //                             }
+    //                             , wd.hand, aim,
+    //                               NULL, // &wd.trajectory_frames,
+    //                              &wd.testing_trajectories);
+    // WorkerThreadTryJoin (wd);
+    // -------------------------------------------------
     Positions::LearnMovements lm;
-    lm.STAGE_3 ( wd.store, wd.hand, wd.mouse_aim,
-                &wd.trajectory_frames,
+    lm.STAGE_3 ( wd.store, wd.hand, aim,
+                 NULL, // &wd.trajectory_frames,
                 &wd.testing_trajectories);
-    // return;
   }
-  if ( 0 )
+  else if ( 0 /* LinearOperator && SimplexMethod */ )
   {
-    try
-    {
-      HandMoves::controling_t controls;
-      Positions::LinearOperator lp (wd.store, wd.mouse_aim, 0.07,
-                                    controls, true);
-      // lp.predict (wd.mouse_aim, controls);
+    HandMoves::controling_t controls;
+    Positions::LinearOperator  lp (wd.store, wd.mouse_aim,
+                                   0.07, controls, true);
+    // lp.predict (wd.mouse_aim, controls);
 
-      wd.hand.SET_DEFAULT;
-      wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
-      return;
-    }
-    catch ( ... )
-    {}
+    wd.hand.SET_DEFAULT;
+    wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
   }
-  wd.store.adjacencyPoints (wd.adjPointsDB,
-                            wd.mouse_aim, wd.radius);
-
-  ClosestPredicate pred (wd.mouse_aim);
+  // -------------------------------------------------
+  wd.store.adjacencyPoints (wd.adjPointsDB, aim, 0.005);
+  // -------------------------------------------------
+  ClosestPredicate  pred (aim);
   auto it_min = std::min_element (wd.adjPointsDB.begin (),
-                                  wd.adjPointsDB.end (),
-                                  pred);
-
+                                  wd.adjPointsDB.end (), pred);
+  // -------------------------------------------------
   if ( it_min != wd.adjPointsDB.end () )
   {
-
-    // tcout << _T ("Prec: ") << boost_distance ((**it_min).hit, aim) << std::endl;
-
-    const shared_ptr<Record> &pRec = (*it_min);
-    pRec->repeatMove (wd.hand);
-    wd.trajectory_frames = pRec->trajectory;
-
-    //-------------------------------------------------
+    const Record &rec = (**it_min);
+    rec.repeatMove (wd.hand);
+    wd.trajectory_frames = rec.trajectory;
+    // -------------------------------------------------
     tstring text = GetTextToString (wd.hLabMAim);
     
     tstringstream ss;
     ss << text << _T("\r");
-    for ( const Hand::Control &c : pRec->controls () )
-    { ss << c << _T ("  \r"); }
-
+    for ( const Hand::Control &c : rec.controls () )
+    { ss << c << _T ("  "); } // \r
+    // -------------------------------------------------
     SendMessage (wd.hLabMAim, WM_SETTEXT, NULL, (LPARAM) ss.str ().c_str ());
-    //-------------------------------------------------
   }
-  // else
-  // {
-  //   wd.hand.SET_DEFAULT;
-  //   controling_t controls;
-  //   wd.pd.measure (wd.hand, wd.mouse_aim, controls);
-  //   wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
-  // }
-
-  
-
-  // // ================================================
-  // // EXACT VARIANTS
-
-  // decltype(wd.adjPointsDB) range;SetWind
-  // HandMoves::adjacencyPoints (wd.store, range,
-  //                             wd.mouse_aim, 0.01);
-  // if ( range.size () > 1U )
-  //   for ( auto &rec : range )
-  //   {
-  //     wd.testing_trajectories.push_back (rec->trajectory);
-  //   }
-
 }
 
 void  OnWindowTimer (MyWindowData &wd)

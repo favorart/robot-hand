@@ -43,7 +43,7 @@ public:
     
   // ---------------------------------
 
-  const double  radius = 0.1;
+  const double  radius = 0.05;
   const size_t  skip_show_steps = 15U;
 
   tstring  CurFileName = tstring(HAND_NAME) + tstring (_T ("_moves.bin"));

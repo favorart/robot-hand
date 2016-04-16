@@ -22,6 +22,8 @@ using namespace NewHand;
 namespace Positions
 {
   // #define _HAND_TEST_CONSOLE_PRINTF
+  // #define _DEBUG_PRINT
+#define _DEBUG_PRINT_RES
   //------------------------------------------------------------------------------
   void  testCover (IN HandMoves::Store &store, IN Hand &hand,
                    IN HandMoves::trajectories_t &trajectories);
@@ -248,13 +250,15 @@ namespace Positions
     /* stage_3 */
     //==============================================
     /* Точность = 1.5 мм */
-    const double  precision = 0.004;
+    const double  precision = 0.0035;
     /* Взвешенная арифметическое среднее (иначе обычное) */
     bool weighted_mean = true;
     /* половина ребра квадрата, из которого берутся все точки */
-    double side = 0.09;
+    double side = 0.005;
     /* шаг уменьшения области поиска для взвешанной суммы */
     double side_decrease_step = 0.001;
+
+    Hand::frames_t lasts_step = 1U;
 
     size_t complexity = 0U;
     //==============================================

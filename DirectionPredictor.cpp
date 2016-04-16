@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 #include "Position.h"
 
 namespace Positions
@@ -92,10 +92,10 @@ namespace Positions
   void  DirectionPredictor::measure (IN Hand &hand, IN  const Point &aim,
                                      OUT HandMoves::controling_t &controls)
   { /*
-    *  У нас есть 4 линейки, их надо сопоставить так,
-    *  чтобы приблизить aim.
+    *  РЈ РЅР°СЃ РµСЃС‚СЊ 4 Р»РёРЅРµР№РєРё, РёС… РЅР°РґРѕ СЃРѕРїРѕСЃС‚Р°РІРёС‚СЊ С‚Р°Рє,
+    *  С‡С‚РѕР±С‹ РїСЂРёР±Р»РёР·РёС‚СЊ aim.
     *
-    *  Система линейных уравнений
+    *  РЎРёСЃС‚РµРјР° Р»РёРЅРµР№РЅС‹С… СѓСЂР°РІРЅРµРЅРёР№
     */
 
     std::vector<int> indices (hand.joints_.size ());
