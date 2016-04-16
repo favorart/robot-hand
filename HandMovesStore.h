@@ -186,83 +186,12 @@ namespace HandMoves
     }
     //------------------------------------------------------------------------------
     /* Все точки в данном index_t, равные x, попадающие в интервал (down, up)  */
-    template <class range_t, class index_t, class index_data_t>
-    size_t  adjacencyBy_Points (range_t &range, double x,
-                                double down=0.,
-                                double up=0.)
-    {
-      // boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      // //-------------------------------------------------------
-      // static_assert (boost::is_same<range_t, adjacency_t>::value
-      //             || boost::is_same<range_t, adjacency_refs_t>::value,
-      //                "Incorrect type to template function."); // _T( ???
-      // //-------------------------------------------------------
-      // typedef MultiIndexMoves::index<index_t>::type::const_iterator Index_cIter;
-      // MultiIndexMoves::index<index_t>::type  &index = store_.get<index_t> ();
-      // //-------------------------------------------------------
-      // Index_cIter  itFirstLower = index.lower_bound (down);
-      // Index_cIter  itFirstUpper = index.upper_bound (up);
-      // //-------------------------------------------------------
-      // size_t count = 0U;
-      // RangeInserter  rangeInserter;
-      // for ( auto it = itFirstLower; it != itFirstUpper; ++it )
-      // {
-      //   auto &rec = *it;
-      //   rangeInserter (rec);
-      //   ++count;
-      // }
-      // //-------------------------------------------------------
-      // return count;
-    }
-    //------------------------------------------------------------------------------
-    template <class range_t>
-    size_t  adjacencyMin (range_t &range, const Point &aim)
-    {
-      boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      //-------------------------------------------------------
-      static_assert (boost::is_same<range_t, adjacency_t>::value
-                  || boost::is_same<range_t, adjacency_refs_t>::value,
-                     "Incorrect type to template function.");
-      //-------------------------------------------------------
-      typedef MultiIndexMoves::index<ByX>::type::const_iterator IndexXcIter;
-      MultiIndexMoves::index<ByX>::type  &X_index = store_.get<ByX> ();
-      //-------------------------------------------------------
-      typedef MultiIndexMoves::index<ByY>::type::const_iterator IndexYcIter;
-      MultiIndexMoves::index<ByY>::type  &Y_index = store_.get<ByY> ();
-      //-------------------------------------------------------
-      // auto it_x = X_index.find (aim.x);
-      // auto it_y = Y_index.find (aim.y);
-      //-------------------------------------------------------
-      size_t count = 0U;
-      // if ( it_x != X_index.end () || it_y != Y_index.end () )
-      {
-        RangeInserter  rangeInserter;
-        {
-          auto it_next = X_index.find (aim.x); // = it_x;
-          auto it_prev = X_index.find (aim.x); // = it_x;
-          ++it_next;
-          --it_prev;
-
-          // if ( it_next != X_index.end () )
-            rangeInserter (range,*it_next); ++count;
-          // if ( it_prev != Y_index.end () )
-            rangeInserter (range, *it_prev); ++count;
-        }
-        {
-          auto it_next = Y_index.find (aim.y); // = it_y;
-          auto it_prev = Y_index.find (aim.y); // = it_y;
-          ++it_next;
-          --it_prev;
-
-          // if ( it_next != Y_index.end () )
-            rangeInserter (range, *it_next); ++count;
-          // if ( it_prev != Y_index.end () )
-            rangeInserter (range, *it_prev); ++count;
-        }
-      }
-      //-------------------------------------------------------
-      return count;
-    }
+    size_t  adjacencyByPBorders  ( IN const Point &aim, IN double side,
+                                  OUT std::pair<Record, Record> &x_pair,
+                                  OUT std::pair<Record, Record> &y_pair);
+    size_t  adjacencyByXYBorders ( IN const Point &aim, IN double side,
+                                  OUT std::pair<Record, Record> &x_pair,
+                                  OUT std::pair<Record, Record> &y_pair);
     //------------------------------------------------------------------------------
     const Record*  ExactRecordByControl (controling_t controls)
     {

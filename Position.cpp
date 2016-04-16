@@ -968,11 +968,14 @@ namespace Positions
     Point hand_pos_base = hand.position;
     Point hand_pos_best = hand_position;
     // -----------------------------------------------
-    Point  min (aim.x - side, aim.y - side),
-           max (aim.x + side, aim.y + side);
+    // Point  min (aim.x - side, aim.y - side),
+    //        max (aim.x + side, aim.y + side);
+    // 
+    // adjacency_refs_t  range;
+    // store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
     // -----------------------------------------------
-    adjacency_refs_t  range;
-    store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+    std::pair<Record, Record> x_pair, y_pair;
+    store.adjacencyByPBorders (aim, 0.05, x_pair, y_pair);
     // -----------------------------------------------
     double distance = boost_distance (hand_position, aim);
     while ( precision < distance )

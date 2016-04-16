@@ -98,7 +98,9 @@ inline double  boost_distance (boost_point2_t a, boost_point2_t b)
 { return boost::geometry::distance<boost_point2_t> (a,b); }
 
 // #include <boost/range/algorithm/permutation.hpp>
-// #include <boost/lambda>
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/function.hpp>
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/access.hpp>

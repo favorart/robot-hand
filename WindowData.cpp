@@ -209,6 +209,20 @@ void  MakeHandMove (MyWindowData &wd)
   // -------------------------------------------------
   wd.testing_trajectories.clear ();
   wd.trajectory_frames.clear ();
+
+  {
+    // adjacency_refs_t  range;
+    std::pair<Record, Record> x_pair, y_pair;
+    auto count = wd.store.adjacencyByPBorders (aim, 0.06, x_pair, y_pair); // range, aim, min, max);
+
+    tcout << count << std::endl;
+
+    wd.testing_trajectories.push_back (x_pair.first.trajectory);
+    wd.testing_trajectories.push_back (y_pair.first.trajectory);
+    wd.testing_trajectories.push_back (x_pair.second.trajectory);
+    wd.testing_trajectories.push_back (y_pair.second.trajectory);
+    return;
+  }
   // -------------------------------------------------
   if ( 1 /* gradient || rundown */ )
   {

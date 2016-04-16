@@ -4,6 +4,114 @@
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
+size_t  HandMoves::Store::adjacencyByPBorders  (IN  const Point &aim, IN double side,
+                                                OUT std::pair<Record, Record> &x_pair,
+                                                OUT std::pair<Record, Record> &y_pair)
+{
+  boost::lock_guard<boost::mutex>  lock (store_mutex_);
+  //-------------------------------------------------------
+  MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+  auto pair = index.range (boost::make_tuple ((aim.x - side), (aim.y - side)) <= boost::lambda::_1,
+                           boost::lambda::_1 <= boost::make_tuple ((aim.x + side), (aim.y + side)));
+  //-------------------------------------------------------
+  size_t  count = 0U;
+  //-------------------------------------------------------
+  decltype(pair.first)  it_max_x = index.end ();
+  decltype(pair.first)  it_min_x = index.end ();
+  decltype(pair.first)  it_max_y = index.end ();
+  decltype(pair.first)  it_min_y = index.end ();
+  //-------------------------------------------------------
+  for ( auto it = pair.first; it != pair.second; ++it )
+  {
+    const Point &HIT = it->hit;
+    if ( ((aim.x - side) <= it->hit.x) && (it->hit.x <= (aim.x + side))
+      && ((aim.y - side / 1.5) <= it->hit.y) && (it->hit.y <= (aim.y + side / 1.5) ) )
+    {
+      if ( (it->hit.x < aim.x) )
+        if ( (it_max_x == index.end () || it_max_x->hit.x < it->hit.x) )
+        { it_max_x = it; }
+
+      if ( (it->hit.x > aim.x) )
+        if ( (it_min_x == index.end () || it_min_x->hit.x > it->hit.x) )
+      { it_min_x = it; }
+    }
+
+    if ( ((aim.x - side / 1.5) <= it->hit.x) && (it->hit.x <= (aim.x + side / 1.5))
+      && ((aim.y - side) <= it->hit.y) && (it->hit.y <= (aim.y + side)) )
+    {
+      if ( (it->hit.y < aim.y) )
+        if ( (it_max_y == index.end () || it_max_y->hit.y < it->hit.y) )
+        { it_max_y = it; }
+
+      if ( (it->hit.y > aim.y) )
+        if ((it_min_y == index.end () || it_min_y->hit.y > it->hit.y) )
+      { it_min_y = it; }
+    }
+  }
+  //-------------------------------------------------------
+  if ( it_max_x != index.end () && it_min_x != index.end () )
+  { x_pair = std::make_pair (*it_max_x, *it_min_x); count += 2U; }
+
+  if ( it_max_y != index.end () && it_min_y != index.end () )
+  { y_pair = std::make_pair (*it_max_y, *it_min_y); count += 2U; }
+  //-------------------------------------------------------
+  return count;
+}
+//------------------------------------------------------------------------------
+size_t  HandMoves::Store::adjacencyByXYBorders (IN  const Point &aim, IN double side,
+                                                OUT std::pair<Record, Record> &x_pair,
+                                                OUT std::pair<Record, Record> &y_pair)
+{
+  boost::lock_guard<boost::mutex>  lock (store_mutex_);
+  //-------------------------------------------------------
+  size_t count = 0U;
+  // RangeInserter  rangeInserter;
+  //-------------------------------------------------------
+  {
+    MultiIndexMoves::index<ByX>::type  &X_index = store_.get<ByX> ();
+    auto pair_x = X_index.range ((aim.x - side) <= boost::lambda::_1, boost::lambda::_1 <= (aim.x + side));
+
+    decltype(pair_x.first)  it_max_x = X_index.end ();
+    decltype(pair_x.first)  it_min_x = X_index.end ();
+    for ( auto it = pair_x.first; it != pair_x.second; ++it )
+    {
+      if ( (it->hit.x < aim.x) && (it_max_x == X_index.end () || it_max_x->hit.x < it->hit.x) )
+      { it_max_x = it; }
+
+      if ( (it->hit.x > aim.x) && (it_min_x == X_index.end () || it_min_x->hit.x > it->hit.x) )
+      { it_min_x = it; }
+    }
+
+    if ( it_max_x != X_index.end () && it_min_x != X_index.end () )
+    { x_pair = std::make_pair (*it_max_x, *it_min_x); count += 2U; }
+    // if ( it_max_x != X_index.end () ) { rangeInserter (range, *it_max_x); ++count; }
+    // if ( it_min_x != X_index.end () ) { rangeInserter (range, *it_min_x); ++count; }
+  }
+  //-------------------------------------------------------
+  {
+    MultiIndexMoves::index<ByY>::type  &Y_index = store_.get<ByY> ();
+    auto pair_y = Y_index.range ((aim.y - side) <= boost::lambda::_1, boost::lambda::_1 <= (aim.y + side));
+
+    decltype(pair_y.first)  it_max_y = Y_index.end ();
+    decltype(pair_y.first)  it_min_y = Y_index.end ();
+    for ( auto it = pair_y.first; it != pair_y.second; ++it )
+    {
+      if ( (it->hit.y < aim.y) && (it_max_y == Y_index.end () || it_max_y->hit.y < it->hit.y) )
+      { it_max_y = it; }
+
+      if ( (it->hit.y > aim.y) && (it_min_y == Y_index.end () || it_min_y->hit.y > it->hit.y) )
+      { it_min_y = it; }
+    }
+
+    if ( it_max_y != Y_index.end () && it_min_y != Y_index.end () )
+    { y_pair = std::make_pair (*it_max_y, *it_min_y); count += 2U; }
+    // if ( it_max_y != Y_index.end () ) { rangeInserter (range, *it_max_y); ++count; }
+    // if ( it_min_y != Y_index.end () ) { rangeInserter (range, *it_min_y); ++count; }
+  }
+  //-------------------------------------------------------
+  return count;
+}
+//------------------------------------------------------------------------------
 // enum { Pixels, Ellipses };
 void  HandMoves::Store::draw (HDC hdc, double circleRadius, HPEN hPen) const
 {
