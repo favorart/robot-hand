@@ -78,77 +78,94 @@ namespace HandMoves
     class RangeInserter
     {
     public:
-      void operator () (adjacency_t &range, const Record &rec)
+      void operator () (OUT adjacency_t &range, IN const Record &rec)
       { range.push_back (rec); }
-      void operator () (adjacency_refs_t &range, const Record &rec)
+      void operator () (OUT adjacency_refs_t &range, IN const Record &rec)
       { range.push_back (std::make_shared<Record> (rec)); }
     };
     //------------------------------------------------------------------------------
-    /* прямоугольная окрестность точки */
-    template <class range_t, class index_t> //, class el_t>
-    size_t  adjacencyRectPoints (range_t &range, 
-                                 Point  &min, Point &max)
-                                 // const el_t &min, const el_t &max)
+    const Record&   ClothestPoint (IN const Point &aim)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      // -----------------------------------------------
+      MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+      // -----------------------------------------------
+      auto iterLower = index.lower_bound (boost::tuple<double, double> (aim));
+      auto iterUpper = index.upper_bound (boost::tuple<double, double> (aim));
+      // -----------------------------------------------
+      if ( boost_distance (iterLower->hit, aim) < boost_distance (iterUpper->hit, aim) )
+      { return *iterLower; }
+      else
+      { return *iterUpper; }
+    }
+    //------------------------------------------------------------------------------
 
+    /* прямоугольная окрестность точки */
+    template <class range_t, class index_t>
+    size_t  adjacencyRectPoints  (OUT range_t &range, IN const Point &min, IN const Point &max)
+    {
+      boost::lock_guard<boost::mutex>  lock (store_mutex_);
+      // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
                    || boost::is_same<range_t, adjacency_refs_t>::value,
                       "Incorrect type to template function." );
-      
+      // -----------------------------------------------
       typedef MultiIndexMoves::index<index_t>::type::const_iterator Index_cIter;
-      MultiIndexMoves::index<index_t>::type  &index = store_.get<index_t> ();     
+      MultiIndexMoves::index<index_t>::type  &index = store_.get<index_t> ();   
+      // -----------------------------------------------
       /* Range searching, i.e.the lookup of all elements in a given interval */
       Index_cIter itFirstLower = index.lower_bound (boost::tuple<double, double> (min));
       Index_cIter itFirstUpper = index.upper_bound (boost::tuple<double, double> (max));
-    
-      // double  min_x = min.head (), min_y = min.tail(),
-      //         max_x = max.head (), max_y = max.tail();
-
+      // -----------------------------------------------
       size_t count = 0U;
       RangeInserter rangeInserter;
+      // -----------------------------------------------
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
 #ifdef _DEBUG_PRINT
         // tcout << it->hit << std::endl;
 #endif
-        // if ( (min.get<0> () <= it->hit.x && min.get<1> () <= it->hit.y)
-        //   && (max.get<0> () >= it->hit.x && max.get<1> () >= it->hit.y) )
+        // -----------------------------------------------
         if ( (min.x <= it->hit.x && min.y <= it->hit.y)
           && (max.x >= it->hit.x && max.y >= it->hit.y) )
         {
           auto &rec = *it;
           rangeInserter (range, rec);
-
+          // -----------------------------------------------
           // range.push_back ( *it );
           // range.push_back ( std::make_shared<Record> (*it) );
+          // -----------------------------------------------
           ++count;
         }
       }
+      // -----------------------------------------------
       return count;
     }
     /* круглая окрестность точки */
     template <class range_t>
-    size_t  adjacencyPoints (range_t &range, const Point &center, double radius)
+    size_t  adjacencyPoints      (OUT range_t &range, IN const Point &center, IN double radius)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-
+      // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
                    || boost::is_same<range_t, adjacency_refs_t>::value,
                       "Incorrect type to template function." );
-
+      // -----------------------------------------------
       typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
-    
+      // -----------------------------------------------
       IndexPcIter itFirstLower = index.lower_bound (boost::make_tuple (center.x - radius,
                                                                        center.y - radius));
       IndexPcIter itFirstUpper = index.upper_bound (boost::make_tuple (center.x + radius,
                                                                        center.y + radius));
+      // -----------------------------------------------
       size_t count = 0U;
       RangeInserter  rangeInserter;
+      // -----------------------------------------------
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
         auto &rec = *it;
+        // -----------------------------------------------
         if ( boost::geometry::distance (boost_point2_t (center),
                                         boost_point2_t (rec.hit)) <= radius )
         {
@@ -156,64 +173,84 @@ namespace HandMoves
           ++count;
         }
       }
+      // -----------------------------------------------
       return count;
     }
     //------------------------------------------------------------------------------
     template <class range_t>
-    size_t  similDistances  (range_t &range, double min_distance, double max_distance)
+    size_t  similDistances       (OUT range_t &range, IN double min_distance, IN double max_distance)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      
+      // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
                    || boost::is_same<range_t, adjacency_refs_t>::value,
                       "Incorrect type to template function." );
-
+      // -----------------------------------------------
       typedef MultiIndexMoves::index<ByD>::type::const_iterator IndexDcIter;
       MultiIndexMoves::index<ByD>::type  &index = store_.get<ByD> ();
-    
+      // -----------------------------------------------
       IndexDcIter itFirstLower = index.lower_bound (min_distance);
       IndexDcIter itFirstUpper = index.upper_bound (max_distance);
-    
+      // -----------------------------------------------
       size_t count = 0U;
       RangeInserter  rangeInserter;
+      // -----------------------------------------------
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
         auto &rec = *it;
         rangeInserter (range, rec);
         ++count;
       }
+      // -----------------------------------------------
       return count;
     }
     //------------------------------------------------------------------------------
     /* Все точки в данном index_t, равные x, попадающие в интервал (down, up)  */
+    template <class range_t>
+    size_t  adjacencyByPBorders  (OUT range_t &range, IN const Point &aim, IN double side)
+    {
+      std::pair<Record, Record>  x_pair, y_pair;
+      size_t count = adjacencyByPBorders (aim, side, x_pair, y_pair);
+      // -----------------------------------------------
+      RangeInserter  rangeInserter;
+      rangeInserter (range, x_pair.first);
+      rangeInserter (range, x_pair.second);
+      rangeInserter (range, y_pair.first);
+      rangeInserter (range, y_pair.second);
+      // -----------------------------------------------
+      return count;
+    }
     size_t  adjacencyByPBorders  ( IN const Point &aim, IN double side,
                                   OUT std::pair<Record, Record> &x_pair,
                                   OUT std::pair<Record, Record> &y_pair);
     size_t  adjacencyByXYBorders ( IN const Point &aim, IN double side,
                                   OUT std::pair<Record, Record> &x_pair,
                                   OUT std::pair<Record, Record> &y_pair);
+    size_t  adjacencyByPBorders  (IN const Point &aim, // IN double side,
+                                  OUT std::pair<Record, Record> &d_pair);
     //------------------------------------------------------------------------------
-    const Record*  ExactRecordByControl (controling_t controls)
+    const Record*  ExactRecordByControl (IN const controling_t &controls)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      
+      // -----------------------------------------------
       MultiIndexMoves::index<ByC>::type  &index = store_.get<ByC> ();
+      // -----------------------------------------------
       auto equal = index.find (controls);
       return  (equal != index.end ()) ? (&(*equal)) : (nullptr);
     }
     //------------------------------------------------------------------------------
     template <class range_t>
-    size_t  FindEndPoint (range_t &range, const Point &point)
+    size_t  FindEndPoint (OUT range_t &range, IN const Point &aim)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      
+      // -----------------------------------------------      
       static_assert < boost::is_same<range_t, adjacency_t>::value
                    || boost::is_same<range_t, adjacency_refs_t>::value,
                       "Incorrect type to template function.">;
-
+      // -----------------------------------------------
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
-      auto result = index.equal_range (boost::tuple<double, double> (point));
-
+      auto result = index.equal_range (boost::tuple<double, double> (aim));
+      // -----------------------------------------------
       size_t count = 0U;
       RangeInserter rangeInserter;
       for ( auto it = result.first; it != result.second (); ++it )
@@ -221,6 +258,7 @@ namespace HandMoves
         rangeInserter (range, *it);
         ++count;
       }
+      // -----------------------------------------------
       return  count;
     }
     //------------------------------------------------------------------------------

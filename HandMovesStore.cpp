@@ -4,6 +4,29 @@
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
+size_t  HandMoves::Store::adjacencyByPBorders (IN const Point &aim, // IN double side,
+                                               OUT std::pair<Record, Record> &d_pair)
+{
+  boost::lock_guard<boost::mutex>  lock (store_mutex_);
+  // -----------------------------------------------
+  MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
+  // -----------------------------------------------
+  auto iterLower = index.lower_bound (boost::tuple<double,double> (aim.x, aim.y));
+  auto iterUpper = index.upper_bound (boost::tuple<double,double> (aim.x, aim.y));
+  // -----------------------------------------------
+  size_t  count = 0U;
+  if ( iterLower != index.end () && iterUpper != index.end () )
+  {
+    count += 2U;
+    // -----------------------------------------------
+    if ( boost_distance (iterLower->hit, aim) < boost_distance (iterUpper->hit, aim) )
+    { d_pair = std::make_pair (*iterLower, *iterUpper); }
+    else
+    { d_pair = std::make_pair (*iterUpper, *iterLower); }
+  }
+  // -----------------------------------------------
+  return count;
+}
 size_t  HandMoves::Store::adjacencyByPBorders  (IN  const Point &aim, IN double side,
                                                 OUT std::pair<Record, Record> &x_pair,
                                                 OUT std::pair<Record, Record> &y_pair)

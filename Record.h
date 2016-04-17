@@ -45,7 +45,7 @@ namespace HandMoves
     friend class boost::serialization::access;
     BOOST_SERIALIZATION_SPLIT_MEMBER ()
 
-    template <class Archive>
+      template <class Archive>
     void  save (Archive & ar, const unsigned int version) const
     {
       ar << aim_ << hand_begin_ << hand_final_;
@@ -103,19 +103,31 @@ namespace HandMoves
 
     // ----------------------------------------
     operator tstring () const
-    { 
+    {
       tstringstream ss;
       ss << _T ("rec<x=") << hit.x << _T (", y=") << hit.y << _T (">");
       return  ss.str ();
+    }
+    // ----------------------------------------
+    bool  operator== (const Record &rec) const
+    {
+      if ( this != &rec )
+      { return   boost::range::equal (hand_controls_, rec.hand_controls_); }
+      return true;
+    }
+    bool  operator!= (const Record &rec) const
+    {
+      if (this != &rec)
+      { return  !boost::range::equal (hand_controls_, rec.hand_controls_); }
+      return false;
     }
     // ----------------------------------------
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_aim)) const Point &aim;
     const Point&  get_aim () const { return aim_; }
 
-    __declspec(property(get = get_final, put = put_final)) const Point &hit;
-    const Point&  get_final () const           { return  hand_final_; }
-    void          put_final (const Point &hit) { hand_final_  =  hit; }
+    __declspec(property(get = get_final)) const Point &hit;
+    const Point&  get_final () const { return hand_final_; }
 
     __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
     const trajectory_t  &get_trajectory () const { return visited_; }
@@ -167,7 +179,7 @@ namespace HandMoves
     // ----------------------------------------
   };
   //------------------------------------------------------------------------------
-  class RecordHasher
+  struct RecordHasher
   {
     std::size_t operator()(const Record& rec) const
     {

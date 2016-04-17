@@ -210,6 +210,7 @@ void  MakeHandMove (MyWindowData &wd)
   wd.testing_trajectories.clear ();
   wd.trajectory_frames.clear ();
 
+  if ( 0 )
   {
     // adjacency_refs_t  range;
     std::pair<Record, Record> x_pair, y_pair;
@@ -231,7 +232,7 @@ void  MakeHandMove (MyWindowData &wd)
     //                                trajectory_t *t, trajectories_t *ts)
     //                             {
     //                               Positions::LearnMovements  lm;
-    //                               lm.STAGE_3 (store, hand, aim, t, ts);
+    //                               lm.Mean (store, hand, aim, t, ts);
     //                             }
     //                             , wd.hand, aim,
     //                               NULL, // &wd.trajectory_frames,
@@ -239,9 +240,10 @@ void  MakeHandMove (MyWindowData &wd)
     // WorkerThreadTryJoin (wd);
     // -------------------------------------------------
     Positions::LearnMovements lm;
-    lm.STAGE_3 ( wd.store, wd.hand, aim,
-                 NULL, // &wd.trajectory_frames,
-                &wd.testing_trajectories);
+    lm.gradientMethod (wd.store, wd.hand, aim);
+    // lm.Close ( wd.store, wd.hand, aim, 0.1,
+    //            NULL, // &wd.trajectory_frames,
+    //           &wd.testing_trajectories);
   }
   else if ( 0 /* LinearOperator && SimplexMethod */ )
   {

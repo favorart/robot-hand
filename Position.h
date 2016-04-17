@@ -288,16 +288,20 @@ namespace Positions
     /* Попадание в оставшиеся непокрытыми точки мишени */
     void  STAGE_3 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     //------------------------------------------------------------------------------
-    void  STAGE_3 (IN  HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
-                   OUT HandMoves::trajectory_t   *trajectory=NULL,
-                   OUT HandMoves::trajectories_t *trajectories=NULL);
+    void  Mean  (IN  HandMoves::Store &store, IN Hand &hand, IN const Point &aim, IN double side,
+                 OUT HandMoves::trajectory_t   *trajectory=NULL,
+                 OUT HandMoves::trajectories_t *trajectories=NULL);
+
+    void  Close (IN  HandMoves::Store &store, IN Hand &hand, IN const Point &aim, IN double side,
+                 OUT HandMoves::trajectory_t   *trajectory=NULL,
+                 OUT HandMoves::trajectories_t *trajectories=NULL);
     //------------------------------------------------------------------------------
     void  rundownMethod     (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
-                             IN HandMoves::controling_t &init_controls, IN Point &hand_position);
+                             IN const HandMoves::controling_t &init_controls, IN Point &hand_position);
     void  rundownMethod_old (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
-                             IN HandMoves::controling_t &init_controls, IN Point &hand_position);
-    void  gradientMethod    (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
-                             IN HandMoves::controling_t &init_controls, IN Point &hand_position);
+                             IN const HandMoves::controling_t &init_controls, IN Point &hand_position);
+    void  gradientMethod    (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim); //,
+                             // IN const HandMoves::controling_t &init_controls, IN Point &hand_position);
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
     void  testStage1 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
