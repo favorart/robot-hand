@@ -8,16 +8,16 @@
 #include "Hand.h"
 using namespace OldHand;
 #elif HAND_VER == 2
-#include "NewHand.h"
+#include "Hand.h"
 using namespace NewHand;
 #include "HandMuscles.h"
 #endif
 
 //------------------------------------------------------------------------------
-#include "MyWindow.h"
+#include "WindowHeader.h"
 #include "target.h"
 
-#include "HandMovesStore.h"
+#include "Store.h"
 
 namespace Positions
 {

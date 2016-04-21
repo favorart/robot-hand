@@ -281,7 +281,6 @@ $RECYCLE.BIN/
 *.lnk
 *.exe
 *.txt
-*.vcxproj
 *.user
 *.filters
 Debug/*

@@ -6,7 +6,7 @@
 // #define  _DEBUG_PRINT
 //------------------------------------------------------------------------------
 #include "Record.h"
-#include "MyWindow.h"
+#include "WindowHeader.h"
 //------------------------------------------------------------------------------
 namespace HandMoves
 {
@@ -43,7 +43,7 @@ namespace HandMoves
     typedef boost::multi_index_container
     < Record,
       indexed_by < hashed_unique      < tag<ByC>,
-                                        const_mem_fun < Record, const controling_t&, &Record::controls >,
+                                        const_mem_fun < Record, controling_t const & /*const*/, &Record::_get_controls>,
                                         ControlingHasher
                                       >,
                    ordered_non_unique < tag<ByP>,
@@ -321,6 +321,9 @@ namespace HandMoves
     //     { uncovered.push_back (pt); }
     //   }
     // }
+    //------------------------------------------------------------------------------
+  // private:
+  //   friend class Record;
   };
   //------------------------------------------------------------------------------
   class ClosestPredicate

@@ -1,5 +1,5 @@
 #include "StdAfx.h"
-#include "MyWindow.h"
+#include "WindowHeader.h"
 
 
 int WINAPI  WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)

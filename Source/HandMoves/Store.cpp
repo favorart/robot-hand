@@ -1,5 +1,5 @@
 ﻿#include "StdAfx.h"
-#include "HandMovesStore.h"
+#include "Store.h"
 
 using namespace std;
 using namespace HandMoves;

@@ -1,0 +1,454 @@
+From: <Saved by Mozilla 5.0 (Windows)>
+Subject: QR_SOLVE - Least Squares Solution of a Linear System A*x=b
+Date: Mon, 18 Apr 2016 23:17:13 +0300
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----=_NextPart_000_0000_860E1AC6.E28856BA"
+X-MAF-Information: Produced By MAF V3.1.3
+
+This is a multi-part message in MIME format.
+
+------=_NextPart_000_0000_860E1AC6.E28856BA
+Content-Type: text/html;
+	charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://people.sc.fsu.edu/~jburkardt/cpp_src/qr_solve/qr_solve.html
+
+<html><head>
+<meta http-equiv=3D"content-type" content=3D"text/html; charset=3DUTF-8">
+    <title>
+      QR_SOLVE - Least Squares Solution of a Linear System A*x=3Db
+    </title>
+  <link type=3D"text/css" rel=3D"stylesheet" href=3D"urn:snapshot-2A64A8E2:=
+resource://mytube-at-ashishmishra-dot-in/smartvideo_for_youtube/data/mytube=
+.css"><script src=3D"urn:snapshot-5CF0E4BB:resource://mytube-at-ashishmishr=
+a-dot-in/smartvideo_for_youtube/data/mutationObserver.js"></script><script=
+ src=3D"urn:snapshot-A9BED1ED:resource://mytube-at-ashishmishra-dot-in/smar=
+tvideo_for_youtube/data/mytube.js"></script></head>
+
+  <body alink=3D"#FF3300" bgcolor=3D"#EEEEEE" link=3D"#CC0000" vlink=3D"#00=
+0055">
+
+    <h1 align=3D"center">
+      QR_SOLVE <br> Least Squares Solution of a Linear System A*x=3Db
+    </h1>
+
+    <hr>
+
+    <p>
+      <b>QR_SOLVE</b>
+      is a C++ library which
+      computes a least squares solution of a linear system of the form A*x=
+=3Db.
+    </p>
+
+    <p>
+      There are many possible cases that can arise with the matrix A.
+      Formally, we distinguish the cases M &lt; N, M =3D N, and M &gt; N,=
+ and
+      we expect trouble whenever M is not equal to N.  Trouble may also
+      arise when M =3D N but the matrix is singular.  Even if the matrix is,
+      mathematically speaking, non-singular, it may be so close to singular=
+ity
+      that an accurate solution is difficult to achieve.
+    </p>
+
+    <p>
+      When M &gt; N, we are placing more conditions than we have degrees of=
+ freedom,
+      so we suppose that such a linear system cannot be solved.  However,=
+ it is
+      possible that the extra conditions are illusory, being constructed fr=
+om
+      linear combinations of a fundamental set of N conditions.  Thus, a sy=
+stem
+      that we typically call "overdetermined" can have a solution in the or=
+dinary
+      sense, that satisfies all the conditions, as long as the right hand=
+ side is
+      "consistent".  Another way of saying this is that the system is solva=
+ble
+      if the right hand side lies in the column space of A...although that=
+ simply
+      says that it is a linear combination of the columns of A, which just=
+ says
+      A*x=3Db.
+    </p>
+
+    <p>
+      If A does not have full column rank, however, then even if the right=
+ hand
+      side lies in the column space of A, there will be more than one linea=
+r=20
+      combination of columns that produce b.  Thus, the equations are consi=
+stent,
+      the system is solvable, but not uniquely so.
+    </p>
+
+    <p>
+      If M &lt; N, then we are placing fewer conditions than we have degree=
+s of
+      freedom.  As long as the right hand side lies in the column space of=
+ A,
+      we can guarantee that there will be multiple solutions.
+    </p>
+
+    <p>
+      Thus, the question of a "solution" to the problem A*x=3Db is complica=
+ted
+      enough that it seems to defy a common algorithmic approach.  Nonethel=
+ess,
+      there are some sensible, robust procedures for producing an answer th=
+at
+      corresponds to the classical solution, or solves the overdetermined=
+ problem
+      when the right hand side is consistent.  This is the linear least squ=
+ares
+      solution, which finds a vector x which minimizes the Euclidean norm of
+      the residual: ||r|| =3D ||A*x-b||.  This solution is produced by comp=
+uting
+      the QR factorization of the matrix A
+    </p>
+
+    <p>
+      When there are multiple solutions to the problem, the QR approach use=
+d here
+      produces a solution.  A more satisfactory approach, using the pseudoi=
+nverse,
+      will produce a solution x which satisfies the additional constraint=
+ that
+      it has the minimum norm of the entire family of solutions.  That pseu=
+doinverse
+      approach is not implemented in this library.  The singular value deco=
+mposition (SVD)
+      can also produce this minimal solution.
+    </p>
+
+    <p>
+      For comparison, a solver that applies the normal equations is include=
+d.
+      This approach requires M &gt;=3D N, and that A have full column rank.=
+  It constructs
+      and solves the NxN system A'*A*x=3DA'*b.  This system has a condition=
+ number that
+      is the square of the original system, so it also suffers from a signi=
+ficant
+      loss in accuracy.
+    </p>
+
+    <p>
+      We also include an SVD solver, which uses the pseudoinverse approach.
+      First compute A =3D U * S * V', where U and V are orthogonal, and S is
+      MxN diagonal, then to solve A*x=3Db write x =3D V * S^ * U' * b, where
+      S^ is the matrix formed by transposing S and then replacing each nonz=
+ero
+      diagonal element s by 1/s.  (However, very small elements should prob=
+ably
+      be zeroed instead of inverted.)  This procedure will also produce a=
+ vector
+      x which minimizes the Euclidean norm.  However, it has one feature th=
+at the
+      QR solver does not: in cases where the solution x is not unique (beca=
+use
+      A does not have full column rank) the SVD solver returns the unique=
+ vector
+      x of minimum Euclidean norm.
+    </p>
+
+    <p>
+      <b>QR_SOLVE</b> needs the R8LIB library.  The test program also needs
+      the TEST_LS library.
+    </p>
+
+    <h3 align=3D"center">
+      Licensing:
+    </h3>
+
+    <p>
+      The computer code and data files described and made available on this
+      web page are distributed under
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/txt/gnu_lgpl.txt">t=
+he GNU LGPL license.</a>
+    </p>
+
+    <h3 align=3D"center">
+      Languages:
+    </h3>
+
+    <p>
+      <b>QR_SOLVE</b> is available in
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/c_src/qr_solve/qr_s=
+olve.html">a C version</a> and
+      <a href=3D"#">a C++ version</a> and
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/f77_src/qr_solve/qr=
+_solve.html">a FORTRAN77 version</a> and
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/f_src/qr_solve/qr_s=
+olve.html">a FORTRAN90 version</a>.
+    </p>
+
+    <h3 align=3D"center">
+      Related Data and Programs:
+    </h3>
+
+    <p>
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/linpack_d/l=
+inpack_d.html">
+      LINPACK_D</a>,
+      a C++ library which
+      solves linear systems using double precision real arithmetic;
+    </p>
+
+    <p>
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/llsq/llsq.h=
+tml">
+      LLSQ</a>,
+      a C++ library which
+      solves the simple linear least squares problem of finding the formula
+      of a straight line y=3Da*x+b which minimizes the root-mean-square err=
+or
+      to a set of N data points.
+    </p>
+
+    <p>
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/minpack/min=
+pack.html">
+      MINPACK</a>,
+      a C++ library which
+      solves systems of nonlinear equations, or the least squares minimizat=
+ion of the
+      residual of a set of linear or nonlinear equations.
+    </p>
+
+    <p>
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/r8lib/r8lib=
+.html">
+      R8LIB</a>,
+      a C++ library which
+      contains many utility routines using double precision real (R8) arith=
+metic.
+    </p>
+
+    <p>
+      <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/test_ls/tes=
+t_ls.html">
+      TEST_LS</a>,
+      a C++ library which
+      implements linear least squares test problems of the form A*x=3Db.
+    </p>
+
+    <h3 align=3D"center">
+      Reference:
+    </h3>
+
+    <p>
+      </p><ol>
+        <li>
+          Jack Dongarra, Jim Bunch, Cleve Moler, Pete Stewart,<br>
+          LINPACK User's Guide,<br>
+          SIAM, 1979,<br>
+          ISBN13: 978-0-898711-72-1,<br>
+          LC: QA214.L56.
+        </li>
+        <li>
+          David Kahaner, Cleve Moler, Steven Nash,<br>
+          Numerical Methods and Software,<br>
+          Prentice Hall, 1989,<br>
+          ISBN: 0-13-627258-4,<br>
+          LC: TA345.K34.
+        </li>
+      </ol>
+    <p></p>
+
+    <h3 align=3D"center">
+      Source Code:
+    </h3>
+
+    <p>
+      </p><ul>
+        <li>
+          <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/qr_solv=
+e/qr_solve.cpp">qr_solve.cpp</a>, the source code.
+        </li>
+        <li>
+          <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/qr_solv=
+e/qr_solve.hpp">qr_solve.hpp</a>, the include file.
+        </li>
+        <li>
+          <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/qr_solv=
+e/qr_solve.sh">qr_solve.sh</a>,
+          BASH commands to compile the source code.
+        </li>
+      </ul>
+    <p></p>
+
+    <h3 align=3D"center">
+      Examples and Tests:
+    </h3>
+
+    <p>
+      </p><ul>
+        <li>
+          <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/qr_solv=
+e/qr_solve_prb.cpp">qr_solve_prb.cpp</a>,
+          a sample calling program.
+        </li>
+        <li>
+          <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/qr_solv=
+e/qr_solve_prb.sh">qr_solve_prb.sh</a>,
+          BASH commands to compile and run the sample program.
+        </li>
+        <li>
+          <a href=3D"https://people.sc.fsu.edu/%7Ejburkardt/cpp_src/qr_solv=
+e/qr_solve_prb_output.txt">qr_solve_prb_output.txt</a>,
+          the output file.
+        </li>
+      </ul>
+    <p></p>
+
+    <h3 align=3D"center">
+      List of Routines:
+    </h3>
+
+    <p>
+      </p><ul>
+        <li>
+          <b>DAXPY</b> computes constant times a vector plus a vector.
+        </li>
+        <li>
+          <b>DDOT</b> forms the dot product of two vectors.
+        </li>
+        <li>
+          <b>DNRM2</b> returns the euclidean norm of a vector.
+        </li>
+        <li>
+          <b>DQRANK</b> computes the QR factorization of a rectangular matr=
+ix.
+        </li>
+        <li>
+          <b>DQRDC</b> computes the QR factorization of a real rectangular=
+ matrix.
+        </li>
+        <li>
+          <b>DQRLS</b> factors and solves a linear system in the least squa=
+res sense.
+        </li>
+        <li>
+          <b>DQRLSS</b> solves a linear system in a least squares sense.
+        </li>
+        <li>
+          <b>DQRSL</b> computes transformations, projections, and least squ=
+ares solutions.
+        </li>
+        <li>
+          <b>DROT</b> applies a plane rotation.
+        </li>
+        <li>
+          <b>DROTG</b> constructs a Givens plane rotation.
+        </li>
+        <li>
+          <b>DSCAL</b> scales a vector by a constant.
+        </li>
+        <li>
+          <b>DSVDC</b> computes the singular value decomposition of a real=
+ rectangular matrix.
+        </li>
+        <li>
+          <b>DSWAP</b> interchanges two vectors.
+        </li>
+        <li>
+          <b>NORMAL_SOLVE</b> solves a linear system using the normal equat=
+ions.
+        </li>
+        <li>
+          <b>QR_SOLVE</b> solves a linear system in the least squares sense.
+        </li>
+        <li>
+          <b>SVD_SOLVE</b> solves a linear system in the least squares sens=
+e.
+        </li>
+      </ul>
+    <p></p>
+
+    <p>
+      You can go up one level to <a href=3D"https://people.sc.fsu.edu/%7Ejb=
+urkardt/cpp_src/cpp_src.html">
+      the C++ source codes</a>.
+    </p>
+
+    <hr>
+
+    <i>
+      Last revised on 04 October 2012.
+    </i>
+
+    <!-- John Burkardt -->
+
+ =20
+
+ =20
+
+
+<mytubeelement data=3D"{&quot;bundle&quot;:{&quot;label_delimitor&quot;:&qu=
+ot;:&quot;,&quot;percentage&quot;:&quot;%&quot;,&quot;smart_buffer&quot;:&q=
+uot;Smart Buffer&quot;,&quot;start_playing_when_buffered&quot;:&quot;Start=
+ playing when buffered&quot;,&quot;sound&quot;:&quot;Sound&quot;,&quot;desk=
+top_notification&quot;:&quot;Desktop Notification&quot;,&quot;continuation_=
+on_next_line&quot;:&quot;-&quot;,&quot;loop&quot;:&quot;Loop&quot;,&quot;on=
+ly_notify&quot;:&quot;Only Notify&quot;,&quot;estimated_time&quot;:&quot;Es=
+timated Time&quot;,&quot;global_preferences&quot;:&quot;Global Preferences&=
+quot;,&quot;no_notification_supported_on_your_browser&quot;:&quot;No notifi=
+cation style supported on your browser version&quot;,&quot;video_buffered&q=
+uot;:&quot;Video Buffered&quot;,&quot;buffered&quot;:&quot;Buffered&quot;,&=
+quot;hyphen&quot;:&quot;-&quot;,&quot;buffered_message&quot;:&quot;The vide=
+o has been buffered as requested and is ready to play.&quot;,&quot;not_supp=
+orted&quot;:&quot;Not Supported&quot;,&quot;on&quot;:&quot;On&quot;,&quot;o=
+ff&quot;:&quot;Off&quot;,&quot;click_to_enable_for_this_site&quot;:&quot;Cl=
+ick to enable for this site&quot;,&quot;desktop_notification_denied&quot;:&=
+quot;You have denied permission for desktop notification for this site&quot=
+;,&quot;notification_status_delimitor&quot;:&quot;;&quot;,&quot;error&quot;=
+:&quot;Error&quot;,&quot;adblock_interferance_message&quot;:&quot;Adblock=
+ (or similar extension) is known to interfere with SmartVideo. Please add=
+ this url to adblock whitelist.&quot;,&quot;calculating&quot;:&quot;Calcula=
+ting&quot;,&quot;waiting&quot;:&quot;Waiting&quot;,&quot;will_start_bufferi=
+ng_when_initialized&quot;:&quot;Will start buffering when initialized&quot;=
+,&quot;will_start_playing_when_initialized&quot;:&quot;Will start playing=
+ when initialized&quot;,&quot;completed&quot;:&quot;Completed&quot;,&quot;b=
+uffering_stalled&quot;:&quot;Buffering is stalled. Will stop.&quot;,&quot;s=
+topped&quot;:&quot;Stopped&quot;,&quot;hr&quot;:&quot;Hr&quot;,&quot;min&qu=
+ot;:&quot;Min&quot;,&quot;sec&quot;:&quot;Sec&quot;,&quot;any_moment&quot;:=
+&quot;Any Moment&quot;,&quot;popup_donate_to&quot;:&quot;Donate to&quot;,&q=
+uot;extension_id&quot;:null},&quot;prefs&quot;:{&quot;desktopNotification&q=
+uot;:true,&quot;soundNotification&quot;:true,&quot;logLevel&quot;:0,&quot;e=
+nable&quot;:true,&quot;loop&quot;:false,&quot;hidePopup&quot;:false,&quot;a=
+utoPlay&quot;:false,&quot;autoBuffer&quot;:true,&quot;autoPlayOnBuffer&quot=
+;:false,&quot;autoPlayOnBufferPercentage&quot;:42,&quot;autoPlayOnSmartBuff=
+er&quot;:true,&quot;quality&quot;:&quot;hd720&quot;,&quot;fshd&quot;:false,=
+&quot;onlyNotification&quot;:false,&quot;enableFullScreen&quot;:true,&quot;=
+saveBandwidth&quot;:true,&quot;hideAnnotations&quot;:false,&quot;turnOffPag=
+edBuffering&quot;:true}}" event=3D"preferencesUpdated" id=3D"myTubeRelayEle=
+mentToPage"></mytubeelement><mytubeelement data=3D"{&quot;loadBundle&quot;:=
+true}" event=3D"relayPrefs" id=3D"myTubeRelayElementToTab"></mytubeelement>=
+</body><!-- Initial HTML skeleton created by HTMLINDEX. --></html>
+------=_NextPart_000_0000_860E1AC6.E28856BA
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: urn:snapshot-2A64A8E2:resource://mytube-at-ashishmishra-dot-in/smartvideo_for_youtube/data/mytube.css
+
+/* Effective stylesheet produced by snapshot save */
+
+------=_NextPart_000_0000_860E1AC6.E28856BA
+Content-Type: application/x-javascript
+Content-Transfer-Encoding: quoted-printable
+Content-Location: urn:snapshot-5CF0E4BB:resource://mytube-at-ashishmishra-dot-in/smartvideo_for_youtube/data/mutationObserver.js
+
+/* Script removed by snapshot save */
+
+------=_NextPart_000_0000_860E1AC6.E28856BA
+Content-Type: application/x-javascript
+Content-Transfer-Encoding: quoted-printable
+Content-Location: urn:snapshot-A9BED1ED:resource://mytube-at-ashishmishra-dot-in/smartvideo_for_youtube/data/mytube.js
+
+/* Script removed by snapshot save */
+
+------=_NextPart_000_0000_860E1AC6.E28856BA--

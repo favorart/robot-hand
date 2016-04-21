@@ -1,7 +1,5 @@
 ﻿#include "StdAfx.h"
-#include "MyWindow.h"
 #include "WindowData.h"
-#pragma warning (disable: 4996)
 
 using namespace std;
 using namespace HandMoves;
@@ -9,7 +7,6 @@ using namespace MotionLaws;
 
 #define  WM_USER_TIMER  WM_USER+3
 #define  WM_USER_STORE  WM_USER+4
-
 
 //------------------------------------------------------------------------------
 LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)

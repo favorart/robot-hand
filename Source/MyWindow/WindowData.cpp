@@ -1,7 +1,6 @@
 ﻿#include "StdAfx.h"
 #include "WindowData.h"
 #include "Draw.h"
-#include "littleTests.h"
 
 extern bool zoom;
 
@@ -10,7 +9,7 @@ using namespace HandMoves;
 //-------------------------------------------------------------------------------
 MyWindowData:: MyWindowData () :
   pWorkerThread (NULL),
-  lt (NULL),
+  // lt (NULL),
   target ( // 200U, 200U,
            18U, 18U,
            // 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
@@ -49,7 +48,7 @@ MyWindowData:: MyWindowData () :
 }
 MyWindowData::~MyWindowData ()
 {
-  if ( lt ) delete lt;
+  // if ( lt ) delete lt;
   //=======================
   /* очищаем ручку */
   DeleteObject (hPen_grn);
@@ -136,7 +135,7 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
   const double CircleRadius = 0.01;
   // --------------------------------------------------------------
   /* Target to achive */
-  if ( wd.lt )  wd.lt->draw (hdc, wd);
+  // if ( wd.lt )  wd.lt->draw (hdc, wd);
 
   // ----- Отрисовка фигуры ---------------------------------------
   wd.hand.draw (hdc, wd.hPen_red, wd.hBrush_white);
@@ -203,80 +202,102 @@ tostream&  operator << (tostream &out, const HandMoves::controling_t  &controls)
   return out;
 }
 //-------------------------------------------------------------------------------
-void  MakeHandMove (MyWindowData &wd)
+bool  RepeatMove   (MyWindowData &wd)
 {
   const Point &aim = wd.mouse_aim;
   // -------------------------------------------------
-  wd.testing_trajectories.clear ();
-  wd.trajectory_frames.clear ();
-
-  if ( 0 )
-  {
-    // adjacency_refs_t  range;
-    std::pair<Record, Record> x_pair, y_pair;
-    auto count = wd.store.adjacencyByPBorders (aim, 0.06, x_pair, y_pair); // range, aim, min, max);
-
-    tcout << count << std::endl;
-
-    wd.testing_trajectories.push_back (x_pair.first.trajectory);
-    wd.testing_trajectories.push_back (y_pair.first.trajectory);
-    wd.testing_trajectories.push_back (x_pair.second.trajectory);
-    wd.testing_trajectories.push_back (y_pair.second.trajectory);
-    return;
-  }
-  // -------------------------------------------------
-  if ( 1 /* gradient || rundown */ )
-  {
-    // WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
-    //                             [](Store &store, Hand &hand, const Point &aim,
-    //                                trajectory_t *t, trajectories_t *ts)
-    //                             {
-    //                               Positions::LearnMovements  lm;
-    //                               lm.Mean (store, hand, aim, t, ts);
-    //                             }
-    //                             , wd.hand, aim,
-    //                               NULL, // &wd.trajectory_frames,
-    //                              &wd.testing_trajectories);
-    // WorkerThreadTryJoin (wd);
-    // -------------------------------------------------
-    Positions::LearnMovements lm;
-    lm.gradientMethod (wd.store, wd.hand, aim);
-    // lm.Close ( wd.store, wd.hand, aim, 0.1,
-    //            NULL, // &wd.trajectory_frames,
-    //           &wd.testing_trajectories);
-  }
-  else if ( 0 /* LinearOperator && SimplexMethod */ )
-  {
-    HandMoves::controling_t controls;
-    Positions::LinearOperator  lp (wd.store, wd.mouse_aim,
-                                   0.07, controls, true);
-    // lp.predict (wd.mouse_aim, controls);
-
-    wd.hand.SET_DEFAULT;
-    wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
-  }
-  // -------------------------------------------------
-  wd.store.adjacencyPoints (wd.adjPointsDB, aim, 0.005);
+  if ( !wd.store.adjacencyPoints (wd.adjPointsDB, aim, 0.005) )
+  { return false; }
   // -------------------------------------------------
   ClosestPredicate  pred (aim);
   auto it_min = std::min_element (wd.adjPointsDB.begin (),
                                   wd.adjPointsDB.end (), pred);
+  if ( it_min == wd.adjPointsDB.end () )
+  { return false; }
   // -------------------------------------------------
-  if ( it_min != wd.adjPointsDB.end () )
+  else
   {
     const Record &rec = (**it_min);
+    // rec.
     rec.repeatMove (wd.hand);
     wd.trajectory_frames = rec.trajectory;
     // -------------------------------------------------
     tstring text = GetTextToString (wd.hLabMAim);
-    
+
     tstringstream ss;
-    ss << text << _T("\r");
-    for ( const Hand::Control &c : rec.controls () )
+    ss << text << _T ("\r");
+    for ( const Hand::Control &c : rec.controls )
     { ss << c << _T ("  "); } // \r
+
     // -------------------------------------------------
     SendMessage (wd.hLabMAim, WM_SETTEXT, NULL, (LPARAM) ss.str ().c_str ());
+    // -------------------------------------------------
+    return true;
   }
+}
+void  MakeHandMove (MyWindowData &wd)
+{
+  if ( !RepeatMove (wd) )
+  {
+    const Point &aim = wd.mouse_aim;
+    // -------------------------------------------------
+    wd.testing_trajectories.clear ();
+    wd.trajectory_frames.clear ();
+
+    if ( 0 )
+    {
+      // adjacency_refs_t  range;
+      std::pair<Record, Record> x_pair, y_pair;
+      auto count = wd.store.adjacencyByPBorders (aim, 0.06, x_pair, y_pair); // range, aim, min, max);
+
+      tcout << count << std::endl;
+
+      wd.testing_trajectories.push_back (x_pair.first.trajectory);
+      wd.testing_trajectories.push_back (y_pair.first.trajectory);
+      wd.testing_trajectories.push_back (x_pair.second.trajectory);
+      wd.testing_trajectories.push_back (y_pair.second.trajectory);
+      return;
+    }
+    // -------------------------------------------------
+    if ( 1 /* gradient || rundown */ )
+    {
+      // WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
+      //                             [](Store &store, Hand &hand, const Point &aim,
+      //                                trajectory_t *t, trajectories_t *ts)
+      //                             {
+      //                               Positions::LearnMovements  lm;
+      //                               lm.Mean (store, hand, aim, t, ts);
+      //                             }
+      //                             , wd.hand, aim,
+      //                               NULL, // &wd.trajectory_frames,
+      //                              &wd.testing_trajectories);
+      // WorkerThreadTryJoin (wd);
+      // -------------------------------------------------
+      Positions::LearnMovements lm;
+      lm.gradientMethod (wd.store, wd.hand, aim);
+      // lm.Close ( wd.store, wd.hand, aim, 0.1,
+      //            NULL, // &wd.trajectory_frames,
+      //           &wd.testing_trajectories);
+    }
+    else if ( 0 /* LinearOperator && SimplexMethod */ )
+    {
+      HandMoves::controling_t controls;
+      Positions::LinearOperator  lp (wd.store, wd.mouse_aim,
+                                     0.07, controls, true);
+      // lp.predict (wd.mouse_aim, controls);
+
+      wd.hand.SET_DEFAULT;
+      wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
+    }
+    // -------------------------------------------------
+    RepeatMove (wd);
+  }
+
+// #ifdef   _ANIMATION_
+//   wd.trajectory_frames_show = true;
+//   wd.hand.step (wd.trajectory_frames_muscle,
+//                 wd.trajectory_frames_lasts);
+// #endif // _ANIMATION_
 }
 
 void  OnWindowTimer (MyWindowData &wd)
@@ -347,23 +368,6 @@ void  OnWindowMouse (MyWindowData &wd)
     wd.reach = true;
     MakeHandMove (wd);
   }
-}
-//-------------------------------------------------------------------------------
-/* inline */ void  OnRandomTest (MyWindowData &wd)
-{
-  const size_t repeats = 1000U;
-  WorkerThreadRunStoreTask (wd, _T ("\n *** random test ***  "),
-                            HandMoves::test_random,
-                            wd.hand, repeats);
-  WorkerThreadTryJoin (wd);
-}
-/* inline */ void  OnCoverTest  (MyWindowData &wd)
-{ 
-  const size_t nested = 2U;
-  WorkerThreadRunStoreTask (wd, _T ("\n *** cover test ***  "),
-                            HandMoves::test_cover,
-                            wd.hand, nested);
-  WorkerThreadTryJoin (wd);
 }
 //-------------------------------------------------------------------------------
 void  OnShowTrajectoryFrames (MyWindowData &wd)

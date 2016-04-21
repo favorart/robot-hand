@@ -1,6 +1,4 @@
 #include "StdAfx.h"
-// #include "Hand.h"
-#include "HandMovesStore.h"
 
 #include "littleTests.h"
 #include "WindowData.h"
@@ -9,12 +7,12 @@
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
-void  LittleTest::draw (HDC hdc, MyWindowData &wd) const
+void  LittleTest::draw (HDC hdc, MyWindowData &wd, HPEN hPen /*wd.hPen_orng*/) const
 {
   DrawCircle (hdc, aim, 0.007);
   //---------------------------------
   for ( auto &traj : traj_s1 )
-    DrawTrajectory (hdc, *traj, NULL /*wd.hPen_orng*/);
+    DrawTrajectory (hdc, *traj, hPen);
 
   DrawAdjacency (hdc, aim, radius, ellipse, wd.hPen_red);
 
@@ -25,20 +23,19 @@ void  LittleTest::draw (HDC hdc, MyWindowData &wd) const
   //---------------------------------
 }
 //------------------------------------------------------------------------------
-void /*size_t*/  littleTest (MyWindowData &wd, double radius)
+size_t  littleTest (MyWindowData &wd, double radius)
 {
   for ( auto &pt : wd.target.coords () | boost::adaptors::sliced (wd.no, wd.target.coordsCount ()) )
   {
     ++wd.no;
-    std::list<std::shared_ptr<HandMoves::Record>> exact_range;
-
+    HandMoves::adjacency_refs_t  exact_range;
     wd.store.adjacencyPoints (exact_range, pt, EPS);
     /* If there is no exact trajectory */
+
     // if ( exact_range.empty () )
     // {
     //   /* Try to find the several closest trajectories */
-    //   std::list<std::shared_ptr<HandMoves::Record>> range;
-    // 
+    //   HandMoves::adjacency_refs_t  range;
     //   HandMoves::adjacencyPoints (wd.store, range, pt, radius);
     // 
     //   if ( wd.lt ) delete wd.lt;
@@ -48,23 +45,21 @@ void /*size_t*/  littleTest (MyWindowData &wd, double radius)
     //   return exact_range.size ();
     // }
   }
-  // return exact_range.size ();
+  return  0U;
 }
-
-
 size_t  littleTest (MyWindowData &wd) //, double radius)
 {
   for ( auto &pt : wd.target.coords () | boost::adaptors::sliced (wd.no, wd.target.coordsCount ()) )
   {
     ++wd.no;
-    std::list<std::shared_ptr<HandMoves::Record>> exact_range;
+    HandMoves::adjacency_refs_t  exact_range;
     Point aim = pt;
 
     wd.store.adjacencyPoints (exact_range, pt, 3 * EPS_VIS);
     if ( !exact_range.empty () )
     {
       // exact_range.sort (ElegancePredicate ());
-      HandMoves::controling_t  ctrls = exact_range.front ()->controls ();
+      HandMoves::controling_t  controls{ exact_range.front ()->controls };
 
       if ( wd.lt ) delete wd.lt;
       wd.lt = new LittleTest (aim, 3 * EPS_VIS);
@@ -74,11 +69,11 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
       wd.hand.SET_DEFAULT;
       Point hand_base = wd.hand.position;
 
-      wd.hand.move (ctrls.begin (), ctrls.end ());
+      wd.hand.move (controls.begin (), controls.end ());
       double init_distance = boost_distance (wd.hand.position, aim);
       
       wd.hand.SET_DEFAULT;
-      for ( auto  &c : ctrls )
+      for ( auto  &c : controls )
       {
         auto last_backup = c.last;
         for ( auto i : boost::irange (-5, 6) )
@@ -86,11 +81,11 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
           trajectory_t visited;
           c.last += i;
 
-          wd.hand.move (ctrls.begin (), ctrls.end (), &visited);
+          wd.hand.move (controls.begin (), controls.end (), &visited);
           // if ( init_distance > boost_distance (wd.hand.position, aim) )
           {
             wd.store.insert (Record (aim, hand_base, wd.hand.position,
-                                     ctrls, visited) );
+                                     controls, visited) );
           }
           c.last = last_backup;
           wd.hand.SET_DEFAULT;
@@ -102,11 +97,11 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
           trajectory_t visited;
           c.start += i;
           
-          wd.hand.move (ctrls.begin (), ctrls.end (), &visited);
+          wd.hand.move (controls.begin (), controls.end (), &visited);
           // if ( init_distance > boost_distance (wd.hand.position, aim) )
           {
             wd.store.insert (Record (aim, hand_base, wd.hand.position,
-                                     ctrls, visited));
+                                     controls, visited));
           }
           c.start = start_backup;
           wd.hand.SET_DEFAULT;
@@ -132,7 +127,6 @@ size_t  littleTest (MyWindowData &wd) //, double radius)
     //   return exact_range.size ();
     }
   }
-  // return exact_range.size ();
   return 0U;
 }
 

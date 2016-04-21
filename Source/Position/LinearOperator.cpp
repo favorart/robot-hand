@@ -3,13 +3,13 @@
 #include "Hand.h"
 using namespace OldHand;
 #elif HAND_VER == 2
-#include "NewHand.h"
+#include "Hand.h"
 using namespace NewHand;
 #include "HandMuscles.h"
 #endif
 
 #include "Position.h"  
-#include "HandMovesStore.h"
+#include "Store.h"
 //------------------------------------------------------------------------------
 namespace SimplexMethod
 {
@@ -152,10 +152,10 @@ namespace Positions
         yes[i] = rec.hit.y * LinearOperator::normilizer;
         
         if ( verbose )
-        { tcout << _T ("controls: ") << rec.controls ().size () << std::endl; }
+        { tcout << _T ("controls: ") << rec.controls.size () << std::endl; }
 
         j = 0;
-        for ( const Hand::Control &control : rec.controls () )
+        for ( const Hand::Control &control : rec.controls )
         {
                if ( control.muscle & Hand::ShldrOpn )
           {

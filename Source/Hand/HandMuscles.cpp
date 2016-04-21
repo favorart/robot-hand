@@ -1,5 +1,5 @@
 ﻿#include "StdAfx.h"
-#include "NewHand.h"
+#include "Hand.h"
 #include "HandMuscles.h"
 
 using namespace NewHand;

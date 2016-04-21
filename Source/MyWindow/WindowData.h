@@ -3,22 +3,13 @@
 #ifndef  _WINDOW_DATA_H_
 #define  _WINDOW_DATA_H_
 
-#include "HandMovesStore.h"
-#include "target.h"
+#include "Store.h"
+#include "Target.h"
 #include "DrawLetters.h"
-#include "littleTests.h"
-
-// ====================================================
-void    testLittleCorrectives (HandMoves::Store &store, Hand &hand, RecTarget &target,
-                               double radius, /* minimal distance between 2 neighbour points of target */
-                               double epsilont = EPS);
-void    littleTest (MyWindowData &wd, double radius);
-size_t  littleTest (MyWindowData &wd);
 
 // ====================================================
 // !?!?!?!?!?! КОНФИГУРАЦИОННЫЕ ФАЙЛЫ !?!?!?!?
 // !?!?!?!?!?! ФАЙЛЫ, как интерфейс управления !?!?!?!?
-
 //------------------------------------------------------------------------------
 class MyWindowData
 {
@@ -31,11 +22,8 @@ public:
   // ---------------------------------
   HDC     hStaticDC = NULL;
   HBITMAP hStaticBitmap = NULL;
-  bool    hStaticBitmapChanged = true;
-  // bool    hDrawingThread = false;
-  
+  bool    hStaticBitmapChanged = true;  
   // ---------------------------------
-  // win_point  user_coords;
   /* координаты мыши в пикселях */
   bool       mouse_haved;
   win_point  mouse_coords;
@@ -87,8 +75,8 @@ public:
 
   boost::thread *pWorkerThread;
   // ---------------------------------
-  LittleTest *lt;
-  size_t no;
+  // LittleTest *lt;
+  // size_t no;
   // ---------------------------------
 
   std::list<Point> uncoveredPoints;
@@ -125,9 +113,6 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd);
 //-------------------------------------------------------------------------------
 void  OnWindowTimer (MyWindowData &wd);
 void  OnWindowMouse (MyWindowData &wd);
-//-------------------------------------------------------------------------------
-/* inline */ void  OnRandomTest (MyWindowData &wd);
-/* inline */ void  OnCoverTest  (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 void  OnShowTrajectoryFrames (MyWindowData &wd);
 //-------------------------------------------------------------------------------

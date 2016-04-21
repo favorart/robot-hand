@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
 
-#include "MyWindow.h"
+#include "WindowHeader.h"
 #include "WindowData.h"
 #include "Draw.h"
 
@@ -41,7 +41,13 @@ public:
     traj_s.push_back (nTraj);
   }
 
-  void  draw (HDC hdc, MyWindowData &wd) const;
+  void  draw (HDC hdc, MyWindowData &wd, HPEN hPen=NULL) const;
 };
+// ------------------------------------------------------------------------------------
+void    testLittleCorrectives (HandMoves::Store &store, Hand &hand, RecTarget &target,
+                               double radius, /* minimal distance between 2 neighbour points of target */
+                               double epsilont = EPS);
+size_t  littleTest (MyWindowData &wd, double radius);
+size_t  littleTest (MyWindowData &wd);
 // ------------------------------------------------------------------------------------
 #endif // _LTL_TESTS_H_

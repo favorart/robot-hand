@@ -8,7 +8,7 @@ namespace Positions
   //------------------------------------------------------------------------------
   void  insertRecordToBorders (borders_t &borders, const HandMoves::Record &rec)
   {
-    for ( auto &ctrl : rec.controls () )
+    for ( auto &ctrl : rec.controls )
     {
       for ( auto m : muscles )
       {
@@ -349,7 +349,7 @@ namespace Positions
           pd->predict (c, end);
 
         end.x += 0.1;
-        end.y += 0.05;
+        end.y -= 0.05;
         //----------------------------------------------
         // stats.fill (hand, target, controling, end);
       }
@@ -493,7 +493,7 @@ namespace Positions
         // -----------------------------------------------
         Hand::frames_t  n_control_summands = 0U;
         for ( auto &pRec : range )
-          for ( auto &c : pRec->controls () )
+          for ( auto &c : pRec->controls )
           {
             if ( c.muscle == m )
             {
@@ -640,7 +640,7 @@ namespace Positions
 
     distance = boost_distance (hand_position, aim);
     if ( distance > precision )
-    { rundownMethod (store, hand, aim, range.front ()->controls (), hand_position); }
+    { rundownMethod (store, hand, aim, range.front ()->controls, hand_position); }
 
     // -----------------------------------------------
 #ifdef _DEBUG_PRINT_RES
@@ -820,7 +820,7 @@ namespace Positions
               if ( last_steps[i] < 0 )
               { it->last = (last_prevs[i] >= -last_steps[i]) ? (last_prevs[i] + last_steps[i]) : 0U; }
               else
-              { it->last = (last_prevs[i] + last_steps[i]); }
+              { it->last = (last_prevs[i]  +  last_steps[i]); }
               // --------------------------
               int   j = (i % 2) ? (i - 1) : (i + 1);
               auto op = (i % 2) ? std::prev (it) : std::next (it);
@@ -829,7 +829,7 @@ namespace Positions
               if ( last_steps[j] < 0 )
               { op_last = (last_prevs[j] >= -last_steps[j]) ? (last_prevs[j] + last_steps[j]) : 0U; }
               else
-              { op_last = (last_prevs[j] + last_steps[j]); }
+              { op_last = (last_prevs[j]  +  last_steps[j]); }
               // --------------------------
               if ( it->last > op_last )
               {
@@ -1146,9 +1146,11 @@ namespace Positions
       if ( !ClothestRecords (store, aim, &rec0, &rec1, &rec2, &visited) )
       { return; }
 
-      distance = boost_distance (rec0.hit, aim);
+      new_distance = boost_distance (rec0.hit, aim);
+      if ( new_distance < distance )
+        distance = new_distance;
 
-      HandMoves::controling_t  init_controls = rec0.controls ();
+      HandMoves::controling_t  init_controls = rec0.controls;
       // -----------------------------------------------
       double  l_distance = boost_distance (aim, rec1.hit);
       double  g_distance = boost_distance (aim, rec2.hit);
@@ -1156,8 +1158,8 @@ namespace Positions
       double  d_d = (g_distance - l_distance);
       // -----------------------------------------------
       /* нужна !!данная точка!!! + 4 - в каждую сторону */
-      const auto &less_controls = rec1.controls ();
-      const auto &grtr_controls = rec2.controls ();
+      const auto &less_controls = rec1.controls;
+      const auto &grtr_controls = rec2.controls;
       // -----------------------------------------------
       HandMoves::controling_t  controls;
       // -----------------------------------------------
@@ -1175,45 +1177,47 @@ namespace Positions
         auto it_mc_l = boost::range::find (less_controls, mc);
         auto it_mc_g = boost::range::find (grtr_controls, mc);
 
-        int last_mo_i = (it_mo_i != init_controls.end ()) ? it_mo_i->last : 0U;
+        int last_mo_i = (it_mo_i != init_controls.end ()) ?  it_mo_i->last : 0U;
         int last_mo_l = (it_mo_l != less_controls.end ()) ? (it_mo_l->last - last_mo_i) : 0U;
         int last_mo_g = (it_mo_g != grtr_controls.end ()) ? (it_mo_g->last - last_mo_i) : 0U;
-
-        int last_mc_i = (it_mc_i != init_controls.end ()) ? it_mc_i->last : 0U;
+        
+        int last_mc_i = (it_mc_i != init_controls.end ()) ?  it_mc_i->last : 0U;
         int last_mc_l = (it_mc_l != less_controls.end ()) ? (it_mc_l->last - last_mc_i) : 0U;
         int last_mc_g = (it_mc_g != grtr_controls.end ()) ? (it_mc_g->last - last_mc_i) : 0U;
 
-        int direction_o = 0U;
+        const int  int_normalizer = 400;
+
+        int  direction_o = 0U;
+        int  direction_c = 0U;
+
         if ( last_mo_l || last_mo_g )
         {
-          int i = 1;
-          do
-          {
-            direction_o = ((d_d * i) / (last_mo_l + last_mo_g));
-            i *= 10;
-          } while ( direction_o == 0U );
+          double  d = d_d / (last_mo_l + last_mo_g);
+          // direction_o = ((d_d * int_normalizer) / (last_mo_l + last_mo_g));
+          direction_o = d * int_normalizer;
 
           if ( new_distance >= distance )
           { direction_o = (direction_o < 0) ? -1: 1; }
-          // if ( distance > 0.05 )
-          //   direction_o = ((d_d * i) / (last_mo_l + last_mo_g));
+          
+          // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          // BACKWARD MOVEMENT
+          if ( direction_o == 0 && d < 0. )
+          { direction_c = (direction_c) ? (direction_c + 1) : 50; }
         }
 
-        int  direction_c = 0U;
         if ( last_mc_l || last_mc_g )
         {
-          int i = 1;
-          do
-          {
-            direction_c = ((d_d * i) / (last_mc_l + last_mc_g));
-            i *= 10;
-          } while ( direction_c == 0U );
+          double d = d_d / (last_mc_l + last_mc_g);
+          // direction_c = ((d_d * int_normalizer) / (last_mc_l + last_mc_g));
+          direction_c = d * int_normalizer;
 
           if ( new_distance >= distance )
           { direction_c = (direction_c < 0) ? -1 : 1; }
 
-          // if ( distance > 0.05 )
-          //   direction_c = ((d_d * i) / (last_mc_l + last_mc_g));
+          // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          // BACKWARD MOVEMENT
+          if ( direction_c == 0 && d < 0. )
+          { direction_o = (direction_o) ? (direction_o + 1) : 50; }
         }
 
         Hand::frames_t last_o = 0U;
@@ -1241,21 +1245,30 @@ namespace Positions
       ++gradient_complexity;
 
       double d = boost_distance (hand_position, aim);
-      if ( d == new_distance )
-      { 
+      if ( d > side ) //== new_distance )
+      {
+        visited.clear ();
+
         Record rec0;
         ClothestRecords (store, aim, &rec0, NULL, NULL, &visited);
-        if ( rec0.controls ().size () )
+        if ( rec0.controls.size () )
         {
           Point hand_position = rec0.hit;
-          rundownMethod (store, hand, aim, rec0.controls (), hand_position);
+          rundownMethod (store, hand, aim, rec0.controls, hand_position);
           d = boost_distance (hand_position, aim);
         }
-        else
+        
+        if ( d == new_distance )
         { break; }
       }
 
-      if ( new_distance > distance && d > new_distance )
+      if ( new_distance > 0.1 )
+      {
+        visited.clear ();
+        // continue;
+      }
+
+      if ( new_distance > distance && d > 0.2 ) // new_distance )
       { break; }
       
       new_distance = d;

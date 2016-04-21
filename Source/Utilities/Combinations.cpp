@@ -1,6 +1,4 @@
-﻿#include "StdAfx.h"
-
-/*
+﻿/*
    A permutation of size r of a range of size n is a (not necessarily) sorted subsequence
    of size r of the total range, i.e., a subsequence of elements at r positions among
    the n positions in the range. 

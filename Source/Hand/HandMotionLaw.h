@@ -1,9 +1,5 @@
 ﻿#include "StdAfx.h"
 
-
-#include <iterator>
-#include <memory>
-
 #ifndef  _MOTION_LAWS_H_
 #define  _MOTION_LAWS_H_
 //------------------------------------------------------------------------------

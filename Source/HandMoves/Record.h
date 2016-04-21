@@ -8,7 +8,7 @@
 #include "Hand.h"
 using namespace OldHand;
 #elif HAND_VER == 2
-#include "NewHand.h"
+#include "Hand.h"
 using namespace NewHand;
 #include "HandMuscles.h"
 #endif
@@ -45,7 +45,7 @@ namespace HandMoves
     friend class boost::serialization::access;
     BOOST_SERIALIZATION_SPLIT_MEMBER ()
 
-      template <class Archive>
+    template <class Archive>
     void  save (Archive & ar, const unsigned int version) const
     {
       ar << aim_ << hand_begin_ << hand_final_;
@@ -75,14 +75,11 @@ namespace HandMoves
       Point hit_;
     };
     // ----------------------------------------
-    double hit_x () const { return hand_final_.x; }
-    double hit_y () const { return hand_final_.y; }
+    double  hit_x () const { return hand_final_.x; }
+    double  hit_y () const { return hand_final_.y; }
     // ----------------------------------------
-    double aim_x () const { return aim_.x; }
-    double aim_y () const { return aim_.y; }
-    // ----------------------------------------
-    Hand::MusclesEnum  muscles () const
-    { return  muscles_; }
+    double  aim_x () const { return aim_.x; }
+    double  aim_y () const { return aim_.y; }
     // ----------------------------------------
     Record () {}
 
@@ -122,27 +119,32 @@ namespace HandMoves
       return false;
     }
     // ----------------------------------------
+
+  // private:
+    // ----------------------------------------
+    const Point&         _get_aim () const { return aim_; }
+    const Point&         _get_hit () const { return hand_final_; }
+    const trajectory_t&  _get_traj () const { return visited_; }
+    Hand::MusclesEnum    _get_muscles () const { return  muscles_; }
+    size_t               _get_n_ctrls () const { return hand_controls_.size (); }
+    const controling_t&  _get_controls () const { return hand_controls_; }
+    // ----------------------------------------
+
+  // public:
+    // ----------------------------------------
     /* Microsoft specific: C++ properties */
-    __declspec(property(get = get_aim)) const Point &aim;
-    const Point&  get_aim () const { return aim_; }
-
-    __declspec(property(get = get_final)) const Point &hit;
-    const Point&  get_final () const { return hand_final_; }
-
-    __declspec(property(get = get_trajectory)) const trajectory_t &trajectory;
-    const trajectory_t  &get_trajectory () const { return visited_; }
-
-    __declspec(property(get = get_controls_count)) size_t  controlsCount;
-    size_t  get_controls_count () const { return hand_controls_.size (); }
-
-    size_t   controls_array (OUT std::array<Hand::Control,Record::maxControlsCount> &controls) const
+    __declspec(property(get = _get_aim))      const Point&         aim;
+    __declspec(property(get = _get_hit))      const Point&         hit;
+    __declspec(property(get = _get_traj))     const trajectory_t&  trajectory;
+    __declspec(property(get = _get_muscles))  Hand::MusclesEnum    muscles;
+    __declspec(property(get = _get_controls)) const controling_t&  controls;
+    __declspec(property(get = _get_n_ctrls))  size_t             n_controls;
+    // ----------------------------------------
+    size_t  controls_copy (OUT controling_t &controls) const
     {
-      size_t i = 0U;
-      for ( auto &hc : hand_controls_ )
-      { controls[i++] = hc; }
-      return controlsCount;
+      boost::range::copy (hand_controls_, std::back_inserter (controls));
+      return n_controls;
     }
-    const controling_t&  controls () const { return hand_controls_; }
     // ----------------------------------------
     bool    validateMusclesTimes    () const;
     void    repeatMove (IN Hand &hand) const

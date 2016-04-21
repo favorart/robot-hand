@@ -1,5 +1,5 @@
 ﻿#include "stdafx.h"
-#include "MyWindow.h"
+#include "WindowHeader.h"
 
 #ifndef  _DRAW_LETTERS_H_
 #define  _DRAW_LETTERS_H_

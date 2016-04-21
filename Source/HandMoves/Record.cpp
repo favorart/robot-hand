@@ -1,5 +1,5 @@
 ﻿#include "StdAfx.h"
-#include "HandMovesStore.h"
+#include "Store.h"
 
 using namespace std;
 using namespace HandMoves;
@@ -99,7 +99,7 @@ double  Record::eleganceMove () const
   { sum_time_muscles += hc.last; }
   
   /* Количество движений */
-  double controls_count_ratio = 1. / controlsCount;
+  double controls_count_ratio = 1. / n_controls;
   /* Количество задействованных мышц */
   double muscles_count_ratio = ratioUsedMusclesCount ();
   /* max.отклонение от оптимальной траектории */
@@ -160,7 +160,7 @@ double  Record::ratioTrajectoryDivirgence () const
 //---------------------------------------------------------
 Hand::frames_t  Record::longestMusclesControl () const
 {
-  const Hand::Control &longestControl = *boost::max_element (controls (),
+  const Hand::Control &longestControl = *boost::max_element (controls,
                                        [](const Hand::Control &a, const Hand::Control &b)
                                        { return (a.start + a.last) < (b.start + b.last); });
   return  (longestControl.start + longestControl.last);

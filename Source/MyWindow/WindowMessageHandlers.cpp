@@ -450,35 +450,31 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 #endif // _ANIMATION_
 
       //========================================
+      /* Фон не будет переписовываться */
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
     
     case 't':
     { //========================================
-      OnRandomTest (wd);
-      // MessageBox (hWnd, _T ("Done\n"), 
-      //             _T ("RandomTest"), MB_OK);
+      const size_t  tries = 1000U;
+      WorkerThreadRunStoreTask (wd, _T ("\n *** random test ***  "),
+                                HandMoves::test_random,
+                                wd.hand, tries);
+      WorkerThreadTryJoin (wd);
       //========================================
-      /* Фон не будет переписовываться */
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
     case 'p':
     {
-      Positions::LearnMovements lm;
-      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
-      // OnCoverTest (wd);
-
-      // tstring message;
-      // for ( auto &t : wd.testing_trajectories )
-      //   message += tstring (t.back ()) + tstring (_T ("\n"));
-      // MessageBox (hWnd, message.c_str (),
-      //             str (boost::wformat (_T ("CoverTest %1%")) %
-      //             wd.testing_trajectories.size ()).c_str (),
-      //             MB_OK);
+      const size_t nested = 2U;
+      WorkerThreadRunStoreTask (wd, _T ("\n *** cover test ***  "),
+                                HandMoves::test_cover,
+                                wd.hand, nested);
+      WorkerThreadTryJoin (wd);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
@@ -611,17 +607,15 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     }
 
     case 'i':
-    { // int muscle, last;
+    { 
+      Positions::LearnMovements lm;
+      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
+      //========================================
+      // int muscle, last;
       // cin >> muscle >> last;
       // wd.hand.move ((Hand::MusclesEnum)muscle, (Hand::time_t)last);
-      
-      // testLittleCorrectives (wd.store, wd.hand, wd.target,
-      //                        max(wd.target.x_distance,
-      //                            wd.target.y_distance));
-
-      littleTest (wd/*, 2. * max (wd.target.x_distance,
-                                wd.target.y_distance)*/);
-      InvalidateRect (hWnd, &myRect, FALSE);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 

@@ -1,6 +1,6 @@
 ﻿#include "StdAfx.h"
-#include "MyWindow.h"
-#include "NewHand.h"
+#include "WindowHeader.h"
+#include "Hand.h"
 
 #define HAND_VER 2
 #include "HandMuscles.h"

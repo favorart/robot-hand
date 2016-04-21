@@ -1,5 +1,5 @@
 ﻿#include "stdafx.h"
-#include "MyWindow.h"
+#include "WindowHeader.h"
 #include "DrawLetters.h"
 
 

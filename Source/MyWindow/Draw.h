@@ -3,7 +3,7 @@
 #ifndef  _DRAW_H_
 #define  _DRAW_H_
 
-#include "MyWindow.h"
+#include "WindowHeader.h"
 //------------------------------------------------------------------------------
 void  DrawDecardsCoordinates (HDC hdc);
 void  DrawTrajectory (HDC hdc, std::list<Point> &walk_through, HPEN hPen);
