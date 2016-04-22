@@ -58,7 +58,7 @@ inline double  random (double min, double max)
 //-------------------------------------------------------------------------------
 class MyWindowData;
 
-void RedirectIOToConsole ();
+void  RedirectIOToConsole ();
 //-------------------------------------------------------------------------------
 struct LabelsPositions
 {
@@ -110,6 +110,4 @@ void      MakeGradient (color_interval_t  colors,
                         size_t            n_levels,
                         gradient_t       &gradient);
 //-------------------------------------------------------------------------------
-#define _ANIMATION_
-
 #endif // _WINDOW_H_

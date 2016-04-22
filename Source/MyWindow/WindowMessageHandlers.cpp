@@ -1,6 +1,7 @@
 ﻿#include "StdAfx.h"
 #include "WindowData.h"
 #include "Draw.h"
+#include "Position.h"
 
 using namespace std;
 using namespace HandMoves;
@@ -184,7 +185,7 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
      << _T ("P - Cover Test  \rT - Random Test  \r")
      << _T ("Y - TargetCoverTest  \r\rG - Show scales  \r\r")
      << _T ("Ctrl+O - OpenFile  \rCtrl+S - SaveFile  \r\r");
-  // << _T ("Квадрат цели 10x10 точек  \r\rДля выбора цели отрисовки  \r")
+  // << _T ("Для выбора цели отрисовки  \r")
   // << _T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r")
   // << _T (", где 0 <= !no! - номер строки/столбца"),
 
@@ -193,15 +194,6 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
                WM_SETTEXT,       /* Message */
                (WPARAM) NULL,    /* Unused  */
                (LPARAM) ss.str ().c_str ());
-
-  // RegisterHotKey (NULL /* hWnd */, HK_OPEN, MOD_CONTROL | MOD_NOREPEAT, 0x4f); // 'O'
-  // RegisterHotKey (NULL /* hWnd */, HK_SAVE, MOD_CONTROL | MOD_NOREPEAT, 0x53); // 'S'
-  // RegisterHotKey (NULL /* hWnd */, HK_EXIT,               MOD_NOREPEAT, 0x1B); // 'Esc'       
-
-  // SetTimer (hWnd,                   /* Handle to main window */
-  //           IDT_TIMER_STROKE,       /* Timer identifier      */
-  //           USER_TIMER_MINIMUM,     /* 1/200-second interval */
-  //           (TIMERPROC) NULL);      /* No Timer callback     */
 
   SetTimer (hWnd,                   /* Handle to main window */
             IDT_TIMER_VISION,       /* Timer identifier      */
@@ -308,8 +300,8 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
       wd.hStaticBitmap = NULL;
     }
     /* Создаём новый растровый холст */
-    wd.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right - myRect.left,
-                                               myRect.bottom - myRect.top);
+    wd.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
+                                                    myRect.bottom - myRect.top);
     if ( !wd.hStaticBitmap )
     {
       MessageBox (hWnd, GetLastErrorToString ().c_str (),
@@ -400,10 +392,12 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
   switch ( wParam )
   {
     // case 0x0D: /* Process a carriage return */
+    // {
     //   fm = 0; fn = 0;
-    //   /* Фон не будет переписовываться */
-    //   InvalidateRect (hWnd, &myRect, TRUE /*0*/);
+    //   //========================================
+    //   InvalidateRect (hWnd, &myRect, TRUE);
     //   break;
+    // }
 
     case 'q':
     {
@@ -422,35 +416,17 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       wd.trajectory_frames.clear ();
       wd.hand.SET_DEFAULT;
 
-      // wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
-      wd.trajectory_frames_muscle = wd.hand.selectControl ();
-      wd.trajectory_frames_lasts = random (1U, wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
+      // // wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
+      // wd.trajectory_frames_muscle = wd.hand.selectControl ();
+      // wd.trajectory_frames_lasts = random (1U, wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
 
-#ifndef   _ANIMATION_
-      wd.hand.move (wd.trajectory_frames_muscle,
-                    wd.trajectory_frames_lasts,
-                    wd.trajectory_frames);
+      void  fillControlsRandom (IN Hand &hand, OUT HandMoves::controling_t &controls);
 
-      auto   hand_pos = wd.hand.position;
-      Point  hand_base = wd.trajectory_frames.front ();
-      // wd.trajectory_frames.pop_front ();
-      auto rec = Record (hand_pos, hand_base, hand_pos,
-                         { wd.trajectory_frames_muscle },
-                         { 0U }, { wd.trajectory_frames_lasts },
-                         1U, wd.trajectory_frames);
-      wd.store.insert (rec);
+      boost::optional<controling_t> controls = controling_t{};
+      fillControlsRandom (wd.hand, *controls);
 
-      wd.trajectory_frames.clear ();
-      wd.trajectory_frames_muscle = Hand::EmptyMov;
-      wd.trajectory_frames_lasts = 0;
-#else  // _ANIMATION_
-      wd.trajectory_frames_show = true;
-      wd.hand.step (wd.trajectory_frames_muscle,
-                    wd.trajectory_frames_lasts);
-#endif // _ANIMATION_
-
+      wd.trajectory_frames.step (wd.store, wd.hand, controls);
       //========================================
-      /* Фон не будет переписовываться */
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
@@ -459,7 +435,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     { //========================================
       const size_t  tries = 1000U;
       WorkerThreadRunStoreTask (wd, _T ("\n *** random test ***  "),
-                                HandMoves::test_random,
+                                HandMoves::testRandom,
                                 wd.hand, tries);
       WorkerThreadTryJoin (wd);
       //========================================
@@ -472,7 +448,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       //========================================
       const size_t nested = 2U;
       WorkerThreadRunStoreTask (wd, _T ("\n *** cover test ***  "),
-                                HandMoves::test_cover,
+                                HandMoves::testCover,
                                 wd.hand, nested);
       WorkerThreadTryJoin (wd);
       //========================================
@@ -556,35 +532,35 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'e':
     {
-      wd.hand.SET_DEFAULT;
-      wd.trajectory_frames.clear ();
-
-      controling_t controls;
-      // Hand::Control (Hand::ShldrCls, 0U, 200U);
-
-      controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
-      // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
-      controls.push_back (Hand::Control (Hand::ShldrOpn | Hand::ElbowCls, 201U, 55U));
-      // controls.push_back (Hand::Control (Hand::ElbowCls, 202U, 35U));
-
-      // trajectory_t  visited;
-      wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames);
+      // wd.hand.SET_DEFAULT;
+      // wd.trajectory_frames.clear ();
+      // 
+      // controling_t controls;
+      // // Hand::Control (Hand::ShldrCls, 0U, 200U);
+      // 
+      // controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
+      // // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
+      // controls.push_back (Hand::Control (Hand::ShldrOpn | Hand::ElbowCls, 201U, 55U));
+      // // controls.push_back (Hand::Control (Hand::ElbowCls, 202U, 35U));
+      // 
+      // // trajectory_t  visited;
+      // wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames.trajectory);
       break;
     }
 
     case 'w':
     {
-      wd.hand.SET_DEFAULT;
-      wd.trajectory_frames.clear ();
-      
-      controling_t controls;
-      // Hand::Control (Hand::ShldrCls, 0U, 200U);
-
-      controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
-      // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
-
-      // trajectory_t  visited;
-      wd.hand.move (controls.begin (), controls. end (), &wd.trajectory_frames);
+      // wd.hand.SET_DEFAULT;
+      // wd.trajectory_frames.clear ();
+      // 
+      // controling_t controls;
+      // // Hand::Control (Hand::ShldrCls, 0U, 200U);
+      // 
+      // controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
+      // // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
+      // 
+      // // trajectory_t  visited;
+      // wd.hand.move (controls.begin (), controls. end (), &wd.trajectory_frames.trajectory);
       break;
     }
 
@@ -713,15 +689,12 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     {
       wd.hand.SET_DEFAULT;
 
-      wd.reach = false;
-
       wd.adjPointsDB.clear ();
       wd.trajectoriesDB.clear ();
 
       wd.mouse_haved = false;
 
       wd.trajectory_frames.clear ();
-      wd.trajectory_frames_show = false;
       wd.testing_trajectories.clear ();
 
       wd.uncoveredPoints.clear ();

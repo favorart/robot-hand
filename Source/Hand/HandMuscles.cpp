@@ -20,40 +20,40 @@ Hand::MusclesEnum  NewHand::operator^ (Hand::MusclesEnum m, Hand::MusclesEnum k)
 
 tostream&  NewHand::operator<< (tostream &out, Hand::MusclesEnum muscle)
 {
-  if ( !muscle )  return  out << _T("EmptyMov"); // Hand::
+  if ( !muscle )  return  out << _T(" EmptyMov"); // Hand::
 
   for ( auto m : muscles )
   {
     if ( m & muscle )
       switch ( m )
       {
-        // case Hand::EmptyMov: out << _T("EmptyMov "); break; // Hand::
-        case Hand::ClvclOpn: out << _T("ClvclOpn"); break; // Hand::
-        case Hand::ClvclCls: out << _T("ClvclCls"); break; // Hand::
-        case Hand::ShldrOpn: out << _T("ShldrOpn"); break; // Hand::
-        case Hand::ShldrCls: out << _T("ShldrCls"); break; // Hand::
-        case Hand::ElbowOpn: out << _T("ElbowOpn"); break; // Hand::
-        case Hand::ElbowCls: out << _T("ElbowCls"); break; // Hand::
-        case Hand::WristOpn: out << _T("WristOpn"); break; // Hand::
-        case Hand::WristCls: out << _T("WristCls"); break; // Hand::
+        // case Hand::EmptyMov: out << _T(" EmptyMov"); break; // Hand::
+        case Hand::ClvclOpn: out << _T(" ClvclOpn"); break; // Hand::
+        case Hand::ClvclCls: out << _T(" ClvclCls"); break; // Hand::
+        case Hand::ShldrOpn: out << _T(" ShldrOpn"); break; // Hand::
+        case Hand::ShldrCls: out << _T(" ShldrCls"); break; // Hand::
+        case Hand::ElbowOpn: out << _T(" ElbowOpn"); break; // Hand::
+        case Hand::ElbowCls: out << _T(" ElbowCls"); break; // Hand::
+        case Hand::WristOpn: out << _T(" WristOpn"); break; // Hand::
+        case Hand::WristCls: out << _T(" WristCls"); break; // Hand::
       }
   }
   return out;
 }
 tostream&  NewHand::operator<< (tostream &out, Hand::JointsEnum   joint)
 {
-  if ( !joint )  return  out << _T("Empty"); // Hand::
+  if ( !joint )  return  out << _T(" Empty"); // Hand::
 
   for ( auto j : joints )
   {
     if ( j & joint )
       switch ( j )
       {
-        // case Hand::Empty: out << _T("Empty"); break; // Hand::
-        case Hand::Clvcl: out << _T("Clvcl"); break; // Hand::
-        case Hand::Shldr: out << _T("Shldr"); break; // Hand::
-        case Hand::Elbow: out << _T("Elbow"); break; // Hand::
-        case Hand::Wrist: out << _T("Wrist"); break; // Hand::
+        // case Hand::Empty: out << _T(" Empty"); break; // Hand::
+        case Hand::Clvcl: out << _T(" Clvcl"); break; // Hand::
+        case Hand::Shldr: out << _T(" Shldr"); break; // Hand::
+        case Hand::Elbow: out << _T(" Elbow"); break; // Hand::
+        case Hand::Wrist: out << _T(" Wrist"); break; // Hand::
       }
   
   }

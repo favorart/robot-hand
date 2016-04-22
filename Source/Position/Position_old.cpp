@@ -1,5 +1,6 @@
 ﻿#include "StdAfx.h"
 #include "Position.h"
+#include "DirectionPredictor.h"
 
 namespace Positions
 {

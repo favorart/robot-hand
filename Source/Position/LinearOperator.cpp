@@ -1,12 +1,4 @@
-
-#if   HAND_VER == 1
-#include "Hand.h"
-using namespace OldHand;
-#elif HAND_VER == 2
-#include "Hand.h"
-using namespace NewHand;
-#include "HandMuscles.h"
-#endif
+#include "StdAfx.h"
 
 #include "Position.h"  
 #include "Store.h"
@@ -25,11 +17,7 @@ namespace SimplexMethod
   };
 };
 //------------------------------------------------------------------------------
-
-// extern "C"
-//{
 #include "qr_solve.hpp"
-//};
 
 extern "C"
 {
@@ -276,6 +264,5 @@ namespace Positions
       } // end if
     } // end if
   }
-  //------------------------------------------------------------------------------
 };
 //------------------------------------------------------------------------------

@@ -11,6 +11,9 @@
 // !?!?!?!?!?! КОНФИГУРАЦИОННЫЕ ФАЙЛЫ !?!?!?!?
 // !?!?!?!?!?! ФАЙЛЫ, как интерфейс управления !?!?!?!?
 //------------------------------------------------------------------------------
+// #define _TESTING_TRAJECTORIES_ANIMATION_ 1
+// #define _DRAW_STORE_GRADIENT_
+//------------------------------------------------------------------------------
 class MyWindowData
 {
   // ---------------------------------
@@ -25,28 +28,53 @@ public:
   bool    hStaticBitmapChanged = true;  
   // ---------------------------------
   /* координаты мыши в пикселях */
-  bool       mouse_haved;
+  bool       mouse_haved = false;
   win_point  mouse_coords;
   Point      mouse_aim;
-    
   // ---------------------------------
-
   const double  radius = 0.05;
-  const size_t  skip_show_steps = 15U;
+  const double  side   = 0.001;
 
-  tstring  CurFileName = tstring(HAND_NAME) + tstring (_T ("_moves.bin"));
-  size_t   store_size;
+  // ---------------------------------
+  boost::thread  *pWorkerThread;
+  // ---------------------------------
+  bool testing;
 
   // --- show_frames_trajectory ------
+  class TrajectoryFrames
+  {
+    bool                      show_;
+    HandMoves::trajectory_t   trajectory_;
+    // ---------------------------------
+    const size_t  skip_show_steps = 15U;
+    // ---------------------------------
+    boost::optional<HandMoves::controling_t>         controls_;
+    boost::optional<Hand::frames_t>                      time_;
+    boost::optional<HandMoves::controling_t::iterator>   iter_;
+    // ---------------------------------
 
-  HandMoves::trajectory_t   trajectory_frames;
-  Hand::MusclesEnum         trajectory_frames_muscle;
-  Hand::time_t              trajectory_frames_lasts;
-  bool                      trajectory_frames_show;
+  public:
+    // ---------------------------------
+    bool animation = true;
+    
+    // ---------------------------------
+    /* Microsoft specific: C++ properties */
+    __declspec(property(get=_get_traj, put=_put_traj)) const HandMoves::trajectory_t &trajectory;
+    const HandMoves::trajectory_t& _get_traj () const { return trajectory_; }
+    void _put_traj (const HandMoves::trajectory_t& traj) { show_ = true; trajectory_ = traj; }
+
+    // ---------------------------------
+    void  step (HandMoves::Store &store, Hand &hand,
+                const boost::optional<HandMoves::controling_t> controls=boost::none);
+    void  draw (HDC hdc, HPEN hPen) const;
+    void  clear ();
+    // ---------------------------------
+
+  } trajectory_frames;
   // ---------------------------------
 
-  bool  working_space_show;
-  HandMoves::trajectory_t  working_space;
+  bool                      working_space_show;
+  HandMoves::trajectory_t   working_space;
 
   // --- adjacency -------------------
   bool allPointsDB_show;
@@ -63,17 +91,19 @@ public:
   HandMoves::Store store;
 
   // ---------------------------------
-  bool testing;
-  bool reach;
+  size_t   store_size;
+  tstring  CurFileName = tstring (HAND_NAME) + tstring (_T ("_moves.bin"));
 
-  // !!!!!!!!!!!! ЗАМЕНИЛЛЛЛЛ !!!!! проверить везде
-  std::list<HandMoves::trajectory_t>  testing_trajectories;
-  bool testing_trajectories_show; // ?? CheckBox
-  
+  // --------------------------------
+
+  HandMoves::trajectories_t  testing_trajectories;
+  bool                       testing_trajectories_show;
+
+#ifdef    _TESTING_TRAJECTORIES_ANIMATION_
   size_t  testing_trajectories_animation_num_iteration = 1;
   bool    testing_trajectories_animation_show = false;
+#endif // _TESTING_TRAJECTORIES_ANIMATION_
 
-  boost::thread *pWorkerThread;
   // ---------------------------------
   // LittleTest *lt;
   // size_t no;
@@ -81,8 +111,6 @@ public:
 
   std::list<Point> uncoveredPoints;
   bool             uncovered_show = true;
-
-  Positions::DirectionPredictor  pd;
 
   /* Набор пользователем чисел */
   // static int  flag_m, flag_n;
@@ -92,20 +120,19 @@ public:
  ~MyWindowData ();
 };
 //-------------------------------------------------------------------------------
-template<typename Function, typename... Args>
-inline void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Function task, Args... args)
+template<typename Function, typename... Args> inline
+void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Function task, Args... args)
 {
   if ( !wd.testing && !wd.pWorkerThread )
   {
     wd.testing = true;
     /* Set text of label 'Stat'  */
-    SendMessage (wd.hLabTest, WM_SETTEXT, NULL,
-                 reinterpret_cast<LPARAM> (message.c_str ()));
+    SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
 
     wd.pWorkerThread = new boost::thread (task, std::ref (wd.store), args...);
   }
 }
-       void  WorkerThreadTryJoin      (MyWindowData &wd);
+void  WorkerThreadTryJoin      (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 void  OnPaintStaticBckGrnd (HDC hdc, MyWindowData &wd);
 void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd);
@@ -114,9 +141,7 @@ void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd);
 void  OnWindowTimer (MyWindowData &wd);
 void  OnWindowMouse (MyWindowData &wd);
 //-------------------------------------------------------------------------------
-void  OnShowTrajectoryFrames (MyWindowData &wd);
-//-------------------------------------------------------------------------------
 void  OnShowDBPoints (MyWindowData &wd);
-// void  OnShowDBTrajectories (MyWindowData &wd);
+void  OnShowDBTrajes (MyWindowData &wd);
 //------------------------------------------------------------------------------
 #endif // _WINDOW_DATA_H_

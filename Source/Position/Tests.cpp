@@ -4,7 +4,29 @@
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
-void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
+void  fillControlsRandom (IN Hand &hand, OUT HandMoves::controling_t &controls)
+{
+  const Hand::frames_t last_min = 50U;
+
+  Hand::MusclesEnum  muscle = Hand::EmptyMov;
+  Hand::frames_t       last = 0U;
+  Hand::frames_t      start = 0U;
+
+  size_t  moves_count = random (1, 3); // Record::maxControlsCount);
+  for ( size_t j = 0U; j < moves_count; ++j )
+  {
+    muscle = hand.selectControl ();
+    if ( !last )
+    { last = random (last_min, hand.maxMuscleLast (muscle) / 2U); }
+    else
+    { last = random (last_min, last); }
+
+    controls.push_back (Hand::Control (muscle, start, last));
+    start += (last + 1U);
+  }
+}
+//------------------------------------------------------------------------------
+void  HandMoves::testRandom (Store &store, Hand &hand, size_t tries)
 {
   const Hand::frames_t last_min = 50U;
 
@@ -13,45 +35,21 @@ void  HandMoves::test_random (Store &store, Hand &hand, size_t tries)
     /* Для нового потока нужно снова переинициализировать rand */
     std::srand ((unsigned int) clock ());
 
-    hand.SET_DEFAULT;
-    Point hand_pos_base = hand.position;
-
     for ( size_t i = 0U; i < tries; ++i )
     {
       controling_t  controls;
+      fillControlsRandom (hand, controls);
 
-      Hand::MusclesEnum  muscle = Hand::EmptyMov;
-      Hand::frames_t       last = 0U;
-      Hand::frames_t      start = 0U;
-
-      size_t  moves_count = random (1, 3); // Record::maxControlsCount);
-      for ( size_t j = 0U; j < moves_count; ++j )
-      {
-        muscle = hand.selectControl ();
-        if ( !last )
-        { last = random (last_min, hand.maxMuscleLast (muscle) / 2U); }
-        else
-        { last = random (last_min, last); }
-
-        controls.push_back (Hand::Control (muscle, start, last));
-        start += (last + 1U);
-      }
-      
-      trajectory_t  trajectory;
-      hand.move (controls.begin (), controls.end (), &trajectory);
-
-      const Point&  hand_position = hand.position;
-      store.insert (Record (hand_position, hand_pos_base, hand_position,
-                            controls, trajectory));
-      hand.SET_DEFAULT;
+      store.insert (hand, controls);
 
       boost::this_thread::interruption_point ();
     } // for tries
+    hand.SET_DEFAULT;
   }
   catch ( boost::thread_interrupted& )
   { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
 }
-void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
+void  HandMoves::testCover  (Store &store, Hand &hand, size_t nesting)
 {
   const Hand::frames_t last_min  = 50U;
   const Hand::frames_t last_step = 10U;
@@ -75,8 +73,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
                               1U, trajectory) );
 
         //=================================================
-        if ( nesting == 1U )
-        { continue; }
+        if ( nesting < 2U ) { continue; }
         //=================================================
         for ( Hand::MusclesEnum muscle_j : hand.muscles_ )
           {
@@ -97,8 +94,7 @@ void  HandMoves::test_cover  (Store &store, Hand &hand, size_t nesting)
 
               ++tail_j;
               //=================================================
-              if ( nesting == 2U )
-              { continue; }
+              if ( nesting < 3U ) { continue; }
               //=================================================
               for ( Hand::MusclesEnum muscle_k : hand.muscles_ )
               {

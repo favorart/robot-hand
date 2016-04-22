@@ -15,7 +15,7 @@ class CanvasScaleLetters
   tstringstream ss_;
 
 public:
-  
+  // ----------------------
   bool show;
 
   double RealScale;
@@ -25,6 +25,7 @@ public:
   tstring txtXScale;
   tstring txtYScale;
 
+  // ----------------------
    CanvasScaleLetters (const Point &RecTargetMinPos,
                        const Point &RecTargetMaxPos);
   ~CanvasScaleLetters ()

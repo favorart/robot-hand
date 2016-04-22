@@ -1,16 +1,13 @@
 ﻿#include "stdafx.h"
 #include "WindowHeader.h"
 #include "DrawLetters.h"
-
-
 //------------------------------------------------------------------------------
 CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
                                         const Point &RecTargetMaxPos) :
   show (false), targetMin_ (RecTargetMinPos), targetMax_ (RecTargetMaxPos)
 {
   NormScale = 30.;
-  RealScale = boost::geometry::distance (boost_point2_t (targetMax_),
-                                         boost_point2_t (targetMin_));
+  RealScale = boost_distance (targetMin_, targetMax_);
 
   ss_ << std::fixed << std::setprecision (2);
 
@@ -93,19 +90,19 @@ void  CanvasScaleLetters::draw (HDC hdc,
     auto it = handJoints.begin (), next = it + 1;
     do
     {
-      // Calculate value of scale
-      double Scale = boost::geometry::distance (boost_point2_t (**it),
-                                                boost_point2_t (**next)) / RealScale * NormScale;
+      /* Calculate value of scale */
+      double Scale = boost_distance (**it, **next) / (RealScale * NormScale);
 
       ss_ << Scale << _T (" sm");
       tstring strHandScale = ss_.str ();
       ss_.str (tstring ());
       ss_.clear ();
 
-      // Calculate angle
-      double angle = atan2 (((*it)->y - (*next)->y), ((*it)->x  - (*next)->x)) * 180. / M_PI;// +180.;
+      /* Calculate angle */
+      double angle = atan2 (((*it)->y - (*next)->y),
+                            ((*it)->x - (*next)->x)) * 180. / M_PI;
 
-      // Calculate position
+      /* Calculate position */
       Point pos (((*next)->x + (*it)->x) / 2., ((*next)->y + (*it)->y) / 2.);
 
       LOGFONT lf = lf_;
@@ -116,9 +113,9 @@ void  CanvasScaleLetters::draw (HDC hdc,
       oldFont = (HFONT) SelectObject (hdc, Font);
       //---------------------------------------
       TextOut ( hdc,
-                Tx (pos.x), Ty (pos.y) /* - lf.lfHeight */,  /* Location of the text */
-                strHandScale.c_str (),                              /* Text to print */
-                (int) strHandScale.size ()                       /* Size of the text */
+                Tx (pos.x), Ty (pos.y),  /* Location of the text */
+                strHandScale.c_str (),          /* Text to print */
+                (int) strHandScale.size ()   /* Size of the text */
                );
       //---------------------------------------
       SelectObject (hdc, oldFont);

@@ -4,8 +4,8 @@
 using namespace std;
 using namespace HandMoves;
 //------------------------------------------------------------------------------
-size_t  HandMoves::Store::adjacencyByPBorders (IN const Point &aim, // IN double side,
-                                               OUT std::pair<Record, Record> &d_pair)
+size_t  HandMoves::Store::adjacencyByPBorders  (IN  const Point &aim,
+                                                OUT std::pair<Record, Record> &d_pair)
 {
   boost::lock_guard<boost::mutex>  lock (store_mutex_);
   // -----------------------------------------------
@@ -25,59 +25,6 @@ size_t  HandMoves::Store::adjacencyByPBorders (IN const Point &aim, // IN double
     { d_pair = std::make_pair (*iterUpper, *iterLower); }
   }
   // -----------------------------------------------
-  return count;
-}
-size_t  HandMoves::Store::adjacencyByPBorders  (IN  const Point &aim, IN double side,
-                                                OUT std::pair<Record, Record> &x_pair,
-                                                OUT std::pair<Record, Record> &y_pair)
-{
-  boost::lock_guard<boost::mutex>  lock (store_mutex_);
-  //-------------------------------------------------------
-  MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
-  auto pair = index.range (boost::make_tuple ((aim.x - side), (aim.y - side)) <= boost::lambda::_1,
-                           boost::lambda::_1 <= boost::make_tuple ((aim.x + side), (aim.y + side)));
-  //-------------------------------------------------------
-  size_t  count = 0U;
-  //-------------------------------------------------------
-  decltype(pair.first)  it_max_x = index.end ();
-  decltype(pair.first)  it_min_x = index.end ();
-  decltype(pair.first)  it_max_y = index.end ();
-  decltype(pair.first)  it_min_y = index.end ();
-  //-------------------------------------------------------
-  for ( auto it = pair.first; it != pair.second; ++it )
-  {
-    const Point &HIT = it->hit;
-    if ( ((aim.x - side) <= it->hit.x) && (it->hit.x <= (aim.x + side))
-      && ((aim.y - side / 1.5) <= it->hit.y) && (it->hit.y <= (aim.y + side / 1.5) ) )
-    {
-      if ( (it->hit.x < aim.x) )
-        if ( (it_max_x == index.end () || it_max_x->hit.x < it->hit.x) )
-        { it_max_x = it; }
-
-      if ( (it->hit.x > aim.x) )
-        if ( (it_min_x == index.end () || it_min_x->hit.x > it->hit.x) )
-      { it_min_x = it; }
-    }
-
-    if ( ((aim.x - side / 1.5) <= it->hit.x) && (it->hit.x <= (aim.x + side / 1.5))
-      && ((aim.y - side) <= it->hit.y) && (it->hit.y <= (aim.y + side)) )
-    {
-      if ( (it->hit.y < aim.y) )
-        if ( (it_max_y == index.end () || it_max_y->hit.y < it->hit.y) )
-        { it_max_y = it; }
-
-      if ( (it->hit.y > aim.y) )
-        if ((it_min_y == index.end () || it_min_y->hit.y > it->hit.y) )
-      { it_min_y = it; }
-    }
-  }
-  //-------------------------------------------------------
-  if ( it_max_x != index.end () && it_min_x != index.end () )
-  { x_pair = std::make_pair (*it_max_x, *it_min_x); count += 2U; }
-
-  if ( it_max_y != index.end () && it_min_y != index.end () )
-  { y_pair = std::make_pair (*it_max_y, *it_min_y); count += 2U; }
-  //-------------------------------------------------------
   return count;
 }
 //------------------------------------------------------------------------------
@@ -135,7 +82,6 @@ size_t  HandMoves::Store::adjacencyByXYBorders (IN  const Point &aim, IN double 
   return count;
 }
 //------------------------------------------------------------------------------
-// enum { Pixels, Ellipses };
 void  HandMoves::Store::draw (HDC hdc, double circleRadius, HPEN hPen) const
 {
   HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
@@ -146,7 +92,7 @@ void  HandMoves::Store::draw (HDC hdc, double circleRadius, HPEN hPen) const
     for ( auto &rec : store_ )
     {
       /*  Если в одну точку попадают несколько движений -
-      *  выбрать лучшее движение по элегантности */
+       *  выбрать лучшее движение по элегантности */
 
       auto pRec = map_points.find (rec.hit);
       if ( pRec != map_points.end () )
@@ -239,6 +185,7 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius)
   for ( auto hPen : hPens )
   { DeleteObject (hPen); }
 }
+//------------------------------------------------------------------------------
 void  HandMoves::Store::save (tstring filename) const
 {
   boost::this_thread::disable_interruption  no_interruption;
@@ -312,5 +259,19 @@ void  HandMoves::Store::insert (const Record &rec)
   }
   catch ( ... )
   { MessageBox (NULL, GetLastErrorToString ().c_str (), _T (" Error "), MB_OK); }
+}
+//------------------------------------------------------------------------------
+void  HandMoves::Store::insert (Hand &hand, const controling_t &controls)
+{
+  trajectory_t  trajectory;
+
+  hand.SET_DEFAULT;
+  Point hand_pos_base = hand.position;
+
+  hand.move (controls.begin (), controls.end (), &trajectory);
+
+  const Point&  hand_position = hand.position;
+  insert (Record (hand_position, hand_pos_base, hand_position,
+                  controls, trajectory));
 }
 //------------------------------------------------------------------------------

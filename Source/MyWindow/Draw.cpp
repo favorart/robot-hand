@@ -1,4 +1,5 @@
 ﻿#include "StdAfx.h"
+
 #include "Draw.h"
 //------------------------------------------------------------------------------
 void  DrawDecardsCoordinates (HDC hdc)
@@ -27,33 +28,31 @@ void  DrawDecardsCoordinates (HDC hdc)
  }
 }
 //------------------------------------------------------------------------------
-//#include <gdiplus.h>
-/* Drawing the trajectory, where we got ... */
-void  DrawTrajectory (HDC hdc, std::list<std::shared_ptr<Point>> &trajectory, HPEN hPen)
+void  DrawTrajectory (HDC hdc, const HandMoves::trajectory_refs_t &trajectory, HPEN hPen)
 {
   if ( !trajectory.empty () )
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
     //------------------------------------------------------------------
-    const auto p = trajectory.front ();
+    const auto &p = trajectory.front ();
     MoveToEx (hdc, Tx (p->x), Ty (p->y), NULL);
-    for ( auto p : trajectory )
+    for ( const auto &p : trajectory )
     { LineTo (hdc, Tx (p->x), Ty (p->y)); }
     //------------------------------------------------------------------
     // отменяем ручку
     SelectObject (hdc, hPen_old);
   }
 }
-void  DrawTrajectory (HDC hdc, std::list<Point> &trajectory, HPEN hPen)
+void  DrawTrajectory (HDC hdc, const HandMoves::trajectory_t      &trajectory, HPEN hPen)
 {
   if ( !trajectory.empty () )
   {
     HPEN hPen_old = (HPEN) SelectObject (hdc, hPen);
     //------------------------------------------------------------------
-    Point &p = trajectory.front ();
+    const Point &p = trajectory.front ();
     MoveToEx (hdc, Tx (p.x), Ty (p.y), NULL);
 
-    for ( auto p : trajectory )
+    for ( const Point &p : trajectory )
     { LineTo (hdc, Tx (p.x), Ty (p.y)); }
     //------------------------------------------------------------------
     // отменяем ручку

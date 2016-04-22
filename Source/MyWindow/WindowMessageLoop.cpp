@@ -7,7 +7,6 @@ using namespace MotionLaws;
 
 #define  WM_USER_TIMER  WM_USER+3
 #define  WM_USER_STORE  WM_USER+4
-
 //------------------------------------------------------------------------------
 LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 {
@@ -15,9 +14,9 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
                hLabMAim, hLabTest, hLabStat;
   static LabelsPositions lp;
   static RECT    myRect;
-  //------------------------------------------------------------------------------
+  // ----------------------
   static MyWindowData  *wd;
-  //------------------------------------------------------------------------------
+  // ----------------------
   switch ( messg )
   {
     case WM_CREATE:
@@ -40,8 +39,6 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
                                 { store.load (filename); },
                                 wd->CurFileName);
       WorkerThreadTryJoin (*wd);
-
-      // storeLoad (wd->store, wd->CurFileName);
 
       SendMessage (hWnd, WM_USER_STORE, NULL, NULL);
       //=======================
@@ -98,8 +95,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_USER_TIMER:
-    {
-      // KillTimer (hWnd, IDT_TIMER_STROKE);
+    { 
       KillTimer (hWnd, IDT_TIMER_VISION);
       break;
     }
@@ -129,7 +125,7 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
               wd->hStaticBitmapChanged = true;
           }
 
-          if ( wd->testing || wd->reach )
+          if ( wd->testing )
           { WorkerThreadTryJoin (*wd); }
           //=======================
           InvalidateRect (hWnd, &myRect, false);
@@ -142,64 +138,18 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
     case WM_USER_STORE:
     { //=======================
-      { // tstringstream ss << _T ("Storage size ") << wd->store.size () << _T("  ");
+      { 
         wd->store_size = wd->store.size ();
-        tstring str_size = str (boost::wformat (_T ("Storage size %1%  ")) % wd->store_size);
+        tstringstream ss;
+        ss << _T ("Storage size ") << wd->store_size << _T ("  ");
+
         /* Setting the Label's text */
         SendMessage (wd->hLabStat,     /* Label Stat */
                      WM_SETTEXT,       /* Message    */
                      (WPARAM) NULL,    /* Unused     */
-                     (LPARAM) str_size.c_str ()); // ss.str ().c_str ());
+                     (LPARAM) ss.str ().c_str ());
       }
       //=======================
-      break;
-    }
-
-    case WM_HOTKEY:
-    {
-      // switch ( wParam )
-      // {
-      //   case HK_EXIT:
-      //     SendMessage (hWnd, WM_QUIT, 0, 0);
-      //     break;
-      // 
-      //   case HK_OPEN: // open input text file
-      //   { 
-      //  tstring  FileName = OpenFileDialog (hWnd);
-      //  tstring  DefaultName = wd->CurFileName;
-      // 
-      //  if ( !FileName.empty () )
-      //  {
-      //    WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
-      //                              [FileName, DefaultName](HandMoves::Store &store)
-      //                              {
-      //                                if ( !store.empty () )
-      //                                { store.save (DefaultName);
-      //                                  store.clear ();
-      //                                }
-      //                                storeLoad (store, FileName);
-      //                              });
-      //    wd->CurFileName = FileName;
-      //  }
-      //  break;
-      // 
-      // 
-      //   case HK_SAVE:
-      //   { 
-      //     // tstring  FileName = SaveFileDialog (hWnd);
-      //     if ( !wd->store.empty () )
-      //     {
-      //       tstringstream ss;
-      //       ss << HAND_NAME
-      //          << CurrentTimeToString (_T ("_%d-%m-%Y_%I-%M-%S")) 
-      //          << _T ("_moves.bin");
-      //       WorkerThreadRunStoreTask (*wd, _T ("  *** saving ***  "),
-      //                                 storeSave, ss.str ());
-      //     }          
-      //     break;
-      //   }
-      //   
-      // }
       break;
     }
       
@@ -240,15 +190,16 @@ LRESULT CALLBACK  WndProc (HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
             if ( !FileName.empty () )
             {
               WorkerThreadRunStoreTask (*wd, _T ("  *** loading ***  "),
-                                        [FileName, DefaultName](HandMoves::Store &store) {
-                if ( !store.empty () )
-                {
-                  store.save (DefaultName);
-                  store.clear ();
-                }
-                store.load (FileName);
-              });
-              wd->CurFileName = FileName;
+                                        [FileName, DefaultName](HandMoves::Store &store)
+                                        {
+                                          if ( !store.empty () )
+                                          {
+                                            store.save (DefaultName);
+                                            store.clear ();
+                                          }
+                                          store.load (FileName);
+                                        });
+                                        wd->CurFileName = FileName;
             }
           }
           break;

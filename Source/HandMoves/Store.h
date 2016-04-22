@@ -2,8 +2,6 @@
 
 #ifndef  _HAND_MOVES_H_
 #define  _HAND_MOVES_H_
-
-// #define  _DEBUG_PRINT
 //------------------------------------------------------------------------------
 #include "Record.h"
 #include "WindowHeader.h"
@@ -18,8 +16,8 @@ namespace HandMoves
   struct ByD {};
   struct ByC {};
 
-  typedef std::list<Record> adjacency_t;
-  typedef std::list<std::shared_ptr<Record>> adjacency_refs_t;
+  typedef std::list<Record>                   adjacency_t;
+  typedef std::list<std::shared_ptr<Record>>  adjacency_refs_t;
 
   using namespace boost::multi_index;
   class Store // DataBase
@@ -38,12 +36,20 @@ namespace HandMoves
         return seed;
       }
     };
-
+    //------------------------------------------------------------------------------
+    class RangeInserter
+    {
+    public:
+      void operator () (OUT adjacency_t &range, IN const Record &rec)
+      { range.push_back (rec); }
+      void operator () (OUT adjacency_refs_t &range, IN const Record &rec)
+      { range.push_back (std::make_shared<Record> (rec)); }
+    };
     //------------------------------------------------------------------------------
     typedef boost::multi_index_container
     < Record,
       indexed_by < hashed_unique      < tag<ByC>,
-                                        const_mem_fun < Record, controling_t const & /*const*/, &Record::_get_controls>,
+                                        const_mem_fun < Record, const controling_t&, &Record::_get_controls>,
                                         ControlingHasher
                                       >,
                    ordered_non_unique < tag<ByP>,
@@ -61,7 +67,7 @@ namespace HandMoves
                    ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x > >,
                    ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y > >,
                    ordered_non_unique < tag<ByD>, const_mem_fun<Record, double, &Record::distanceCovered > > // ,
-                // random_access      < > // доступ, как у вектору
+                   // random_access      < > // доступ, как у вектору
                  >
     > MultiIndexMoves;
     //==============================================================================
@@ -74,15 +80,6 @@ namespace HandMoves
     //==============================================================================
   public:
     Store () : minTimeLong (0U), maxTimeLong (0U) {}
-    //------------------------------------------------------------------------------
-    class RangeInserter
-    {
-    public:
-      void operator () (OUT adjacency_t &range, IN const Record &rec)
-      { range.push_back (rec); }
-      void operator () (OUT adjacency_refs_t &range, IN const Record &rec)
-      { range.push_back (std::make_shared<Record> (rec)); }
-    };
     //------------------------------------------------------------------------------
     const Record&   ClothestPoint (IN const Point &aim)
     {
@@ -207,22 +204,42 @@ namespace HandMoves
     //------------------------------------------------------------------------------
     /* Все точки в данном index_t, равные x, попадающие в интервал (down, up)  */
     template <class range_t>
-    size_t  adjacencyByPBorders  (OUT range_t &range, IN const Point &aim, IN double side)
+    size_t  adjacencyByPBorders  (OUT range_t &range, IN const Point &aim, IN double side=0.1)
     {
-      std::pair<Record, Record>  x_pair, y_pair;
-      size_t count = adjacencyByPBorders (aim, side, x_pair, y_pair);
+      // std::pair<Record, Record>  x_pair, y_pair;
+      // size_t count = adjacencyByPBorders (aim, side, x_pair, y_pair);
+      // // -----------------------------------------------
+      // RangeInserter  rangeInserter;
+      // rangeInserter (range, x_pair.first);
+      // rangeInserter (range, x_pair.second);
+      // rangeInserter (range, y_pair.first);
+      // rangeInserter (range, y_pair.second);
+      
       // -----------------------------------------------
-      RangeInserter  rangeInserter;
-      rangeInserter (range, x_pair.first);
-      rangeInserter (range, x_pair.second);
-      rangeInserter (range, y_pair.first);
-      rangeInserter (range, y_pair.second);
+      adjacencyRectPoints<range_t, ByP> (range, Point (aim.x - side, aim.y - side),
+                                                Point (aim.x + side, aim.y + side));
+
+      ClosestPredicate cp (aim);
+      range.sort (cp);
+
+      int i = 0, j = 0, k = 0, l = 0;
+      auto it = range.begin ();
+      while ( it != range.end () )
+      {
+        if ( ((**it).hit.x < aim.x && (**it).hit.y < aim.y && !i) )
+        { ++i; ++it;}
+        else if ( ((**it).hit.x < aim.x && (**it).hit.y > aim.y && !j) )
+        { ++j; ++it;}
+        else if ( ((**it).hit.x > aim.x && (**it).hit.y < aim.y && !k) )
+        { ++k; ++it;}
+        else if ( ((**it).hit.x > aim.x && (**it).hit.y > aim.y && !l) )
+        { ++l; ++it;}
+        else
+        { it = range.erase (it); }
+      }
       // -----------------------------------------------
-      return count;
+      return range.size ();
     }
-    size_t  adjacencyByPBorders  ( IN const Point &aim, IN double side,
-                                  OUT std::pair<Record, Record> &x_pair,
-                                  OUT std::pair<Record, Record> &y_pair);
     size_t  adjacencyByXYBorders ( IN const Point &aim, IN double side,
                                   OUT std::pair<Record, Record> &x_pair,
                                   OUT std::pair<Record, Record> &y_pair);
@@ -270,19 +287,13 @@ namespace HandMoves
     void  load (tstring filename);
     //------------------------------------------------------------------------------
     void  insert (const Record &rec);
+    void  insert (Hand &hand, const controling_t &controls);
     //------------------------------------------------------------------------------
-    // template <class T>
-    auto  begin () -> decltype(store_.begin ()) 
-    { return  store_.begin (); }
-    // template <class T>
-    auto  begin () const -> decltype(store_.begin ())
-    { return store_.begin (); }
-    // template <class T>
-    auto  end () -> decltype(store_.end ())
-    { return store_.end (); }
-    // template <class T>
-    auto  end () const -> decltype(store_.end ())
-    { return store_.end (); }
+    auto  begin ()       -> decltype(store_.begin ()) { return  store_.begin (); }
+    auto  begin () const -> decltype(store_.begin ()) { return store_.begin (); }
+
+    auto  end ()       -> decltype(store_.end ()) { return store_.end (); }
+    auto  end () const -> decltype(store_.end ()) { return store_.end (); }
     //------------------------------------------------------------------------------
     void  clear ()
     { 
@@ -292,38 +303,17 @@ namespace HandMoves
       minTimeLong = 0U;
       maxTimeLong = 0U;
     }
-    bool  empty ()
+    bool  empty () const
     { 
       // boost::lock_guard<boost::mutex>  lock (store_mutex_);
       return store_.empty ();
     }
-    size_t size ()
+    size_t size () const
     { 
       // boost::lock_guard<boost::mutex>  lock (store_mutex_);
       return store_.size ();
     }
     //------------------------------------------------------------------------------
-    // void  uncoveredTargetPoints (IN const RecTarget &target, OUT std::list<Point> &uncovered)
-    // {
-    //   boost::lock_guard<boost::mutex>  lock (store_mutex_);
-    // 
-    //   // std::list<std::shared_ptr<Record>> range;
-    //   // adjacencyPoints (range, target.Min (), target.Max ());
-    //  
-    //   // MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
-    //   for ( auto &pt : target.coords () )
-    //   {
-    //     std::list<std::shared_ptr<Record>> exact;
-    //     adjacencyPoints (exact, pt, target.precision ());
-    // 
-    //     if ( exact.empty )
-    //     // if ( index.find (boost::tuple<double, double> (pt)) == index.end () )
-    //     { uncovered.push_back (pt); }
-    //   }
-    // }
-    //------------------------------------------------------------------------------
-  // private:
-  //   friend class Record;
   };
   //------------------------------------------------------------------------------
   class ClosestPredicate
@@ -353,18 +343,12 @@ namespace HandMoves
   };
   //------------------------------------------------------------------------------
   /* тестовые движения рукой */
-  void  test_random (Store &store, Hand &hand, size_t tries);
-  void  test_cover  (Store &store, Hand &hand, size_t nesting /* = 1,2,3 */);
-  //------------------------------------------------------------------------------
-  // void  testCover (Store &store, Hand &hand, Hand::MusclesEnum muscles, \
-                       std::list<std::shared_ptr<std::list<Point>>> &trajectories);
-  
-  // void  getTargetCenter (Hand &hand, Point &center);
-  // void  testCoverTarget (Store &store, Hand &hand, RecTarget &target);
+  void  testRandom (Store &store, Hand &hand, size_t tries);
+  void  testCover  (Store &store, Hand &hand, size_t nesting /* = 1,2,3 */);
   //------------------------------------------------------------------------------
 }
 BOOST_CLASS_VERSION (HandMoves::Store, 2)
-
-#include "Position.h"
-
+//------------------------------------------------------------------------------
+// #define  _DEBUG_PRINT
+//------------------------------------------------------------------------------
 #endif // _HAND_MOVES_H_

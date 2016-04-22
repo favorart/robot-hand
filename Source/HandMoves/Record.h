@@ -15,21 +15,16 @@ using namespace NewHand;
 //------------------------------------------------------------------------------
 namespace HandMoves
 {
-  // !!! tree types of point !!!
-  //-------------------------------
-  // Point  aim_;
-  // Point  hand_;
-  // Point  close_network_;
   //------------------------------------------------------------------------------
-  typedef std::list<Point>            trajectory_t;
-  typedef std::list<trajectory_t>   trajectories_t;
-  typedef std::list<Hand::Control>    controling_t;
+  typedef std::list<Hand::Control>             controling_t;
+  typedef std::list<Point>                     trajectory_t;
+  typedef std::list<trajectory_t>            trajectories_t;
+  typedef std::list<std::shared_ptr<Point>>  trajectory_refs_t;
   //------------------------------------------------------------------------------
   class Record
   {
   public:
-    const static size_t  maxControlsCount = 50U; // !!!!!!!!!!!!!
-
+    // ----------------------------------------
     typedef std::vector<Hand::frames_t>       times_array;
     typedef std::vector<Hand::MusclesEnum>  muscles_array;
 
@@ -74,12 +69,13 @@ namespace HandMoves
     private:
       Point hit_;
     };
-    // ----------------------------------------
+
     double  hit_x () const { return hand_final_.x; }
     double  hit_y () const { return hand_final_.y; }
-    // ----------------------------------------
+
     double  aim_x () const { return aim_.x; }
     double  aim_y () const { return aim_.y; }
+
     // ----------------------------------------
     Record () {}
 
@@ -119,8 +115,14 @@ namespace HandMoves
       return false;
     }
     // ----------------------------------------
+    /* Microsoft specific: C++ properties */
+    __declspec(property(get = _get_aim))      const Point&         aim;
+    __declspec(property(get = _get_hit))      const Point&         hit;
+    __declspec(property(get = _get_traj))     const trajectory_t&  trajectory;
+    __declspec(property(get = _get_muscles))  Hand::MusclesEnum    muscles;
+    __declspec(property(get = _get_controls)) const controling_t&  controls;
+    __declspec(property(get = _get_n_ctrls))  size_t             n_controls;
 
-  // private:
     // ----------------------------------------
     const Point&         _get_aim () const { return aim_; }
     const Point&         _get_hit () const { return hand_final_; }
@@ -129,47 +131,18 @@ namespace HandMoves
     size_t               _get_n_ctrls () const { return hand_controls_.size (); }
     const controling_t&  _get_controls () const { return hand_controls_; }
     // ----------------------------------------
-
-  // public:
-    // ----------------------------------------
-    /* Microsoft specific: C++ properties */
-    __declspec(property(get = _get_aim))      const Point&         aim;
-    __declspec(property(get = _get_hit))      const Point&         hit;
-    __declspec(property(get = _get_traj))     const trajectory_t&  trajectory;
-    __declspec(property(get = _get_muscles))  Hand::MusclesEnum    muscles;
-    __declspec(property(get = _get_controls)) const controling_t&  controls;
-    __declspec(property(get = _get_n_ctrls))  size_t             n_controls;
-    // ----------------------------------------
     size_t  controls_copy (OUT controling_t &controls) const
     {
       boost::range::copy (hand_controls_, std::back_inserter (controls));
       return n_controls;
     }
-    // ----------------------------------------
-    bool    validateMusclesTimes    () const;
-    void    repeatMove (IN Hand &hand) const
-    {
-      hand.SET_DEFAULT;
-      trajectory_t visited;
-      hand.move (hand_controls_.begin (), hand_controls_.end (), &visited);
-      
-      auto it1 = visited.begin ();
-      auto it2 = visited_.begin ();
-      auto index = 0U;
-      for ( ; it1 != visited.end () && it2 != visited_.end (); ++it1, ++it2 )
-      {
-        if ( *it1 != *it2 )
-        {
-          auto  &j1 = *it1;
-          auto  &j2 = *it2;
-        }
-        ++index;
-      }
-    }
 
-    double  eleganceMove    () const;
+    // ----------------------------------------
     double  distanceCovered () const
     { return boost_distance (hand_final_, hand_begin_); }
+    double  eleganceMove    () const;
+
+    bool    validateMusclesTimes () const;
     // ----------------------------------------
     double  ratioDistanceByTrajectory () const;
     double  ratioTrajectoryDivirgence () const;
@@ -195,6 +168,8 @@ namespace HandMoves
     }
   };
   //------------------------------------------------------------------------------
+  tostream&  operator << (tostream &out, const HandMoves::controling_t  &controls);
+//------------------------------------------------------------------------------
 }
 BOOST_CLASS_VERSION (HandMoves::Record, 2)
 //------------------------------------------------------------------------------

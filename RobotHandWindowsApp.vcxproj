@@ -34,6 +34,7 @@
     <ClInclude Include="Source\MyWindow\resource.h" />
     <ClInclude Include="Source\MyWindow\WindowData.h" />
     <ClInclude Include="Source\MyWindow\WindowHeader.h" />
+    <ClInclude Include="Source\Position\DirectionPredictor.h" />
     <ClInclude Include="Source\Position\LinearOperator.h" />
     <ClInclude Include="Source\Position\Position.h" />
     <ClInclude Include="Source\Position\Target.h" />

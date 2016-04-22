@@ -18,9 +18,6 @@ Record::Record (IN const Point         &aim,
   if ( !visited.size () )
     throw new exception ("Incorrect trajectory in constructor Record"); // _T( ?? 
 
-  // if ( controls_count > maxControlsCount )
-  //   throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ?? 
-
   for ( auto i = 0U; i < controls_count; ++i )
   { hand_controls_.push_back (Hand::Control (muscles[i], times[i], lasts[i])); }
   hand_controls_.sort ();
@@ -46,9 +43,6 @@ Record::Record (IN const Point         &aim,
 {
   if ( !visited.size () )
     throw new exception ("Incorrect trajectory in constructor Record"); // _T( ?? 
-
-  // if ( controls.size () > maxControlsCount )
-  //   throw new exception ("Incorrect number of muscles in constructor Record"); // _T( ?? 
 
   hand_controls_.assign (controls.begin (), controls.end ());
   hand_controls_.sort ();
@@ -187,5 +181,13 @@ double  Record::ratioTrajectoryBrakes () const
 
   // (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
   return 0.;
+}
+//---------------------------------------------------------
+tostream&  HandMoves::operator << (tostream &out, const HandMoves::controling_t  &controls)
+{
+  out << std::endl << _T ("Controls:\n");
+  for ( auto &c : controls )
+  { out << '-' << c << std::endl; }
+  return out;
 }
 //---------------------------------------------------------
