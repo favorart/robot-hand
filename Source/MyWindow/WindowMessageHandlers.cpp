@@ -35,9 +35,18 @@ int  Ty  (double logic_y)
 { return  (zoom) ? T1y (logic_y) : T2y (logic_y); }
 
 Point  logic_coord (win_point* coord)
-{ Point p;
-  p.x = ((coord->x - MARGIN) / (( 1.0 / 2)*(WindowSize ()->x - 2 * MARGIN))) - 1;
-  p.y = ((coord->y - MARGIN) / ((-1.0 / 2)*(WindowSize ()->y - 2 * MARGIN))) + 1;
+{
+  Point p;
+  if ( zoom )
+  {
+    p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize ()->x - 2. * MARGIN))) - 0.5;
+    p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize ()->y - 2. * MARGIN))) + 0.0;
+  }
+  else
+  {
+    p.x = ((coord->x - MARGIN) / (( 0.5) * (WindowSize ()->x - 2. * MARGIN))) - 1.;
+    p.y = ((coord->y - MARGIN) / ((-0.5) * (WindowSize ()->y - 2. * MARGIN))) + 1.;
+  }
   return p;
 }
 //-------------------------------------------------------------------------------
@@ -113,7 +122,7 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   // Create a Static Label control
   hLabHelp = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
                            _T ("Help"),                                        /* Label's Text */
-                           WS_CHILD | WS_VISIBLE | SS_RIGHT | WS_BORDER, /* Styles (continued) */
+                           WS_CHILD | WS_VISIBLE | SS_LEFT  | WS_BORDER, /* Styles (continued) */
                            (int) lp.LabelsLeft,                              /* X co-ordinates */
                            (int) lp.LabHelpTop,                              /* Y co-ordinates */
                            (int) lp.LabelsWidth,                                      /* Width */
@@ -172,19 +181,26 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
 
   // Generate the help string
   tstringstream ss;
-  ss << _T ("Клавиши управления:  \rEsc - выход  \r")
-     << _T ("R - сбросить всё  \r\r") // Enter - авто-тест  \r
-     << _T ("Z - двинуть ключицей вправо  \rX - сомкнуть плечо  \r")
-     << _T ("С - сомкнуть локоть  \rV - сомкнуть ладонь  \r")
-     << _T ("A - двинуть ключицей влево  \rS - раскрыть плечо  \r")
-     << _T ("D - раскрыть локоть  \rF - раскрыть ладонь  \r\r")
-     << _T ("Повторное нажатие на кнопку во время движения  \r")
-     << _T ("останавливает соответствующее движение.  \r\r")
-     << _T ("U - нарисовать рабочую область руки  \r")
-     << _T ("O - нарисовать случайную траекторию  \r\r")
-     << _T ("P - Cover Test  \rT - Random Test  \r")
-     << _T ("Y - TargetCoverTest  \r\rG - Show scales  \r\r")
-     << _T ("Ctrl+O - OpenFile  \rCtrl+S - SaveFile  \r\r");
+  ss << _T ("  Клавиши управления:  \r\r") // "Enter - авто-тест  \r")
+     << _T ("  Ctrl+O - OpenFile  |  Ctrl+S - SaveFile  |  Esc - выход  \r\r")
+     << _T ("  R - сбросить состояние руки  \r\r")
+     << _T ("  Z - двинуть ключицей вправо  \r  X - сомкнуть плечо  \r")
+     << _T ("  С - сомкнуть локоть  \r  V - сомкнуть ладонь  \r")
+     << _T ("  A - двинуть ключицей влево  \r  S - раскрыть плечо  \r")
+     << _T ("  D - раскрыть локоть  \r  F - раскрыть ладонь  \r")
+     << _T ("  Повторное нажатие на кнопку во время движения  \r")
+     << _T ("  останавливает соответствующее движение.  \r\r")
+     << _T ("  Q - показать все конечные точки в БД  \r")
+     << _T ("  W - нарисовать рабочую область руки  \r")
+     << _T ("  E - прервать работу алгоритма  \r")
+     << _T ("  T - нарисовать случайную траекторию  \r")
+     << _T ("  Y - приблизить, показать только мишень  \r")
+     << _T ("  U - посчитать непокрытые точки мишени  \r")
+     << _T ("  H - показать  непокрытые точки мишени  \r")
+     << _T ("  G - показать масштаб и размеры  \r\r")
+     << _T ("  O - Random Test,   P - Cover Test  \r")
+     << _T ("  1 - STAGE,  2 - STAGE,  3 - STAGE  \r\r")
+     << _T ("  \r\r");
   // << _T ("Для выбора цели отрисовки  \r")
   // << _T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r")
   // << _T (", где 0 <= !no! - номер строки/столбца"),
@@ -411,7 +427,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
-    case 'o':
+    case 't':
     { 
       //========================================
       wd.trajectory_frames.clear ();
@@ -432,7 +448,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
     
-    case 't':
+    case 'o':
     { //========================================
       const size_t  tries = 1000U;
       WorkerThreadRunStoreTask (wd, _T ("\n *** random test ***  "),
@@ -456,91 +472,11 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
-
-    case 'y':
+    
+    case '1':
     {
       //========================================
-      // WorkerThreadRunStoreTask (wd, _T (" *** target cover test ***  "),
-      //                           Positions::testCoverTarget, wd.hand, wd.target);
-      // Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
-
-      //========================================
-      tstring  message{ _T(" *** STAGE 3 ***  ") };
-
-      if ( !wd.testing && !wd.pWorkerThread )
-      {
-        wd.testing = true;
-        /* Set text of label 'Stat'  */
-        SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
-
-        wd.complexity = 0U;
-        wd.pWorkerThread = new boost::thread ([](Store &store, Hand &hand, RecTarget &target,
-                                                 trajectory_t &uncovered, size_t &complexity)
-                                              {
-                                                Positions::LearnMovements lm (store, hand, target);
-                                                lm.STAGE_3 (uncovered, complexity, false);
-                                              }
-                                              , std::ref (wd.store),
-                                                wd.hand,
-                                                std::ref (wd.target),
-                                                std::ref (wd.uncoveredPoints),
-                                                std::ref (wd.complexity));
-      }
-
-      // WorkerThreadRunStoreTask (wd, _T (" *** Stage 1 test ***  "),
-      //                            [](Store &store, Hand &hand, RecTarget &target)
-      //                            {
-      //                              Positions::LearnMovements lm (store, hand, target);
-      //                              lm.testStage1 (store, hand, target);
-      //                            }
-      //                           , wd.hand, wd.target);
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
-    }
-
-    case 'k':
-    {
-      // static std::list<int> step;
-      // // step.clear ();
-      // std::shared_ptr<trajectory_t> trajectory = make_shared<trajectory_t> (new trajectory_t());
-      // wd.testing_trajectories.push_back (trajectory);
-
-      // HandMoves::testCover (wd.store, wd.hand, Hand::EmptyMov, wd.testing_trajectories); // , step, wd.testing_trajectories.back ());
-      
-      Point center = Point (((wd.target.min) ().x + (wd.target.max) ().x) / 2.,
-                            ((wd.target.min) ().y + (wd.target.max) ().y) / 2.);
-      // Positions::getTargetCenter (wd.hand, center);
-
-      WorkerThreadRunStoreTask (wd, _T (" *** stage 2 test ***  "),
-                                [] (Store &store, Hand &hand, RecTarget &target)
-                                { 
-                                  Positions::LearnMovements lm (store, hand, target);
-                                  lm.testStage2 (store, hand, target);
-                                }
-                                , wd.hand, wd.target);
-      WorkerThreadTryJoin (wd);
-      
-      // lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
-    }
-
-    case 'j':
-    {
-      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
-    }
-
-    case 'm':
-    {
-      //========================================
-      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 1 test ***  "),
+      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 1 ***  "),
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {
                                   Positions::LearnMovements lm (store, hand, target);
@@ -553,46 +489,10 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
-    case 'e':
+    case '2':
     {
-      // wd.hand.SET_DEFAULT;
-      // wd.trajectory_frames.clear ();
-      // 
-      // controling_t controls;
-      // // Hand::Control (Hand::ShldrCls, 0U, 200U);
-      // 
-      // controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
-      // // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
-      // controls.push_back (Hand::Control (Hand::ShldrOpn | Hand::ElbowCls, 201U, 55U));
-      // // controls.push_back (Hand::Control (Hand::ElbowCls, 202U, 35U));
-      // 
-      // // trajectory_t  visited;
-      // wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames.trajectory);
-      break;
-    }
-
-    case 'w':
-    {
-      // wd.hand.SET_DEFAULT;
-      // wd.trajectory_frames.clear ();
-      // 
-      // controling_t controls;
-      // // Hand::Control (Hand::ShldrCls, 0U, 200U);
-      // 
-      // controls.push_back (Hand::Control (Hand::ShldrCls | Hand::ElbowOpn, 0U, 200U));
-      // // controls.push_back (Hand::Control (Hand::ElbowOpn, 0U, 200U));
-      // 
-      // // trajectory_t  visited;
-      // wd.hand.move (controls.begin (), controls. end (), &wd.trajectory_frames.trajectory);
-      break;
-    }
-
-    case 'n':
-    {
-      // Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-      // lm.STAGE2 ();
-
-      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 2 test ***  "),
+      //========================================
+      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 2 ***  "),
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {
                                   Positions::LearnMovements lm (store, hand, target);
@@ -605,20 +505,110 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
-    case 'i':
-    { 
-      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
+    case '3':
+    {
       //========================================
-      // int muscle, last;
-      // cin >> muscle >> last;
-      // wd.hand.move ((Hand::MusclesEnum)muscle, (Hand::time_t)last);
+      if ( !wd.testing && !wd.pWorkerThread )
+      {
+        wd.testing = true;
+
+        tstring  message{ _T (" *** STAGE 3 ***  ") };
+        /* Set text of label 'Stat'  */
+        SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
+
+        wd.complexity = 0U;
+        wd.pWorkerThread = new boost::thread ([](Store &store, Hand &hand, RecTarget &target,
+                                                 trajectory_t &uncovered, size_t &complexity)
+                                              {
+                                                try
+                                                {
+                                                  Positions::LearnMovements lm (store, hand, target);
+                                                  lm.STAGE_3 (uncovered, complexity, false);
+                                                }
+                                                catch ( boost::thread_interrupted& )
+                                                { /* tcout << _T("WorkingThread interrupted!") << std::endl; */ }
+                                              }
+                                              , std::ref (wd.store),
+                                                wd.hand,
+                                                std::ref (wd.target),
+                                                std::ref (wd.uncoveredPoints),
+                                                std::ref (wd.complexity));
+      }
+      WorkerThreadTryJoin (wd);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
       break;
     }
 
+
+    case 'j':
+    {
+      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
+      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+
+    case 'k':
+    {
+      //========================================
+      WorkerThreadRunStoreTask (wd, _T (" *** Stage 2 test ***  "),
+                                [] (Store &store, Hand &hand, RecTarget &target)
+                                { 
+                                  Positions::LearnMovements lm (store, hand, target);
+                                  lm.testStage2 (store, hand, target);
+                                }
+                                , wd.hand, wd.target);
+      WorkerThreadTryJoin (wd);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+
+
     case 'u':
+    {
+      //========================================
+      if ( !wd.testing && !wd.pWorkerThread )
+      {
+        wd.testing = true;
+
+        tstring  message{ _T (" *** Uncover ***  ") };
+        /* Set text of label 'Stat'  */
+        SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
+
+        wd.pWorkerThread = new boost::thread ([](Store &store, Hand &hand, RecTarget &target,
+                                                 trajectory_t &uncovered)
+                                              {
+                                                try
+                                                {
+                                                  Positions::LearnMovements lm (store, hand, target);
+                                                  lm.uncover (uncovered);
+                                                }
+                                                catch ( boost::thread_interrupted& )
+                                                { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
+                                              }
+                                              , std::ref (wd.store),
+                                                wd.hand,
+                                                std::ref (wd.target),
+                                                std::ref (wd.uncoveredPoints));
+      }
+      WorkerThreadTryJoin (wd);
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+
+    case 'i':
+    {
+      //========================================
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
+
+    case 'w':
     {
       if ( !wd.working_space.size () )
       {
@@ -656,7 +646,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
-    case 'l':
+    case 'e':
     {
       if ( wd.pWorkerThread )
       {
@@ -675,7 +665,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     } 
 
-    case 'b':
+    case 'y':
     {
       //========================================
       zoom = !zoom;
@@ -733,15 +723,17 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
     // case 'm': if ( !fn ) fm = 1; break;
     // case 'n': if ( !fm ) fn = 1; break;
 
-    case '0': case '1': case '2': case '3': case '4':
-    case '5': case '6': case '7': case '8': case '9':
-      //      if ( fm ) p_x = p_x * 10U + ((uchar_t) wParam - 0x30);
-      // else if ( fn ) p_y = p_y * 10U + ((uchar_t) wParam - 0x30);
-
-      // if ( p_x >= tgRowsCount ) p_x = tgRowsCount - 1U;
-      // if ( p_y >= tgColsCount ) p_y = tgColsCount - 1U;
-      //========================================
-      break;
+    // case '0': case '1': case '2': case '3': case '4':
+    // case '5': case '6': case '7': case '8': case '9':
+    // {
+    //   //      if ( fm ) p_x = p_x * 10U + ((uchar_t) wParam - 0x30);
+    //   // else if ( fn ) p_y = p_y * 10U + ((uchar_t) wParam - 0x30);
+    // 
+    //   // if ( p_x >= tgRowsCount ) p_x = tgRowsCount - 1U;
+    //   // if ( p_y >= tgColsCount ) p_y = tgColsCount - 1U;
+    //   //========================================
+    //   break;
+    // }
   }
 }
 //-------------------------------------------------------------------------------

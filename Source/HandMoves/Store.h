@@ -19,7 +19,7 @@ namespace HandMoves
   typedef std::list<Record>                   adjacency_t;
   typedef std::list<std::shared_ptr<Record>>  adjacency_refs_t;
   //------------------------------------------------------------------------------
-  class ClosestPredicate
+  class  ClosestPredicate
   {
     boost_point2_t aim;
   public:
@@ -45,33 +45,34 @@ namespace HandMoves
     }
   };
   //------------------------------------------------------------------------------
-
+  class  ControlingHasher : std::unary_function<const controling_t&, size_t>
+  {
+  public:
+    std::size_t operator()(const controling_t &controls) const
+    {
+      std::size_t seed = 0U;
+      for ( Hand::Control c : controls )
+      {
+        boost::hash_combine (seed, boost::hash_value (c.muscle));
+        boost::hash_combine (seed, boost::hash_value (c.start));
+        boost::hash_combine (seed, boost::hash_value (c.last));
+      }
+      return seed;
+    }
+  };
+  //------------------------------------------------------------------------------
+  class  RangeInserter
+  {
+  public:
+    void operator () (OUT adjacency_t &range, IN const Record &rec)
+    { range.push_back (rec); }
+    void operator () (OUT adjacency_refs_t &range, IN const Record &rec)
+    { range.push_back (std::make_shared<Record> (rec)); }
+  };
+  //------------------------------------------------------------------------------
   using namespace boost::multi_index;
   class Store // DataBase
   {
-    struct ControlingHasher : std::unary_function<const controling_t&, size_t>
-    {
-      std::size_t operator()(const controling_t &controls) const
-      {
-        std::size_t seed = 0U;
-        for ( Hand::Control c : controls )
-        {
-          boost::hash_combine (seed, boost::hash_value (c.muscle));
-          boost::hash_combine (seed, boost::hash_value (c.start));
-          boost::hash_combine (seed, boost::hash_value (c.last));
-        }
-        return seed;
-      }
-    };
-    //------------------------------------------------------------------------------
-    class RangeInserter
-    {
-    public:
-      void operator () (OUT adjacency_t &range, IN const Record &rec)
-      { range.push_back (rec); }
-      void operator () (OUT adjacency_refs_t &range, IN const Record &rec)
-      { range.push_back (std::make_shared<Record> (rec)); }
-    };
     //------------------------------------------------------------------------------
     typedef boost::multi_index_container
     < Record,

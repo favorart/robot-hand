@@ -64,27 +64,50 @@ namespace Positions
     { insertRecordToBorders (borders, *p_rec); }
   }
   //------------------------------------------------------------------------------
-  void  LearnMovements::hand_act (IN const Point &aim, IN HandMoves::controling_t  &controls,
-                                  OUT Point &hand_position, IN bool copy)
+  bool  LearnMovements::hand_act (IN  const Point &aim,
+                                  IN  const HandMoves::controling_t  &controls,
+                                  OUT Point &hand_position,
+                                  IN  bool copy)
   {
-    HandMoves::trajectory_t trajectory;
+    ControlingHasher ch;
+    size_t  h = ch (controls);
     // -----------------------------------------------
-    if ( copy )
+    boost::this_thread::interruption_point ();
+    // -----------------------------------------------
+    if ( visited.find (h) != visited.end () )
     {
-      HandMoves::controling_t  controls_copy (controls);
-      controls_copy.sort ();
-      hand.move (controls_copy.begin (), controls_copy.end (), &trajectory);
+      const Record  *pRec = store.ExactRecordByControl (controls);
+      if ( pRec )
+      { 
+        hand_position = pRec->hit;
+        return false;
+      }
+      // else { throw exception ("hand_act: Not in Store"); }
     }
-    else
-    { hand.move (controls.begin (), controls.end (), &trajectory); }
-    // -----------------------------------------------
-    hand_position = hand.position;
-    hand.SET_DEFAULT;
-    // -----------------------------------------------
-    HandMoves::Record  rec (aim, hand_pos_base, hand_position,
-                            controls, trajectory);
-    store.insert (rec);
-    // -----------------------------------------------
+    
+    {
+      HandMoves::trajectory_t trajectory;
+      // -----------------------------------------------
+      visited.insert (h);
+      // -----------------------------------------------
+      if ( copy )
+      {
+        HandMoves::controling_t  controls_copy (controls);
+        controls_copy.sort ();
+        hand.move (controls_copy.begin (), controls_copy.end (), &trajectory);
+      }
+      else
+      { hand.move (controls.begin (), controls.end (), &trajectory); }
+      // -----------------------------------------------
+      hand_position = hand.position;
+      hand.SET_DEFAULT;
+      // -----------------------------------------------
+      HandMoves::Record  rec (aim, hand_pos_base, hand_position,
+                              controls, trajectory);
+      store.insert (rec);
+      // -----------------------------------------------
+    }
+    return true;
   }
   //------------------------------------------------------------------------------  
 };

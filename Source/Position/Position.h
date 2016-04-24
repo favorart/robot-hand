@@ -127,6 +127,8 @@ namespace Positions
     double side_decrease_step = 0.001;
 
     Hand::frames_t lasts_step = 1U;
+    // -----------------------------------------------
+    std::set<size_t>  visited;
 
     //==============================================
 
@@ -151,7 +153,8 @@ namespace Positions
 
     size_t complexity = 0U;
     //==============================================
-    void  hand_act (IN const Point &aim, IN HandMoves::controling_t  &controls,
+    bool  hand_act (IN  const Point &aim,
+                    IN  const HandMoves::controling_t  &controls,
                     OUT Point &hand_position, IN bool copy=true);
     //------------------------------------------------------------------------------
     void  w_meansControls (IN  const Point &aim,
@@ -184,15 +187,8 @@ namespace Positions
 
     //==============================================
     /* Mixtures */
-    size_t  w_means (IN  const Point &aim,
-                     // OUT HandMoves::controling_t &controls,
-                     // OUT Point& hand_position,
-                     IN  bool verbose=false);
-
-    size_t  rundown (IN const Point &aim,
-                     // OUT HandMoves::controling_t &controls,
-                     OUT Point &hand_position,
-                     IN  bool verbose=false);
+    size_t  w_means (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
+    size_t  rundown (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
 
   public:
     // LearnMovements () : lasts_incr_value1 (10U), lasts_incr_value2 (3U) {}
@@ -213,11 +209,14 @@ namespace Positions
     }
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
-    void  STAGE_1 (IN bool verbose=true);
+    void  STAGE_1 (IN  bool verbose=true);
     /* Покрытие всей мишени не слишком плотно */
-    void  STAGE_2 (IN bool verbose=true);
+    void  STAGE_2 (IN  bool verbose=true);
     /* Попадание в оставшиеся непокрытыми точки мишени */
-    void  STAGE_3 (OUT HandMoves::trajectory_t &uncovered, size_t &complexity, IN bool verbose=true);
+    void  STAGE_3 (OUT HandMoves::trajectory_t &uncovered, OUT size_t &complexity,
+                   IN  bool verbose=true);
+    //------------------------------------------------------------------------------
+    void  LearnMovements::uncover (OUT HandMoves::trajectory_t &uncovered);
     //------------------------------------------------------------------------------
     size_t   rundownMethod           (IN const Point &aim, IN bool verbose=false);
     size_t  gradientMethod           (IN const Point &aim, IN bool verbose=false);

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 #include "Position.h"
 
 namespace Positions
@@ -17,7 +17,7 @@ namespace Positions
     //---braking----------------------------------------------
     std::vector<Hand::Control>  arr_controlings;
     //---flags------------------------------------------------
-    bool  b_distance, b_target, b_braking;
+    bool  b_distance, b_target, b_braking, b_checking;
     //--------------------------------------------------------
     borders_t  borders_;
 
@@ -50,9 +50,8 @@ namespace Positions
     }
 
     void  run (IN borders_t &borders, IN DirectionPredictor &pd,
-               IN bool distance, IN bool target, IN bool braking,
-               IN double step_distance,
-               IN Hand::frames_t lasts_step_increment,
+               IN bool distance, IN bool target, IN bool braking, IN bool checking,
+               IN double step_distance, IN Hand::frames_t lasts_step_increment,
                IN bool verbose=false)
     {
       this->borders = &borders;
@@ -61,6 +60,7 @@ namespace Positions
       this->b_target = target;
       this->b_braking = braking;
       this->b_distance = distance;
+      this->b_checking = checking;
       // ----------------------------------------------------
       this->step_distance = step_distance;
       this->lasts_step_increment = lasts_step_increment;
@@ -77,7 +77,10 @@ namespace Positions
         runNestedForMuscle (pt, 0U);
       }
       catch ( boost::thread_interrupted& )
-      { return; } // end catch
+      { 
+        /* tcout << _T("WorkingThread interrupted") << std::endl; */
+        return;
+      } // end catch
       // ----------------------------------------------------
       if ( verbose )
       { stats.print ();
@@ -86,8 +89,7 @@ namespace Positions
     }
 
   private:
-    bool  runNestedForMuscle (OUT Point &hand_pos_high, IN int joint_index) //,
-                                                                            // IN  std::vector<Hand::frames_t> &lasts_i)
+    bool  runNestedForMuscle (OUT Point &hand_pos_high, IN int joint_index)
     {
       bool  target_contain = true;
       Hand::frames_t start_i = 0U;
@@ -269,14 +271,17 @@ namespace Positions
       bool  target_contain = true;
       Point end = hand_pos_base;
       //----------------------------------------------
-      bool  has_braking = b_braking && boost::algorithm::any_of (arr_controlings,
-                                                                 [](const Hand::Control &item) { return item.last; });
+      bool  has_braking = b_braking
+        && boost::algorithm::any_of (arr_controlings,
+                                     [](const Hand::Control &item)
+                                     { return  item.last; });
+      //----------------------------------------------
       controling_t  new_controling;
       if ( has_braking )
       {
         for ( const Hand::Control &c : controls )
         { new_controling.push_back (c); }
-        /* записываем все разрывы */
+        /* Р·Р°РїРёСЃС‹РІР°РµРј РІСЃРµ СЂР°Р·СЂС‹РІС‹ */
         for ( auto &c : arr_controlings )
         { new_controling.push_back (c); }
         new_controling.sort ();
@@ -286,22 +291,26 @@ namespace Positions
       if ( b_target || b_distance )
       {
         for ( auto &c : controls )
-          pd->predict (c, end);
-
-        end.x += 0.1;
-        end.y -= 0.05;
+        { pd->predict (c, end); }
         //----------------------------------------------
-        // stats.fill (hand, target, controling, end);
+        if ( b_distance )
+        {
+          end.x += 0.1;
+          end.y -= 0.05;
+        }
+        //----------------------------------------------
+        if ( b_checking )
+        { stats.fill (hand, target, controling, end); }
       }
       //----------------------------------------------
-      /* типо на мишени */
+      /* С‚РёРїРѕ РЅР° РјРёС€РµРЅРё */
       if ( (!b_target || target.contain (end))
           && (!b_distance || boost_distance (center, end) < max_distance) )
       {
         HandMoves::trajectory_t  trajectory;
         //----------------------------------------------
         hand.SET_DEFAULT;
-        /* двигаем рукой */
+        /* РґРІРёРіР°РµРј СЂСѓРєРѕР№ */
         hand.move (controling.begin (), controling.end (), &trajectory);
         hand_position = hand.position;
         //----------------------------------------------
@@ -323,7 +332,7 @@ namespace Positions
   };
   //------------------------------------------------------------------------------
   //------------------------------------------------------------------------------
-  /* грубое покрытие всего рабочего пространства */
+  /* РіСЂСѓР±РѕРµ РїРѕРєСЂС‹С‚РёРµ РІСЃРµРіРѕ СЂР°Р±РѕС‡РµРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР° */
   void  LearnMovements::STAGE_1 (IN bool verbose)
   {
     borders_t  borders;
@@ -335,10 +344,11 @@ namespace Positions
               /* distance */ true,
               /* target   */ false,
               /* braking  */ false,
+              /* checking */ false,
               0.03, 3U,
               verbose);
   }
-  /* Покрытие всей мишени не слишком плотно */
+  /* РџРѕРєСЂС‹С‚РёРµ РІСЃРµР№ РјРёС€РµРЅРё РЅРµ СЃР»РёС€РєРѕРј РїР»РѕС‚РЅРѕ */
   void  LearnMovements::STAGE_2 (IN bool verbose)
   {
     borders_t  borders;
@@ -349,18 +359,24 @@ namespace Positions
     tour.run (borders, dp,
               /* distance */ false,
               /* target   */ true,
-              /* braking  */ true, 
+              /* braking  */ true,
+              /* checking */ false,
               0.01, 2U,
               verbose);
   }
-  /* Попадание в оставшиеся непокрытыми точки мишени */
-  void  LearnMovements::STAGE_3 (OUT trajectory_t &uncovered, size_t &complexity, IN bool verbose)
+  /* РџРѕРїР°РґР°РЅРёРµ РІ РѕСЃС‚Р°РІС€РёРµСЃСЏ РЅРµРїРѕРєСЂС‹С‚С‹РјРё С‚РѕС‡РєРё РјРёС€РµРЅРё */
+  void  LearnMovements::STAGE_3 (OUT HandMoves::trajectory_t &uncovered,
+                                 OUT size_t &complexity, IN bool verbose)
   {
+    size_t count = 0U;
+    // -------------------------------------------------
     for ( const auto &pt : target.coords () )
     {
-      const Record &rec = store.ClothestPoint (pt, side);
+      visited.clear ();
+      // -------------------------------------------------
       // Close (pt, NULL, NULL);
       // -------------------------------------------------
+      const Record &rec = store.ClothestPoint (pt, side);
       if ( boost_distance (rec.hit, pt) > target.precision () )
       {
         complexity += gradientMethod_admixture (pt, verbose);
@@ -369,6 +385,21 @@ namespace Positions
         if ( boost_distance (rec.hit, pt) > target.precision () )
         { uncovered.push_back (pt); }
       }
+      ++count;
+    }
+    // -------------------------------------------------
+    tcout << _T ("TOTAL Complexity: ") << complexity << std::endl;
+    tcout << _T ("AVERAGE Complexity: ") << complexity / count << std::endl;
+  }
+  //------------------------------------------------------------------------------  
+  void  LearnMovements::uncover (OUT HandMoves::trajectory_t &uncovered)
+  {
+    for ( const auto &pt : target.coords () )
+    {
+      const Record &rec = store.ClothestPoint (pt, side);
+      // -------------------------------------------------------
+      if ( boost_distance (rec.hit, pt) > target.precision () )
+      { uncovered.push_back (pt); }
     }
   }
   //------------------------------------------------------------------------------  

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 
 #ifndef  _TARGET_H_
 #define  _TARGET_H_
@@ -61,9 +61,8 @@ public:
   const Point&   RecTarget::center () const { return  center_; }
 
   double     precision () const
-  { // return  (std::min (thickness_.x, thickness_.y));
-    return 0.004; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  }
+  { return  /* 0.004 */ (std::max (max_.x - min_.x,
+                                   max_.y - min_.y) / 200.); }
   double     thickness () const
   { return   std::max (thickness_.x, thickness_.y); }
   // ---------------------------------

@@ -3,15 +3,17 @@
 #include "Draw.h"
 #include "Position.h"
 
+
 extern bool zoom;
 
 using namespace std;
 using namespace HandMoves;
-
+//-------------------------------------------------------------------------------
 bool    RepeatMove (MyWindowData &wd);
 bool  MakeHandMove (MyWindowData &wd);
 //-------------------------------------------------------------------------------
-void  MyWindowData::TrajectoryFrames::step  (Store &store, Hand &hand, const boost::optional<controling_t> controls)
+void  MyWindowData::TrajectoryFrames::step  (Store &store, Hand &hand,
+                                             const boost::optional<controling_t> controls)
 {
   if ( controls.is_initialized () )
   {
@@ -108,12 +110,7 @@ MyWindowData:: MyWindowData () :
   pWorkerThread (nullptr),
   // lt (NULL),
   target ( // 200U, 200U,
-           18U, 18U,
-           // 32U, 32U, // (-0.39,  0.62, -0.01, -0.99);
-                        //  -0.70,  0.90,  0.90, -0.99)
-                         -0.41,  0.46, -0.05, -0.90
-                        // -0.39, 0.41, -0.05, -0.85
-          ),
+           18U, 18U, -0.41,  0.43, -0.03, -0.85 ),
   scaleLetters (target.min (), target.max ())
 {
   std::srand ((unsigned int) clock ());
@@ -202,6 +199,7 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
                             RGB (25, 25, 255),
                             RGB (255, 25, 25) });
 #endif
+    // --------------------------------------------------------------
     WorkerThreadRunStoreTask ( wd, _T (" *** drawing ***  "),
                                [hdc](HandMoves::Store &store,
                                      gradient_t gradient, double r,
@@ -219,8 +217,7 @@ void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd)
                               gradient, /* (zoom) ? 0.0005 : */ 0.,
                               ( wd.uncovered_show ) ?  wd.uncoveredPoints : HandMoves::trajectory_t(),
                               wd.hPen_red);
-  }
-  // --------------------------------------------------------------
+  } // end if
 }
 void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd)
 {
@@ -341,18 +338,11 @@ bool  RepeatMove   (MyWindowData &wd)
 {
   const Point &aim = wd.mouse_aim;
   // -------------------------------------------------
-  HandMoves::adjacency_refs_t  range;
-  if ( !wd.store.adjacencyPoints (range, aim, wd.target.precision () + wd.side) )
-  { return false; }
+  const Record &rec = wd.store.ClothestPoint (aim, wd.side);
   // -------------------------------------------------
-  ClosestPredicate  pred (aim);
-  auto it_min = boost::range::min_element (range, pred);
-  // -------------------------------------------------
-  if ( it_min != range.end () )
+  if ( boost_distance (rec.hit, aim) <= wd.target.precision () )
   {
     /* Repeat Hand Movement */
-    const Record &rec = (**it_min);
-
     wd.hand.SET_DEFAULT;
     wd.trajectory_frames.step (wd.store, wd.hand, boost::optional<controling_t>{rec.controls});
     // -------------------------------------------------
@@ -373,6 +363,7 @@ bool  RepeatMove   (MyWindowData &wd)
     // -------------------------------------------------
     return true;
   }
+  // -------------------------------------------------
   return false;
 }
 bool  MakeHandMove (MyWindowData &wd)
@@ -380,15 +371,15 @@ bool  MakeHandMove (MyWindowData &wd)
   wd.adjPointsDB.clear ();
   wd.trajectory_frames.clear ();
 
-  Positions::LearnMovements lm;
-  lm.gradientMethod_admixture (wd.store, wd.hand, wd.mouse_aim);
-
-  if ( 0 && !RepeatMove (wd) )
+  if ( !RepeatMove (wd) )
   {
     const Point &aim = wd.mouse_aim;
     // -------------------------------------------------
     wd.testing_trajectories.clear ();
     wd.trajectory_frames.clear ();
+
+    Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
+    lm.gradientMethod_admixture (aim, true);
 
     if ( 0 )
     {
@@ -405,7 +396,7 @@ bool  MakeHandMove (MyWindowData &wd)
       // return false;
     }
     // -------------------------------------------------
-    if ( 1 /* gradient || rundown */ )
+    if ( 0 /* gradient || rundown */ )
     {
       // WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
       //                             [](Store &store, Hand &hand, const Point &aim,
@@ -419,8 +410,8 @@ bool  MakeHandMove (MyWindowData &wd)
       //                              &wd.testing_trajectories);
       // WorkerThreadTryJoin (wd);
       // -------------------------------------------------
-      Positions::LearnMovements lm;
-      lm.gradientMethod (wd.store, wd.hand, aim);
+      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
+      lm.gradientMethod (aim);
       // lm.Close ( wd.store, wd.hand, aim, 0.1,
       //            NULL, // &wd.trajectory_frames,
       //           &wd.testing_trajectories);

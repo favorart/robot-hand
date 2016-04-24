@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 #include "Position.h"
 
 namespace Positions
@@ -121,10 +121,7 @@ namespace Positions
     return false;
   }
   //------------------------------------------------------------------------------
-  size_t  LearnMovements::rundown (IN  const Point &aim,
-                                   // OUT HandMoves::controling_t &controls,
-                                   OUT Point &hand_position,
-                                   IN  bool verbose)
+  size_t  LearnMovements::rundown (IN const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t  rundown_complexity = 0U;
     // -----------------------------------------------
@@ -208,9 +205,9 @@ namespace Positions
   }
   //------------------------------------------------------------------------------
   //------------------------------------------------------------------------------
-  /*  Размедение с повторениями:
-   *  current       - текущее размещение
-   *  alphabet_size - размер алфавита { 0, 1, ... k }
+  /*  Р Р°Р·РјРµРґРµРЅРёРµ СЃ РїРѕРІС‚РѕСЂРµРЅРёСЏРјРё:
+   *  current       - С‚РµРєСѓС‰РµРµ СЂР°Р·РјРµС‰РµРЅРёРµ
+   *  alphabet_size - СЂР°Р·РјРµСЂ Р°Р»С„Р°РІРёС‚Р° { 0, 1, ... k }
    */
   bool  next_placement_repeats (std::vector<int> &current, int alphabet_size)
   {

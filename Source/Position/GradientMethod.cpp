@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "Position.h"
 
 namespace Positions
@@ -136,7 +136,7 @@ namespace Positions
       if ( new_distance <= d )
       {
         // controling_t  controls;
-        gradient_complexity += w_means (aim, /* controls, hand_position,*/ verbose);
+        gradient_complexity += w_means (aim, /* controls,*/ hand_position, verbose);
 
         d = boost_distance (hand_position, aim);
         if ( precision > d )
@@ -219,8 +219,8 @@ namespace Positions
 
       dr = boost_distance (rec->hit, aim);
       if ( (!visited || visited->find (h) == visited->end ())
-          && (!func || (*func) (*rec, aim))
-          && (!rmin || dr < dm) )
+          && (!func  || (*func) (*rec, aim))
+          && (!rmin  || dr < dm) )
       {
         rmin = &(*rec);
         dm = dr;

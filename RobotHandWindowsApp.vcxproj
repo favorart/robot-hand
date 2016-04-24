@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Source\HandMoves\Record.h" />
     <ClInclude Include="Source\HandMoves\Store.h" />
+    <ClInclude Include="Source\HandMoves\Target.h" />
     <ClInclude Include="Source\Hand\Hand.h" />
     <ClInclude Include="Source\Hand\HandMotionLaw.h" />
     <ClInclude Include="Source\Hand\HandMuscles.h" />
@@ -37,16 +38,14 @@
     <ClInclude Include="Source\Position\DirectionPredictor.h" />
     <ClInclude Include="Source\Position\LinearOperator.h" />
     <ClInclude Include="Source\Position\Position.h" />
-    <ClInclude Include="Source\Position\Target.h" />
     <ClInclude Include="Source\StdAfx.h" />
     <ClInclude Include="Source\Utilities\Combinations.h" />
     <ClInclude Include="Source\Utilities\Point.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GradientMethod.cpp" />
-    <ClCompile Include="RundownMethod.cpp" />
     <ClCompile Include="Source\HandMoves\Record.cpp" />
     <ClCompile Include="Source\HandMoves\Store.cpp" />
+    <ClCompile Include="Source\HandMoves\Target.cpp" />
     <ClCompile Include="Source\Hand\Hand.cpp" />
     <ClCompile Include="Source\Hand\HandMoitionLaw.cpp" />
     <ClCompile Include="Source\Hand\HandMuscles.cpp" />
@@ -62,12 +61,15 @@
     <ClCompile Include="Source\MyWindow\WindowMessageHandlers.cpp" />
     <ClCompile Include="Source\MyWindow\WindowMessageLoop.cpp" />
     <ClCompile Include="Source\Position\DirectionPredictor.cpp" />
+    <ClCompile Include="Source\Position\GradientMethod.cpp" />
     <ClCompile Include="Source\Position\Position.cpp" />
     <ClCompile Include="Source\Position\Position_old.cpp" />
+    <ClCompile Include="Source\Position\RundownMethod.cpp" />
     <ClCompile Include="Source\Position\SimplexMethod.cpp" />
-    <ClCompile Include="Source\Position\Target.cpp" />
     <ClCompile Include="Source\Position\LinearOperator.cpp" />
     <ClCompile Include="Source\Position\Tests.cpp" />
+    <ClCompile Include="Source\Position\TourWorkSpace.cpp" />
+    <ClCompile Include="Source\Position\W_MeansMethod.cpp" />
     <ClCompile Include="Source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -76,8 +78,6 @@
     </ClCompile>
     <ClCompile Include="Source\Utilities\Combinations.cpp" />
     <ClCompile Include="Source\Utilities\Point.cpp" />
-    <ClCompile Include="TourWorkSpace.cpp" />
-    <ClCompile Include="W_MeansMethod.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\MyWindow\resource.rc" />

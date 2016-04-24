@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+ï»¿#include "StdAfx.h"
 #include "Position.h"
 
 namespace Positions
@@ -24,7 +24,7 @@ namespace Positions
         auto it = std::find (controls.begin (), controls.end (), c.muscle);
         // for ( auto m : hand.muscles_ )
 
-        /* âçâåøåííîå ÍÅÑÌÅÙ¨ÍÍÎÅ cðåäíåå àðèôìåòè÷åñêîå */
+        /* Ð²Ð·Ð²ÐµÑˆÐµÐ½Ð½Ð¾Ðµ ÐÐ•Ð¡ÐœÐ•Ð©ÐÐÐÐžÐ• cÑ€ÐµÐ´Ð½ÐµÐµ Ð°Ñ€Ð¸Ñ„Ð¼ÐµÑ‚Ð¸Ñ‡ÐµÑÐºÐ¾Ðµ */
         double weight = boost_distance (aim, pRec->hit) / all_distance;
         if ( it == controls.end () )
         {
@@ -75,10 +75,7 @@ namespace Positions
     // ----------------------------------------------
   }
   //------------------------------------------------------------------------------
-  size_t  LearnMovements::w_means (IN  const Point &aim,
-                                   // OUT HandMoves::controling_t &controls,
-                                   // OUT Point& hand_position,
-                                   IN  bool verbose)
+  size_t  LearnMovements::w_means (IN  const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t w_means_complexity = 0U;
     // -----------------------------------------------
@@ -96,7 +93,7 @@ namespace Positions
       if ( next_distance < distance )
       { 
         distance = next_distance;
-        // hand_position = hand_pos;
+        hand_position = hand_pos;
 
         if ( precision > distance )
         { break; }
@@ -125,7 +122,7 @@ namespace Positions
             << std::endl << std::endl;
     }
     // -----------------------------------------------
-    return w_means_complexity;
+    return  w_means_complexity;
   }
   //------------------------------------------------------------------------------
   bool  LearnMovements::w_meansULAdjs (IN  const Point  &aim, OUT HandMoves::Record *pRec,
