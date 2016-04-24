@@ -155,6 +155,20 @@ namespace Positions
           { continue; }
           else if ( distance == new_distance )
           { 
+            // -------------------------------------------------
+            Point  shift{ random (-precision, precision),
+                          random (-precision, precision) };
+            // -------------------------------------------------
+            if ( deep < 1U )
+            {
+              ++deep;
+              gradient_complexity += gradientMethod_admixture (Point (aim.x + shift.x,
+                                                                      aim.y + shift.y),
+                                                               verbose);
+              --deep;
+            }
+            // -------------------------------------------------
+
             // gradient_complexity += rundownMethod (aim, /*controls, hand_position,*/ verbose);
             //  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             //  d = boost_distance (hand_position, aim);
@@ -163,7 +177,7 @@ namespace Positions
             //  else if ( new_distance > d )
             //  { continue; }
             ++iter;
-            if ( iter > 4 )
+            if ( iter > 2 )
               break;
           }
         }

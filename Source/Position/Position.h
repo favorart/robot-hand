@@ -184,6 +184,7 @@ namespace Positions
                               IN OUT          Hand::frames_t &velosity,
                               IN OUT          Hand::frames_t &velosity_prev);
     //------------------------------------------------------------------------------
+    int deep = 0U;
 
     //==============================================
     /* Mixtures */

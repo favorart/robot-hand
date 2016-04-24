@@ -375,20 +375,24 @@ namespace Positions
       visited.clear ();
       // -------------------------------------------------
       // Close (pt, NULL, NULL);
+
+      int tries = 10;
       // -------------------------------------------------
       const Record &rec = store.ClothestPoint (pt, side);
-      if ( boost_distance (rec.hit, pt) > target.precision () )
+      while ( tries > 0 && boost_distance (rec.hit, pt) > target.precision () )
       {
+        deep = 0U;
         complexity += gradientMethod_admixture (pt, verbose);
         // -------------------------------------------------
         const Record &rec = store.ClothestPoint (pt, side);
-        if ( boost_distance (rec.hit, pt) > target.precision () )
-        { uncovered.push_back (pt); }
+        // if ( boost_distance (rec.hit, pt) > target.precision () )
+        // { uncovered.push_back (pt); }
+        --tries;
       }
       ++count;
     }
     // -------------------------------------------------
-    tcout << _T ("TOTAL Complexity: ") << complexity << std::endl;
+    tcout << _T ("TOTAL Complexity: ")   << complexity << std::endl;
     tcout << _T ("AVERAGE Complexity: ") << complexity / count << std::endl;
   }
   //------------------------------------------------------------------------------  
