@@ -62,7 +62,7 @@ public:
 
   double     precision () const
   { // return  (std::min (thickness_.x, thickness_.y));
-    return 0.0035; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    return 0.004; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   }
   double     thickness () const
   { return   std::max (thickness_.x, thickness_.y); }

@@ -18,6 +18,33 @@ namespace HandMoves
 
   typedef std::list<Record>                   adjacency_t;
   typedef std::list<std::shared_ptr<Record>>  adjacency_refs_t;
+  //------------------------------------------------------------------------------
+  class ClosestPredicate
+  {
+    boost_point2_t aim;
+  public:
+    ClosestPredicate (const Point &aim) : aim (aim) {}
+    double  operator() (const std::shared_ptr<Record> &a,
+                        const std::shared_ptr<Record> &b)
+    {
+      return this->operator() (boost_point2_t (a->hit),
+                               boost_point2_t (b->hit));
+    }
+    double  operator() (const Record &a,
+                        const Record &b)
+    {
+      return this->operator() (boost_point2_t (a.hit),
+                               boost_point2_t (b.hit));
+    }
+    double  operator() (const boost_point2_t &a,
+                        const boost_point2_t &b)
+    {
+      double  da = boost::geometry::distance (aim, a);
+      double  db = boost::geometry::distance (aim, b);
+      return (da < db);
+    }
+  };
+  //------------------------------------------------------------------------------
 
   using namespace boost::multi_index;
   class Store // DataBase
@@ -81,22 +108,19 @@ namespace HandMoves
   public:
     Store () : minTimeLong (0U), maxTimeLong (0U) {}
     //------------------------------------------------------------------------------
-    const Record&   ClothestPoint (IN const Point &aim)
+    const Record&   ClothestPoint (IN const Point &aim, IN double side)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
       // -----------------------------------------------
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
       // -----------------------------------------------
-      auto iterLower = index.lower_bound (boost::tuple<double, double> (aim));
-      auto iterUpper = index.upper_bound (boost::tuple<double, double> (aim));
+      auto iterLower = index.lower_bound (boost::tuple<double, double> (aim.x - side, aim.y - side));
+      auto iterUpper = index.upper_bound (boost::tuple<double, double> (aim.x + side, aim.y + side));
       // -----------------------------------------------
-      if ( boost_distance (iterLower->hit, aim) < boost_distance (iterUpper->hit, aim) )
-      { return *iterLower; }
-      else
-      { return *iterUpper; }
+      ClosestPredicate  cp (aim);
+      return *std::min_element (iterLower, iterUpper, cp);
     }
     //------------------------------------------------------------------------------
-
     /* прямоугольная окрестность точки */
     template <class range_t, class index_t>
     size_t  adjacencyRectPoints  (OUT range_t &range, IN const Point &min, IN const Point &max)
@@ -114,33 +138,20 @@ namespace HandMoves
       Index_cIter itFirstLower = index.lower_bound (boost::tuple<double, double> (min));
       Index_cIter itFirstUpper = index.upper_bound (boost::tuple<double, double> (max));
       // -----------------------------------------------
-      size_t count = 0U;
       RangeInserter rangeInserter;
       // -----------------------------------------------
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
       {
-#ifdef _DEBUG_PRINT
-        // tcout << it->hit << std::endl;
-#endif
-        // -----------------------------------------------
         if ( (min.x <= it->hit.x && min.y <= it->hit.y)
           && (max.x >= it->hit.x && max.y >= it->hit.y) )
-        {
-          auto &rec = *it;
-          rangeInserter (range, rec);
-          // -----------------------------------------------
-          // range.push_back ( *it );
-          // range.push_back ( std::make_shared<Record> (*it) );
-          // -----------------------------------------------
-          ++count;
-        }
+        { rangeInserter (range, *it); }
       }
       // -----------------------------------------------
-      return count;
+      return range.size ();
     }
     /* круглая окрестность точки */
     template <class range_t>
-    size_t  adjacencyPoints      (OUT range_t &range, IN const Point &center, IN double radius)
+    size_t  adjacencyPoints      (OUT range_t &range, IN const Point &aim, IN double radius)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
       // -----------------------------------------------
@@ -151,27 +162,17 @@ namespace HandMoves
       typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
       // -----------------------------------------------
-      IndexPcIter itFirstLower = index.lower_bound (boost::make_tuple (center.x - radius,
-                                                                       center.y - radius));
-      IndexPcIter itFirstUpper = index.upper_bound (boost::make_tuple (center.x + radius,
-                                                                       center.y + radius));
+      IndexPcIter itFirstLower = index.lower_bound (boost::make_tuple (aim.x - radius, aim.y - radius));
+      IndexPcIter itFirstUpper = index.upper_bound (boost::make_tuple (aim.x + radius, aim.y + radius));
       // -----------------------------------------------
-      size_t count = 0U;
       RangeInserter  rangeInserter;
       // -----------------------------------------------
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
-      {
-        auto &rec = *it;
-        // -----------------------------------------------
-        if ( boost::geometry::distance (boost_point2_t (center),
-                                        boost_point2_t (rec.hit)) <= radius )
-        {
-          rangeInserter (range, rec);
-          ++count;
-        }
+      { if ( boost_distance (aim, it->hit) <= radius )
+        { rangeInserter (range, *it); }
       }
       // -----------------------------------------------
-      return count;
+      return range.size ();
     }
     //------------------------------------------------------------------------------
     template <class range_t>
@@ -189,44 +190,29 @@ namespace HandMoves
       IndexDcIter itFirstLower = index.lower_bound (min_distance);
       IndexDcIter itFirstUpper = index.upper_bound (max_distance);
       // -----------------------------------------------
-      size_t count = 0U;
       RangeInserter  rangeInserter;
       // -----------------------------------------------
       for ( auto it = itFirstLower; it != itFirstUpper; ++it )
-      {
-        auto &rec = *it;
-        rangeInserter (range, rec);
-        ++count;
-      }
+      { rangeInserter (range, *it); }
       // -----------------------------------------------
-      return count;
+      return range.size ();
     }
     //------------------------------------------------------------------------------
-    /* Все точки в данном index_t, равные x, попадающие в интервал (down, up)  */
     template <class range_t>
-    size_t  adjacencyByPBorders  (OUT range_t &range, IN const Point &aim, IN double side=0.1)
+    size_t  adjacencyByPBorders (OUT range_t &range, IN const Point &aim, IN double side)
     {
-      // std::pair<Record, Record>  x_pair, y_pair;
-      // size_t count = adjacencyByPBorders (aim, side, x_pair, y_pair);
-      // // -----------------------------------------------
-      // RangeInserter  rangeInserter;
-      // rangeInserter (range, x_pair.first);
-      // rangeInserter (range, x_pair.second);
-      // rangeInserter (range, y_pair.first);
-      // rangeInserter (range, y_pair.second);
-      
-      // -----------------------------------------------
       adjacencyRectPoints<range_t, ByP> (range, Point (aim.x - side, aim.y - side),
                                                 Point (aim.x + side, aim.y + side));
-
+      // -----------------------------------------------
       ClosestPredicate cp (aim);
       range.sort (cp);
-
+      // -----------------------------------------------
       int i = 0, j = 0, k = 0, l = 0;
+      // -----------------------------------------------
       auto it = range.begin ();
       while ( it != range.end () )
       {
-        if ( ((**it).hit.x < aim.x && (**it).hit.y < aim.y && !i) )
+             if ( ((**it).hit.x < aim.x && (**it).hit.y < aim.y && !i) )
         { ++i; ++it;}
         else if ( ((**it).hit.x < aim.x && (**it).hit.y > aim.y && !j) )
         { ++j; ++it;}
@@ -240,11 +226,10 @@ namespace HandMoves
       // -----------------------------------------------
       return range.size ();
     }
+    //------------------------------------------------------------------------------
     size_t  adjacencyByXYBorders ( IN const Point &aim, IN double side,
                                   OUT std::pair<Record, Record> &x_pair,
                                   OUT std::pair<Record, Record> &y_pair);
-    size_t  adjacencyByPBorders  (IN const Point &aim, // IN double side,
-                                  OUT std::pair<Record, Record> &d_pair);
     //------------------------------------------------------------------------------
     const Record*  ExactRecordByControl (IN const controling_t &controls)
     {
@@ -279,8 +264,8 @@ namespace HandMoves
       return  count;
     }
     //------------------------------------------------------------------------------
-    void  draw (HDC hdc, gradient_t gradient, double circleRadius=(0.)) const;
-    void  draw (HDC hdc, double circleRadius, HPEN hPen) const;
+    void  draw (HDC hdc, gradient_t gradient, double circleRadius=0.) const;
+    void  draw (HDC hdc, HPEN hPen, double circleRadius=0.) const;
     //------------------------------------------------------------------------------
     /* сериализация */
     void  save (tstring filename) const;
@@ -314,32 +299,6 @@ namespace HandMoves
       return store_.size ();
     }
     //------------------------------------------------------------------------------
-  };
-  //------------------------------------------------------------------------------
-  class ClosestPredicate
-  {
-    boost_point2_t aim;
-  public:
-    ClosestPredicate (const Point &aim) : aim (aim) {}
-    double  operator() (const std::shared_ptr<Record> &a,
-                        const std::shared_ptr<Record> &b)
-    {
-      return this->operator() (boost_point2_t (a->hit),
-                               boost_point2_t (b->hit));
-    }
-    double  operator() (const Record &a,
-                        const Record &b)
-    {
-      return this->operator() (boost_point2_t (a.hit),
-                               boost_point2_t (b.hit));
-    }
-    double  operator() (const boost_point2_t &a,
-                        const boost_point2_t &b)
-    {
-      double  da = boost::geometry::distance (aim, a);
-      double  db = boost::geometry::distance (aim, b);
-      return (da < db);
-    }
   };
   //------------------------------------------------------------------------------
   /* тестовые движения рукой */

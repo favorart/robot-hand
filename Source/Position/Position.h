@@ -121,16 +121,13 @@ namespace Positions
     //==============================================
     /* Точность = 1.5 мм */
     const double  precision = 0.0035;
-    /* Взвешенная арифметическое среднее (иначе обычное) */
-    bool weighted_mean = true;
     /* половина ребра квадрата, из которого берутся все точки */
-    double side = 0.005;
+    double side = 0.1;
     /* шаг уменьшения области поиска для взвешанной суммы */
     double side_decrease_step = 0.001;
 
     Hand::frames_t lasts_step = 1U;
 
-    size_t complexity = 0U;
     //==============================================
 
     /* hit the aim */
@@ -138,6 +135,64 @@ namespace Positions
     size_t hit_tries;
     double hit_precision;
     //==============================================
+
+    //==============================================
+    /* Mean */
+    /* Взвешенная арифметическое среднее (иначе обычное) */
+    bool weighted_mean = true;
+
+    //==============================================
+    HandMoves::Store &store;
+
+    Hand &hand;
+    Point hand_pos_base;
+
+    RecTarget &target;
+
+    size_t complexity = 0U;
+    //==============================================
+    void  hand_act (IN const Point &aim, IN HandMoves::controling_t  &controls,
+                    OUT Point &hand_position, IN bool copy=true);
+    //------------------------------------------------------------------------------
+    void  w_meansControls (IN  const Point &aim,
+                           IN  const HandMoves::adjacency_refs_t &range,
+                           OUT HandMoves::controling_t &controls,
+                           OUT double *weight=NULL);
+
+    bool  w_meansULAdjs (IN  const Point  &aim, OUT HandMoves::Record *pRec,
+                         OUT HandMoves::controling_t &lower_controls,
+                         OUT HandMoves::controling_t &upper_controls,
+                         OUT double       &lower_distance,
+                         OUT double       &upper_distance);
+    //------------------------------------------------------------------------------
+    void  gradientControls (IN  const Point &aim, IN  double  d_d,
+                            IN  const HandMoves::controling_t &inits_controls,
+                            IN  const HandMoves::controling_t &lower_controls,
+                            IN  const HandMoves::controling_t &upper_controls,
+                            OUT       HandMoves::controling_t &controls);
+    //------------------------------------------------------------------------------
+    void  rundownControls  (IN OUT HandMoves::controling_t &controls);
+    //-----------------------------------------------------------------------------
+    void  rundownControlsOrder (IN const HandMoves::controling_t &init_controls,
+                                OUT      HandMoves::controling_t      &controls);
+    //------------------------------------------------------------------------------
+    bool  rundownNextControl (IN OUT HandMoves::controling_t &controls,
+                              IN OUT                  size_t &controls_curr,
+                              IN OUT          Hand::frames_t &velosity,
+                              IN OUT          Hand::frames_t &velosity_prev);
+    //------------------------------------------------------------------------------
+
+    //==============================================
+    /* Mixtures */
+    size_t  w_means (IN  const Point &aim,
+                     // OUT HandMoves::controling_t &controls,
+                     // OUT Point& hand_position,
+                     IN  bool verbose=false);
+
+    size_t  rundown (IN const Point &aim,
+                     // OUT HandMoves::controling_t &controls,
+                     OUT Point &hand_position,
+                     IN  bool verbose=false);
 
   public:
     // LearnMovements () : lasts_incr_value1 (10U), lasts_incr_value2 (3U) {}
@@ -150,29 +205,23 @@ namespace Positions
     //   lasts_incr_value1 /= count_points;
     // }
 
+    LearnMovements (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target) :
+      store (store), hand (hand), target (target)
+    {
+      hand.SET_DEFAULT;
+      hand_pos_base = hand.position;
+    }
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
-    void  STAGE_1 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
+    void  STAGE_1 (IN bool verbose=true);
     /* Покрытие всей мишени не слишком плотно */
-    void  STAGE_2 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
+    void  STAGE_2 (IN bool verbose=true);
     /* Попадание в оставшиеся непокрытыми точки мишени */
-    void  STAGE_3 (IN  HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
+    void  STAGE_3 (OUT HandMoves::trajectory_t &uncovered, size_t &complexity, IN bool verbose=true);
     //------------------------------------------------------------------------------
-    void  Mean  (IN  HandMoves::Store &store, IN Hand &hand, IN const Point &aim, IN double side,
-                 OUT HandMoves::trajectory_t   *trajectory=NULL,
-                 OUT HandMoves::trajectories_t *trajectories=NULL);
-
-    void  Close (IN  HandMoves::Store &store, IN Hand &hand, IN const Point &aim, IN double side,
-                 OUT HandMoves::trajectory_t   *trajectory=NULL,
-                 OUT HandMoves::trajectories_t *trajectories=NULL);
-    //------------------------------------------------------------------------------
-    void  rundownMethod     (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
-                             IN const HandMoves::controling_t &init_controls, IN Point &hand_position);
-    void  rundownMethod_old (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim,
-                             IN const HandMoves::controling_t &init_controls, IN Point &hand_position);
-    void  gradientMethod    (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim);
-
-    void  gradientMethod_admixture (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim);
+    size_t   rundownMethod           (IN const Point &aim, IN bool verbose=false);
+    size_t  gradientMethod           (IN const Point &aim, IN bool verbose=false);
+    size_t  gradientMethod_admixture (IN const Point &aim, IN bool verbose=false);
     //------------------------------------------------------------------------------
     /* грубое покрытие всего рабочего пространства */
     void  testStage1 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
@@ -182,11 +231,23 @@ namespace Positions
     void  testStage3 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target,
                       OUT std::list<Point> &uncovered);
     //------------------------------------------------------------------------------
+    void  Mean  (IN const Point &aim,
+                 OUT HandMoves::trajectory_t   *trajectory=NULL,
+                 OUT HandMoves::trajectories_t *trajectories=NULL);
+
+    void  Close (IN const Point &aim,
+                 OUT HandMoves::trajectory_t   *trajectory=NULL,
+                 OUT HandMoves::trajectories_t *trajectories=NULL);
+    //------------------------------------------------------------------------------
     void  testCoverTarget (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     //------------------------------------------------------------------------------
     void  getTargetCenter (IN HandMoves::Store &store, IN Hand &hand, OUT Point &center);
     //------------------------------------------------------------------------------
     bool  tryToHitTheAim  (IN HandMoves::Store &store, IN Hand &hand, IN const Point &aim);
+    //------------------------------------------------------------------------------
+    void  rundownMethod_old (IN const Point &aim,
+                             IN const HandMoves::controling_t &controls,
+                             IN Point &hand_position);
     //------------------------------------------------------------------------------
   }; // end LearnMovements
 };

@@ -7,6 +7,406 @@ namespace Positions
   using namespace std;
   using namespace HandMoves;
   //------------------------------------------------------------------------------
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // !!! Борьба с КОЛИЧЕСТВОМ, которая перетягивает начальную точку !!!
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  void  LearnMovements::Mean (IN const Point &aim,
+                              OUT HandMoves::trajectory_t    *trajectory,
+                              OUT HandMoves::trajectories_t  *trajectories)
+  {
+    complexity = 0U;
+    // -----------------------------------------------    
+    hand.SET_DEFAULT;
+    Point  hand_position = hand.position,
+      hand_pos_base = hand.position;
+    // -----------------------------------------------
+    double  distance = boost_distance (hand_position, aim);
+    double  next_distance = distance;
+    // -----------------------------------------------
+    do
+    {
+      if ( next_distance < distance )
+      { distance = next_distance; }
+      // -----------------------------------------------
+      // Point  min (aim.x - side, aim.y - side),
+      //        max (aim.x + side, aim.y + side);
+      // -----------------------------------------------
+#ifdef _DEBUG_PRINT
+      tcout << std::endl;
+      tcout << std::endl << _T ("LearnMovements::Mean") << std::endl;
+      tcout << _T ("min=") << min << _T (" max=") << max << std::endl;
+#endif // _DEBUG_PRINT
+      // -----------------------------------------------
+      HandMoves::adjacency_refs_t  range;
+      // size_t  count = store.adjacencyPoints (range, aim, side);
+      // size_t  count = store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+      size_t  count = store.adjacencyByPBorders (range, aim, side);
+      if ( count == 0U )
+      {
+#ifdef _DEBUG_PRINT
+        // tcout << _T ("ERROR: empty adjacency") << std::endl;
+#endif // _DEBUG_PRINT
+        // -------------
+        return;
+      }
+      // -----------------------------------------------
+      if ( trajectories )
+      {
+        for ( auto &pRec : range )
+        { trajectories->push_back (pRec->trajectory); }
+      }
+      // -----------------------------------------------
+      // HandMoves::ClosestPredicate  cp (aim);
+      // range.sort (cp);
+      // -----------------------------------------------
+      double all_distance = 0.;
+      if ( weighted_mean )
+      {
+        for ( auto &pRec : range )
+        {
+          all_distance += boost_distance (aim, pRec->hit);
+          // -----------------------------------------------
+#ifdef _DEBUG_PRINT
+          // tcout << pRec->controls () << std::endl;
+#endif // _DEBUG_PRINT
+        }
+#ifdef _DEBUG_PRINT
+        tcout << std::endl;
+#endif // _DEBUG_PRINT
+      }
+      // -----------------------------------------------
+      controling_t  controls;
+      for ( auto m : hand.muscles_ )
+      {
+        Hand::Control  control (m, 0U, 0U);
+        // -----------------------------------------------
+        Hand::frames_t  n_control_summands = 0U;
+        for ( auto &pRec : range )
+          for ( auto &c : pRec->controls )
+          {
+            if ( c.muscle == m )
+            {
+              if ( weighted_mean )
+              {
+                /* взвешенное cреднее арифметическое */
+                double weight = boost_distance (aim, pRec->hit) / all_distance;
+                control.start += weight * c.start;
+                control.last += weight * c.last;
+              }
+              else
+              {
+                /* обычное cреднее арифметическое */
+                control.start += c.start;
+                control.last += c.last;
+                ++n_control_summands;
+              } // end else
+            } // end if
+          } // end for-for
+            // -----------------------------------------------
+        if ( !weighted_mean )
+        {
+          if ( n_control_summands ) control.last /= n_control_summands;
+          if ( n_control_summands ) control.start /= n_control_summands;
+        }
+        // -----------------------------------------------
+        if ( control.last )
+        { controls.push_back (control); }
+      }
+      // -----------------------------------------------
+      for ( auto j : hand.joints_ )
+      {
+        auto mo = muscleByJoint (j, true);
+        auto mc = muscleByJoint (j, false);
+
+        auto it_o = std::find (controls.begin (), controls.end (), mo);
+        auto it_c = std::find (controls.begin (), controls.end (), mc);
+
+        if ( it_o != controls.end () && it_c != controls.end () )
+          if ( it_o->last > it_c->last )
+          { it_c->start = it_o->last + 1U; }
+          else
+          { it_o->start = it_c->last + 1U; }
+      }
+      controls.sort ();
+      // -----------------------------------------------
+      {
+        trajectory_t trajectory_;
+        hand.move (controls.begin (), controls.end (), &trajectory_);
+        hand.SET_DEFAULT;
+        hand_position = hand.position;
+
+        ++complexity;
+        // -----------------------------------------------
+        HandMoves::Record  rec (aim, hand_pos_base,
+                                hand_position, controls,
+                                trajectory_);
+        store.insert (rec);
+        // -----------------------------------------------
+        if ( trajectory )
+        { *trajectory = trajectory_; }
+      }
+      // -----------------------------------------------
+      next_distance = boost_distance (hand_position, aim);
+      if ( next_distance < distance )
+      { distance = next_distance; }
+
+      if ( precision >= distance )
+      { break; }
+
+#ifdef _DEBUG_PRINT
+      tcout << _T ("Prec: ") << next_distance << std::endl;
+#endif // _DEBUG_PRINT
+      // -----------------------------------------------
+      if ( distance > precision ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      { rundownMethod (aim/*, controls, hand_position*/); }
+
+      next_distance = boost_distance (hand_position, aim);
+      if ( next_distance < distance )
+      { distance = next_distance; }
+
+      if ( complexity > 2000 ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      { break; }
+
+      if ( precision >= distance )
+      { break; }
+      // -----------------------------------------------
+      side -= side_decrease_step;
+      // -----------------------------------------------
+      controls.clear ();
+      range.clear ();
+      // -----------------------------------------------
+    } while ( precision < distance || distance != next_distance );
+    // -----------------------------------------------
+#ifdef _DEBUG_PRINT_RES
+    tcout << _T ("ResPrec: ") << distance << std::endl;
+    tcout << _T ("Complexity: ") << complexity << std::endl << std::endl;
+#endif // _DEBUG_PRINT_RES
+  }
+
+  void  LearnMovements::Close (IN const Point &aim,
+                               OUT HandMoves::trajectory_t    *trajectory,
+                               OUT HandMoves::trajectories_t  *trajectories)
+  {
+    complexity = 0U;
+    // -----------------------------------------------    
+    hand.SET_DEFAULT;
+    Point  hand_position = hand.position,
+      hand_pos_base = hand.position;
+    // -----------------------------------------------
+    double  distance;
+    // -----------------------------------------------
+    Point  min (aim.x - side, aim.y - side),
+      max (aim.x + side, aim.y + side);
+    // -----------------------------------------------
+#ifdef _DEBUG_PRINT
+    tcout << std::endl;
+    tcout << std::endl << _T ("LearnMovements::Close") << std::endl;
+    tcout << _T (" min=") << min << _T ("  max=") << max << std::endl;
+#endif // _DEBUG_PRINT
+    // -----------------------------------------------
+    HandMoves::adjacency_refs_t  range;
+    // auto count = store.adjacencyPoints (range, aim, side);
+    auto  count = store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+    if ( count == 0U )
+    {
+#ifdef _DEBUG_PRINT
+      // tcout << _T ("ERROR: empty adjacency") << std::endl;
+#endif // _DEBUG_PRINT
+      // -------------
+      return;
+    }
+    // -----------------------------------------------
+    if ( trajectories )
+    {
+      for ( auto &pRec : range )
+      { trajectories->push_back (pRec->trajectory); }
+    }
+    // -----------------------------------------------
+    HandMoves::ClosestPredicate  cp (aim);
+    auto it_min = boost::range::min_element (range, cp);
+    // -----------------------------------------------
+    hand_position = range.front ()->hit;
+
+    distance = boost_distance (hand_position, aim);
+    if ( distance > precision ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    { rundownMethod (aim /*, range.front ()->controls, hand_position*/); }
+
+    // -----------------------------------------------
+#ifdef _DEBUG_PRINT_RES
+    tcout << _T ("ResPrec: ") << distance << std::endl;
+    tcout << _T ("Complexity: ") << complexity << std::endl << std::endl;
+#endif // _DEBUG_PRINT_RES
+  }
+
+  //------------------------------------------------------------------------------
+  void  LearnMovements::rundownMethod_old (IN const Point &aim,
+                                           IN const HandMoves::controling_t &init_controls,
+                                           IN Point &hand_position)
+  {
+    hand.SET_DEFAULT;
+    Point hand_pos_base = hand.position;
+    Point hand_pos = hand_position;
+    // -----------------------------------------------
+    controling_t controls;
+    auto iter = controls.begin ();
+    for ( auto j : hand.joints_ )
+    {
+      auto mo = muscleByJoint (j, true);
+      auto mc = muscleByJoint (j, false);
+
+      auto it_o = std::find (init_controls.begin (), init_controls.end (), mo);
+      auto it_c = std::find (init_controls.begin (), init_controls.end (), mc);
+
+      if ( it_o != init_controls.end () && it_c != init_controls.end () )
+      {
+        controls.insert (iter, *it_o);
+        controls.insert (iter, *it_c);
+      }
+      else if ( it_o != init_controls.end () )
+      {
+        controls.insert (iter, *it_o);
+        controls.insert (iter, Hand::Control (mc, it_o->last + 1, 50));
+      }
+      else if ( it_c != init_controls.end () )
+      {
+        controls.insert (iter, Hand::Control (mo, it_c->last + 1, 50));
+        controls.insert (iter, *it_c);
+      }
+      else
+      {
+        controls.insert (iter, Hand::Control (mo, 0, 51));
+        controls.insert (iter, Hand::Control (mc, 52, 50));
+      }
+    }
+    // -----------------------------------------------
+    controls.sort ();
+    // -----------------------------------------------
+    std::list<shared_ptr<Hand::Control>>  ordered_controls;
+    for ( auto &c : controls )
+    { ordered_controls.push_back (std::make_shared<Hand::Control> (c)); }
+    ordered_controls.sort ([](const shared_ptr<Hand::Control> &sca,
+                              const shared_ptr<Hand::Control> &scb)
+    {
+      return sca->muscle < scb->muscle;
+    });
+    // -----------------------------------------------
+    lasts_step = 1U;
+    double distance = boost_distance (hand_position, aim);
+    // -----------------------------------------------
+    while ( precision < distance )
+    {
+      // -----------------------------------------------
+      auto it_straight = ordered_controls.begin ();
+      auto it_opposite = std::next (it_straight);
+
+      if ( (**it_straight).last < (**it_opposite).last )
+      { std::swap (it_straight, it_opposite); }
+      // -----------------------------------------------
+      double best_distance = distance;
+      for ( auto j : hand.joints_ )
+      {
+        Hand::frames_t last_straight = (**it_straight).last;
+        Hand::frames_t last_opposite = (**it_opposite).last;
+
+        Hand::frames_t best_last_straight = 0U;
+        Hand::frames_t best_last_opposite = 0U;
+
+        double next_distance = distance;
+        double prev_distance = distance;
+        // ---------------------------------------------------------
+        do
+        {
+          prev_distance = next_distance;
+          (**it_straight).last += lasts_step;
+          (**it_opposite).start += lasts_step;
+
+#ifdef _DEBUG_PRINT
+          for ( auto &c : controls )
+          { tcout << c << std::endl; }
+#endif // _DEBUG_PRINT
+
+          hand_act (aim, controls, hand_pos);
+          next_distance = boost_distance (hand_pos, aim);
+
+          if ( next_distance >= prev_distance )
+          {
+            (**it_straight).last -= lasts_step;
+            (**it_opposite).start -= lasts_step;
+
+            do
+            {
+              prev_distance = next_distance;
+              (**it_opposite).last -= lasts_step;
+              hand_act (aim, controls, hand_pos);
+              next_distance = boost_distance (hand_position, aim);
+            } while ( next_distance < prev_distance );
+          }
+
+        } while ( next_distance < prev_distance );
+
+        if ( prev_distance < best_distance )
+        {
+          best_last_straight = (**it_straight).last;
+          best_last_opposite = (**it_opposite).last;
+
+          best_distance = prev_distance;
+        }
+        // ---------------------------------------------------------
+        (**it_straight).last = last_straight;
+        (**it_opposite).last = last_opposite;
+
+        do
+        {
+          prev_distance = next_distance;
+          (**it_straight).last -= lasts_step;
+          (**it_opposite).start -= lasts_step;
+
+          hand_act (aim, controls, hand_pos);
+          next_distance = boost_distance (hand_pos, aim);
+
+          if ( next_distance >= prev_distance )
+          {
+            (**it_straight).last += lasts_step;
+            (**it_opposite).start += lasts_step;
+            do
+            {
+              prev_distance = next_distance;
+              (**it_opposite).last += lasts_step;
+
+              hand_act (aim, controls, hand_pos);
+              next_distance = boost_distance (hand_pos, aim);
+
+            } while ( next_distance < prev_distance );
+          }
+
+        } while ( next_distance < prev_distance );
+
+        if ( prev_distance < best_distance )
+        {
+          best_last_straight = (**it_straight).last;
+          best_last_opposite = (**it_opposite).last;
+
+          best_distance = prev_distance;
+        }
+        // ---------------------------------------------------------
+        (**it_straight).last = best_last_straight;
+        (**it_opposite).last = best_last_opposite;
+
+        distance = best_distance;
+
+#ifdef _DEBUG_PRINT
+        tcout << _T ("prec: ") << best_distance << std::endl;
+#endif // _DEBUG_PRINT
+        ++it_straight;
+        ++it_opposite;
+      }
+    }
+    // -----------------------------------------------
+#ifdef _DEBUG_PRINT_RES
+    tcout << _T ("prec: ") << distance << std::endl;
+#endif // _DEBUG_PRINT_RES
+  }
+  //------------------------------------------------------------------------------
   void  testCover (IN  HandMoves::Store &store, IN Hand &hand,
                    OUT HandMoves::trajectories_t &trajectories)
   {

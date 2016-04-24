@@ -26,8 +26,9 @@ namespace NewHand
   //------------------------------------------------------------------------------
   bool       musclesValidUnion (Hand::MusclesEnum muscle);
   //------------------------------------------------------------------------------
-  Hand::MusclesEnum  muscleByJoint (Hand::JointsEnum  joint, bool open);
-  Hand::JointsEnum   jointByMuscle (Hand::MusclesEnum muscle);
+  Hand::MusclesEnum  muscleOpposite (Hand::MusclesEnum muscle);
+  Hand::MusclesEnum  muscleByJoint  (Hand::JointsEnum  joint, bool open);
+  Hand::JointsEnum   jointByMuscle  (Hand::MusclesEnum muscle);
 //------------------------------------------------------------------------------
   tostream&  operator<< (tostream &out, const Hand::Control &control);
 };

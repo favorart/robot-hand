@@ -43,6 +43,8 @@
     <ClInclude Include="Source\Utilities\Point.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GradientMethod.cpp" />
+    <ClCompile Include="RundownMethod.cpp" />
     <ClCompile Include="Source\HandMoves\Record.cpp" />
     <ClCompile Include="Source\HandMoves\Store.cpp" />
     <ClCompile Include="Source\Hand\Hand.cpp" />
@@ -74,6 +76,8 @@
     </ClCompile>
     <ClCompile Include="Source\Utilities\Combinations.cpp" />
     <ClCompile Include="Source\Utilities\Point.cpp" />
+    <ClCompile Include="TourWorkSpace.cpp" />
+    <ClCompile Include="W_MeansMethod.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\MyWindow\resource.rc" />

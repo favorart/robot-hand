@@ -33,7 +33,7 @@ public:
   Point      mouse_aim;
   // ---------------------------------
   const double  radius = 0.05;
-  const double  side   = 0.001;
+  const double  side = 0.1;
 
   // ---------------------------------
   boost::thread  *pWorkerThread;
@@ -111,6 +111,7 @@ public:
 
   std::list<Point> uncoveredPoints;
   bool             uncovered_show = true;
+  size_t           complexity;
 
   /* Набор пользователем чисел */
   // static int  flag_m, flag_n;

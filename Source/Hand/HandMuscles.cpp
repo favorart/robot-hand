@@ -72,6 +72,28 @@ bool  NewHand::musclesValidUnion (Hand::MusclesEnum muscle)
   return true;
 }
 //--------------------------------------------------------------------------------
+Hand::MusclesEnum  NewHand::muscleOpposite (Hand::MusclesEnum muscle)
+{
+  if ( !muscle ) return Hand::EmptyMov;
+
+  for ( auto m : muscles )
+  {
+    if ( m & muscle )
+      switch ( m )
+      {
+        default:             return Hand::EmptyMov;
+        case Hand::ClvclOpn: return Hand::ClvclCls;
+        case Hand::ClvclCls: return Hand::ClvclOpn;
+        case Hand::ShldrOpn: return Hand::ShldrCls;
+        case Hand::ShldrCls: return Hand::ShldrOpn;
+        case Hand::ElbowOpn: return Hand::ElbowCls;
+        case Hand::ElbowCls: return Hand::ElbowOpn;
+        case Hand::WristOpn: return Hand::WristCls;
+        case Hand::WristCls: return Hand::WristOpn;
+      }
+  }
+  return Hand::EmptyMov;
+}
 Hand::MusclesEnum  NewHand::muscleByJoint (Hand:: JointsEnum joint, bool open)
 {
   if ( !joint ) return Hand::EmptyMov;

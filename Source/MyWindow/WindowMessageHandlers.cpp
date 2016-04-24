@@ -389,7 +389,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                       WPARAM wParam, LPARAM lparam,
                       MyWindowData &wd)
 {
-  switch ( wParam )
+  char symbol = (char) (wParam);
+  switch ( symbol )
   {
     // case 0x0D: /* Process a carriage return */
     // {
@@ -464,13 +465,35 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       // Positions::testCoverTarget (wd.store, wd.hand, wd.target, wd.testing_trajectories);
 
       //========================================
-      WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
-                                [](Store &store, Hand &hand, RecTarget &target)
-                                {
-                                  Positions::LearnMovements lm;
-                                  lm.testStage1 (store, hand, target);
-                                }
-                                , wd.hand, wd.target);
+      tstring  message{ _T(" *** STAGE 3 ***  ") };
+
+      if ( !wd.testing && !wd.pWorkerThread )
+      {
+        wd.testing = true;
+        /* Set text of label 'Stat'  */
+        SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
+
+        wd.complexity = 0U;
+        wd.pWorkerThread = new boost::thread ([](Store &store, Hand &hand, RecTarget &target,
+                                                 trajectory_t &uncovered, size_t &complexity)
+                                              {
+                                                Positions::LearnMovements lm (store, hand, target);
+                                                lm.STAGE_3 (uncovered, complexity, false);
+                                              }
+                                              , std::ref (wd.store),
+                                                wd.hand,
+                                                std::ref (wd.target),
+                                                std::ref (wd.uncoveredPoints),
+                                                std::ref (wd.complexity));
+      }
+
+      // WorkerThreadRunStoreTask (wd, _T (" *** Stage 1 test ***  "),
+      //                            [](Store &store, Hand &hand, RecTarget &target)
+      //                            {
+      //                              Positions::LearnMovements lm (store, hand, target);
+      //                              lm.testStage1 (store, hand, target);
+      //                            }
+      //                           , wd.hand, wd.target);
       WorkerThreadTryJoin (wd);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
@@ -493,7 +516,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       WorkerThreadRunStoreTask (wd, _T (" *** stage 2 test ***  "),
                                 [] (Store &store, Hand &hand, RecTarget &target)
                                 { 
-                                  Positions::LearnMovements lm;
+                                  Positions::LearnMovements lm (store, hand, target);
                                   lm.testStage2 (store, hand, target);
                                 }
                                 , wd.hand, wd.target);
@@ -507,7 +530,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'j':
     {
-      Positions::LearnMovements lm;
+      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
       lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
       InvalidateRect (hWnd, &myRect, TRUE);
@@ -520,8 +543,8 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       WorkerThreadRunStoreTask (wd, _T (" *** STAGE 1 test ***  "),
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {
-                                  Positions::LearnMovements lm;
-                                  lm.STAGE_1 (store, hand, target);
+                                  Positions::LearnMovements lm (store, hand, target);
+                                  lm.STAGE_1 ();
                                 }
                                 , wd.hand, wd.target);
       WorkerThreadTryJoin (wd);
@@ -566,14 +589,14 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'n':
     {
-      // Positions::LearnMovements lm;
-      // lm.STAGE2 (wd.store, wd.hand, wd.target);
+      // Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
+      // lm.STAGE2 ();
 
       WorkerThreadRunStoreTask (wd, _T (" *** STAGE 2 test ***  "),
                                 [](Store &store, Hand &hand, RecTarget &target)
                                 {
-                                  Positions::LearnMovements lm;
-                                  lm.STAGE_2 (store, hand, target);
+                                  Positions::LearnMovements lm (store, hand, target);
+                                  lm.STAGE_2 ();
                                 }
                                 , wd.hand, wd.target);
       WorkerThreadTryJoin (wd);
@@ -584,7 +607,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
 
     case 'i':
     { 
-      Positions::LearnMovements lm;
+      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
       lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
       //========================================
       // int muscle, last;
