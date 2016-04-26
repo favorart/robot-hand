@@ -201,21 +201,10 @@ namespace Positions
     /* Mixtures */
     size_t  w_means (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
     size_t  rundown (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
-
-
-    size_t   rundownMethod (IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
+    //------------------------------------------------------------------------------
+    size_t  rundownMethod (IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
 
   public:
-    // LearnMovements () : lasts_incr_value1 (10U), lasts_incr_value2 (3U) {}
-    // LearnMovements (HandMoves::Store &store, Hand &hand, RecTarget &target)
-    // {
-    //   lasts_incr_value1 = 0U;
-    //   for ( auto m : hand.muscles_ )
-    //     lasts_incr_value1 += hand.maxMuscleLast (m);
-    //   lasts_incr_value1 /= (Hand::frames_t) hand.muscles_.size ();
-    //   lasts_incr_value1 /= count_points;
-    // }
-
     LearnMovements (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target) :
       store (store), hand (hand), target (target), precision (target.precision ())
     {
@@ -235,7 +224,11 @@ namespace Positions
     //------------------------------------------------------------------------------
     size_t  gradientMethod           (IN const Point &aim, IN bool verbose=false);
     size_t  gradientMethod_admixture (IN const Point &aim, IN bool verbose=false);
+
     //------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
+    // OLD:
+
     /* грубое покрытие всего рабочего пространства */
     void  testStage1 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     /* Покрытие всей мишени не слишком плотно */

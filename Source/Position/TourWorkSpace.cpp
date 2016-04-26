@@ -24,10 +24,12 @@ namespace Positions
     borders_t  borders_;
     //--------------------------------------------------------
     DirectionPredictor  *pd;
-    Point  predict_shift{ 0.1, -0.05 };
+    Point  predict_shift{ 0.15, -0.05 };
     //--------------------------------------------------------
     double                 step_distance;
     Hand::frames_t   lasts_step_increment;
+    Hand::frames_t   lasts_step_increment_thick = 20U;
+    Hand::frames_t   lasts_step_initiate = 25U;
     Hand::frames_t   lasts_step_braking = 5U;
     //--------------------------------------------------------
     size_t    complexity = 0U;
@@ -96,7 +98,8 @@ namespace Positions
       bool  target_contain = true;
       //------------------------------------------
       Hand::frames_t start_i = 0U;
-      Hand::frames_t last_lasts = 0U;
+      // Hand::frames_t last_lasts = 0U;
+      Hand::frames_t lasts_step; // = lasts_step_initiate;
       //------------------------------------------
       bool  was_on_target = false;
       //------------------------------------------
@@ -118,7 +121,7 @@ namespace Positions
         if (  board.first > 0
            && board.first < board.second )
         {
-          Hand::frames_t lasts_step  = lasts_step_increment;
+          lasts_step = lasts_step_increment;
           Hand::frames_t lasts_i_max = hand.maxMuscleLast (muscle_i);
           //------------------------------------------
           start_i = 0U;
@@ -126,11 +129,15 @@ namespace Positions
           //------------------------------------------
           Hand::frames_t last_i = 0U;
           for ( last_i  = board.first;
-               (last_i <  lasts_i_max) && (target_contain || !was_on_target) &&
-               (last_i <= board.second - start_i);
+               (last_i <  lasts_i_max) && (target_contain || !was_on_target) // &&
+           /* ((last_i <= board.second - start_i || target_contain)) */;
                 last_i += lasts_step )
           {
             control_i.last = last_i;
+
+            if ( (last_i > board.second - start_i) && ((!b_target || !target_contain) ||
+                 hand_pos_prev.x > target.max ().x || hand_pos_prev.y < target.min ().y) )
+            { break; }
             //------------------------------------------
             if ( 0 <= joint_index && (joint_index + 1) < max_nested )
             {
@@ -150,6 +157,7 @@ namespace Positions
               target_contain = runNestedInserting (hand_pos_curr) || !b_target;
               //===============================================================              
             } // end else (insert)
+
             //------------------------------------------
             if ( b_target && (target_contain && !was_on_target) )
             {
@@ -201,9 +209,8 @@ namespace Positions
             hand_pos_prev = hand_pos_curr;
             //------------------------------------------
           } // end for (last)
-            //------------------------------------------
-          if ( b_target )
-          { board.second = last_i; }
+          //------------------------------------------
+          if ( b_target ) { board.second = last_i; }
           //------------------------------------------
           for ( size_t ji = 0; ji <= joint_index; ++ji )
           { arr_controlings[ji].last = 0U; }
@@ -213,10 +220,8 @@ namespace Positions
             start_i = 0U;
             target_contain = true;
             //------------------------------------------
-            const Hand::frames_t  lasts_step_increment_thick = 20U;
-            //------------------------------------------
-            Hand::frames_t lasts_step_prev = lasts_step;
-            lasts_step = lasts_step_increment_thick + 1U;
+            // Hand::frames_t lasts_step_prev = lasts_step;
+            lasts_step = lasts_step_increment_thick; // lasts_step_initiate;
             //------------------------------------------
             for ( last_i = board.first;
                  (last_i - lasts_step) < lasts_i_max && target_contain;
@@ -250,7 +255,7 @@ namespace Positions
               hand_pos_prev = hand_pos_curr;
             } // end for (lasts)
             //------------------------------------------
-            lasts_step = lasts_step_prev;
+            // lasts_step = lasts_step_prev;
           } // if (target)
         } // end if (border)
       } // end for (muscle)
@@ -298,7 +303,7 @@ namespace Positions
         for ( auto &c : controls )
         { pd->predict (c, end); }
         //----------------------------------------------
-        if ( b_distance )
+        if ( b_distance && b_target )
         { end.x += predict_shift.x;
           end.y += predict_shift.y;
         }
@@ -316,17 +321,15 @@ namespace Positions
         hand.SET_DEFAULT;
         /* двигаем рукой */
         hand.move (controling.begin (), controling.end (), &trajectory);
-        hand_position = hand.position;
+        ++complexity;
         //----------------------------------------------
+        hand_position  = hand.position;
         target_contain = target.contain (hand_position);
         //----------------------------------------------
         HandMoves::Record  rec (hand_position, hand_pos_base,
                                 hand_position, controling,
                                 trajectory);
         store.insert (rec);
-        //----------------------------------------------
-        ++complexity;
-        boost::this_thread::interruption_point ();
         //----------------------------------------------
       } /* end if */
       else
@@ -335,6 +338,8 @@ namespace Positions
         { hand_position = end; }
         target_contain = false;
       }
+      //----------------------------------------------
+      boost::this_thread::interruption_point ();
       //----------------------------------------------
       return  target_contain;
     }
@@ -345,7 +350,7 @@ namespace Positions
   void  LearnMovements::STAGE_1 (IN bool verbose)
   {
     borders_t  borders;
-    defineBorders (borders, hand, /* 1U); */ 70U);
+    defineBorders (borders, hand, /* 1U); */ 70U); 
     DirectionPredictor  dp (hand);
 
     TourWorkSpace  tour (store, hand, target);
@@ -354,8 +359,7 @@ namespace Positions
               /* target   */ false,
               /* braking  */ true,
               /* checking */ false,
-              0.04, // 2U,
-              5U,
+              0.03, 3U,
               verbose);
   }
   /* Покрытие всей мишени не слишком плотно */
@@ -371,7 +375,7 @@ namespace Positions
               /* target   */ true,
               /* braking  */ true,
               /* checking */ false,
-              0.015, 2U,
+              0.017, 2U,
               verbose);
   }
   /* Попадание в оставшиеся непокрытыми точки мишени */
@@ -387,13 +391,13 @@ namespace Positions
       tcout << _T ("current: ") << count << _T (" / ")
             <<  target.coords ().size () << _T (" \r");
       // ---------------------------------------------------
-      int tries = 4;
+      int tries = 8;
       Point p{ pt };
       // ---------------------------------------------------
       const Record &rec = store.ClothestPoint (pt, side);
       while ( tries >= 0 && boost_distance (rec.hit, pt) > target.precision () )
       {
-        complexity += gradientMethod/*_admixture*/ (p, verbose);
+        complexity += gradientMethod_admixture (p, verbose);
         // -------------------------------------------------
         const Record &rec = store.ClothestPoint (pt, side);
         // -------------------------------------------------
@@ -413,7 +417,7 @@ namespace Positions
       // ---------------------------------------------------
       {
         const Record &rec = store.ClothestPoint (pt, side);
-        if ( boost_distance (rec.hit, pt) > target.precision () )
+        if ( boost_distance (rec.hit, pt) > (target.precision () + EPS) )
         { uncovered.push_back (pt); }
       }
     } // end for
@@ -426,9 +430,19 @@ namespace Positions
   {
     for ( const auto &pt : target.coords () )
     {
-      const Record &rec = store.ClothestPoint (pt, side);
+      bool is_there = false;
       // -------------------------------------------------------
-      if ( boost_distance (rec.hit, pt) > target.precision () )
+      HandMoves::adjacency_refs_t range;
+      store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, Point{ pt.x - side, pt.y - side },
+                                                               Point{ pt.x + side, pt.y + side });
+      // -------------------------------------------------------
+      for ( auto &pRec : range )
+      {
+        // -------------------------------------------------------
+        if ( boost_distance (pRec->hit, pt) < (target.precision () + EPS) )
+        { is_there = true; break; }
+      }
+      if (!is_there )
       { uncovered.push_back (pt); }
     }
   }
