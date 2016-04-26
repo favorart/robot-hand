@@ -47,7 +47,6 @@
     <ClCompile Include="Source\HandMoves\Store.cpp" />
     <ClCompile Include="Source\HandMoves\Target.cpp" />
     <ClCompile Include="Source\Hand\Hand.cpp" />
-    <ClCompile Include="Source\Hand\HandMoitionLaw.cpp" />
     <ClCompile Include="Source\Hand\HandMuscles.cpp" />
     <ClCompile Include="Source\libs\J.Burkardt (FSU)\llsq\llsq.cpp" />
     <ClCompile Include="Source\libs\J.Burkardt (FSU)\qr_solve\qr_solve.cpp" />

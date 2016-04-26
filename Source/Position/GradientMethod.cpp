@@ -143,7 +143,10 @@ namespace Positions
       if ( precision > d )
       { break; }
       // -----------------------------------------------
-      if ( new_distance <= d )
+      if ( new_distance > d )
+      { new_distance = d; }
+      // -----------------------------------------------
+      else
       {
         gradient_complexity += w_means (aim, hand_position, verbose);
 
@@ -152,7 +155,7 @@ namespace Positions
         { break; }
         else if ( new_distance > d )
         { continue; }
-        else // if ( new_distance <= d )
+        else
         {
           gradient_complexity += rundown (aim, hand_position, verbose);
 
@@ -161,14 +164,26 @@ namespace Positions
           { break; }
           else if ( new_distance > d )
           { continue; }
-          else // if ( new_distance <= d )
+          else
           { 
-            gradient_complexity += gradientMethod (aim, verbose);
-            break; /* FAIL */
-          }
-        }
-      }
-      else { new_distance = d; }
+            // gradient_complexity += gradientMethod (aim, verbose);
+            // 
+            // auto &rec = store.ClothestPoint (aim, side);
+            // hand_position = rec.hit;
+            // 
+            // d = boost_distance (hand_position, aim);
+            // if ( precision > d )
+            // { break; }
+            // else if ( new_distance > d )
+            // { continue; }
+            // else // if ( new_distance <= d )
+            {
+              /* FAIL */
+              break;
+            } // end else
+          } // end else
+        } // end else
+      } // end else
       // -----------------------------------------------
       controling_t  controls;
       gradientControls (aim, d_d,
@@ -184,6 +199,10 @@ namespace Positions
       // -----------------------------------------------
       if ( new_distance > d )
       { new_distance = d; }
+      if ( d > side )
+      { /* FAIL */
+        break;
+      }
       // -----------------------------------------------
       if ( distance > new_distance )
       { distance = new_distance; }
@@ -336,16 +355,6 @@ namespace Positions
       else
       {
         visited.clear ();
-
-        // Record rec_close;
-        // if ( !gradientClothestRecords (aim, &rec,
-        //                                NULL, NULL, &visited) )
-        // {
-        //   /* FAIL */
-        //   break;
-        // }
-        // 
-        // hand_position = rec.hit;
         
         rundownMethod (aim, hand_position, verbose);
 
@@ -354,12 +363,24 @@ namespace Positions
         { break; }
         else if ( new_distance > d )
         { continue; }
-        else // if ( new_distance <= d )
-        { 
-          /* FAIL */
-          break;
-        }
+        else
+        {
+          gradient_complexity += gradientMethod_admixture (aim, verbose);
 
+          auto &rec = store.ClothestPoint (aim, side);
+          hand_position = rec.hit;
+
+          d = boost_distance (hand_position, aim);
+          if ( precision > d )
+          { break; }
+          else if ( new_distance > d )
+          { continue; }
+          else
+          {
+            /* FAIL */
+            break;
+          } // end else
+        } // end else
       } // end else
       // -----------------------------------------------
       if ( distance > new_distance )
@@ -368,6 +389,7 @@ namespace Positions
 #ifdef _DEBUG_PRINT
       tcout << _T ("prec: ") << best_distance << std::endl;
 #endif // _DEBUG_PRINT
+
     } while ( precision < distance );
     // -----------------------------------------------
     if ( verbose )
@@ -380,5 +402,6 @@ namespace Positions
     // -----------------------------------------------
     return gradient_complexity;
   }
-  //------------------------------------------------------------------------------
 };
+//------------------------------------------------------------------------------
+

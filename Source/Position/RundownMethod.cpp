@@ -58,8 +58,12 @@ namespace Positions
       else if ( it_o == controls.end () )
       { controls.push_back (Hand::Control (mo, 0, last_min)); }
 
-      if ( it_c == controls.end () ) // && it_o != controls.end () )
-      { controls.push_back (Hand::Control (mc, it_o->last + 1, last_min)); }
+      if ( it_c == controls.end () )
+      {
+        if ( it_o == controls.end () )
+        { it_o = std::find (controls.begin (), controls.end (), mo); }
+        controls.push_back (Hand::Control (mc, it_o->last + 1, last_min));
+      }
     }
   }
   //------------------------------------------------------------------------------
@@ -77,7 +81,8 @@ namespace Positions
       it->last += velosity;
       if ( it->start == 0U )
       {
-        auto it_op = boost::range::find (controls, muscleOpposite (it->muscle));
+        auto  m_op = muscleOpposite (it->muscle);
+        auto it_op = boost::range::find (controls, m_op);
         it_op->start = (it->last + 1U);
       }
     }
@@ -87,10 +92,32 @@ namespace Positions
       // ---------------------------------
       if ( (controls_curr % 2U) )
       {
-        it->last -= (velosity_prev + velosity);
+        if ( it->last >= (velosity_prev + velosity) )
+        { it->last -= (velosity_prev + velosity); }
+        else
+        {
+          auto  m_op = muscleOpposite (it->muscle);
+          auto it_op = boost::range::find (controls, m_op);
+          // ---------------------------------
+          it_op->last += (velosity_prev + velosity - it->last);
+          it->last = 0U;
+          // ---------------------------------
+          if ( it_op->start == 0U )
+          {
+            it->start = (it_op->last + 1U);
+            it_op->start = 0U;
+          }
+          else
+          {
+            it_op->start = (it->last + 1U);
+            it->start = 0U;
+          }
+        } // end else
+
         if ( it->start == 0U )
         {
-          auto it_op = boost::range::find (controls, muscleOpposite (it->muscle));
+          auto  m_op = muscleOpposite (it->muscle);
+          auto it_op = boost::range::find (controls, m_op);
           it_op->start = (it->last + 1U);
         }
       }
@@ -104,19 +131,21 @@ namespace Positions
         // ---------------------------------
         if ( it->start == 0U )
         {
-          auto it_op = boost::range::find (controls, muscleOpposite (it->muscle));
+          auto  m_op = muscleOpposite (it->muscle);
+          auto it_op = boost::range::find (controls, m_op);
           it_op->start = (it->last + 1U);
         }
         // ---------------------------------
         if ( jt->start == 0U )
         {
-          auto it_op = boost::range::find (controls, muscleOpposite (jt->muscle));
-          it_op->start = (jt->last + 1U);
+          auto  m_op = muscleOpposite (jt->muscle);
+          auto jt_op = boost::range::find (controls, m_op);
+          jt_op->start = (jt->last + 1U);
         }
         // ---------------------------------
-      }
+      } // end else
     } // end else
-      // ---------------------------------
+    // ---------------------------------
     velosity_prev = velosity;
     // ---------------------------------
     ++controls_curr;
@@ -171,13 +200,30 @@ namespace Positions
         std::advance (it, controls_curr / 2U);
         // ---------------------------------
         if ( (controls_curr % 2U) )
-        { it->last -= velosity; }
+        { 
+          if ( it->last >= velosity )
+          { it->last -= velosity; }
+          else
+          {
+            auto  m_op = muscleOpposite (it->muscle);
+            auto it_op = boost::range::find (controls, m_op);
+            // ---------------------------------
+            it_op->last += (velosity - it->last);
+            it->last = 0U;
+            // ---------------------------------
+            if ( it_op->start == 0U )
+            { it->start = (it_op->last + 1U); }
+            else
+            { it_op->start = (it->last + 1U); }
+          }
+        }
         else
         { it->last += velosity; }
         // ---------------------------------
         if ( it->start == 0U )
         {
-          auto it_op = boost::range::find (controls, muscleOpposite (it->muscle));
+          auto  m_op = muscleOpposite (it->muscle);
+          auto it_op = boost::range::find (controls, m_op);
           it_op->start = (it->last + 1U);
         }
         // ---------------------------------        
@@ -253,25 +299,23 @@ namespace Positions
              ++it_c, ++it_l )
     { *it_l = it_c->last; }
     // -----------------------------------------------
+    int i = 0U;
     int alphabet = 1;
     int alphabet2 = (alphabet % 2) ? (2 * alphabet + 1) : (2 * alphabet);
-    int i = 0U;
     // -----------------------------------------------
     hand.SET_DEFAULT;
     while ( next_placement_repeats (last_steps, alphabet2) )
     {
       int  velosity = floor ((distance * 10) / precision + 0.5 );
-      // int  velosity_prev = velosity;
-
       velosity = (velosity) ? velosity : 1;
-
+      // -----------------------------------------------
       for ( auto &l : last_steps )
       {
         if ( l > alphabet )
         { l = (alphabet - l); }
         l *= velosity;
       }
-
+      // -----------------------------------------------
       i = 0U;
       for ( auto it = controls.begin (); it != controls.end (); ++it, ++i )
       {
@@ -303,17 +347,17 @@ namespace Positions
           } // end else
         } // end if
       } // end for
-
+      // -----------------------------------------------
       if ( hand_act (aim, controls, hand_pos) )
       { ++rundown_complexity; }
-
+      // -----------------------------------------------
       next_distance = boost_distance (hand_pos, aim);
       if ( next_distance < precision )
       {
         hand_position = hand_pos;
         break;
       }
-
+      // -----------------------------------------------
       while ( next_distance < distance )
       {
         distance = next_distance;
@@ -378,10 +422,15 @@ namespace Positions
           break;
         }
       }
-
+      // -----------------------------------------------
+      if ( next_distance > side )
+      { /* FAIL */
+        break;
+      }
+      // -----------------------------------------------
       if ( distance < start_distance )
       { break; }
-      
+      // -----------------------------------------------
       for ( auto &l : last_steps )
       {
         l = sgn (l);

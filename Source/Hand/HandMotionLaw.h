@@ -8,12 +8,11 @@ namespace NewHand
   namespace MotionLaws
   {
     typedef std::vector<double>::iterator  VectorDoublesIterator;
-
     /*  Здесь указан интерфейс, в котором эмулятор руки принимает закон движения мускула.
      *  Открывающий и закрывающий мускулы одного сустава получают одинаковую разбивку по
      *  кадрам и одинаковые граничные условия.
      */
-    class JointMoveLaw
+    class  JointMoveLaw
     {
     public:
       // --------------------------------
@@ -24,8 +23,7 @@ namespace NewHand
       /* virtual */ void  generate (ForwardIterator first, size_t frames_count,
                               double left_border, double right_border) const = 0;
     };
-
-    class JointStopLaw
+    class  JointStopLaw
     {
     public:
       // --------------------------------
@@ -38,19 +36,14 @@ namespace NewHand
                                     double left_border, double right_border,
                                     double max_velosity) const = 0;
     };
-
+    //------------------------------------------------------------------------------
     struct JointMotionLaw
     {
       std::shared_ptr<JointMoveLaw> moveLaw;
       std::shared_ptr<JointStopLaw> stopLaw;
 
       JointMotionLaw (JointMoveLaw *pMoveLaw, JointStopLaw *pStopLaw):
-        moveLaw (pMoveLaw),
-        stopLaw (pStopLaw)
-      {
-        // moveLaw = std::unique_ptr<JointMoveLaw> (pMoveLaw);
-        // stopLaw = std::unique_ptr<JointStopLaw> (pStopLaw);
-      }
+        moveLaw (pMoveLaw), stopLaw (pStopLaw) {}
     };
     //------------------------------------------------------------------------------
     /*  Основные движения.
@@ -142,6 +135,73 @@ namespace NewHand
         // --------------------------------
       }
     };
+    class ContinuousFastAcceleration : public JointMoveLaw
+    {
+      /*  Моделируется нелинейное ускорение руки во время работы мускулов,
+       *  отрезком функции f(i) = ((log (i / (n - 1)) + 3.) * 0.33), 
+       *  где i меняется [0, n-1]. . .
+       */
+    public:
+      // --------------------------------
+      // template <typename ForwardIterator>
+      virtual void  generate (VectorDoublesIterator first, size_t frames_count,
+                              double left_border, double right_border) const
+      {
+        VectorDoublesIterator  iter = first;
+        size_t  n = (frames_count - 1U);
+        double  a = left_border, b = right_border;
+        // --------------------------------
+        double  norm_sum = 0.;
+        *iter = EPS;
+        for ( size_t i = 1U; i <= n; ++i )
+        { 
+          double d = (log (double (i) / n + 3.)) * 0.33;
+          *iter = (d > 0) ? d : EPS;
+          norm_sum += *iter;
+          ++iter;
+        }
+        /* apply normalization */
+        for ( size_t i = 0U; i <= n; ++i )
+        {
+           *first = *first * (b - (n + 1) * a) / norm_sum + a;
+          ++first;
+        }
+        // --------------------------------
+      }
+    };
+    class ContinuousSlowAcceleration : public JointMoveLaw
+    {
+      /*  Моделируется нелинейное ускорение руки во время работы мускулов,
+       *  отрезком функции f(i) = (exp(i / (n-1) - 1.2) * 2. - 0.6),
+       *  где i меняется [0, n-1]. . .
+       */
+    public:
+      // --------------------------------
+      // template <typename ForwardIterator>
+      virtual void  generate (VectorDoublesIterator first, size_t frames_count,
+                              double left_border, double right_border) const
+      {
+        VectorDoublesIterator  iter = first;
+        size_t  n = (frames_count - 1U);
+        double  a = left_border, b = right_border;
+        // --------------------------------
+        double  norm_sum = 0.;
+        *iter = EPS;
+        for ( size_t i = 1U; i <= n; ++i )
+        {
+          *iter = (exp (double(i) / (n - 1) - 1.2) * 2. - 0.6);
+          norm_sum += *iter;
+          ++iter;
+        }
+        /* apply normalization */
+        for ( size_t i = 0U; i <= n; ++i )
+        {
+          *first = *first * (b - (n + 1) * a) / norm_sum + a;
+          ++first;
+        }
+        // --------------------------------
+      }
+    };
     //------------------------------------------------------------------------------
     class ContinuousDeceleration : public JointStopLaw
     {
@@ -199,7 +259,7 @@ namespace NewHand
                               double left_border, double right_border) const {}
     };
     //------------------------------------------------------------------------------
-    /* ??? Зависимость от сил, масс, трения и моментов инерции */
+    /* Зависимость от сил, масс, трения и моментов инерции */
     class PhisicalAcceleration
     {
       double  EngineForce;     /* Сила привода двигателя */
@@ -226,10 +286,6 @@ namespace NewHand
                               double max_velosity) const {}
     };
     //------------------------------------------------------------------------------
-    /* OLD FUNCTIONS -->> to delete */
-    std::vector<double>  generateJointMoveFrames_cos (double a, double b, size_t n);
-    std::vector<double>  generateJointMoveFrames     (double a, double b, size_t n);
-    std::vector<double>  generateJointStopFrames     (double a, double b, size_t n);
   }
 }
 //------------------------------------------------------------------------------

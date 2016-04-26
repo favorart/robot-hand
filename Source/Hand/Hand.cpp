@@ -26,13 +26,7 @@ NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (IN MusclesEnum  muscle)
   return last;
 }
 //--------------------------------------------------------------------------------
-// ??? minimum velosity
-// ??? current velosity
-
 // ??? momentum velosity
-/* ??? Зависимость от сил, масс, трения и моментов инерции */
-/* ??? Коэффициент взаимодействия приводов */
-/* ??? Торможение включением противоположного двигателя */
 double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atStop)
 {
   const bool USE_SPEED = true;
@@ -298,7 +292,7 @@ NewHand::Hand::Hand (IN const Point &palm,
   createControls ();
   reset ();
 }
-
+//--------------------------------------------------------------------------------
 bool  NewHand::Hand::timeValidStartOppositeMuscle (IN  MusclesEnum muscle)
 {
   if ( !muscle ) 
@@ -316,7 +310,7 @@ bool  NewHand::Hand::timeValidStartOppositeMuscle (IN  MusclesEnum muscle)
   //-------------------------
   return true;
 }
-
+//--------------------------------------------------------------------------------
 void                     NewHand::Hand::step (IN  MusclesEnum muscle, IN frames_t last)
 {
   if ( muscle )
@@ -336,7 +330,7 @@ void                     NewHand::Hand::step (IN  MusclesEnum muscle, IN frames_
     for ( auto m : muscles_ )
     {
       if ( m & hs.musclesMove_ )
-      { muscleMove (muscleIndex (m), m, last, (m & muscle) != 0U); }
+      { muscleMove (muscleIndex (m), m, last, ((m & muscle) != 0U) && last); }
     } // end for
   } // end if
 }
@@ -384,7 +378,7 @@ NewHand::Hand::frames_t  NewHand::Hand::move (IN  MusclesEnum muscle, IN frames_
 NewHand::Hand::frames_t  NewHand::Hand::move (IN  std::initializer_list<Control> controls,
                                               OUT std::list<Point> *visited) throw (...)
 { return  move (controls.begin (), controls.end (), visited); }
-
+//--------------------------------------------------------------------------------
 void  NewHand::Hand::reset ()
 {
   //-----------------------------------------------------------------
@@ -663,10 +657,10 @@ void  NewHand::Hand::createControls ()
     recursiveControlsAppend (Hand::EmptyMov, Hand::Empty, 0U, SimultMoves);
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl (IN NewHand::Hand::MusclesEnum  muscle)
+NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl (IN NewHand::Hand::MusclesEnum  muscle) const
 { 
   if ( !muscle )
-    return controls[random (controls.size ())];
+  { return controls[random (controls.size ())]; }
   else
   {
     for ( auto m : controls )

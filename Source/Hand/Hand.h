@@ -119,7 +119,6 @@ namespace NewHand
 
     std::array<std::vector<double>, JointsCount>  framesMove;
     std::array<std::vector<double>, JointsCount>  framesStop;
-
     //----------------------------------------------------
     double    nextFrame (MusclesEnum muscle, frames_t frame, bool atStop);
     bool    muscleFrame (MusclesEnum muscle, frames_t frame, bool atStop);
@@ -128,7 +127,6 @@ namespace NewHand
     void    muscleFinal (MusclesIndexEnum MuscleIndex, MusclesEnum muscle);
     void    muscleMove  (MusclesIndexEnum MuscleIndex, MusclesEnum muscle,
                          frames_t last, bool control);
-
     //----------------------------------------------------
     std::vector<MusclesEnum>  controls;
     void  createControls ();
@@ -139,6 +137,7 @@ namespace NewHand
 
     //----------------------------------------------------
     const double  minFrameMove = EPS;
+    //----------------------------------------------------
 
   public:
     typedef  std::map<JointsEnum, MotionLaws::JointMotionLaw>  JointsMotionLaws;
@@ -149,20 +148,19 @@ namespace NewHand
           IN const Point &shoulder,
           IN const Point &clavicle,
           IN const JointsMotionLaws &joints_frames) throw (...);
-
+    //----------------------------------------------------
     void  draw (IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
-
+    //----------------------------------------------------
     struct Control
     {
       MusclesEnum  muscle;
       frames_t     start;
       frames_t     last;
-
+      //----------------------------------------------------
       Control () : muscle (EmptyMov), start (0U), last (0U) {}
-
       Control (MusclesEnum  muscle, frames_t start, frames_t last) :
         muscle (muscle), start (start), last (last) {}
-
+      //----------------------------------------------------
       Control&  operator= (const Control &c)
       {
         if ( this != &c )
@@ -173,7 +171,7 @@ namespace NewHand
         }
         return *this;
       }
-
+      //----------------------------------------------------
       bool  operator<  (const Control &c) const
       { return start < c.start; }
       bool  operator== (const Control &c) const
@@ -192,11 +190,11 @@ namespace NewHand
       }
       bool  operator!= (const MusclesEnum m) const
       { return  (muscle != m); }
-
+      //----------------------------------------------------
       template<class Archive>
       void  serialize (Archive & ar, const unsigned int version)
       { ar & muscle & start & last; }
-
+      //----------------------------------------------------
       operator tstring () const
       {
         tstringstream ss;
@@ -204,7 +202,7 @@ namespace NewHand
         return  ss.str ();
       }
     };
-        
+    //----------------------------------------------------
     template <class Iter>
     frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL) throw (...)
     {
@@ -222,23 +220,23 @@ namespace NewHand
       if ( std::none_of (begin, end, [](const Hand::Control &c) { return (c.last > 0); }) )
       { return  0U; }
 
-      /* simultaniusly moving */
+      /* Simultaniusly moving */
       if ( musclesCumul & control_muscles )
-      { /*  Что-то должно двигаться,
-         *  иначе бесконечный цикл.
-         */
+      { /*  Что-то должно двигаться, иначе бесконечный цикл. */
         Iter  iter = begin;
         for ( frames_t time = iter->start; iter != end; ++time )
         {
-          if ( time == iter->start ) /* А ЕСЛИ ОНИ СТАРТУЮТ ОДНОВРЕМЕННО НО С РАЗНОЙ ПРОДОЛЖИТЕЛЬНОСТЬЮ РАБОТАЮТ !?!? */
+          if ( time == iter->start )
+          { /* Если стартуют одновременно, но разной продолжительности. */
             while ( iter != end && time == iter->start )
-          {
-            step (iter->muscle, iter->last);
-            if ( iter != begin )
-              ++actual_last;
-            ++iter;
-            if ( visited && !(frame % visitedSaveEach) )
-              visited->push_back (position);
+            {
+              step (iter->muscle, iter->last);
+              if ( iter != begin )
+                ++actual_last;
+              ++iter;
+              if ( visited && !(frame % visitedSaveEach) )
+                visited->push_back (position);
+            }
           }
           else
           {
@@ -266,11 +264,11 @@ namespace NewHand
     frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL) throw (...);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last);
     frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited);
-
+    //----------------------------------------------------
     bool  timeValidStartOppositeMuscle (IN  MusclesEnum muscle);
-
+    //----------------------------------------------------
     void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
-
+    //----------------------------------------------------
     const Point&  jointPosition (IN Hand::JointsEnum joint) const throw (...)
     {
       switch ( joint )
@@ -282,19 +280,20 @@ namespace NewHand
         default: throw new std::exception ("Inorrect joint");  // _T ??
       }
     }
-
+    //----------------------------------------------------
+    //----------------------------------------------------
     typedef std::map<Hand::JointsEnum, double> JointsSet;
+
     /*  jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 %  */
     void  set (IN Hand::JointsSet &jointsOpenPercent);
     void  reset ();
-
+    //----------------------------------------------------
     std::vector<const Point*>  jointsPositions () const;
-
-    MusclesEnum  selectControl (IN size_t choose)
+    //----------------------------------------------------
+    MusclesEnum  selectControl (IN size_t choose) const
     { return  (choose < controls.size ()) ? controls[choose] : Hand::EmptyMov; }
-    MusclesEnum  selectControl (IN MusclesEnum muscle=EmptyMov);
-    // { return  controls[random (controls.size ())]; }
-    
+    MusclesEnum  selectControl (IN MusclesEnum  muscle=Hand::EmptyMov) const;
+    //----------------------------------------------------
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_mend)) bool moveEnd;
     bool  get_mend () const { return hs.moveEnd_; }
@@ -318,5 +317,3 @@ namespace NewHand
 };
 //------------------------------------------------------------------------------
 #endif // _NEW_HAND_H_
-
-

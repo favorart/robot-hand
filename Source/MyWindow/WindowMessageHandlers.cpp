@@ -523,7 +523,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                                                 try
                                                 {
                                                   Positions::LearnMovements lm (store, hand, target);
-                                                  lm.STAGE_3 (uncovered, complexity, true);
+                                                  lm.STAGE_3 (uncovered, complexity, false);
                                                 }
                                                 catch ( boost::thread_interrupted& )
                                                 { /* tcout << _T("WorkingThread interrupted!") << std::endl; */ }

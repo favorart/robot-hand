@@ -110,17 +110,22 @@ MyWindowData:: MyWindowData () :
         /* shoulder */ Point{  0.75, 0.25 },
         /* clavicle */ Point{  0.75, 0.25 },
         /* joints_frames */
-        { { Hand::Elbow,{ new MotionLaws::ContinuousAcceleration (),
+        { { Hand::Elbow,{ new MotionLaws::ContinuousSlowAcceleration (),
+                          // new MotionLaws::ContinuousFastAcceleration (),
+                          // new MotionLaws::ContinuousAcceleration (),
                           // new MotionLaws::ContinuousAccelerationThenStabilization (),
                           new MotionLaws::ContinuousDeceleration () } },
-          { Hand::Shldr,{ new MotionLaws::ContinuousAcceleration (),
+          { Hand::Shldr,{ new MotionLaws::ContinuousSlowAcceleration (),
+                          // new MotionLaws::ContinuousFastAcceleration (),
+                          // new MotionLaws::ContinuousAcceleration (),
                           // new MotionLaws::ContinuousAccelerationThenStabilization (),
                           new MotionLaws::ContinuousDeceleration () } }
-           // { Hand::Wrist, { // new MotionLaws::ContinuousAcceleration (),
-           //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+           // { Hand::Wrist, { new MotionLaws::ContinuousAcceleration (),
            //                  new MotionLaws::ContinuousDeceleration () } },
-           // { Hand::Clvcl, { // new MotionLaws::ContinuousAcceleration (),
-           //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+           // { Hand::Clvcl, { new MotionLaws::ContinuousSlowAcceleration (),
+           //                  // new MotionLaws::ContinuousFastAcceleration (),
+           //                  // new MotionLaws::ContinuousAcceleration (),
+           //                  // new MotionLaws::ContinuousAccelerationThenStabilization (),
            //                  new MotionLaws::ContinuousDeceleration () } }
          }),
   target ( /* 200U, 200U, */ 18U, 18U, -0.41,  0.43, -0.03, -0.85 ),
@@ -392,7 +397,7 @@ bool  MakeHandMove (MyWindowData &wd)
     wd.trajectory_frames.clear ();
 
     Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-    lm.gradientMethod_admixture (aim, false);
+    lm.gradientMethod /*_admixture*/ (aim, true);
 
     if ( 0 )
     {
