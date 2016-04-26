@@ -523,7 +523,7 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
                                                 try
                                                 {
                                                   Positions::LearnMovements lm (store, hand, target);
-                                                  lm.STAGE_3 (uncovered, complexity, false);
+                                                  lm.STAGE_3 (uncovered, complexity, true);
                                                 }
                                                 catch ( boost::thread_interrupted& )
                                                 { /* tcout << _T("WorkingThread interrupted!") << std::endl; */ }
@@ -540,6 +540,14 @@ void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
       break;
     }
 
+    case '0':
+    {
+      //========================================
+      wd.store.clear ();
+      //========================================
+      InvalidateRect (hWnd, &myRect, TRUE);
+      break;
+    }
 
     case 'j':
     {

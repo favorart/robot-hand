@@ -157,8 +157,8 @@ namespace Positions
       tcout << _T ("Prec: ") << next_distance << std::endl;
 #endif // _DEBUG_PRINT
       // -----------------------------------------------
-      if ( distance > precision ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      { rundownMethod (aim/*, controls, hand_position*/); }
+      if ( distance > precision )
+      { rundownMethod (aim, hand_position); }
 
       next_distance = boost_distance (hand_position, aim);
       if ( next_distance < distance )
@@ -228,8 +228,8 @@ namespace Positions
     hand_position = range.front ()->hit;
 
     distance = boost_distance (hand_position, aim);
-    if ( distance > precision ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    { rundownMethod (aim /*, range.front ()->controls, hand_position*/); }
+    if ( distance > precision )
+    { rundownMethod (aim, hand_position); }
 
     // -----------------------------------------------
 #ifdef _DEBUG_PRINT_RES
@@ -281,7 +281,7 @@ namespace Positions
     // -----------------------------------------------
     controls.sort ();
     // -----------------------------------------------
-    std::list<shared_ptr<Hand::Control>>  ordered_controls;
+    std::list<std::shared_ptr<Hand::Control>>  ordered_controls;
     for ( auto &c : controls )
     { ordered_controls.push_back (std::make_shared<Hand::Control> (c)); }
     ordered_controls.sort ([](const shared_ptr<Hand::Control> &sca,
@@ -290,7 +290,7 @@ namespace Positions
       return sca->muscle < scb->muscle;
     });
     // -----------------------------------------------
-    lasts_step = 1U;
+    Hand::frames_t lasts_step = 1U;
     double distance = boost_distance (hand_position, aim);
     // -----------------------------------------------
     while ( precision < distance )

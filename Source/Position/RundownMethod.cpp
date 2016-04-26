@@ -43,6 +43,8 @@ namespace Positions
   //------------------------------------------------------------------------------
   void  LearnMovements::rundownControls (IN OUT HandMoves::controling_t &controls)
   {
+    const Hand::frames_t last_min = 1U;
+
     for ( auto j : hand.joints_ )
     {
       auto mo = muscleByJoint (j, true);
@@ -52,12 +54,12 @@ namespace Positions
       auto it_c = std::find (controls.begin (), controls.end (), mc);
 
       if ( it_o == controls.end () && it_c != controls.end () )
-      { controls.push_back (Hand::Control (mo, it_c->last + 1, 1)); }
+      { controls.push_back (Hand::Control (mo, it_c->last + 1, last_min)); }
       else if ( it_o == controls.end () )
-      { controls.push_back (Hand::Control (mo, 0, 1)); }
+      { controls.push_back (Hand::Control (mo, 0, last_min)); }
 
       if ( it_c == controls.end () ) // && it_o != controls.end () )
-      { controls.push_back (Hand::Control (mc, it_o->last + 1, 1)); }
+      { controls.push_back (Hand::Control (mc, it_o->last + 1, last_min)); }
     }
   }
   //------------------------------------------------------------------------------
@@ -144,8 +146,8 @@ namespace Positions
                                  velosity, velosity_prev) )
     {
       // -----------------------------------------------
-      hand_act (aim, controls, hand_pos);
-      ++rundown_complexity;
+      if ( hand_act (aim, controls, hand_pos) )
+      { ++rundown_complexity; }
       // -----------------------------------------------
       double next_distance = boost_distance (hand_pos, aim);
       // -----------------------------------------------
@@ -181,8 +183,8 @@ namespace Positions
         // ---------------------------------        
         velosity_prev = velosity;
         // -----------------------------------------------
-        hand_act (aim, controls, hand_pos);
-        ++rundown_complexity;
+        if ( hand_act (aim, controls, hand_pos) )
+        { ++rundown_complexity; }
         // -----------------------------------------------
         next_distance = boost_distance (hand_pos, aim);
         // -----------------------------------------------
@@ -205,6 +207,8 @@ namespace Positions
   }
   //------------------------------------------------------------------------------
   //------------------------------------------------------------------------------
+  template <typename T> int  sgn (T val)
+  { return (T (0) < val) - (val < T (0)); }
   /*  Размедение с повторениями:
    *  current       - текущее размещение
    *  alphabet_size - размер алфавита { 0, 1, ... k }
@@ -224,19 +228,20 @@ namespace Positions
     return (!result);
   }
   //------------------------------------------------------------------------------
-  size_t  LearnMovements::rundownMethod (IN   const Point &aim, IN bool verbose)
+  size_t  LearnMovements::rundownMethod (IN const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t  rundown_complexity = 0U;
-    // -----------------------------------------------
-    lasts_step = 1U; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // -----------------------------------------------
     const Record &rec = store.ClothestPoint (aim, side);
     Point hand_pos = rec.hit;
     // -----------------------------------------------
-    double distance = boost_distance (hand_pos, aim);
+    double distance = boost_distance (hand_pos, aim),
+      next_distance = distance,
+     start_distance = distance;
     // -----------------------------------------------
-    HandMoves::controling_t  controls; // { rec.controls };
+    HandMoves::controling_t  controls;
     rundownControlsOrder (rec.controls, controls);
+    // HandMoves::controling_t  controls{ rec.controls };
     // rundownControls (controls);
     // -----------------------------------------------
     std::vector<int>    last_steps (hand.muscles_.size ());
@@ -255,9 +260,17 @@ namespace Positions
     hand.SET_DEFAULT;
     while ( next_placement_repeats (last_steps, alphabet2) )
     {
+      int  velosity = floor ((distance * 10) / precision + 0.5 );
+      // int  velosity_prev = velosity;
+
+      velosity = (velosity) ? velosity : 1;
+
       for ( auto &l : last_steps )
+      {
         if ( l > alphabet )
-        { l = -(l - alphabet); }
+        { l = (alphabet - l); }
+        l *= velosity;
+      }
 
       i = 0U;
       for ( auto it = controls.begin (); it != controls.end (); ++it, ++i )
@@ -291,17 +304,31 @@ namespace Positions
         } // end if
       } // end for
 
-      hand_act (aim, controls, hand_pos);
-      ++rundown_complexity;
+      if ( hand_act (aim, controls, hand_pos) )
+      { ++rundown_complexity; }
 
-      double next_distance = boost_distance (hand_pos, aim);
+      next_distance = boost_distance (hand_pos, aim);
+      if ( next_distance < precision )
+      {
+        hand_position = hand_pos;
+        break;
+      }
+
       while ( next_distance < distance )
       {
         distance = next_distance;
-        // hand_position = hand_pos;
-        
-        if ( precision > distance )
-        { break; }
+        hand_position = hand_pos;
+        // -----------------------------------------------
+        int  velosity_new = floor ((distance * 10) / precision + 0.5);
+        velosity_new = (velosity_new) ? velosity_new : 1;
+
+        if ( velosity_new != velosity )
+        {
+          for ( auto &l : last_steps )
+          { l = sgn (l) * velosity_new; }
+
+          velosity = velosity_new;
+        }
         // -----------------------------------------------
         auto it_l = last_prevs.begin ();
         for ( auto it_c  = controls.begin (); (it_c != controls.end ())
@@ -341,15 +368,26 @@ namespace Positions
             } // end if
         } // end for
         // -----------------------------------------------
-        hand_act (aim, controls, hand_pos);
-        ++rundown_complexity;
+        if ( hand_act (aim, controls, hand_pos) )
+        { ++rundown_complexity; }
         // -----------------------------------------------
         next_distance = boost_distance (hand_pos, aim);
+        if ( next_distance < precision )
+        {
+          hand_position = hand_pos;
+          break;
+        }
       }
+
+      if ( distance < start_distance )
+      { break; }
       
       for ( auto &l : last_steps )
+      {
+        l = sgn (l);
         if ( l < 0 )
-        { l = (-l + alphabet); }
+        { l = (alphabet - l); }
+      }
       // -----------------------------------------------
 #ifdef _DEBUG_PRINT
       tcout << _T ("prec: ") << best_distance << std::endl;

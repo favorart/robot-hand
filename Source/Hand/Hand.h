@@ -143,23 +143,12 @@ namespace NewHand
   public:
     typedef  std::map<JointsEnum, MotionLaws::JointMotionLaw>  JointsMotionLaws;
     //----------------------------------------------------
-    Hand (IN const Point &palm     = { -0.75, 1.05 },
-          IN const Point &hand     = { -0.70, 1.00 }, IN const Point &arm      = { 0.10, 0.85 },
-          IN const Point &shoulder = {  0.75, 0.25 }, IN const Point &clavicle = { 0.75, 0.25 },
-          IN const JointsMotionLaws &joints_frames =
-          { { Hand::Elbow, { new MotionLaws::ContinuousAcceleration (),
-                             // new MotionLaws::ContinuousAccelerationThenStabilization (),
-                             new MotionLaws::ContinuousDeceleration () } },
-            { Hand::Shldr, { new MotionLaws::ContinuousAcceleration (),
-                             // new MotionLaws::ContinuousAccelerationThenStabilization (),
-                             new MotionLaws::ContinuousDeceleration () } }
-            // { Hand::Wrist, { // new MotionLaws::ContinuousAcceleration (),
-            //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
-            //                  new MotionLaws::ContinuousDeceleration () } },
-            // { Hand::Clvcl, { new MotionLaws::ContinuousAcceleration (),
-            //                  // new MotionLaws::ContinuousAccelerationThenStabilization (),
-            //                  new MotionLaws::ContinuousDeceleration () } }
-          }) throw (...);
+    Hand (IN const Point &palm,
+          IN const Point &hand,
+          IN const Point &arm,
+          IN const Point &shoulder,
+          IN const Point &clavicle,
+          IN const JointsMotionLaws &joints_frames) throw (...);
 
     void  draw (IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
 

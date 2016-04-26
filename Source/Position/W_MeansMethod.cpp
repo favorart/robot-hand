@@ -78,6 +78,7 @@ namespace Positions
   size_t  LearnMovements::w_means (IN  const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t w_means_complexity = 0U;
+    double side_ = side;
     // -----------------------------------------------
     const HandMoves::Record  &rec = store.ClothestPoint (aim, side);
     // -----------------------------------------------
@@ -100,15 +101,17 @@ namespace Positions
       }
       // -----------------------------------------------
       HandMoves::adjacency_refs_t  range;
-      store.adjacencyByPBorders (range, aim, side);
+      store.adjacencyByPBorders (range, aim, side_);
       if ( range.empty () )
       { break; }
+      // -----------------------------------------------
+      side_ -= side_decrease_step;
       // -----------------------------------------------
       HandMoves::controling_t  controls;
       w_meansControls (aim, range, controls);
       // -----------------------------------------------
-      hand_act (aim, controls, hand_pos);
-      ++w_means_complexity;
+      if ( hand_act (aim, controls, hand_pos) )
+      { ++w_means_complexity; }
       // -----------------------------------------------
       next_distance = boost_distance (hand_pos, aim);
       // -----------------------------------------------

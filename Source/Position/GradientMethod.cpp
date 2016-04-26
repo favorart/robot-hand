@@ -36,39 +36,48 @@ namespace Positions
       int last_mc_g = (it_mc_g != upper_controls.end ()) ? (it_mc_g->last - last_mc_i) : 0U;
       // -----------------------------------------------
       const int  int_normalizer = (d_d / precision); /* velosity */ // 400;
+      
 
-                                                                    // -----------------------------------------------
+      // -----------------------------------------------
       int  direction_o = 0U;
       int  direction_c = 0U;
 
       if ( last_mo_l || last_mo_g )
       {
-        double  d = d_d / (last_mo_l + last_mo_g);
-        // direction_o = ((d_d * int_normalizer) / (last_mo_l + last_mo_g));
-        direction_o = d * int_normalizer;
+        double  d = 0.;
+        if ( last_mo_l + last_mo_g )
+        {
+          d = d_d / (last_mo_l + last_mo_g);
+          // direction_o = ((d_d * int_normalizer) / (last_mo_l + last_mo_g));
+          direction_o = d * int_normalizer;
+        }
 
         if ( direction_o == 0 )
         {
           // BACKWARD MOVEMENT
           if ( d < 0. )
           { ++direction_c; /* = (direction_o) ? (direction_o + 1) : 50; */ }
-          else
+          else if ( d > 0. )
           { --direction_o; /* = (direction_c < 0) ? -1 : 1; */ }
         }
       }
 
       if ( last_mc_l || last_mc_g )
       {
-        double d = d_d / (last_mc_l + last_mc_g);
-        // direction_c = ((d_d * int_normalizer) / (last_mc_l + last_mc_g));
-        direction_c = d * int_normalizer;
+        double  d = 0.;
+        if ( last_mc_l + last_mc_g )
+        {
+          d = d_d / (last_mc_l + last_mc_g);
+          // direction_c = ((d_d * int_normalizer) / (last_mc_l + last_mc_g));
+          direction_c = d * int_normalizer;
+        }
 
         if ( direction_c == 0 )
         {
           // BACKWARD MOVEMENT
           if ( d < 0. )
           { ++direction_o; /* = (direction_o) ? (direction_o + 1) : 50; */ }
-          else
+          else if ( d > 0.)
           { --direction_c; /* = (direction_c < 0) ? -1 : 1; */ }
         }
       }
@@ -92,11 +101,14 @@ namespace Positions
         last_o += (last_mc_i + (direction_c - last_mc_i));
       }
 
-      Hand::frames_t start_o = (last_o > last_c) ? 0U : (last_c + 1U);
-      Hand::frames_t start_c = (last_o < last_c) ? 0U : (last_o + 1U);
+      if ( last_o != last_c )
+      {
+        Hand::frames_t start_o = (last_o > last_c) ? 0U : (last_c + 1U);
+        Hand::frames_t start_c = (last_o < last_c) ? 0U : (last_o + 1U);
 
-      if ( last_o ) { controls.insert (iter, Hand::Control (mo, start_o, last_o)); }
-      if ( last_c ) { controls.insert (iter, Hand::Control (mc, start_c, last_c)); }
+        if ( last_o ) { controls.insert (iter, Hand::Control (mo, start_o, last_o)); }
+        if ( last_c ) { controls.insert (iter, Hand::Control (mc, start_c, last_c)); }
+      }
     }
 
   }
@@ -111,8 +123,6 @@ namespace Positions
     // -----------------------------------------------
     double distance = boost_distance (hand_pos_base, aim),
       new_distance = distance;
-    
-    int iter = 0;
     // -----------------------------------------------
     do
     {
@@ -135,50 +145,26 @@ namespace Positions
       // -----------------------------------------------
       if ( new_distance <= d )
       {
-        // controling_t  controls;
-        gradient_complexity += w_means (aim, /* controls,*/ hand_position, verbose);
+        gradient_complexity += w_means (aim, hand_position, verbose);
 
         d = boost_distance (hand_position, aim);
         if ( precision > d )
         { break; }
         else if ( new_distance > d )
         { continue; }
-        else // ( new_distance <= d )
+        else // if ( new_distance <= d )
         {
-          // controls.clear ();
-          gradient_complexity += rundown (aim, /*controls,*/ hand_position, verbose);
+          gradient_complexity += rundown (aim, hand_position, verbose);
 
           d = boost_distance (hand_position, aim);
           if ( precision > d )
           { break; }
           else if ( new_distance > d )
           { continue; }
-          else if ( distance == new_distance )
+          else // if ( new_distance <= d )
           { 
-            // -------------------------------------------------
-            Point  shift{ random (-precision, precision),
-                          random (-precision, precision) };
-            // -------------------------------------------------
-            if ( deep < 1U )
-            {
-              ++deep;
-              gradient_complexity += gradientMethod_admixture (Point (aim.x + shift.x,
-                                                                      aim.y + shift.y),
-                                                               verbose);
-              --deep;
-            }
-            // -------------------------------------------------
-
-            // gradient_complexity += rundownMethod (aim, /*controls, hand_position,*/ verbose);
-            //  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            //  d = boost_distance (hand_position, aim);
-            //  if ( precision > d )
-            //  { break; }
-            //  else if ( new_distance > d )
-            //  { continue; }
-            ++iter;
-            if ( iter > 2 )
-              break;
+            gradient_complexity += gradientMethod (aim, verbose);
+            break; /* FAIL */
           }
         }
       }
@@ -191,8 +177,8 @@ namespace Positions
                         upper_controls,
                         controls);
       // -----------------------------------------------
-      hand_act (aim, controls, hand_position);
-      ++gradient_complexity;
+      if ( hand_act (aim, controls, hand_position) )
+      { ++gradient_complexity; }
       // -----------------------------------------------
       d = boost_distance (hand_position, aim);
       // -----------------------------------------------
@@ -215,43 +201,45 @@ namespace Positions
     return  gradient_complexity;
   }
   //------------------------------------------------------------------------------
-  typedef std::function<bool (const Record &, const Point &)> func_t;
-  Record*  GradientMin (IN const HandMoves::adjacency_refs_t &range, IN const Point &aim,
-                        IN OUT std::set<size_t> *visited = NULL, IN const func_t *func = NULL)
+  Record*  LearnMovements::gradientClothestRecord  (IN const HandMoves::adjacency_refs_t &range,
+                                                    IN const  Point  &aim,
+                                                    IN const  func_t *pPred,
+                                                    IN OUT visited_t *pVisited)
   {
-    Record *rmin = NULL;
-    double  dr, dm;
-
+    Record *pRecMin = NULL;
+    // ------------------------
     size_t h;
-    for ( auto &rec : range )
+    double  dr, dm;
+    // ------------------------
+    for ( const auto &pRec : range )
     {
-      if ( visited )
-      {
-        RecordHasher rh;
-        h = rh (*rec);
+      if ( pVisited )
+      { RecordHasher rh;
+        h = rh (*pRec);
       }
-
-      dr = boost_distance (rec->hit, aim);
-      if ( (!visited || visited->find (h) == visited->end ())
-          && (!func  || (*func) (*rec, aim))
-          && (!rmin  || dr < dm) )
-      {
-        rmin = &(*rec);
+      // ------------------------
+      dr = boost_distance (pRec->hit, aim);
+      if ( (!pVisited || pVisited->find (h) == pVisited->end ())
+        && (!pPred    || (*pPred) (*pRec, aim))
+        && (!pRecMin  || dr < dm) )
+      { pRecMin = &(*pRec);
         dm = dr;
       }
     }
-    return  rmin;
+    // ------------------------
+    return pRecMin;
   };
   //------------------------------------------------------------------------------
-  bool  ClothestRecords (IN HandMoves::Store &store, IN const Point &aim,
-                         OUT Record *rec0, OUT Record *rec1, OUT Record *rec2,
-                         IN std::set<size_t> *visited = NULL)
+  bool     LearnMovements::gradientClothestRecords (IN  const Point &aim,
+                                                    OUT HandMoves::Record *pRecClose,
+                                                    OUT HandMoves::Record *pRecLower,
+                                                    OUT HandMoves::Record *pRecUpper,
+                                                    IN OUT visited_t      *pVisited)
   {
-    if ( !rec0 )
-    { return  false; }
+    if ( !pRecClose )  { return  false; }
     // ------------------------------------------------
-    Point  min (aim.x - 0.1, aim.y - 0.1),
-      max (aim.x + 0.1, aim.y + 0.1);
+    Point  min (aim.x - side, aim.y - side),
+           max (aim.x + side, aim.y + side);
     // ------------------------------------------------
     adjacency_refs_t range;
     store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
@@ -261,29 +249,29 @@ namespace Positions
     func_t  cmp_g = [](const Record &p, const Point &aim)
     { return  (p.hit.x > aim.x) && (p.hit.y > aim.y); };
     // ------------------------------------------------
-    Record *pRec = GradientMin (range, aim, visited, NULL);
+    Record *pRec = gradientClothestRecord (range, aim, NULL, pVisited);
     if ( !pRec ) { return false; }
 
     RecordHasher rh;
     size_t h = rh (*pRec);
-    visited->insert (h);
+    pVisited->insert (h);
     // ===========
-    *rec0 = *pRec;
+    *pRecClose = *pRec;
     // ===========
     // ------------------------------------------------
-    if ( rec1 && rec2 )
+    if ( pRecLower && pRecUpper )
     {
       // ------------------------------------------------
-      pRec = GradientMin (range, aim, visited, &cmp_l);
+      pRec = gradientClothestRecord (range, aim, &cmp_l, pVisited);
       if ( !pRec ) { return false; }
       // ===========
-      *rec1 = *pRec;
+      *pRecLower = *pRec;
       // ===========
       // ------------------------------------------------
-      pRec = GradientMin (range, aim, visited, &cmp_g);
+      pRec = gradientClothestRecord (range, aim, &cmp_g, pVisited);
       if ( !pRec ) { return false; }
       // ===========
-      *rec2 = *pRec;
+      *pRecUpper = *pRec;
       // ===========
       // ------------------------------------------------
     }
@@ -295,26 +283,32 @@ namespace Positions
   {
     size_t  gradient_complexity = 0U;
     // -----------------------------------------------
-    hand.SET_DEFAULT;
-    Point hand_pos_base = hand.position;
-    // -----------------------------------------------
-    Point hand_position; // = rec.hit;
 
     std::set<size_t>  visited;
     // -----------------------------------------------
     double distance = boost_distance (hand_pos_base, aim);
     double new_distance = 0.;
-    while ( precision < distance )
+    // -----------------------------------------------
+    hand.SET_DEFAULT;
+    do
     {
-      Record  rec0, rec_lower, rec_upper;
-      if ( !ClothestRecords (store, aim, &rec0, &rec_lower, &rec_upper, &visited) )
-      { return gradient_complexity; }
+      Record  rec_close, rec_lower, rec_upper;
+      if ( !gradientClothestRecords (aim, &rec_close,
+                                          &rec_lower,
+                                          &rec_upper,
+                                          &visited) )
+      { /* FAIL */
+        break;
+      }
+      Point hand_position = rec_close.hit;
 
-      new_distance = boost_distance (rec0.hit, aim);
+      new_distance = boost_distance (hand_position, aim);
       if ( new_distance < distance )
         distance = new_distance;
 
-      HandMoves::controling_t  inits_controls = rec0.controls;
+      if ( precision > new_distance ) { break; }
+
+      HandMoves::controling_t  inits_controls{ rec_close.controls };
       // -----------------------------------------------
       double  lower_distance = boost_distance (aim, rec_lower.hit);
       double  upper_distance = boost_distance (aim, rec_upper.hit);
@@ -328,45 +322,53 @@ namespace Positions
                         rec_upper.controls,
                         controls);
       // -----------------------------------------------
-      hand_act (aim, controls, hand_position);
-      ++gradient_complexity;
+      if ( hand_act (aim, controls, hand_position) )
+      { ++gradient_complexity; }
       // -----------------------------------------------
       double d = boost_distance (hand_position, aim);
-      if ( d > side ) //== new_distance )
+      // -----------------------------------------------
+      if ( precision > d )
+      { break; }
+      // -----------------------------------------------
+      else if ( new_distance > d  )
+      { new_distance = d; }
+      // -----------------------------------------------
+      else
       {
         visited.clear ();
 
-        Record rec0;
-        ClothestRecords (store, aim, &rec0, NULL, NULL, &visited);
-        if ( rec0.controls.size () )
-        {
-          Point hand_position = rec0.hit; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          rundownMethod (aim /*, rec0.controls, hand_position*/);
-          d = boost_distance (hand_position, aim);
+        // Record rec_close;
+        // if ( !gradientClothestRecords (aim, &rec,
+        //                                NULL, NULL, &visited) )
+        // {
+        //   /* FAIL */
+        //   break;
+        // }
+        // 
+        // hand_position = rec.hit;
+        
+        rundownMethod (aim, hand_position, verbose);
+
+        d = boost_distance (hand_position, aim);
+        if ( precision > d )
+        { break; }
+        else if ( new_distance > d )
+        { continue; }
+        else // if ( new_distance <= d )
+        { 
+          /* FAIL */
+          break;
         }
 
-        if ( d == new_distance )
-        { break; }
-      }
-
-      if ( new_distance > 0.1 )
-      {
-        visited.clear ();
-        // continue;
-      }
-
-      if ( new_distance > distance && d > 0.2 ) // new_distance )
-      { break; }
-
-      new_distance = d;
+      } // end else
+      // -----------------------------------------------
       if ( distance > new_distance )
       { distance = new_distance; }
       // -----------------------------------------------
 #ifdef _DEBUG_PRINT
       tcout << _T ("prec: ") << best_distance << std::endl;
 #endif // _DEBUG_PRINT
-    } // end while
-    
+    } while ( precision < distance );
     // -----------------------------------------------
     if ( verbose )
     {

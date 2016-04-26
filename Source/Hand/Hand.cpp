@@ -232,8 +232,8 @@ NewHand::Hand::Hand (IN const Point &palm,
                      StopDistaceRatio (0.5), // 50% от общего пробега
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
                                        135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
-                     maxMoveFrames ({ 3000U /* ClvclIndex */    , 500U /* ShldrIndex */ ,
-                                       400U /* ElbowIndex */    , 350U /* WristIndex */ }),
+                     maxMoveFrames ({  600U /* ClvclIndex */    , 700U /* ShldrIndex */ ,
+                                       550U /* ElbowIndex */    , 350U /* WristIndex */ }),
                      visitedSaveEach (10),
 
                      palm_ (palm), hand_ (hand), arm_ (arm),

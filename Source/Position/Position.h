@@ -96,11 +96,23 @@ namespace Positions
      *
      */
 
-     /* stage_1 */
-     //==============================================
-     /* Желаемое расстояние между конеными точками
-      * чернового покрытия
-      */
+    //==============================================
+    HandMoves::Store &store;
+    
+    Hand  &hand;
+    Point  hand_pos_base;
+    
+    RecTarget &target;
+    /* Точность = 1.5 мм */
+    const double  precision;
+    /* Подсчёт сложности */
+    size_t complexity = 0U;
+
+    /* stage_1 */
+    //==============================================
+    /* Желаемое расстояние между 
+     * конеными точками чернового покрытия
+     */
     double             draft_distance = 0.07;
     /* Время преодоления инерции */
     Hand::frames_t   lasts_init_value1 = 50U;
@@ -119,39 +131,23 @@ namespace Positions
 
     /* stage_3 */
     //==============================================
-    /* Точность = 1.5 мм */
-    const double  precision = 0.0035;
-    /* половина ребра квадрата, из которого берутся все точки */
+    /* половина ребра квадрата,
+     * из которого берутся все точки
+     */
     double side = 0.1;
-    /* шаг уменьшения области поиска для взвешанной суммы */
-    double side_decrease_step = 0.001;
-
-    Hand::frames_t lasts_step = 1U;
-    // -----------------------------------------------
-    std::set<size_t>  visited;
-
+    /* шаг уменьшения области поиска
+     * для взвешанной суммы
+     */
+    double side_decrease_step = 0.01;
+    /* Взвешенная арифметическое среднее
+     * (иначе обычное)
+     */
+    bool weighted_mean = true;
     //==============================================
 
     /* hit the aim */
-    //==============================================
     size_t hit_tries;
     double hit_precision;
-    //==============================================
-
-    //==============================================
-    /* Mean */
-    /* Взвешенная арифметическое среднее (иначе обычное) */
-    bool weighted_mean = true;
-
-    //==============================================
-    HandMoves::Store &store;
-
-    Hand &hand;
-    Point hand_pos_base;
-
-    RecTarget &target;
-
-    size_t complexity = 0U;
     //==============================================
     bool  hand_act (IN  const Point &aim,
                     IN  const HandMoves::controling_t  &controls,
@@ -184,12 +180,30 @@ namespace Positions
                               IN OUT          Hand::frames_t &velosity,
                               IN OUT          Hand::frames_t &velosity_prev);
     //------------------------------------------------------------------------------
-    int deep = 0U;
+    //------------------------------------------------------------------------------
+    typedef std::function<bool (const HandMoves::Record &, const Point &)> func_t;
+    typedef std::set<std::size_t> visited_t;
+    //------------------------------------------------------------------------------
+    HandMoves::Record*  gradientClothestRecord  (IN const  HandMoves::adjacency_refs_t &range,
+                                                 IN const  Point  &aim,
+                                                 IN const  func_t *pPred = NULL,
+                                                 IN OUT visited_t *pVisited = NULL);
+    //------------------------------------------------------------------------------
+    bool                gradientClothestRecords (IN  const      Point   &aim,
+                                                 OUT HandMoves::Record *pRecClose,
+                                                 OUT HandMoves::Record *pRecLower,
+                                                 OUT HandMoves::Record *pRecUpper,
+                                                 IN OUT visited_t      *pVisited=NULL);
+    //------------------------------------------------------------------------------
+
 
     //==============================================
     /* Mixtures */
     size_t  w_means (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
     size_t  rundown (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
+
+
+    size_t   rundownMethod (IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
 
   public:
     // LearnMovements () : lasts_incr_value1 (10U), lasts_incr_value2 (3U) {}
@@ -203,7 +217,7 @@ namespace Positions
     // }
 
     LearnMovements (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target) :
-      store (store), hand (hand), target (target)
+      store (store), hand (hand), target (target), precision (target.precision ())
     {
       hand.SET_DEFAULT;
       hand_pos_base = hand.position;
@@ -219,7 +233,6 @@ namespace Positions
     //------------------------------------------------------------------------------
     void  LearnMovements::uncover (OUT HandMoves::trajectory_t &uncovered);
     //------------------------------------------------------------------------------
-    size_t   rundownMethod           (IN const Point &aim, IN bool verbose=false);
     size_t  gradientMethod           (IN const Point &aim, IN bool verbose=false);
     size_t  gradientMethod_admixture (IN const Point &aim, IN bool verbose=false);
     //------------------------------------------------------------------------------

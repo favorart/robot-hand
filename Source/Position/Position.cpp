@@ -35,7 +35,8 @@ namespace Positions
     { borders[muscle] = std::make_pair (lasts_init, hand.maxMuscleLast (muscle)); }
   }
   /* Статистичеки найти приблизительную границу */
-  void  defineBorders (borders_t &borders, RecTarget &target, HandMoves::Store &store, double distance)
+  void  defineBorders (borders_t &borders, RecTarget &target,
+                       HandMoves::Store &store, double side)
   {
     for ( auto &rec : store )
     {
@@ -44,22 +45,22 @@ namespace Positions
     } // end for
 
     HandMoves::adjacency_refs_t range;
-    store.adjacencyPoints (range, (target.min) (), distance);
+    store.adjacencyPoints (range, (target.min) (), side);
     for ( auto p_rec : range )
     { insertRecordToBorders (borders, *p_rec); }
 
     range.clear ();
-    store.adjacencyPoints (range, Point ((target.min) ().x, (target.max) ().y), distance);
+    store.adjacencyPoints (range, Point ((target.min) ().x, (target.max) ().y), side);
     for ( auto p_rec : range )
     { insertRecordToBorders (borders, *p_rec); }
 
     range.clear ();
-    store.adjacencyPoints (range, Point ((target.max) ().x, (target.min) ().y), distance);
+    store.adjacencyPoints (range, Point ((target.max) ().x, (target.min) ().y), side);
     for ( auto p_rec : range )
     { insertRecordToBorders (borders, *p_rec); }
 
     range.clear ();
-    store.adjacencyPoints (range, (target.max) (), distance);
+    store.adjacencyPoints (range, (target.max) (), side);
     for ( auto p_rec : range )
     { insertRecordToBorders (borders, *p_rec); }
   }
@@ -74,21 +75,21 @@ namespace Positions
     // -----------------------------------------------
     boost::this_thread::interruption_point ();
     // -----------------------------------------------
-    if ( visited.find (h) != visited.end () )
-    {
       const Record  *pRec = store.ExactRecordByControl (controls);
-      if ( pRec )
-      { 
+    if ( pRec ) // visited.find (h) != visited.end () )
+    {
+      // if ( pRec )
+      // { 
         hand_position = pRec->hit;
         return false;
-      }
+      // }
       // else { throw exception ("hand_act: Not in Store"); }
     }
     
     {
       HandMoves::trajectory_t trajectory;
       // -----------------------------------------------
-      visited.insert (h);
+      // visited.insert (h);
       // -----------------------------------------------
       if ( copy )
       {

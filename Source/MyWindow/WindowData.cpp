@@ -46,52 +46,47 @@ void  MyWindowData::TrajectoryFrames::step  (Store &store, Hand &hand,
     }
   }
   // ============
-  /* Auto-drawing trajectory animation */
-  if ( show_ && animation )
+  for ( size_t i = 0U; i < skip_show_steps; ++i )
   {
-    if ( time_.is_initialized () )
+    // ============
+    hand.step (); /* !!! WORKING ONLY FOR NEW_HAND !!! */
+    // ============
+    /* Auto-drawing trajectory animation */
+    if ( show_ && animation && time_.is_initialized () )
     {
-      for ( size_t i = 0U; i < skip_show_steps; ++i )
+      if ( ((*iter_) != (*controls_).end ()) && ((**iter_).start == time_) )
       {
-        // ============
-        // hand.step ();
-        // ============
-        if ( ((*iter_) != (*controls_).end ()) && ((**iter_).start == time_) )
+        while ( ((*iter_) != (*controls_).end ()) && ((**iter_).start == time_) )
         {
-          while ( ((*iter_) != (*controls_).end ()) && ((**iter_).start == time_) )
-          {
-            hand.step ((**iter_).muscle, (**iter_).last);
-            ++(*iter_);
-          }
+          hand.step ((**iter_).muscle, (**iter_).last);
+          ++(*iter_);
         }
-        else
-        { hand.step (); /* !!! WORKING ONLY FOR NEW_HAND !!! */ }
-        // ============
-        if ( hand.moveEnd )
-        {
-          const Point &hand_pos = hand.position;
-          trajectory_.push_back (hand_pos);
-          // -------------------------------------------
-          Point  base_pos = trajectory_.front ();
-          // wd.trajectory_.pop_front ();
-          store.insert (HandMoves::Record (hand_pos, base_pos, hand_pos,
-                                           *controls_, trajectory_));
-          // -------------------------------------------
-          controls_ = boost::none;
-          // -------------------------------------------
-          iter_ = boost::none;
-          time_ = boost::none;
-          // -------------------------------------------
-          break;
-        }
-        else if ( !(*time_ % hand.visitedSaveEach) )
-        { trajectory_.push_back (hand.position); }
-        // ============
-        (*time_) += 1U;
-        // ============
-      } // end for
+      }
+      // ============
+      if ( hand.moveEnd )
+      {
+        const Point &hand_pos = hand.position;
+        trajectory_.push_back (hand_pos);
+        // -------------------------------------------
+        Point  base_pos = trajectory_.front ();
+        // wd.trajectory_.pop_front ();
+        store.insert (HandMoves::Record (hand_pos, base_pos, hand_pos,
+                                         *controls_, trajectory_));
+        // -------------------------------------------
+        controls_ = boost::none;
+        // -------------------------------------------
+        iter_ = boost::none;
+        time_ = boost::none;
+        // -------------------------------------------
+        break;
+      }
+      else if ( !(*time_ % hand.visitedSaveEach) )
+      { trajectory_.push_back (hand.position); }
+      // ============
+      (*time_) += 1U;
+      // ============
     } // end if
-  } // end if
+  } // end for
 }
 void  MyWindowData::TrajectoryFrames::draw  (HDC hdc, HPEN hPen) const
 { if ( show_ ) { DrawTrajectory (hdc, trajectory_, hPen); } }
@@ -109,8 +104,26 @@ void  MyWindowData::TrajectoryFrames::clear ()
 MyWindowData:: MyWindowData () :
   pWorkerThread (nullptr),
   // lt (NULL),
-  target ( // 200U, 200U,
-           18U, 18U, -0.41,  0.43, -0.03, -0.85 ),
+  hand (/* palm     */ Point{ -0.75, 1.05 },
+        /* hand     */ Point{ -0.70, 1.00 },
+        /* arm      */ Point{  0.10, 0.85 },
+        /* shoulder */ Point{  0.75, 0.25 },
+        /* clavicle */ Point{  0.75, 0.25 },
+        /* joints_frames */
+        { { Hand::Elbow,{ new MotionLaws::ContinuousAcceleration (),
+                          // new MotionLaws::ContinuousAccelerationThenStabilization (),
+                          new MotionLaws::ContinuousDeceleration () } },
+          { Hand::Shldr,{ new MotionLaws::ContinuousAcceleration (),
+                          // new MotionLaws::ContinuousAccelerationThenStabilization (),
+                          new MotionLaws::ContinuousDeceleration () } }
+           // { Hand::Wrist, { // new MotionLaws::ContinuousAcceleration (),
+           //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+           //                  new MotionLaws::ContinuousDeceleration () } },
+           // { Hand::Clvcl, { // new MotionLaws::ContinuousAcceleration (),
+           //                  new MotionLaws::ContinuousAccelerationThenStabilization (),
+           //                  new MotionLaws::ContinuousDeceleration () } }
+         }),
+  target ( /* 200U, 200U, */ 18U, 18U, -0.41,  0.43, -0.03, -0.85 ),
   scaleLetters (target.min (), target.max ())
 {
   std::srand ((unsigned int) clock ());
@@ -379,7 +392,7 @@ bool  MakeHandMove (MyWindowData &wd)
     wd.trajectory_frames.clear ();
 
     Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-    lm.gradientMethod_admixture (aim, true);
+    lm.gradientMethod_admixture (aim, false);
 
     if ( 0 )
     {

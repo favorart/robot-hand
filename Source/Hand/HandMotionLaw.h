@@ -98,10 +98,10 @@ namespace NewHand
       *  Затем скорость движения руки стабилизируется до полного раскрытия.
       *  ...
       */
-      double  AccelerationLong = 0.45;
+      double  AccelerationLong;
     public:
       // --------------------------------
-      ContinuousAccelerationThenStabilization (double AccelerationLong)
+      ContinuousAccelerationThenStabilization (double AccelerationLong=0.45)
       {
         if ( 1. >= AccelerationLong && AccelerationLong >= 0. )
         { this->AccelerationLong = AccelerationLong; }

@@ -61,8 +61,8 @@ public:
   const Point&   RecTarget::center () const { return  center_; }
 
   double     precision () const
-  { return  /* 0.004 */ (std::max (max_.x - min_.x,
-                                   max_.y - min_.y) / 200.); }
+  { return /* 0.004 */ (std::max (max_.x - min_.x,
+                                  max_.y - min_.y) / 200.); }
   double     thickness () const
   { return   std::max (thickness_.x, thickness_.y); }
   // ---------------------------------
