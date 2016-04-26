@@ -166,17 +166,17 @@ namespace Positions
           { continue; }
           else
           { 
-            // gradient_complexity += gradientMethod (aim, verbose);
-            // 
-            // auto &rec = store.ClothestPoint (aim, side);
-            // hand_position = rec.hit;
-            // 
-            // d = boost_distance (hand_position, aim);
-            // if ( precision > d )
-            // { break; }
-            // else if ( new_distance > d )
-            // { continue; }
-            // else // if ( new_distance <= d )
+            gradient_complexity += gradientMethod (aim, verbose);
+            
+            auto &rec = store.ClothestPoint (aim, side);
+            hand_position = rec.hit;
+            
+            d = boost_distance (hand_position, aim);
+            if ( precision > d )
+            { break; }
+            else if ( new_distance > d )
+            { continue; }
+            else
             {
               /* FAIL */
               break;
@@ -365,17 +365,17 @@ namespace Positions
         { continue; }
         else
         {
-          gradient_complexity += gradientMethod_admixture (aim, verbose);
-
-          auto &rec = store.ClothestPoint (aim, side);
-          hand_position = rec.hit;
-
-          d = boost_distance (hand_position, aim);
-          if ( precision > d )
-          { break; }
-          else if ( new_distance > d )
-          { continue; }
-          else
+          // gradient_complexity += gradientMethod_admixture (aim, verbose);
+          // 
+          // auto &rec = store.ClothestPoint (aim, side);
+          // hand_position = rec.hit;
+          // 
+          // d = boost_distance (hand_position, aim);
+          // if ( precision > d )
+          // { break; }
+          // else if ( new_distance > d )
+          // { continue; }
+          // else
           {
             /* FAIL */
             break;

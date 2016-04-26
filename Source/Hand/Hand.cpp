@@ -330,7 +330,7 @@ void                     NewHand::Hand::step (IN  MusclesEnum muscle, IN frames_
     for ( auto m : muscles_ )
     {
       if ( m & hs.musclesMove_ )
-      { muscleMove (muscleIndex (m), m, last, ((m & muscle) != 0U) && last); }
+      { muscleMove (muscleIndex (m), m, last, ((m & muscle) != 0U)); }
     } // end for
   } // end if
 }

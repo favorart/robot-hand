@@ -110,21 +110,21 @@ MyWindowData:: MyWindowData () :
         /* shoulder */ Point{  0.75, 0.25 },
         /* clavicle */ Point{  0.75, 0.25 },
         /* joints_frames */
-        { { Hand::Elbow,{ new MotionLaws::ContinuousSlowAcceleration (),
+        { { Hand::Elbow,{ // new MotionLaws::ContinuousSlowAcceleration (),
                           // new MotionLaws::ContinuousFastAcceleration (),
-                          // new MotionLaws::ContinuousAcceleration (),
+                          new MotionLaws::ContinuousAcceleration (),
                           // new MotionLaws::ContinuousAccelerationThenStabilization (),
                           new MotionLaws::ContinuousDeceleration () } },
-          { Hand::Shldr,{ new MotionLaws::ContinuousSlowAcceleration (),
+          { Hand::Shldr,{ // new MotionLaws::ContinuousSlowAcceleration (),
                           // new MotionLaws::ContinuousFastAcceleration (),
-                          // new MotionLaws::ContinuousAcceleration (),
+                          new MotionLaws::ContinuousAcceleration (),
                           // new MotionLaws::ContinuousAccelerationThenStabilization (),
-                          new MotionLaws::ContinuousDeceleration () } }
+                          new MotionLaws::ContinuousDeceleration () } } // ,
            // { Hand::Wrist, { new MotionLaws::ContinuousAcceleration (),
            //                  new MotionLaws::ContinuousDeceleration () } },
-           // { Hand::Clvcl, { new MotionLaws::ContinuousSlowAcceleration (),
+           // { Hand::Clvcl, { // new MotionLaws::ContinuousSlowAcceleration (),
            //                  // new MotionLaws::ContinuousFastAcceleration (),
-           //                  // new MotionLaws::ContinuousAcceleration (),
+           //                  new MotionLaws::ContinuousAcceleration (),
            //                  // new MotionLaws::ContinuousAccelerationThenStabilization (),
            //                  new MotionLaws::ContinuousDeceleration () } }
          }),
@@ -386,20 +386,18 @@ bool  RepeatMove   (MyWindowData &wd)
 }
 bool  MakeHandMove (MyWindowData &wd)
 {
-  wd.adjPointsDB.clear ();
+  // wd.adjPointsDB.clear ();
   wd.trajectory_frames.clear ();
-
+  wd.testing_trajectories.clear ();
+  // -------------------------------------------------
   if ( !RepeatMove (wd) )
   {
     const Point &aim = wd.mouse_aim;
     // -------------------------------------------------
-    wd.testing_trajectories.clear ();
-    wd.trajectory_frames.clear ();
-
     Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-    lm.gradientMethod /*_admixture*/ (aim, true);
-
-    if ( 0 )
+    lm.gradientMethod_admixture (aim, true);
+    // -------------------------------------------------
+    if ( 0 /* Around Trajectories !!! */)
     {
       // adjacency_refs_t  range;
       // std::pair<Record, Record>  x_pair, y_pair;
@@ -414,27 +412,7 @@ bool  MakeHandMove (MyWindowData &wd)
       // return false;
     }
     // -------------------------------------------------
-    if ( 0 /* gradient || rundown */ )
-    {
-      // WorkerThreadRunStoreTask (wd, _T (" *** stage 1 test ***  "),
-      //                             [](Store &store, Hand &hand, const Point &aim,
-      //                                trajectory_t *t, trajectories_t *ts)
-      //                             {
-      //                               Positions::LearnMovements  lm;
-      //                               lm.Mean (store, hand, aim, t, ts);
-      //                             }
-      //                             , wd.hand, aim,
-      //                               NULL, // &wd.trajectory_frames,
-      //                              &wd.testing_trajectories);
-      // WorkerThreadTryJoin (wd);
-      // -------------------------------------------------
-      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-      lm.gradientMethod (aim);
-      // lm.Close ( wd.store, wd.hand, aim, 0.1,
-      //            NULL, // &wd.trajectory_frames,
-      //           &wd.testing_trajectories);
-    }
-    else if ( 0 /* LinearOperator && SimplexMethod */ )
+    if ( 0 /* LinearOperator && SimplexMethod */ )
     {
       // HandMoves::controling_t controls;
       // Positions::LinearOperator  lp (wd.store, wd.mouse_aim,
@@ -445,8 +423,9 @@ bool  MakeHandMove (MyWindowData &wd)
       // wd.hand.move (controls.begin (), controls.end (), &wd.trajectory_frames.trajectory);
     }
     // -------------------------------------------------
-    return  RepeatMove (wd);
+    return !RepeatMove (wd);
   }
-  return !RepeatMove (wd); // true;
+  // -------------------------------------------------
+  return true;
 }
 //-------------------------------------------------------------------------------
