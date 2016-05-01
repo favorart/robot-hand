@@ -1,5 +1,8 @@
 ﻿#include "StdAfx.h"
 #include "Position.h"
+#include "Utilities.h"
+#include "Combinations.h"
+
 
 namespace Positions
 {
@@ -152,7 +155,7 @@ namespace Positions
     return false;
   }
   //------------------------------------------------------------------------------
-  size_t  LearnMovements::rundown (IN const Point &aim, OUT Point &hand_position, IN bool verbose)
+  size_t  LearnMovements::rundownMain (IN const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t  rundown_complexity = 0U;
     // -----------------------------------------------
@@ -175,7 +178,7 @@ namespace Positions
                                  velosity, velosity_prev) )
     {
       // -----------------------------------------------
-      if ( hand_act (aim, controls, hand_pos) )
+      if ( handAct (aim, controls, hand_pos) )
       { ++rundown_complexity; }
       // -----------------------------------------------
       double next_distance = boost_distance (hand_pos, aim);
@@ -229,7 +232,7 @@ namespace Positions
         // ---------------------------------        
         velosity_prev = velosity;
         // -----------------------------------------------
-        if ( hand_act (aim, controls, hand_pos) )
+        if ( handAct (aim, controls, hand_pos) )
         { ++rundown_complexity; }
         // -----------------------------------------------
         next_distance = boost_distance (hand_pos, aim);
@@ -253,30 +256,145 @@ namespace Positions
   }
   //------------------------------------------------------------------------------
   //------------------------------------------------------------------------------
-  /* Получить знак числа */
-  template <typename T> int  sgn (T val)
-  { return (T (0) < val) - (val < T (0)); }
-  //------------------------------------------------------------------------------
-  /*  Размедение с повторениями:
-   *  current       - текущее размещение
-   *  alphabet_size - размер алфавита { 0, 1, ... k }
-   */
-  bool  next_placement_repeats (std::vector<int> &current, int alphabet_size)
+  class RundownFullIncrementor
   {
-    bool    result = true;
-    size_t  position = current.size ();
-    while ( position > 0U && result )
-    {
-      ++current[position - 1U];
-      result = (current[position - 1U] == alphabet_size);
-      if ( result )
-      { current[position - 1U] = 0U; }
-      --position;
+    const size_t directions_ = 2U; // +/-
+    size_t  n_joints_;
+    size_t  n_combs_ = 1U;
+
+    std::vector<int>  alphabet_;
+
+  public:
+    RundownFullIncrementor (size_t n_joints) :
+      n_joints_ (n_joints),
+      alphabet_ (2 * n_joints * directions_)
+    { reset (); }
+
+    void  reset ()
+    { 
+      n_combs_ = 1U;
+      // --------------------------------------------------
+      int inc = 0;
+      // --------------------------------------------------
+      for ( auto &letter : alphabet_ )
+      { letter = inc++; }
     }
-    return (!result);
+    bool  next (std::vector<int> &currents)
+    {
+      bool result, one_more;
+      // --------------------------------------------------
+      do
+      {
+        one_more = false;
+        currents.assign (currents.size (), 0);
+        // --------------------------------------------------
+        // if ( n_combs_ > 1 )
+        // {
+          int  it_curr, it_prev = currents.size ();
+          // --------------------------------------------------
+          for ( auto it  = alphabet_.begin ();
+                     it != alphabet_.begin () + n_combs_;
+                   ++it )
+          {
+            it_curr = *it % currents.size ();
+            if ( n_combs_ > 1 && it_prev == it_curr )
+            {
+              one_more = true;
+              break;
+            }
+            // --------------------------------------------------
+            currents[it_curr] = (*it >= currents.size ()) ? -1 : 1;
+            it_prev = it_curr;
+          } // end for
+        // } // end if
+        // --------------------------------------------------
+        result = next_combination (alphabet_.begin (),
+                                   alphabet_.begin () + n_combs_,
+                                   alphabet_.end ());
+        // --------------------------------------------------
+        if ( !result )
+        { ++n_combs_;
+          if ( n_combs_ > n_joints_ )
+          { reset (); result = true; }
+        }
+        // --------------------------------------------------
+      } while ( one_more );
+      // --------------------------------------------------
+      return result;
+    }
+  };
+  //------------------------------------------------------------------------------
+  bool    LearnMovements::rundownNextControl (IN OUT HandMoves::controling_t &controls,
+                                              IN OUT       std::vector<int>  &lasts_changes,
+                                              IN OUT          Hand::frames_t &velosity)
+  {
+    bool result = true;
+    // ---------------------------------
+    if ( controls.size () != lasts_changes.size () )
+      throw std::exception ("rundownNextControl: not equal sizes controls and lasts_changes");
+    // ---------------------------------
+    auto it = controls.begin ();
+    for ( auto last_change : lasts_changes )
+    {
+      if ( last_change )
+      {
+        // ---------------------------------
+        if ( last_change < 0 )
+        {
+          if ( it->last >= velosity )
+          { it->last -= velosity; }
+          else
+          { 
+            velosity = it->last;
+            it->last = 0U;
+          }
+
+          // {
+          //   auto  m_op = muscleOpposite (it->muscle);
+          //   auto it_op = boost::range::find (controls, m_op);
+          //   // ---------------------------------
+          //   it_op->last += (velosity - it->last);
+          //   it->last = 0U;
+          //   // ---------------------------------
+          //   if ( it_op->start < it->start )
+          //   {
+          //     it->start = (it_op->last + 1U);
+          //     it_op->start = 0U;
+          //   }
+          //   else // it_op->start > it->start
+          //   {
+          //     it_op->start = (it->last + 1U);
+          //     it->start = 0U;
+          //   }
+          // } // end else
+
+          auto  m_op = muscleOpposite (it->muscle);
+          auto it_op = boost::range::find (controls, m_op);
+
+          if ( it->start < it_op->start )
+          { it_op->start = (it->last + 1U); }
+        }
+        else // last_change > 0
+        {
+          it->last += velosity;
+          // ---------------------------------
+          auto  m_op = muscleOpposite (it->muscle);
+          auto it_op = boost::range::find (controls, m_op);
+
+          if ( it->start < it_op->start )
+          { it_op->start = (it->last + 1U); }
+          // ---------------------------------
+        } // end else
+        // ---------------------------------
+        result = false;
+      } // end if
+      ++it;
+    } // end for
+    // ---------------------------------
+    return result;
   }
   //------------------------------------------------------------------------------
-  size_t  LearnMovements::rundownMethod (IN const Point &aim, OUT Point &hand_position, IN bool verbose)
+  size_t  LearnMovements::rundownFull (IN const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t  rundown_complexity = 0U;
     // -----------------------------------------------
@@ -287,70 +405,38 @@ namespace Positions
       next_distance = distance,
      start_distance = distance;
     // -----------------------------------------------
-    HandMoves::controling_t  controls;
-    rundownControlsOrder (rec.controls, controls);
-    // HandMoves::controling_t  controls{ rec.controls };
-    // rundownControls (controls);
+    HandMoves::controling_t  controls{ rec.controls };
+    rundownControls (controls);
     // -----------------------------------------------
-    std::vector<int>    last_steps (hand.muscles_.size ());
-    std::vector<int>    last_prevs (hand.muscles_.size ());
+    Hand::frames_t  velosity = 0U;
+    Hand::frames_t  velosity_prev = 0U;
     // -----------------------------------------------
-    auto it_l = last_prevs.begin ();
-    for ( auto it_c  = controls.begin ();
-              (it_c != controls.end ()) && (it_l != last_prevs.end ());
-             ++it_c, ++it_l )
-    { *it_l = it_c->last; }
+    std::vector<int>  lasts_changes ( hand.muscles_.size () );
     // -----------------------------------------------
-    int i = 0U;
-    int alphabet = 1;
-    int alphabet2 = (alphabet % 2) ? (2 * alphabet + 1) : (2 * alphabet);
+    RundownFullIncrementor   increm ( hand.joints_.size () );
     // -----------------------------------------------
     hand.SET_DEFAULT;
-    while ( next_placement_repeats (last_steps, alphabet2) )
+    while ( distance > precision )
     {
-      int  velosity = floor ((distance * 10) / precision + 0.5 );
-      velosity = (velosity) ? velosity : 1;
+      velosity = floor (distance / precision + 0.5);
+      velosity = (velosity) ? velosity : 1U;
       // -----------------------------------------------
-      for ( auto &l : last_steps )
+      /* Восстановить прошлое управление */
+      for ( auto &last_change : lasts_changes )
       {
-        if ( l > alphabet )
-        { l = (alphabet - l); }
-        l *= velosity;
+        if ( last_change != 0 )
+        { last_change = -last_change; }
       }
+      rundownNextControl (controls, lasts_changes, velosity_prev);
       // -----------------------------------------------
-      i = 0U;
-      for ( auto it = controls.begin (); it != controls.end (); ++it, ++i )
-      {
-        if ( last_steps[i] != 0 )
-        {
-          if ( last_steps[i] < 0 )
-          { it->last = (last_prevs[i] >= -last_steps[i]) ? (last_prevs[i] + last_steps[i]) : 0U; }
-          else // if ( last_steps[i] > 0 )
-          { it->last = (last_prevs[i] + last_steps[i]); }
-          // --------------------------
-          int   j = (i % 2) ? (i - 1) : (i + 1);
-          auto op = (i % 2) ? std::prev (it) : std::next (it);
-          // --------------------------
-          Hand::frames_t  op_last;
-          if ( last_steps[j] < 0 )
-          { op_last = (last_prevs[j] >= -last_steps[j]) ? (last_prevs[j] + last_steps[j]) : 0U; }
-          else // if (last_steps[j] > 0)
-          { op_last = (last_prevs[j] + last_steps[j]); }
-          // --------------------------
-          if ( it->last > op_last )
-          {
-            op->start = it->last + 1U;
-            it->start = 0U;
-          }
-          else
-          {
-            it->start = op_last + 1U;
-            op->start = 0U;
-          } // end else
-        } // end if
-      } // end for
+      /* Взять новое сочетание */
+      bool increm_result = increm.next (lasts_changes);
       // -----------------------------------------------
-      if ( hand_act (aim, controls, hand_pos) )
+      rundownNextControl (controls, lasts_changes, velosity);
+
+      velosity_prev = velosity;
+      // -----------------------------------------------
+      if ( handAct (aim, controls, hand_pos) )
       { ++rundown_complexity; }
       // -----------------------------------------------
       next_distance = boost_distance (hand_pos, aim);
@@ -365,56 +451,21 @@ namespace Positions
         distance = next_distance;
         hand_position = hand_pos;
         // -----------------------------------------------
-        int  velosity_new = floor ((distance * 10) / precision + 0.5);
-        velosity_new = (velosity_new) ? velosity_new : 1;
+        Hand::frames_t  velosity_new = floor ((distance) / precision + 0.5);
+        velosity_new = (velosity_new) ? velosity_new : 1U;
 
         if ( velosity_new != velosity )
         {
-          for ( auto &l : last_steps )
-          { l = sgn (l) * velosity_new; }
-
           velosity = velosity_new;
+          for ( auto &l : lasts_changes )
+          { l = sign (l) * velosity; }
         }
         // -----------------------------------------------
-        auto it_l = last_prevs.begin ();
-        for ( auto it_c  = controls.begin (); (it_c != controls.end ())
-               && (it_l != last_prevs.end ());
-                 ++it_c, ++it_l )
-        { *it_l = it_c->last; }
+        rundownNextControl (controls, lasts_changes, velosity);
+
+        velosity_prev = velosity;
         // -----------------------------------------------
-        i = 0U;
-        for ( auto it = controls.begin (); it != controls.end (); ++it, ++i )
-        {
-          if ( last_steps[i] != 0 )
-            {
-              if ( last_steps[i] < 0 )
-              { it->last = (last_prevs[i] >= -last_steps[i]) ? (last_prevs[i] + last_steps[i]) : 0U; }
-              else
-              { it->last = (last_prevs[i] + last_steps[i]); }
-              // --------------------------
-              int   j = (i % 2) ? (i - 1) : (i + 1);
-              auto op = (i % 2) ? std::prev (it) : std::next (it);
-              // --------------------------
-              Hand::frames_t  op_last;
-              if ( last_steps[j] < 0 )
-              { op_last = (last_prevs[j] >= -last_steps[j]) ? (last_prevs[j] + last_steps[j]) : 0U; }
-              else
-              { op_last = (last_prevs[j] + last_steps[j]); }
-              // --------------------------
-              if ( it->last > op_last )
-              {
-                op->start = it->last + 1U;
-                it->start = 0U;
-              }
-              else
-              {
-                it->start = op_last + 1U;
-                op->start = 0U;
-              } // end else
-            } // end if
-        } // end for
-        // -----------------------------------------------
-        if ( hand_act (aim, controls, hand_pos) )
+        if ( handAct (aim, controls, hand_pos) )
         { ++rundown_complexity; }
         // -----------------------------------------------
         next_distance = boost_distance (hand_pos, aim);
@@ -423,22 +474,21 @@ namespace Positions
           hand_position = hand_pos;
           break;
         }
+
+        if ( next_distance >= distance )
+        { increm.reset ();
+          increm_result = false;
+        }
       }
       // -----------------------------------------------
-      if ( next_distance > side )
+      // if ( next_distance > side )
+      if ( increm_result )
       { /* FAIL */
         break;
       }
       // -----------------------------------------------
-      if ( distance < start_distance )
-      { break; }
-      // -----------------------------------------------
-      for ( auto &l : last_steps )
-      {
-        l = sgn (l);
-        if ( l < 0 )
-        { l = (alphabet - l); }
-      }
+      // if ( distance < start_distance )
+      // { break; }
       // -----------------------------------------------
 #ifdef _DEBUG_PRINT
       tcout << _T ("prec: ") << best_distance << std::endl;

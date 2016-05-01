@@ -17,7 +17,8 @@ namespace HandMoves
   struct ByC {};
 
   typedef std::list<Record>                   adjacency_t;
-  typedef std::list<std::shared_ptr<Record>>  adjacency_refs_t;
+  typedef std::list<const Record*>            adjacency_ptrs_t;
+  typedef std::list<std::shared_ptr<Record>>  adjacency_sh_ptrs_t;
   //------------------------------------------------------------------------------
   class  ClosestPredicate
   {
@@ -26,6 +27,12 @@ namespace HandMoves
     ClosestPredicate (const Point &aim) : aim (aim) {}
     double  operator() (const std::shared_ptr<Record> &a,
                         const std::shared_ptr<Record> &b)
+    {
+      return this->operator() (boost_point2_t (a->hit),
+                               boost_point2_t (b->hit));
+    }
+    double  operator() (const Record *a,
+                        const Record *b)
     {
       return this->operator() (boost_point2_t (a->hit),
                                boost_point2_t (b->hit));
@@ -66,7 +73,9 @@ namespace HandMoves
   public:
     void operator () (OUT adjacency_t &range, IN const Record &rec)
     { range.push_back (rec); }
-    void operator () (OUT adjacency_refs_t &range, IN const Record &rec)
+    void operator () (OUT adjacency_ptrs_t &range, IN const Record &rec)
+    { range.push_back ( /* (Record*) */ (&rec) ); }
+    void operator () (OUT adjacency_sh_ptrs_t &range, IN const Record &rec)
     { range.push_back (std::make_shared<Record> (rec)); }
   };
   //------------------------------------------------------------------------------
@@ -129,7 +138,8 @@ namespace HandMoves
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
       // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
-                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                   || boost::is_same<range_t, adjacency_ptrs_t>::value
+                   || boost::is_same<range_t, adjacency_sh_ptrs_t>::value,
                       "Incorrect type to template function." );
       // -----------------------------------------------
       typedef MultiIndexMoves::index<index_t>::type::const_iterator Index_cIter;
@@ -157,7 +167,8 @@ namespace HandMoves
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
       // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
-                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                   || boost::is_same<range_t, adjacency_ptrs_t>::value
+                   || boost::is_same<range_t, adjacency_sh_ptrs_t>::value,
                       "Incorrect type to template function." );
       // -----------------------------------------------
       typedef MultiIndexMoves::index<ByP>::type::const_iterator IndexPcIter;
@@ -182,7 +193,8 @@ namespace HandMoves
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
       // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
-                   || boost::is_same<range_t, adjacency_refs_t>::value,
+                   || boost::is_same<range_t, adjacency_ptrs_t>::value
+                   || boost::is_same<range_t, adjacency_sh_ptrs_t>::value,
                       "Incorrect type to template function." );
       // -----------------------------------------------
       typedef MultiIndexMoves::index<ByD>::type::const_iterator IndexDcIter;
@@ -246,10 +258,11 @@ namespace HandMoves
     size_t  FindEndPoint (OUT range_t &range, IN const Point &aim)
     {
       boost::lock_guard<boost::mutex>  lock (store_mutex_);
-      // -----------------------------------------------      
-      static_assert < boost::is_same<range_t, adjacency_t>::value
-                   || boost::is_same<range_t, adjacency_refs_t>::value,
-                      "Incorrect type to template function.">;
+      // -----------------------------------------------
+      static_assert ( boost::is_same<range_t, adjacency_t>::value
+                   || boost::is_same<range_t, adjacency_ptrs_t>::value
+                   || boost::is_same<range_t, adjacency_sh_ptrs_t>::value,
+                      "Incorrect type to template function." );
       // -----------------------------------------------
       MultiIndexMoves::index<ByP>::type  &index = store_.get<ByP> ();
       auto result = index.equal_range (boost::tuple<double, double> (aim));

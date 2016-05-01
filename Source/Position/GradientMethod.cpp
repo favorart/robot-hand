@@ -131,9 +131,9 @@ namespace Positions
       controling_t  lower_controls, upper_controls;
       double        lower_distance, upper_distance;
       // -----------------------------------------------
-      if ( !w_meansULAdjs (aim, &rec,
-                           lower_controls, upper_controls,
-                           lower_distance, upper_distance) )
+      if ( !weightedMeanULAdjs (aim, &rec,
+                                lower_controls, upper_controls,
+                                lower_distance, upper_distance) )
       { break; }
       // -----------------------------------------------
       const controling_t  &inits_controls = rec.controls;
@@ -148,7 +148,7 @@ namespace Positions
       // -----------------------------------------------
       else
       {
-        gradient_complexity += w_means (aim, hand_position, verbose);
+        gradient_complexity += weightedMean (aim, hand_position, verbose);
 
         d = boost_distance (hand_position, aim);
         if ( precision > d )
@@ -157,7 +157,7 @@ namespace Positions
         { continue; }
         else
         {
-          gradient_complexity += rundown (aim, hand_position, verbose);
+          gradient_complexity += rundownMain (aim, hand_position, verbose);
 
           d = boost_distance (hand_position, aim);
           if ( precision > d )
@@ -192,7 +192,7 @@ namespace Positions
                         upper_controls,
                         controls);
       // -----------------------------------------------
-      if ( hand_act (aim, controls, hand_position) )
+      if ( handAct (aim, controls, hand_position) )
       { ++gradient_complexity; }
       // -----------------------------------------------
       d = boost_distance (hand_position, aim);
@@ -220,17 +220,18 @@ namespace Positions
     return  gradient_complexity;
   }
   //------------------------------------------------------------------------------
-  Record*  LearnMovements::gradientClothestRecord  (IN const HandMoves::adjacency_refs_t &range,
-                                                    IN const  Point  &aim,
-                                                    IN const  func_t *pPred,
-                                                    IN OUT visited_t *pVisited)
+  const Record*  LearnMovements::gradientClothestRecord  (IN const HandMoves::adjacency_ptrs_t &range,
+                                                          IN const  Point  &aim,
+                                                          IN const  func_t *pPred,
+                                                          IN OUT visited_t *pVisited)
   {
-    Record *pRecMin = NULL;
+    const Record *pRecMin = NULL;
     // ------------------------
     size_t h;
     double  dr, dm;
     // ------------------------
-    for ( const auto &pRec : range )
+    for ( auto pRec : range )
+    // for ( const auto &pRec : range )
     {
       if ( pVisited )
       { RecordHasher rh;
@@ -241,7 +242,7 @@ namespace Positions
       if ( (!pVisited || pVisited->find (h) == pVisited->end ())
         && (!pPred    || (*pPred) (*pRec, aim))
         && (!pRecMin  || dr < dm) )
-      { pRecMin = &(*pRec);
+      { pRecMin = pRec; // &(*pRec);
         dm = dr;
       }
     }
@@ -260,15 +261,15 @@ namespace Positions
     Point  min (aim.x - side, aim.y - side),
            max (aim.x + side, aim.y + side);
     // ------------------------------------------------
-    adjacency_refs_t range;
-    store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+    adjacency_ptrs_t range;
+    store.adjacencyRectPoints<adjacency_ptrs_t, ByP> (range, min, max);
     // ------------------------------------------------
     func_t  cmp_l = [](const Record &p, const Point &aim)
     { return  (p.hit.x < aim.x) && (p.hit.y < aim.y); };
     func_t  cmp_g = [](const Record &p, const Point &aim)
     { return  (p.hit.x > aim.x) && (p.hit.y > aim.y); };
     // ------------------------------------------------
-    Record *pRec = gradientClothestRecord (range, aim, NULL, pVisited);
+    const Record *pRec = gradientClothestRecord (range, aim, NULL, pVisited);
     if ( !pRec ) { return false; }
 
     RecordHasher rh;
@@ -341,7 +342,7 @@ namespace Positions
                         rec_upper.controls,
                         controls);
       // -----------------------------------------------
-      if ( hand_act (aim, controls, hand_position) )
+      if ( handAct (aim, controls, hand_position) )
       { ++gradient_complexity; }
       // -----------------------------------------------
       double d = boost_distance (hand_position, aim);
@@ -356,7 +357,7 @@ namespace Positions
       {
         visited.clear ();
         
-        rundownMethod (aim, hand_position, verbose);
+        rundownFull (aim, hand_position, verbose);
 
         d = boost_distance (hand_position, aim);
         if ( precision > d )
@@ -365,21 +366,8 @@ namespace Positions
         { continue; }
         else
         {
-          // gradient_complexity += gradientMethod_admixture (aim, verbose);
-          // 
-          // auto &rec = store.ClothestPoint (aim, side);
-          // hand_position = rec.hit;
-          // 
-          // d = boost_distance (hand_position, aim);
-          // if ( precision > d )
-          // { break; }
-          // else if ( new_distance > d )
-          // { continue; }
-          // else
-          {
-            /* FAIL */
-            break;
-          } // end else
+          /* FAIL */
+          break;
         } // end else
       } // end else
       // -----------------------------------------------

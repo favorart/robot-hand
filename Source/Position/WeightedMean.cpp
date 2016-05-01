@@ -6,10 +6,10 @@ namespace Positions
   using namespace std;
   using namespace HandMoves;
   //------------------------------------------------------------------------------
-  void  LearnMovements::w_meansControls (IN  const Point &aim,
-                                         IN  const HandMoves::adjacency_refs_t &range,
-                                         OUT HandMoves::controling_t &controls,
-                                         OUT double *weight)
+  void  LearnMovements::weightedMeanControls (IN  const Point &aim,
+                                              IN  const HandMoves::adjacency_ptrs_t &range,
+                                              OUT HandMoves::controling_t &controls,
+                                              OUT double *weight)
   {
     // -----------------------------------------------
     double all_distance = 0.;
@@ -75,7 +75,7 @@ namespace Positions
     // ----------------------------------------------
   }
   //------------------------------------------------------------------------------
-  size_t  LearnMovements::w_means (IN  const Point &aim, OUT Point &hand_position, IN bool verbose)
+  size_t  LearnMovements::weightedMean (IN  const Point &aim, OUT Point &hand_position, IN bool verbose)
   {
     size_t w_means_complexity = 0U;
     double side_ = side;
@@ -100,7 +100,7 @@ namespace Positions
         { break; }
       }
       // -----------------------------------------------
-      HandMoves::adjacency_refs_t  range;
+      HandMoves::adjacency_ptrs_t  range;
       store.adjacencyByPBorders (range, aim, side_);
       if ( range.empty () )
       { break; }
@@ -108,9 +108,9 @@ namespace Positions
       side_ -= side_decrease_step;
       // -----------------------------------------------
       HandMoves::controling_t  controls;
-      w_meansControls (aim, range, controls);
+      weightedMeanControls (aim, range, controls);
       // -----------------------------------------------
-      if ( hand_act (aim, controls, hand_pos) )
+      if ( handAct (aim, controls, hand_pos) )
       { ++w_means_complexity; }
       // -----------------------------------------------
       next_distance = boost_distance (hand_pos, aim);
@@ -128,11 +128,11 @@ namespace Positions
     return  w_means_complexity;
   }
   //------------------------------------------------------------------------------
-  bool  LearnMovements::w_meansULAdjs (IN  const Point  &aim, OUT HandMoves::Record *pRec,
-                                       OUT HandMoves::controling_t &lower_controls,
-                                       OUT HandMoves::controling_t &upper_controls,
-                                       OUT double &lower_distance,
-                                       OUT double &upper_distance)
+  bool  LearnMovements::weightedMeanULAdjs (IN  const Point  &aim, OUT HandMoves::Record *pRec,
+                                            OUT HandMoves::controling_t &lower_controls,
+                                            OUT HandMoves::controling_t &upper_controls,
+                                            OUT double &lower_distance,
+                                            OUT double &upper_distance)
   {
     if ( !pRec ) { return  false; }
 
@@ -141,7 +141,7 @@ namespace Positions
     lower_controls.clear ();
     upper_controls.clear ();
     // ------------------------------------------------
-    adjacency_refs_t range;
+    adjacency_ptrs_t range;
     store.adjacencyPoints (range, aim, side);
 
     ClosestPredicate cp (aim);
@@ -155,20 +155,20 @@ namespace Positions
     min = Point (aim.x - side, pRec->hit.y - side);
     max = Point (aim.x + side, pRec->hit.y);
 
-    store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+    store.adjacencyRectPoints<adjacency_ptrs_t, ByP> (range, min, max);
     if ( range.empty () )
     { return false; }
     // ------------------------------------------------
-    w_meansControls (aim, range, lower_controls, &lower_distance);
+    weightedMeanControls (aim, range, lower_controls, &lower_distance);
     // ------------------------------------------------
     min = Point (aim.x - side, pRec->hit.y);
     max = Point (aim.x + side, pRec->hit.y + side);
 
-    store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+    store.adjacencyRectPoints<adjacency_ptrs_t, ByP> (range, min, max);
     if ( range.empty () )
     { return false; }
     // ------------------------------------------------
-    w_meansControls (aim, range, upper_controls, &upper_distance);
+    weightedMeanControls (aim, range, upper_controls, &upper_distance);
     // ------------------------------------------------
     return true;
   }

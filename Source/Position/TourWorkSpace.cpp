@@ -389,35 +389,43 @@ namespace Positions
       ++count;
       // ---------------------------------------------------
       tcout << _T ("current: ") << count << _T (" / ")
-            <<  target.coords ().size () << _T (" \r");
+            << target.coords ().size ();// << _T (" \r");
       // ---------------------------------------------------
-      int tries = 8;
+      int tries = 5;
       Point p{ pt };
       // ---------------------------------------------------
-      const Record &rec = store.ClothestPoint (pt, side);
-      while ( tries >= 0 && boost_distance (rec.hit, pt) > target.precision () )
+      auto rec = std::ref ( store.ClothestPoint (pt, side) );
+      while ( tries >= 0 && boost_distance (rec.get ().hit, pt) > target.precision () )
       {
         complexity += gradientMethod_admixture (p, verbose);
         // -------------------------------------------------
-        const Record &rec = store.ClothestPoint (pt, side);
+        rec = std::ref (store.ClothestPoint (pt, side));
         // -------------------------------------------------
-        double  r1 = 0., r2 = 0.;
-        double max = target.thickness ();
-        double min = target.precision ();
-        // -------------------------------------------------
+        double  rx = 0., ry = 0.;
         if ( (tries % 3) )
-        { r1 = random (min, max);
-          r2 = random (min, max);
+        {
+          double min = target.precision () * target.precision ();
+          double max = target.precision () * 2.;
+
+          rx = random (min, max);
+          ry = random (min, max);
         }
         // -------------------------------------------------
-        p = Point{ pt.x + r1, pt.y + r2 };
+        p = Point{ pt.x + rx, pt.y + ry };
         // -------------------------------------------------
         --tries;
+        // ++tries;
+        // if ( tries > 100 ) { break; }
       }
+
+      // if ( tries > 11 )
+      // { tcout << _T ("tries: ") << tries << _T (" \r"); }
+      // else
+      { tcout << _T (" \r"); }
       // ---------------------------------------------------
       {
         const Record &rec = store.ClothestPoint (pt, side);
-        if ( boost_distance (rec.hit, pt) > (target.precision () + EPS) )
+        if ( boost_distance (rec.hit, pt) >= target.precision () )
         { uncovered.push_back (pt); }
       }
     } // end for
@@ -432,14 +440,14 @@ namespace Positions
     {
       bool is_there = false;
       // -------------------------------------------------------
-      HandMoves::adjacency_refs_t range;
-      store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, Point{ pt.x - side, pt.y - side },
+      HandMoves::adjacency_ptrs_t range;
+      store.adjacencyRectPoints<adjacency_ptrs_t, ByP> (range, Point{ pt.x - side, pt.y - side },
                                                                Point{ pt.x + side, pt.y + side });
       // -------------------------------------------------------
       for ( auto &pRec : range )
       {
         // -------------------------------------------------------
-        if ( boost_distance (pRec->hit, pt) < (target.precision () + EPS) )
+        if ( boost_distance (pRec->hit, pt) <= target.precision () )
         { is_there = true; break; }
       }
       if (!is_there )

@@ -149,20 +149,20 @@ namespace Positions
     size_t hit_tries;
     double hit_precision;
     //==============================================
-    bool  hand_act (IN  const Point &aim,
-                    IN  const HandMoves::controling_t  &controls,
-                    OUT Point &hand_position, IN bool copy=true);
+    bool  handAct (IN  const Point &aim,
+                   IN  const HandMoves::controling_t  &controls,
+                   OUT Point &hand_position, IN bool copy=true);
     //------------------------------------------------------------------------------
-    void  w_meansControls (IN  const Point &aim,
-                           IN  const HandMoves::adjacency_refs_t &range,
-                           OUT HandMoves::controling_t &controls,
-                           OUT double *weight=NULL);
+    void  weightedMeanControls (IN  const Point &aim,
+                                IN  const HandMoves::adjacency_ptrs_t &range,
+                                OUT HandMoves::controling_t &controls,
+                                OUT double *weight=NULL);
 
-    bool  w_meansULAdjs (IN  const Point  &aim, OUT HandMoves::Record *pRec,
-                         OUT HandMoves::controling_t &lower_controls,
-                         OUT HandMoves::controling_t &upper_controls,
-                         OUT double       &lower_distance,
-                         OUT double       &upper_distance);
+    bool  weightedMeanULAdjs (IN  const Point  &aim, OUT HandMoves::Record *pRec,
+                              OUT HandMoves::controling_t &lower_controls,
+                              OUT HandMoves::controling_t &upper_controls,
+                              OUT double       &lower_distance,
+                              OUT double       &upper_distance);
     //------------------------------------------------------------------------------
     void  gradientControls (IN  const Point &aim, IN  double  d_d,
                             IN  const HandMoves::controling_t &inits_controls,
@@ -180,29 +180,34 @@ namespace Positions
                               IN OUT          Hand::frames_t &velosity,
                               IN OUT          Hand::frames_t &velosity_prev);
     //------------------------------------------------------------------------------
+    bool  rundownNextControl (IN OUT HandMoves::controling_t &controls,
+                              IN OUT       std::vector<int>  &lasts_changes,
+                              IN OUT          Hand::frames_t &velosity);
+    //------------------------------------------------------------------------------
     //------------------------------------------------------------------------------
     typedef std::function<bool (const HandMoves::Record &, const Point &)> func_t;
     typedef std::set<std::size_t> visited_t;
     //------------------------------------------------------------------------------
-    HandMoves::Record*  gradientClothestRecord  (IN const  HandMoves::adjacency_refs_t &range,
-                                                 IN const  Point  &aim,
-                                                 IN const  func_t *pPred = NULL,
-                                                 IN OUT visited_t *pVisited = NULL);
+    const HandMoves::Record*  gradientClothestRecord  (IN const  HandMoves::adjacency_ptrs_t &range,
+                                                       IN const  Point  &aim,
+                                                       IN const  func_t *pPred = NULL,
+                                                       IN OUT visited_t *pVisited = NULL);
     //------------------------------------------------------------------------------
-    bool                gradientClothestRecords (IN  const      Point   &aim,
-                                                 OUT HandMoves::Record *pRecClose,
-                                                 OUT HandMoves::Record *pRecLower,
-                                                 OUT HandMoves::Record *pRecUpper,
-                                                 IN OUT visited_t      *pVisited=NULL);
+    bool                      gradientClothestRecords (IN  const      Point   &aim,
+                                                       OUT HandMoves::Record *pRecClose,
+                                                       OUT HandMoves::Record *pRecLower,
+                                                       OUT HandMoves::Record *pRecUpper,
+                                                       IN OUT visited_t      *pVisited=NULL);
     //------------------------------------------------------------------------------
 
 
     //==============================================
     /* Mixtures */
-    size_t  w_means (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
-    size_t  rundown (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
+    size_t  weightedMean (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
     //------------------------------------------------------------------------------
-    size_t  rundownMethod (IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
+    size_t  rundownMain  (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
+    size_t  rundownFull  (IN const Point &aim, OUT Point &hand_position, IN bool verbose=false);
+    //------------------------------------------------------------------------------
 
   public:
     LearnMovements (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target) :
@@ -227,8 +232,6 @@ namespace Positions
 
     //------------------------------------------------------------------------------
     //------------------------------------------------------------------------------
-    // OLD:
-
     /* грубое покрытие всего рабочего пространства */
     void  testStage1 (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target);
     /* Покрытие всей мишени не слишком плотно */

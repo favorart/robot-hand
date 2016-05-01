@@ -180,14 +180,14 @@ namespace NewHand
              && (start == c.start)
              && (last == c.last);
       }
-      bool  operator== (const MusclesEnum m) const
-      { return  (muscle == m); }
       bool  operator!= (const Control &c) const
       {
         return  (muscle != c.muscle)
              || (start != c.start)
              || (last != c.last);
       }
+      bool  operator== (const MusclesEnum m) const
+      { return  (muscle == m); }
       bool  operator!= (const MusclesEnum m) const
       { return  (muscle != m); }
       //----------------------------------------------------

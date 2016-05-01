@@ -44,7 +44,7 @@ namespace Positions
       { insertRecordToBorders (borders, rec); } // end if
     } // end for
 
-    HandMoves::adjacency_refs_t range;
+    HandMoves::adjacency_ptrs_t range;
     store.adjacencyPoints (range, (target.min) (), side);
     for ( auto p_rec : range )
     { insertRecordToBorders (borders, *p_rec); }
@@ -65,7 +65,7 @@ namespace Positions
     { insertRecordToBorders (borders, *p_rec); }
   }
   //------------------------------------------------------------------------------
-  bool  LearnMovements::hand_act (IN  const Point &aim,
+  bool  LearnMovements::handAct (IN  const Point &aim,
                                   IN  const HandMoves::controling_t  &controls,
                                   OUT Point &hand_position,
                                   IN  bool copy)
@@ -75,7 +75,7 @@ namespace Positions
     // -----------------------------------------------
     boost::this_thread::interruption_point ();
     // -----------------------------------------------
-      const Record  *pRec = store.ExactRecordByControl (controls);
+    const Record  *pRec = store.ExactRecordByControl (controls);
     if ( pRec ) // visited.find (h) != visited.end () )
     {
       // if ( pRec )
@@ -83,7 +83,7 @@ namespace Positions
         hand_position = pRec->hit;
         return false;
       // }
-      // else { throw exception ("hand_act: Not in Store"); }
+      // else { throw exception ("handAct: Not in Store"); }
     }
     
     {

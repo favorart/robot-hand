@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Resource\resource.h" />
     <ClInclude Include="Source\HandMoves\Record.h" />
     <ClInclude Include="Source\HandMoves\Store.h" />
     <ClInclude Include="Source\HandMoves\Target.h" />
@@ -32,7 +33,6 @@
     <ClInclude Include="Source\libs\lp_solve\include\lp_lib.h" />
     <ClInclude Include="Source\MyWindow\Draw.h" />
     <ClInclude Include="Source\MyWindow\DrawLetters.h" />
-    <ClInclude Include="Source\MyWindow\resource.h" />
     <ClInclude Include="Source\MyWindow\WindowData.h" />
     <ClInclude Include="Source\MyWindow\WindowHeader.h" />
     <ClInclude Include="Source\Position\DirectionPredictor.h" />
@@ -41,6 +41,7 @@
     <ClInclude Include="Source\StdAfx.h" />
     <ClInclude Include="Source\Utilities\Combinations.h" />
     <ClInclude Include="Source\Utilities\Point.h" />
+    <ClInclude Include="Source\Utilities\Utilities.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\HandMoves\Record.cpp" />
@@ -68,18 +69,23 @@
     <ClCompile Include="Source\Position\LinearOperator.cpp" />
     <ClCompile Include="Source\Position\Tests.cpp" />
     <ClCompile Include="Source\Position\TourWorkSpace.cpp" />
-    <ClCompile Include="Source\Position\W_MeansMethod.cpp" />
+    <ClCompile Include="Source\Position\WeightedMean.cpp" />
     <ClCompile Include="Source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\Utilities\Combinations.cpp" />
     <ClCompile Include="Source\Utilities\Point.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Source\MyWindow\resource.rc" />
+    <Text Include="Resource\ElbowMoveFrames.txt" />
+    <Text Include="Resource\ElbowStopFrames.txt" />
+    <Text Include="Resource\SholderMoveFrames.txt" />
+    <Text Include="Resource\SholderStopFrames.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource\resource.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{31D13702-BE83-40A3-9194-4A05CE7CDB34}</ProjectGuid>
@@ -134,27 +140,27 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
-    <SourcePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
-    <SourcePath>$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

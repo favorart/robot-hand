@@ -37,7 +37,7 @@ namespace Positions
       tcout << _T ("min=") << min << _T (" max=") << max << std::endl;
 #endif // _DEBUG_PRINT
       // -----------------------------------------------
-      HandMoves::adjacency_refs_t  range;
+      HandMoves::adjacency_ptrs_t  range;
       // size_t  count = store.adjacencyPoints (range, aim, side);
       // size_t  count = store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
       size_t  count = store.adjacencyByPBorders (range, aim, side);
@@ -158,7 +158,7 @@ namespace Positions
 #endif // _DEBUG_PRINT
       // -----------------------------------------------
       if ( distance > precision )
-      { rundownMethod (aim, hand_position); }
+      { rundownFull (aim, hand_position); }
 
       next_distance = boost_distance (hand_position, aim);
       if ( next_distance < distance )
@@ -196,7 +196,7 @@ namespace Positions
     double  distance;
     // -----------------------------------------------
     Point  min (aim.x - side, aim.y - side),
-      max (aim.x + side, aim.y + side);
+           max (aim.x + side, aim.y + side);
     // -----------------------------------------------
 #ifdef _DEBUG_PRINT
     tcout << std::endl;
@@ -204,9 +204,9 @@ namespace Positions
     tcout << _T (" min=") << min << _T ("  max=") << max << std::endl;
 #endif // _DEBUG_PRINT
     // -----------------------------------------------
-    HandMoves::adjacency_refs_t  range;
+    HandMoves::adjacency_ptrs_t  range;
     // auto count = store.adjacencyPoints (range, aim, side);
-    auto  count = store.adjacencyRectPoints<adjacency_refs_t, ByP> (range, min, max);
+    auto  count = store.adjacencyRectPoints<adjacency_ptrs_t, ByP> (range, min, max);
     if ( count == 0U )
     {
 #ifdef _DEBUG_PRINT
@@ -229,7 +229,7 @@ namespace Positions
 
     distance = boost_distance (hand_position, aim);
     if ( distance > precision )
-    { rundownMethod (aim, hand_position); }
+    { rundownFull (aim, hand_position); }
 
     // -----------------------------------------------
 #ifdef _DEBUG_PRINT_RES
@@ -325,7 +325,7 @@ namespace Positions
           { tcout << c << std::endl; }
 #endif // _DEBUG_PRINT
 
-          hand_act (aim, controls, hand_pos);
+          handAct (aim, controls, hand_pos);
           next_distance = boost_distance (hand_pos, aim);
 
           if ( next_distance >= prev_distance )
@@ -337,7 +337,7 @@ namespace Positions
             {
               prev_distance = next_distance;
               (**it_opposite).last -= lasts_step;
-              hand_act (aim, controls, hand_pos);
+              handAct (aim, controls, hand_pos);
               next_distance = boost_distance (hand_position, aim);
             } while ( next_distance < prev_distance );
           }
@@ -361,7 +361,7 @@ namespace Positions
           (**it_straight).last -= lasts_step;
           (**it_opposite).start -= lasts_step;
 
-          hand_act (aim, controls, hand_pos);
+          handAct (aim, controls, hand_pos);
           next_distance = boost_distance (hand_pos, aim);
 
           if ( next_distance >= prev_distance )
@@ -373,7 +373,7 @@ namespace Positions
               prev_distance = next_distance;
               (**it_opposite).last += lasts_step;
 
-              hand_act (aim, controls, hand_pos);
+              handAct (aim, controls, hand_pos);
               next_distance = boost_distance (hand_pos, aim);
 
             } while ( next_distance < prev_distance );
@@ -709,7 +709,7 @@ namespace Positions
     // store.uncoveredTargetPoints (target, uncovered);
     for ( auto &pt : target.coords () )
     {
-      adjacency_refs_t  range;
+      adjacency_ptrs_t  range;
       store.adjacencyPoints (range, pt, 2. * target.thickness ());
 
       if ( range.empty () )
@@ -720,7 +720,9 @@ namespace Positions
       else
       {
         double precision = target.precision ();
-        if ( boost::algorithm::none_of (range, [&pt, precision](const std::shared_ptr<HandMoves::Record> &rec) { return  (boost_distance (pt, rec->hit) <= precision); }) )
+        if ( boost::algorithm::none_of (range, [&pt, precision](const Record *rec)
+                                               // (const std::shared_ptr<HandMoves::Record> &rec)
+                                               { return  (boost_distance (pt, rec->hit) <= precision); }) )
         {
           /* UNCOVERED */
           uncovered.push_back (pt);
