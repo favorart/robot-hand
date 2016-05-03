@@ -1,6 +1,8 @@
 ﻿#include "StdAfx.h"
 #include "WindowData.h"
 #include "Draw.h"
+
+#include "HandMotionLawsCustom.h"
 #include "Position.h"
 
 
@@ -113,12 +115,12 @@ MyWindowData:: MyWindowData () :
         { { Hand::Elbow,{ // new MotionLaws::ContinuousSlowAcceleration (),
                           // new MotionLaws::ContinuousFastAcceleration (),
                           new MotionLaws::ContinuousAcceleration (),
-                          // new MotionLaws::ContinuousAccelerationThenStabilization (),
+                          // new MotionLaws::ContinuousAccelerationThenStabilization (0.25),
                           new MotionLaws::ContinuousDeceleration () } },
           { Hand::Shldr,{ // new MotionLaws::ContinuousSlowAcceleration (),
                           // new MotionLaws::ContinuousFastAcceleration (),
                           new MotionLaws::ContinuousAcceleration (),
-                          // new MotionLaws::ContinuousAccelerationThenStabilization (),
+                          // new MotionLaws::ContinuousAccelerationThenStabilization (0.25),
                           new MotionLaws::ContinuousDeceleration () } } // ,
            // { Hand::Wrist, { new MotionLaws::ContinuousAcceleration (),
            //                  new MotionLaws::ContinuousDeceleration () } },
@@ -308,6 +310,22 @@ void  WorkerThreadTryJoin (MyWindowData &wd)
   } // end if
 }
 //-------------------------------------------------------------------------------
+void  OnShowDBPoints (MyWindowData &wd)
+{
+  if ( !wd.testing )
+  {
+    wd.adjPointsDB.clear ();
+    wd.testing_trajectories.clear ();
+    wd.store.adjacencyPoints (wd.adjPointsDB, wd.mouse_aim, wd.radius);
+  }
+}
+void  OnShowDBTrajes (MyWindowData &wd)
+{
+  wd.trajectory_frames.clear ();
+  for ( auto &rec : wd.adjPointsDB )
+  { wd.trajectoriesDB.push_back (make_shared<trajectory_t> (rec->trajectory)); }
+}
+//-------------------------------------------------------------------------------
 void  OnWindowTimer (MyWindowData &wd)
 {
   if ( !wd.testing )
@@ -334,22 +352,6 @@ void  OnWindowMouse (MyWindowData &wd)
   SendMessage (wd.hLabMAim, WM_SETTEXT, NULL, (WPARAM) message.c_str ());
   // -------------------------------------------------
   if ( !wd.testing ) { MakeHandMove (wd); }
-}
-//-------------------------------------------------------------------------------
-void  OnShowDBPoints (MyWindowData &wd)
-{
-  if ( !wd.testing )
-  {
-    wd.adjPointsDB.clear ();
-    wd.testing_trajectories.clear ();
-    wd.store.adjacencyPoints (wd.adjPointsDB, wd.mouse_aim, wd.radius);
-  }
-}
-void  OnShowDBTrajes (MyWindowData &wd)
-{
-  wd.trajectory_frames.clear ();
-  for ( auto &rec : wd.adjPointsDB )
-  { wd.trajectoriesDB.push_back ( make_shared<trajectory_t> (rec->trajectory) ); }
 }
 //-------------------------------------------------------------------------------
 bool  RepeatMove   (MyWindowData &wd)

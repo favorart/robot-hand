@@ -223,7 +223,7 @@ NewHand::Hand::Hand (IN const Point &palm,
                      IN const Point &shoulder, IN const Point &clavicle,
                      IN const JointsMotionLaws &joints_frames ) throw (...) :
                      
-                     StopDistaceRatio (0.5), // 50% от общего пробега
+                     StopDistaceRatio (0.55), // 55% от общего пробега
                      maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
                                        135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
                      maxMoveFrames ({  600U /* ClvclIndex */    , 700U /* ShldrIndex */ ,

@@ -350,16 +350,17 @@ namespace Positions
   void  LearnMovements::STAGE_1 (IN bool verbose)
   {
     borders_t  borders;
-    defineBorders (borders, hand, /* 1U); */ 70U); 
+    defineBorders (borders, hand, /* 1U); */ 70U);
     DirectionPredictor  dp (hand);
 
     TourWorkSpace  tour (store, hand, target);
     tour.run (borders, dp,
-              /* distance */ true,
+              /* distance */  true,
               /* target   */ false,
-              /* braking  */ true,
+              /* braking  */  true,
               /* checking */ false,
               0.03, 3U,
+              // 0.07, 1U,
               verbose);
   }
   /* Покрытие всей мишени не слишком плотно */
@@ -375,7 +376,7 @@ namespace Positions
               /* target   */ true,
               /* braking  */ true,
               /* checking */ false,
-              0.017, 2U,
+              0.013, 2U,
               verbose);
   }
   /* Попадание в оставшиеся непокрытыми точки мишени */
@@ -391,7 +392,7 @@ namespace Positions
       tcout << _T ("current: ") << count << _T (" / ")
             << target.coords ().size ();// << _T (" \r");
       // ---------------------------------------------------
-      int tries = 5;
+      int tries = 8;
       Point p{ pt };
       // ---------------------------------------------------
       auto rec = std::ref ( store.ClothestPoint (pt, side) );
@@ -405,7 +406,7 @@ namespace Positions
         if ( (tries % 3) )
         {
           double min = target.precision () * target.precision ();
-          double max = target.precision () * 2.;
+          double max = target.precision () * 1.5;
 
           rx = random (min, max);
           ry = random (min, max);

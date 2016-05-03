@@ -24,7 +24,8 @@
     <ClInclude Include="Source\HandMoves\Store.h" />
     <ClInclude Include="Source\HandMoves\Target.h" />
     <ClInclude Include="Source\Hand\Hand.h" />
-    <ClInclude Include="Source\Hand\HandMotionLaw.h" />
+    <ClInclude Include="Source\Hand\HandMotionLaws.h" />
+    <ClInclude Include="Source\Hand\HandMotionLawsCustom.h" />
     <ClInclude Include="Source\Hand\HandMuscles.h" />
     <ClInclude Include="Source\libs\J.Burkardt (FSU)\llsq\llsq.hpp" />
     <ClInclude Include="Source\libs\J.Burkardt (FSU)\qr_solve\qr_solve.hpp" />

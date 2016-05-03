@@ -288,25 +288,23 @@ namespace Positions
         one_more = false;
         currents.assign (currents.size (), 0);
         // --------------------------------------------------
-        // if ( n_combs_ > 1 )
-        // {
-          int  it_curr, it_prev = currents.size ();
-          // --------------------------------------------------
-          for ( auto it  = alphabet_.begin ();
-                     it != alphabet_.begin () + n_combs_;
-                   ++it )
+        int  it_curr = 0,
+             it_prev = static_cast<int> (currents.size ());
+        // --------------------------------------------------
+        for ( auto it  = alphabet_.begin ();
+                   it != alphabet_.begin () + n_combs_;
+                 ++it )
+        {
+          it_curr = *it % currents.size ();
+          if ( n_combs_ > 1 && it_prev == it_curr )
           {
-            it_curr = *it % currents.size ();
-            if ( n_combs_ > 1 && it_prev == it_curr )
-            {
-              one_more = true;
-              break;
-            }
-            // --------------------------------------------------
-            currents[it_curr] = (*it >= currents.size ()) ? -1 : 1;
-            it_prev = it_curr;
-          } // end for
-        // } // end if
+            one_more = true;
+            break;
+          }
+          // --------------------------------------------------
+          currents[it_curr] = (*it >= currents.size ()) ? -1 : 1;
+          it_prev = it_curr;
+        } // end for
         // --------------------------------------------------
         result = next_combination (alphabet_.begin (),
                                    alphabet_.begin () + n_combs_,

@@ -1,5 +1,5 @@
 ﻿#include "StdAfx.h"
-#include "HandMotionLaw.h"
+#include "HandMotionLaws.h"
 
 
 #ifndef  _NEW_HAND_H_
