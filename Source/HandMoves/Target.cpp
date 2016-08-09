@@ -19,6 +19,11 @@ void  RecTarget::generate ()
   thickness_ = Point (r_step, c_step);
   // x_distance = r_step;
   // y_distance = c_step;
+
+  min_.x -= EPS;
+  min_.y -= EPS;
+  max_.x += EPS;
+  max_.y += EPS;
 }
 //------------------------------------------------------------------------------
 void  RecTarget::draw (HDC hdc, HPEN hPen,

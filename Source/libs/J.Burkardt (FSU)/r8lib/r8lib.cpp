@@ -17463,7 +17463,7 @@ void r8mat_mv ( int m, int n, double a[], double x[], double ax[] )
 }
 //****************************************************************************80
 
-double *r8mat_mv_new ( int m, int n, double a[], double x[] )
+double *r8mat_mv_new ( int m, int n, const double a[], const double x[] )
 
 //****************************************************************************80
 //

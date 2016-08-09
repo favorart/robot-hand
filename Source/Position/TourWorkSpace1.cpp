@@ -1,63 +1,127 @@
 ﻿#include "StdAfx.h"
 #include "Position.h"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 namespace Positions
 {
   using namespace std;
   using namespace HandMoves;
   //------------------------------------------------------------------------------
-  class  TourWorkSpace
+  class  NewTourWorkSpace /* Non-recursion */
   {
-    //---basics-----------------------------------------------
-    HandMoves::Store &store; Hand &hand; RecTarget &target;
-    //--------------------------------------------------------
-    size_t  max_nested;
-    Point   hand_pos_base;        
-    //---iterating--------------------------------------------
+    tstring  config_file_name;
+    bool end_ = false;
+    
+    Hand &hand;
+    Store &store;
+    RecTarget &target;
+    DirectionPredictor dp;
+    Point   hand_pos_base;
+    
+    boost::property_tree::ptree  config;
+
+    // --- iterating ---
     HandMoves::controling_t     controls;
-    //---braking----------------------------------------------
-    std::vector<Hand::Control>  arr_controlings;
-    //---flags------------------------------------------------
+
+    borders_t  indices_borders; /* min--max */
+    std::vector<Hand::Control>  indices;
+    size_t max_nested;
+
+    // --- braking ---
+    // std::vector<Hand::Control>  arr_controlings;
+
+    // --- flags ---
     bool  b_distance, b_target,
-          b_braking,  b_checking;
+          b_braking, b_checking;
     //--------------------------------------------------------
     borders_t  borders_;
     //--------------------------------------------------------
-    DirectionPredictor  *pDP;
-    Point  predict_shift{ 0.15, -0.05 };
+   
+    // --- distance --- 
+    Point  pd_shift{ 0.15, -0.05 };
+    double target_distance;
+
     //--------------------------------------------------------
     double                 step_distance;
     Hand::frames_t   lasts_step_increment;
     Hand::frames_t   lasts_step_increment_thick = 20U;
     Hand::frames_t   lasts_step_initiate = 25U;
     Hand::frames_t   lasts_step_braking = 5U;
-    //--------------------------------------------------------
-    size_t    complexity = 0U;
-    counts_t  stats;
-    //--------------------------------------------------------
-    double  target_distance;
-    //--------------------------------------------------------
-    // std::ofstream  log_fout;
-    //--------------------------------------------------------
+
+    
   public:
-    TourWorkSpace (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target) :
-      store (store), hand (hand), target (target), pDP (nullptr),
-      max_nested (hand.joints_.size ()),
-      arr_controlings (max_nested),
-      target_distance ((target.max ().x - target.min ().x) * 0.5)
+    // NewTourWorkSpace () // : max_nested (hand.joints_.size ())
+    // {}
+
+    NewTourWorkSpace (IN HandMoves::Store &store, IN Hand &hand, IN RecTarget &target,
+                      IN const tstring &config_file_name) :
+        store (store), hand (hand), target (target), dp (hand),
+        max_nested (hand.joints_.size ()),
+        // arr_controlings (max_nested),
+        target_distance ((target.max ().x - target.min ().x) * 2.)
     {
       hand.SET_DEFAULT;
-      hand_pos_base = hand.position;;
+      hand_pos_base = hand.position;  
+
+      // // Pick your poison
+      // boost::property_tree::ini_parser::read_ini (config_file_name, config);
+      // 
+      // // for ( auto &child : config.get_child ("some_collection") )
+      // // {
+      // //   // Mutate children, perhaps.
+      // // }
+      // config.put ("metadata.modified", true);
+      // 
+      // // More poison
+      // boost::property_tree::ini_parser::write_ini (config_file_name, config);
     }
+
+    // NewTourWorkSpace (const tstring &config_file_name) :
+    //   /* NewTourWorkSpace (), */ config_file_name (config_file_name)
+    // {}
+    // ~NewTourWorkSpace ()
+    // {}
+    // NewTourWorkSpace (borders_t borders) :
+    //   max_nested (max_nested),
+    //   indices_borders (borders),
+    //   indices (max_nested)
+    // {}
+    // void Run (int max_nested)
+    // {
+    //   for ( ; !end (); ++(*this) )
+    //   {
+    //     // now (*this)[i] holds index of i-th loop
+    //   }
+    // }
+
+    NewTourWorkSpace& operator++ ()
+    {
+      // increase first index i for which ind[i] < max_ind[i] 
+      // set all indices j < i equal to min_ind[j] 
+      // if no index found to increase, set end = true
+      return *this;
+    }
+    NewTourWorkSpace& operator++ (int i)
+    {
+      // increase first index i for which ind[i] < max_ind[i] 
+      // set all indices j < i equal to min_ind[j] 
+      // if no index found to increase, set end = true
+      return *this;
+    }
+
+    const Hand::Control&  operator[] (int i) const
+    { return indices[i]; }
+
+    bool  end () const { return end_; }
+    
+  public:
     //------------------------------------------------------------------------------
-    void  run (IN borders_t &borders, IN DirectionPredictor &DP,
-               IN bool distance, IN bool target, IN bool braking, IN bool checking,
+    void  run (IN bool distance, IN bool target, IN bool braking, IN bool checking,
                IN double step_distance, IN Hand::frames_t lasts_step_increment,
                IN bool verbose=false)
     {
-      this->pDP = &DP;
-      this->borders_ = borders;
-      // ----------------------------------------------------
       this->b_target = target;
       this->b_braking = braking;
       this->b_distance = distance;
@@ -66,30 +130,17 @@ namespace Positions
       this->step_distance = step_distance;
       this->lasts_step_increment = lasts_step_increment;
       // ----------------------------------------------------
-      this->complexity = 0U;
-      this->stats.clear ();
+      size_t  complexity = 0U;
       // ----------------------------------------------------
       try
-      {
-        // log_fout.open ("out.txt");
-        // log_fout.precision (4);
-
-        Point hand_high;
-        runNestedForMuscle (hand_high, 0U);
-        
-        // runNestedForMuscle (NULL, 0U);
-        
-        // log_fout.close ();
-      }
+      { runNestedForMuscle (NULL, 0U); }
       catch ( boost::thread_interrupted& )
       { /* tcout << _T("WorkingThread interrupted") << std::endl; */
         return;
       } // end catch
       // ----------------------------------------------------
       if ( verbose )
-      { if ( checking ) { stats.print (); }
-        tcout << _T ("\nComplexity: ") << complexity << "  minutes:" << double(complexity) / 60. << std::endl;
-      }
+      { tcout << _T ("\nComplexity: ") << complexity << std::endl; }
     }
     //------------------------------------------------------------------------------
 
@@ -149,12 +200,12 @@ namespace Positions
             }
             else
             {
-              if ( b_braking )
-              { auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
-                  if ( arr_controlings[ji].last )
-                    arr_controlings[ji].start = it->last + 1U;
-              }
+              // if ( b_braking )
+              // { auto it = controls.begin ();
+              //   for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+              //     if ( arr_controlings[ji].last )
+              //       arr_controlings[ji].start = it->last + 1U;
+              // }
               //===============================================================
               target_contain = runNestedInserting (hand_pos_curr) || !b_target;
               //===============================================================              
@@ -183,28 +234,28 @@ namespace Positions
                 lasts_step -= lasts_step_increment;
               else if ( (lasts_step_increment > 1) && (lasts_step > lasts_step_increment / 2) )
                 lasts_step -= lasts_step_increment / 2;
-              else if ( b_braking && (lasts_step_increment == 1U) )
-              {
-                auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
-                {
-                  auto opposite_muscle = muscleOpposite (it->muscle);
-                  auto prev_last = arr_controlings[ji].last;
-                  arr_controlings[ji] = (Hand::Control (opposite_muscle, it->last + 1,
-                                                        (prev_last ? prev_last : 30) +
-                                                        lasts_step_braking));
-                }
-              }
+              // else if ( b_braking && (lasts_step_increment == 1U) )
+              // {
+              //   auto it = controls.begin ();
+              //   for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+              //   {
+              //     auto opposite_muscle = muscleOpposite (it->muscle);
+              //     auto prev_last = arr_controlings[ji].last;
+              //     arr_controlings[ji] = (Hand::Control (opposite_muscle, it->last + 1,
+              //                                           (prev_last ? prev_last : 30) +
+              //                                           lasts_step_braking));
+              //   }
+              // }
             }
             else if ( d < step_distance )
             {
-              if ( arr_controlings[0].last )
-              {
-                if ( arr_controlings[0].last > lasts_step_braking )
-                  for ( size_t ji = 0; ji <= joint_index; ++ji )
-                    arr_controlings[ji].last -= lasts_step_braking;
-              }
-              else
+              // if ( arr_controlings[0].last )
+              // {
+              //   if ( arr_controlings[0].last > lasts_step_braking )
+              //     for ( size_t ji = 0; ji <= joint_index; ++ji )
+              //       arr_controlings[ji].last -= lasts_step_braking;
+              // }
+              // else
               { lasts_step += lasts_step_increment; }
             }
             //------------------------------------------
@@ -214,8 +265,8 @@ namespace Positions
           //------------------------------------------
           if ( b_target ) { board.second = last_i; }
           //------------------------------------------
-          for ( size_t ji = 0; ji <= joint_index; ++ji )
-          { arr_controlings[ji].last = 0U; }
+          // for ( size_t ji = 0; ji <= joint_index; ++ji )
+          // { arr_controlings[ji].last = 0U; }
           //------------------------------------------
           if ( b_target )
           {
@@ -283,35 +334,33 @@ namespace Positions
       bool  target_contain = true;
       Point end = hand_pos_base;
       //----------------------------------------------
-      bool  has_braking = b_braking
-        && boost::algorithm::any_of (arr_controlings,
-                                     [](const Hand::Control &item)
-                                     { return  item.last; });
+      // bool  has_braking = b_braking
+      //   && boost::algorithm::any_of (arr_controlings,
+      //                                [](const Hand::Control &item)
+      //                                { return  item.last; });
       //----------------------------------------------
-      controling_t  new_controling;
-      if ( has_braking )
-      {
-        for ( const Hand::Control &c : controls )
-        { new_controling.push_back (c); }
-        /* записываем все разрывы */
-        for ( auto &c : arr_controlings )
-        { new_controling.push_back (c); }
-        new_controling.sort ();
-      }
-      controling_t  &controling = (has_braking) ? new_controling : controls;
+      // controling_t  new_controling;
+      // if ( has_braking )
+      // {
+      //   for ( const Hand::Control &c : controls )
+      //   { new_controling.push_back (c); }
+      //   /* записываем все разрывы */
+      //   for ( auto &c : arr_controlings )
+      //   { new_controling.push_back (c); }
+      //   new_controling.sort ();
+      // }
+      // controling_t  &controling = (has_braking) ? new_controling : controls;
+      controling_t  &controling = controls;
       //----------------------------------------------
       if ( b_target || b_distance )
       {
         for ( auto &c : controls )
-        { pDP->predict (c, end); }
+        { dp.predict (c, end); }
         //----------------------------------------------
         // if ( b_distance && b_target )
         // { end.x += predict_shift.x;
         //   end.y += predict_shift.y;
         // }
-        //----------------------------------------------
-        if ( b_checking )
-        { stats.fill (hand, target, controling, end); }
       }
       //----------------------------------------------
       if ( (!b_target   || target.contain (end))
@@ -323,7 +372,7 @@ namespace Positions
         hand.SET_DEFAULT;
         /* двигаем рукой */
         hand.move (controling.begin (), controling.end (), &trajectory);
-        ++complexity;
+        // ++complexity; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         //----------------------------------------------
         hand_position  = hand.position;
         target_contain = target.contain (hand_position);
@@ -430,13 +479,13 @@ namespace Positions
             }
             else
             {
-              if ( b_braking )
-              {
-                auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
-                  if ( arr_controlings[ji].last )
-                    arr_controlings[ji].start = it->last + 1U;
-              }
+              // if ( b_braking )
+              // {
+              //   auto it = controls.begin ();
+              //   for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+              //     if ( arr_controlings[ji].last )
+              //       arr_controlings[ji].start = it->last + 1U;
+              // }
               //===============================================================
               target_contain = runNestedInserting (hand_pos_curr) || !b_target;
               //===============================================================  
@@ -470,30 +519,30 @@ namespace Positions
                 lasts_step -= lasts_step_increment;
               else if ( (lasts_step_increment > 1) && (lasts_step > lasts_step_increment / 2) )
                 lasts_step -= lasts_step_increment / 2;
-              else if ( b_braking )
-              {
-                auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
-                {
-                  auto opposite_muscle = muscleOpposite (it->muscle);
-                  auto prev_last = arr_controlings[ji].last;
-                  arr_controlings[ji] = (Hand::Control (opposite_muscle, it->last + 1,
-                                                        (prev_last ? prev_last : 30) +
-                                                        lasts_step_braking));
-                }
-              }
+              // else if ( b_braking )
+              // {
+              //   auto it = controls.begin ();
+              //   for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+              //   {
+              //     auto opposite_muscle = muscleOpposite (it->muscle);
+              //     auto prev_last = arr_controlings[ji].last;
+              //     arr_controlings[ji] = (Hand::Control (opposite_muscle, it->last + 1,
+              //                                           (prev_last ? prev_last : 30) +
+              //                                           lasts_step_braking));
+              //   }
+              // }
             }
             else if ( d < step_distance )
             {
-              if ( arr_controlings[0].last )
-              {
-                if ( arr_controlings[0].last > lasts_step_braking )
-                  for ( size_t ji = 0; ji <= joint_index; ++ji )
-                    arr_controlings[ji].last -= lasts_step_braking;
-              }
+              // if ( arr_controlings[0].last )
+              // {
+              //   if ( arr_controlings[0].last > lasts_step_braking )
+              //     for ( size_t ji = 0; ji <= joint_index; ++ji )
+              //       arr_controlings[ji].last -= lasts_step_braking;
+              // }
               // else if ( d < 10 * step_distance )
               // { lasts_step += 10 * lasts_step_increment; }
-              else
+              // else
               { lasts_step += lasts_step_increment; }
             }
             //------------------------------------------
@@ -503,8 +552,8 @@ namespace Positions
             //------------------------------------------
           if ( b_target ) { board.second = last_i; }
           //------------------------------------------
-          for ( size_t ji = 0; ji <= joint_index; ++ji )
-          { arr_controlings[ji].last = 0U; }
+          // for ( size_t ji = 0; ji <= joint_index; ++ji )
+          // { arr_controlings[ji].last = 0U; }
           //------------------------------------------
           if ( 0 ) // b_target ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           {
@@ -562,126 +611,32 @@ namespace Positions
       return true;
     }
 
+    //------------------------------------------------------------------------------
+  public:
+    /* грубое покрытие всего рабочего пространства */
+    void  STAGE_1 (IN bool verbose)
+    {
+      defineBorders (indices_borders, hand, 70U);
+
+      run (/* distance */  true,
+           /* target   */ false,
+           /* braking  */  true,
+           /* checking */ false,
+           0.05, 3U,
+           verbose);
+    }
+    /* Покрытие всей мишени не слишком плотно */
+    void  STAGE_2 (IN bool verbose)
+    {
+      defineBorders (indices_borders, target, store, /* side */ 0.05);
+
+      run (/* distance */ false,
+           /* target   */ true,
+           /* braking  */ true,
+           /* checking */ false,
+           0.015, 2U,
+           verbose);
+    }
   };
   //------------------------------------------------------------------------------
-  //------------------------------------------------------------------------------
-  /* грубое покрытие всего рабочего пространства */
-  void  LearnMovements::STAGE_1 (IN bool verbose)
-  {
-    borders_t  borders;
-    defineBorders (borders, hand, 70U);
-    DirectionPredictor  dp (hand);
-
-    TourWorkSpace  tour (store, hand, target);
-    tour.run (borders, dp,
-              /* distance */  true,
-              /* target   */ false,
-              /* braking  */  true,
-              /* checking */ false,
-              0.05, 3U,
-              verbose);
-
-    // borders_t  borders;
-    // defineBorders (borders, hand, 25U);
-    // DirectionPredictor  dp (hand);
-    // 
-    // TourWorkSpace  tour (store, hand, target);
-    // tour.run (borders, dp,
-    //           /* distance */ true,
-    //           /* target   */ false,
-    //           /* braking  */ true,
-    //           /* checking */ false,
-    //           0.1, 1U,
-    //           // 0.07, 1U,
-    //           verbose);
-  }
-  /* Покрытие всей мишени не слишком плотно */
-  void  LearnMovements::STAGE_2 (IN bool verbose)
-  {
-    borders_t  borders;
-    defineBorders (borders, target, store, /* side */ 0.05);
-    DirectionPredictor  dp (hand);
-
-    TourWorkSpace  tour (store, hand, target);
-    tour.run (borders, dp,
-              /* distance */ false,
-              /* target   */ true,
-              /* braking  */ true,
-              /* checking */ false,
-              0.015, 2U,
-              verbose);
-  }
-  /* Попадание в оставшиеся непокрытыми точки мишени */
-  void  LearnMovements::STAGE_3 (OUT HandMoves::trajectory_t &uncovered,
-                                 OUT size_t &complexity, IN bool verbose)
-  {
-    size_t count = 0U;
-    uncovered.clear ();
-    // -----------------------------------------------------
-    for ( const auto &pt : target.coords () )
-    {
-      ++count;
-      // ---------------------------------------------------
-      tcout << _T ("current: ") << count << _T (" / ")
-            << target.coords ().size ();// << _T (" \r");
-      // ---------------------------------------------------
-      int tries = 32;
-      Point p{ pt };
-      // ---------------------------------------------------
-      auto rec = std::ref ( store.ClothestPoint (pt, side) );
-      while ( tries >= 0 && boost_distance (rec.get ().hit, pt) > target.precision () )
-      {
-        complexity += gradientMethod_admixture (p, verbose);
-        // -------------------------------------------------
-        rec = std::ref (store.ClothestPoint (pt, side));
-        // -------------------------------------------------
-        double  rx = 0., ry = 0.;
-        if ( (tries % 3) )
-        {
-          double min = target.precision () * target.precision ();
-          double max = target.precision () * 2.;
-          
-          rx = random (min, max);
-          ry = random (min, max);
-
-          rx = random (2) ? -rx : rx;
-          ry = random (2) ? -ry : ry;
-        }
-        // -------------------------------------------------
-        p = Point{ pt.x + rx, pt.y + ry };
-        // -------------------------------------------------
-        --tries;
-        // ++tries;
-        // if ( tries > 100 ) { break; }
-      }
-
-      // if ( tries > 11 )
-      // { tcout << _T ("tries: ") << tries << _T (" \r"); }
-      // else
-      { tcout << _T (" \r"); }
-      // ---------------------------------------------------
-      {
-        const Record &rec = store.ClothestPoint (pt, side);
-        if ( boost_distance (rec.hit, pt) > target.precision () )
-        { uncovered.push_back (pt); }
-      }
-    } // end for
-    // -----------------------------------------------------
-    tcout << _T ("TOTAL Complexity: ")   << complexity << "  minutes:" << double (complexity) / 60. << std::endl;
-    tcout << _T ("AVERAGE Complexity: ") << complexity / count << std::endl;
-    tcout << _T ("Uncovered: ") << uncovered.size () << std::endl << std::endl;
-  }
-  //------------------------------------------------------------------------------  
-  void  LearnMovements::uncover (OUT HandMoves::trajectory_t &uncovered)
-  {
-    uncovered.clear ();
-    for ( const auto &pt : target.coords () )
-    {
-      const Record &rec = store.ClothestPoint (pt, side);
-      // -------------------------------------------------------
-      if ( boost_distance (rec.hit, pt) > target.precision () )
-      { uncovered.push_back (pt); }
-    }
-  }
-  //------------------------------------------------------------------------------  
 };

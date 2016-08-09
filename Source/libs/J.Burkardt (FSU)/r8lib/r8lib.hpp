@@ -249,7 +249,7 @@ double *r8mat_mtm_new (int n1, int n2, int n3, double a[], double b[]);
 void r8mat_mtv (int m, int n, double a[], double x[], double atx[]);
 double *r8mat_mtv_new (int m, int n, double a[], double x[]);
 void r8mat_mv (int m, int n, double a[], double x[], double ax[]);
-double *r8mat_mv_new (int m, int n, double a[], double x[]);
+double *r8mat_mv_new (int m, int n, const double a[], const double x[]);
 void r8mat_nint (int m, int n, double a[]);
 int r8mat_nonzeros (int m, int n, double a[]);
 double r8mat_norm_eis (int m, int n, double a[]);

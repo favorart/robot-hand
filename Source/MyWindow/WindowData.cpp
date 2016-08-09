@@ -114,21 +114,28 @@ MyWindowData:: MyWindowData () :
         /* joints_frames */
         { { Hand::Elbow,{ // new MotionLaws::ContinuousSlowAcceleration (),
                           // new MotionLaws::ContinuousFastAcceleration (),
-                          new MotionLaws::ContinuousAcceleration (),
                           // new MotionLaws::ContinuousAccelerationThenStabilization (0.25),
-                          new MotionLaws::ContinuousDeceleration () } },
+                          new MotionLaws::ContinuousAcceleration (),
+                          new MotionLaws::ContinuousDeceleration () //,
+                          // new MotionLaws::MangoAcceleration (tstring(_T("Resource/ElbowMoveFrames.txt"))),
+                          // new MotionLaws::MangoDeceleration (tstring(_T("Resource/ElbowStopFrames.txt")))
+                        } },
           { Hand::Shldr,{ // new MotionLaws::ContinuousSlowAcceleration (),
                           // new MotionLaws::ContinuousFastAcceleration (),
-                          new MotionLaws::ContinuousAcceleration (),
                           // new MotionLaws::ContinuousAccelerationThenStabilization (0.25),
-                          new MotionLaws::ContinuousDeceleration () } } // ,
+                          new MotionLaws::ContinuousAcceleration (),
+                          new MotionLaws::ContinuousDeceleration () //,
+                          // new MotionLaws::MangoAcceleration (tstring(_T("Resource/ShoulderMoveFrames.txt"))),
+                          // new MotionLaws::MangoDeceleration (tstring(_T("Resource/ShoulderStopFrames.txt")))
+                         } } // ,
            // { Hand::Wrist, { new MotionLaws::ContinuousAcceleration (),
            //                  new MotionLaws::ContinuousDeceleration () } },
            // { Hand::Clvcl, { // new MotionLaws::ContinuousSlowAcceleration (),
            //                  // new MotionLaws::ContinuousFastAcceleration (),
            //                  new MotionLaws::ContinuousAcceleration (),
            //                  // new MotionLaws::ContinuousAccelerationThenStabilization (),
-           //                  new MotionLaws::ContinuousDeceleration () } }
+           //                  new MotionLaws::ContinuousDeceleration ()
+           //                 } }
          }),
   target ( /* 200U, 200U, */ 18U, 18U, -0.41,  0.43, -0.03, -0.85 ),
   scaleLetters (target.min (), target.max ())

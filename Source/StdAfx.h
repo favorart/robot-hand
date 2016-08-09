@@ -144,8 +144,10 @@ typedef std::basic_stringstream<TCHAR> tstringstream;
 
 #if defined(UNICODE) || defined(_UNICODE)
 #define tcout std::wcout
+#define tcin  std::wcin
 #else
 #define tcout std::cout
+#define tcin  std::cin
 #endif
 
 //---defines---------------------------

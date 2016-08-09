@@ -78,13 +78,14 @@ namespace NewHand
       {
         VectorDoublesIterator  iter = first;
         size_t  n = (frames_count - 1U);
-        double  a = left_border, b = right_border;
+        double  a =  left_border,
+                b = right_border;
         // --------------------------------
         double  norm_sum = 0.;
         *iter = EPS;
         for ( size_t i = 1U; i <= n; ++i )
         {
-          double d = (log (double (i) / n + 3.)) * 0.33;
+          double d = (log (double (i) / n + 2.)) * 0.2;
           *iter = (d > 0) ? d : EPS;
           norm_sum += *iter;
           ++iter;
@@ -162,84 +163,34 @@ namespace NewHand
     //------------------------------------------------------------------------------
     class MangoAcceleration : public JointMoveLaw
     {
+      std::vector<double>  angles;
+      std::vector<double>  frames;
+
+      bool     out;
+      tstring  filename;
     public:
       // --------------------------------
-      MangoAcceleration (tstring &filename)
-      {}
+      MangoAcceleration (const tstring &filename, bool out=false);
       // --------------------------------
       // template <typename ForwardIterator>
       virtual void  generate (VectorDoublesIterator first, size_t frames_count,
-                              double left_border, double right_border) const
-      {
-        VectorDoublesIterator  iter = first;
-        // --------------------------------
-        size_t  n = frames_count;
-        // size_t  m = static_cast<size_t> (frames_count * AccelerationLong);
-        double  a = left_border,
-          b = right_border;
-        // --------------------------------
-        double  norm_sum = 0.;
-        // for ( size_t i = 0U; i <= m; ++i )
-        // { /* diff velosity on start and end */
-        //   double d = (1. - cos (i * M_PI / m)) * 0.5;
-        //   /* calculating a normalization */
-        //   norm_sum += d;
-        //   *iter = d;
-        //   ++iter;
-        // }
-        // for ( size_t i = (m + 1U); i < n; ++i )
-        // { /* constant after getting the full speed */
-        //   *iter = 1.;
-        //   /* continue calculating a normalization */
-        //   norm_sum += *iter;
-        //   ++iter;
-        // }
-        // --------------------------------
-        for ( size_t i = 0U; i < n; ++i )
-        { /* apply the normalization */
-          *first = *first * (b - (n + 1) * a) / norm_sum + a;
-          ++first;
-        }
-        // --------------------------------
-      }
+                              double left_border, double right_border) const;
     };
     class MangoDeceleration : public JointStopLaw
     {
+      std::vector<double>  angles;
+      std::vector<double>  frames;
+
+      bool     out;
+      tstring  filename;
     public:
       // --------------------------------
-      MangoDeceleration (tstring &filename)
-      {}
+      MangoDeceleration (const tstring &filename, bool out=false);
       // --------------------------------
       // template <typename ForwardIterator>
       virtual void generate (VectorDoublesIterator first, size_t frames_count,
                              double left_border, double right_border,
-                             double max_velosity) const
-      {
-        VectorDoublesIterator  iter = first;
-        size_t  n = (frames_count - 1U);
-        double  a = left_border,
-          b = right_border,
-          v = max_velosity;
-        //------------------------------------------------------
-        double  norm_sum = 0.;
-        // for ( size_t i = 0U; i <= n; ++i )
-        // {
-        //   /* diff velosity on start and end */
-        //   double  d = static_cast<double> (i) / n;
-        //   *iter = (1. - cos ((d + 1.) * M_PI)) * 0.5;
-        //   /* calc normalization */
-        //   norm_sum += *iter;
-        //   ++iter;
-        // }
-        /* apply normalization */
-        for ( size_t i = 0U; i <= n; ++i )
-        {
-          *first = *first * (b - (n + 1) * a) / norm_sum + a;
-          if ( *first > v )  *first = v;
-          ++first;
-        }
-        //------------------------------------------------------
-      }
+                             double max_velosity) const;
     };
   }
 }
