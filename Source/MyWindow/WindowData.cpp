@@ -127,15 +127,15 @@ MyWindowData:: MyWindowData () :
                           new MotionLaws::ContinuousDeceleration () //,
                           // new MotionLaws::MangoAcceleration (tstring(_T("Resource/ShoulderMoveFrames.txt"))),
                           // new MotionLaws::MangoDeceleration (tstring(_T("Resource/ShoulderStopFrames.txt")))
-                         } } // ,
+                          } }  ,
            // { Hand::Wrist, { new MotionLaws::ContinuousAcceleration (),
            //                  new MotionLaws::ContinuousDeceleration () } },
-           // { Hand::Clvcl, { // new MotionLaws::ContinuousSlowAcceleration (),
-           //                  // new MotionLaws::ContinuousFastAcceleration (),
-           //                  new MotionLaws::ContinuousAcceleration (),
-           //                  // new MotionLaws::ContinuousAccelerationThenStabilization (),
-           //                  new MotionLaws::ContinuousDeceleration ()
-           //                 } }
+          { Hand::Clvcl, { // new MotionLaws::ContinuousSlowAcceleration (),
+                           // new MotionLaws::ContinuousFastAcceleration (),
+                           // new MotionLaws::ContinuousAccelerationThenStabilization (),
+                           new MotionLaws::ContinuousAcceleration (),
+                           new MotionLaws::ContinuousDeceleration ()
+                          } }
          }),
   target ( /* 200U, 200U, */ 18U, 18U, -0.41,  0.43, -0.03, -0.85 ),
   scaleLetters (target.min (), target.max ())

@@ -87,7 +87,9 @@ namespace Positions
       } // end catch
       // ----------------------------------------------------
       if ( verbose )
-      { if ( checking ) { stats.print (); }
+      {
+        if ( checking ) { stats.print (); }
+        tcout << _T ("\nStep: ") << (step_distance / 0.0028) << _T ("mm.");
         tcout << _T ("\nComplexity: ") << complexity << "  minutes:" << double(complexity) / 60. << std::endl;
       }
     }
@@ -573,12 +575,20 @@ namespace Positions
     DirectionPredictor  dp (hand);
 
     TourWorkSpace  tour (store, hand, target);
+
+    /* mm :
+        (target.max - target.min) = 300 mm
+     
+         0.84 <--> 300 mm
+            x <-->   1 mm   ==> 0.0028
+    */
+
     tour.run (borders, dp,
               /* distance */  true,
               /* target   */ false,
               /* braking  */  true,
               /* checking */ false,
-              0.05, 3U,
+              0.07, 5U,
               verbose);
 
     // borders_t  borders;
@@ -608,7 +618,7 @@ namespace Positions
               /* target   */ true,
               /* braking  */ true,
               /* checking */ false,
-              0.015, 2U,
+              0.02, 3U,
               verbose);
   }
   /* Попадание в оставшиеся непокрытыми точки мишени */

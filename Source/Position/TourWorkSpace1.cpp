@@ -140,7 +140,7 @@ namespace Positions
       } // end catch
       // ----------------------------------------------------
       if ( verbose )
-      { tcout << _T ("\nComplexity: ") << complexity << std::endl; }
+      { tcout << _T ("\nStep: ") << int(step_distance / 0.0028 + 1) << _T ("\nComplexity: ") << complexity << std::endl; }
     }
     //------------------------------------------------------------------------------
 
@@ -622,7 +622,7 @@ namespace Positions
            /* target   */ false,
            /* braking  */  true,
            /* checking */ false,
-           0.05, 3U,
+           0.03, 3U,
            verbose);
     }
     /* Покрытие всей мишени не слишком плотно */
