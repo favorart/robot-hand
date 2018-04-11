@@ -1,0 +1,24 @@
+{
+    "robo": {
+		"name" : "Tank-v1",	
+		"joints" : [ 
+			{
+				"name" : "LTrack",
+				"type" : 0,
+				"base" : [ -0.75, 1.05 ],
+				"maxAngle" : 100,
+				"maxMoveFrames" : 350,
+				"motionLaw" : [ "CONAC", "" ]
+			},
+			{
+				"name" : "RTrack",
+				"type" : 1,
+				"base" : [ -0.70, 1.00 ],
+				"maxAngle" : 135,
+				"maxMoveFrames" : 550,
+				"motionLaw" : [ "CONAC", "" ]
+			}
+		]
+	},
+	"env" : { }
+}

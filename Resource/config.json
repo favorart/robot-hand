@@ -1,0 +1,126 @@
+{
+  "robo": {
+    "name": "Hand-v3",
+    "base": [ 0.75, 0.25 ],
+    "joints": [
+      {
+        "name": "Wrist",
+        "type": 0,
+        "show": false,
+        "base": [ -0.75, 1.05 ],
+        "maxAngle": 100,
+        "maxMoveFrames": 350,
+        "defPoseRatio": 0.0,
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      },
+      {
+        "name": "Elbow",
+        "type": 1,
+        "show": true,
+        "base": [ -0.70, 1.00 ],
+        "maxAngle": 135,
+        "maxMoveFrames": 550,
+        "defPoseRatio": 70.0,
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      },
+      {
+        "name": "Shldr",
+        "type": 2,
+        "show": true,
+        "base": [ 0.10, 0.85 ],
+        "maxAngle": 105,
+        "maxMoveFrames": 700,
+        "defPoseRatio": 0.0,
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      },
+      {
+        "name": "Clvcl",
+        "type": 3,
+        "show": false,
+        "base": [ 0.75, 0.25 ],
+        "maxAngle": 40,
+        "maxMoveFrames": 600,
+        "defPoseRatio": 0.0,
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      }
+    ],
+    "drawNexus": [ true, true, true, true ]
+  },
+  "env": {
+    "skip_show_steps": 15,
+    "animation": true
+  },
+  "target": {
+    "type": "Rect",
+
+    "hn_aims": 18,
+    "vn_aims": 18,
+    "#hn_aims": 200,
+    "#vn_aims": 200,
+
+    "left": -0.41,
+    "right": 0.43,
+    "top": -0.03,
+    "bottom": -0.85
+  },
+  "algo": {
+    "tour": {
+      "type": "new",
+      "#type": "old",
+
+      "lasts_step_increment_thick": 20,
+      "lasts_step_initiate": 25,
+      "lasts_step_braking": 5,
+      "pd_shift": [ 0.15, -0.05 ],
+
+      "#STAGEs": {
+        "b_distance": false,
+        "b_target": false,
+        "b_braking": false,
+        "b_checking": false,
+        "step_distance": 0.07,
+        "lasts_step_increment": 5
+      }
+    },
+    "stage3": {
+      "tries": 32,
+      "tries_break": 100,
+      "random_try": 3,
+
+      "side": 0.1,                 "#side"               : "половина ребра квадрата, из которого берутся все точки",
+      "side_decrease_step": 0.01,  "#side_decrease_step" : "шаг уменьшения области поиска для взвешанной суммы",
+      "use_weighted_mean": true,   "#use_weighted_mean"  : "используется взвешенная арифметическое среднее (иначе обычное)"
+    },
+    "stage2": {
+      "draft_distance"   : 0.005,  "#detail!_distance" : "Желаемое расстояние между конеными точками чернового покрытия",
+      "lasts_init_value" : 1,      "#lasts_init_value" : "Время преодоления инерции",
+      "lasts_incr_value" : 3,      "#lasts_incr_value" : "Изменение шага времени"
+    },
+    "stage1": {
+      "draft_distance"   : 0.07,   "#draft_distance"   : "Желаемое расстояние между конеными точками чернового покрытия",
+      "lasts_init_value" : 50,     "#lasts_init_value" : "Время преодоления инерции",
+      "lasts_incr_value" : 10,     "#lasts_incr_value" : "Изменение шага времени"
+    },
+  "precision": 1.5,                "#precision" : "mm"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "robo": {
+    "type": "Hand",
+    "joints": [
+      {
+          "name": "Elbow",
+          "type": 1,
+          "base": [ -0.70, 1.00 ],
+          "maxAngle": 135,
+          "maxMoveFrames": 550,
+          "defPoseRatio": 70.0,
+          "motionLaw": {
+              "name": "CONAC",
+              "type": 4,
+              "stopD": 0.55,
+              "param": ""
+          }
+      },
+      {
+          "name": "Shldr",
+          "type": 2,
+          "base": [ 0.10, 0.85 ],
+          "maxAngle": 105,
+          "maxMoveFrames": 700,
+          "defPoseRatio": 50.0,
+          "motionLaw": {
+              "name": "CONAC",
+              "type": 4,
+              "stopD": 0.55,
+              "param": ""
+          }
+      }
+    ],
+    "drawNexus": [ false, true, true, false ]
+  },
+	"env" : {}
+}

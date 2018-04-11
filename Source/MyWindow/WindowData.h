@@ -3,146 +3,159 @@
 #ifndef  _WINDOW_DATA_H_
 #define  _WINDOW_DATA_H_
 
-#include "Store.h"
-#include "Target.h"
-#include "DrawLetters.h"
+#include "WindowHeader.h"
+#include "Robo.h"
+//------------------------------------------------------------------------------
+namespace RoboMoves {
+class Record;
+class Store;
+}
+namespace RoboPos {
+class LearnMoves;
+}
+class RecTarget;
+class CanvasScaleLetters;
 
-// ====================================================
-// !?!?!?!?!?! КОНФИГУРАЦИОННЫЕ ФАЙЛЫ !?!?!?!?
-// !?!?!?!?!?! ФАЙЛЫ, как интерфейс управления !?!?!?!?
+namespace Utils {
+tstring uni(const std::string& s);
+tstring uni(const std::wstring& s);
+};
 //------------------------------------------------------------------------------
-// #define _TESTING_TRAJECTORIES_ANIMATION_ 1
-// #define _DRAW_STORE_GRADIENT_
-//------------------------------------------------------------------------------
-class MyWindowData
+struct MyWindowData
 {
-  // ---------------------------------
-public:
-  HWND    hLabMAim, hLabTest, hLabStat;
-  HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
-  HBRUSH  hBrush_white, hBrush_null, hBrush_back;
-
-  // ---------------------------------
-  HDC     hStaticDC = NULL;
-  HBITMAP hStaticBitmap = NULL;
-  bool    hStaticBitmapChanged = true;  
-  // ---------------------------------
-  /* координаты мыши в пикселях */
-  bool       mouse_haved = false;
-  win_point  mouse_coords;
-  Point      mouse_aim;
-  // ---------------------------------
-  const double  radius = 0.05;
-  const double  side = 0.1;
-
-  // ---------------------------------
-  boost::thread  *pWorkerThread;
-  // ---------------------------------
-  bool testing;
-
-  // --- show_frames_trajectory ------
-  class TrajectoryFrames
-  {
-    bool                      show_;
-    HandMoves::trajectory_t   trajectory_;
+    struct MouseHandler
+    {
+        bool       click{ false };
+        win_point  coords{}; /* координаты мыши в пикселях */
+        Point      aim{};
+    } mouse;
     // ---------------------------------
-    const size_t  skip_show_steps = 15U;
+    struct Canvas
+    {
+        HWND    hLabMAim, hLabTest, hLabStat;
+        HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
+        HBRUSH  hBrush_white, hBrush_null, hBrush_back;
+        // ---------------------------------
+        HDC     hStaticDC{ NULL };
+        HBITMAP hStaticBitmap{ NULL };
+        bool    hStaticBitmapChanged{ true };
+        // ---------------------------------
+        std::shared_ptr<CanvasScaleLetters> pLetters{};
+        // ---------------------------------
+        bool              workingSpaceShow{ false };
+        Robo::Trajectory  workingSpaceTraj{};
+        // --- adjacency -------------------
+        bool allPointsDBShow{ false };
+        size_t store_size{ 0 };
+
+        std::list<std::shared_ptr<RoboMoves::Record>> pointsDB{};
+        std::list<std::shared_ptr<Robo::Trajectory>>   trajsDB{};
+        // ---------------------------------
+        Robo::Trajectories testingTrajsList{};
+        bool               testingTrajsShow{ false };
+        // ---------------------------------
+        std::list<Point> uncoveredPointsList{};
+        bool             uncoveredPointsShow{ true };
+        // --------------------------------
+    } canvas;
+
+    // --- show_frames_trajectory ------
+    class TrajectoryFrames
+    {
+        const size_t skip_show_steps = 15U;
+        // ---------------------------------
+        bool show_ = false;
+        bool animation_ = true;
+        Robo::Trajectory trajectory_ = {};
+        // ---------------------------------
+        size_t     control_cur_ = 0;
+        Robo::Control controls_ = {};
+        Robo::frames_t  frames_ = 0;
+        Point         base_pos_ = {};
+        // ---------------------------------
+
+    public:
+        // ---------------------------------
+        // ---------------------------------
+        /* Microsoft specific: C++ properties */
+        __declspec(property(get = _get_traj, put = _put_traj)) const Robo::Trajectory &trajectory;
+        const Robo::Trajectory&   _get_traj() const { return trajectory_; }
+        void _put_traj(const Robo::Trajectory& traj) { show_ = true; trajectory_ = traj; }
+
+        __declspec(property(get = _get_anim, put = _put_anim))  bool animation;
+        bool _get_anim() const { return animation_; }
+        void _put_traj(bool anim) { animation_ = anim; }
+
+        __declspec(property(get = _get_show))  bool show;
+        bool _get_show() const { return show_; }
+        // ---------------------------------
+
+        void  clear();
+        void  draw(HDC hdc, HPEN hPen) const;
+        void  step(RoboMoves::Store &store, Robo::RoboI &robo,
+                   const boost::optional<Robo::Control> controls = boost::none);
+    };
+    TrajectoryFrames trajFrames;
     // ---------------------------------
-    boost::optional<HandMoves::controling_t>         controls_;
-    boost::optional<Hand::frames_t>                      time_;
-    boost::optional<HandMoves::controling_t::iterator>   iter_;
+    std::shared_ptr<boost::thread> pWorkerThread;
     // ---------------------------------
-
-  public:
+    std::shared_ptr<RecTarget> pTarget;
+    std::shared_ptr<Robo::RoboI> pRobo;
+    std::shared_ptr<RoboMoves::Store> pStore;
+    std::shared_ptr<RoboPos::LearnMoves> pLM;
     // ---------------------------------
-    bool animation = true;
-    
+    static bool zoom;
+    bool testing = false;
+    Robo::frames_t frames = 0;
     // ---------------------------------
-    /* Microsoft specific: C++ properties */
-    __declspec(property(get=_get_traj, put=_put_traj)) const HandMoves::trajectory_t &trajectory;
-    const HandMoves::trajectory_t& _get_traj () const { return trajectory_; }
-    void _put_traj (const HandMoves::trajectory_t& traj) { show_ = true; trajectory_ = traj; }
-
+    size_t   complexity = 0;
+    tstring  currFileName{};
     // ---------------------------------
-    void  step (HandMoves::Store &store, Hand &hand,
-                const boost::optional<HandMoves::controling_t> controls=boost::none);
-    void  draw (HDC hdc, HPEN hPen) const;
-    void  clear ();
+    struct StoreSearch
+    {
+        const double radius = 0.05;
+        const double side = 0.1;
+    } search;
     // ---------------------------------
-
-  } trajectory_frames;
-  // ---------------------------------
-
-  bool                      working_space_show;
-  HandMoves::trajectory_t   working_space;
-
-  // --- adjacency -------------------
-  bool allPointsDB_show;
-
-  std::list<std::shared_ptr<HandMoves::Record>>           adjPointsDB;
-  std::list<std::shared_ptr<HandMoves::trajectory_t>>  trajectoriesDB;
-  // ---------------------------------
-
-  RecTarget  target;
-  CanvasScaleLetters scaleLetters;
-  
-  // ---------------------------------
-  Hand hand;
-  HandMoves::Store store;
-
-  // ---------------------------------
-  size_t   store_size;
-  tstring  CurFileName = tstring (HAND_NAME) + tstring (_T ("_moves.bin"));
-
-  // --------------------------------
-
-  HandMoves::trajectories_t  testing_trajectories;
-  bool                       testing_trajectories_show;
-
-#ifdef    _TESTING_TRAJECTORIES_ANIMATION_
-  size_t  testing_trajectories_animation_num_iteration = 1;
-  bool    testing_trajectories_animation_show = false;
-#endif // _TESTING_TRAJECTORIES_ANIMATION_
-
-  // ---------------------------------
-  // LittleTest *lt;
-  // size_t no;
-  // ---------------------------------
-
-  std::list<Point> uncoveredPoints;
-  bool             uncovered_show = true;
-  size_t           complexity;
-
-  /* Набор пользователем чисел */
-  // static int  flag_m, flag_n;
-  // static int  p_x, p_y;
-  // ---------------------------------
-  MyWindowData ();
- ~MyWindowData ();
+    MyWindowData(const tstring &config, const tstring &database);
+    ~MyWindowData();
+    // ---------------------------------
+    void read_config(IN const tstring &filename);
+    void write_config(IN const tstring &filename) const;
 };
 //-------------------------------------------------------------------------------
 template<typename Function, typename... Args> inline
-void  WorkerThreadRunStoreTask (MyWindowData &wd, tstring message, Function task, Args... args)
+void  WorkerThreadRunTask (MyWindowData &wd, tstring message, Function task, Args... args)
 {
-  if ( !wd.testing && !wd.pWorkerThread )
-  {
-    wd.testing = true;
-    /* Set text of label 'Stat'  */
-    SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
-
-    wd.pWorkerThread = new boost::thread (task, std::ref (wd.store), args...);
-  }
+    try
+    {
+        if (!wd.testing && !wd.pWorkerThread)
+        {
+            wd.testing = true;
+            /* Set text of label 'Stat' */
+            SendMessage(wd.canvas.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(message.c_str()));
+            wd.pWorkerThread.reset(new boost::thread(task, args...));
+        }
+    }
+    catch (std::exception &e)
+    {
+        tstring line = Utils::uni(std::string{ e.what() });
+        MessageBox(NULL, line.c_str(), _T("Error"), MB_OK | MB_ICONERROR);
+        //InvalidateRect(hWnd, &myRect, FALSE);
+    }
 }
-void  WorkerThreadTryJoin      (MyWindowData &wd);
+void  WorkerThreadTryJoin (MyWindowData &wd);
 //-------------------------------------------------------------------------------
-void  OnPaintStaticBckGrnd (HDC hdc, MyWindowData &wd);
-void  OnPaintStaticFigures (HDC hdc, MyWindowData &wd);
-void  OnPainDynamicFigures (HDC hdc, MyWindowData &wd);
+void  onPaintStaticBckGrnd (HDC hdc, MyWindowData &wd);
+void  onPaintStaticFigures (HDC hdc, MyWindowData &wd);
+void  onPainDynamicFigures (HDC hdc, MyWindowData &wd);
 //-------------------------------------------------------------------------------
-void  OnWindowTimer (MyWindowData &wd);
-void  OnWindowMouse (MyWindowData &wd);
+void  onWindowTimer (MyWindowData &wd);
+void  onWindowMouse (MyWindowData &wd);
 //-------------------------------------------------------------------------------
-void  OnShowDBPoints (MyWindowData &wd);
-void  OnShowDBTrajes (MyWindowData &wd);
+void  onShowDBPoints (MyWindowData &wd);
+void  onShowDBTrajes (MyWindowData &wd);
+//------------------------------------------------------------------------------
+tstring getJointsHelp (const Robo::RoboI& robo);
 //------------------------------------------------------------------------------
 #endif // _WINDOW_DATA_H_

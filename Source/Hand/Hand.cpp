@@ -1,675 +1,741 @@
 ﻿#include "StdAfx.h"
 #include "WindowHeader.h"
+#include "WindowDraw.h"
+#include "RoboMuscles.h"
+#include "RoboEdges.h"
 #include "Hand.h"
 
-#define HAND_VER 2
-#include "HandMuscles.h"
-//--------------------------------------------------------------------------------
-NewHand::Hand::frames_t  NewHand::Hand::maxMuscleLast (IN MusclesEnum  muscle)
-{
-  uint_t last = 0U;
-  for ( auto m : muscles_ )
-  {
-    if ( m & muscle )
-      switch ( m )
-      {
-        case ClvclOpn: last = last ? std::min (last, maxMoveFrames[ClvclIndex]) : maxMoveFrames[ClvclIndex]; break;
-        case ClvclCls: last = last ? std::min (last, maxMoveFrames[ClvclIndex]) : maxMoveFrames[ClvclIndex]; break;
-        case ShldrOpn: last = last ? std::min (last, maxMoveFrames[ShldrIndex]) : maxMoveFrames[ShldrIndex]; break;
-        case ShldrCls: last = last ? std::min (last, maxMoveFrames[ShldrIndex]) : maxMoveFrames[ShldrIndex]; break;
-        case ElbowOpn: last = last ? std::min (last, maxMoveFrames[ElbowIndex]) : maxMoveFrames[ElbowIndex]; break;
-        case ElbowCls: last = last ? std::min (last, maxMoveFrames[ElbowIndex]) : maxMoveFrames[ElbowIndex]; break;
-        case WristOpn: last = last ? std::min (last, maxMoveFrames[WristIndex]) : maxMoveFrames[WristIndex]; break;
-        case WristCls: last = last ? std::min (last, maxMoveFrames[WristIndex]) : maxMoveFrames[WristIndex]; break;
-      }
-  }
-  return last;
-}
-//--------------------------------------------------------------------------------
-// ??? momentum velosity
-double  NewHand::Hand::nextFrame   (MusclesEnum muscle, frames_t frame, bool atStop)
-{
-  const bool USE_SPEED = true;
-  const bool USE_WIND = false;
-  //------------------------------------------------
-  MusclesIndexEnum  MuscleIndex = muscleIndex (muscle);
 
-  /* !!!  frame  IS  this->hs.lasts_[muscleIndex (muscle)]  */
-  auto  frameUseSpeed = [this, atStop, USE_SPEED](JointsIndexEnum  JointIndex, 
-                                                 MusclesIndexEnum  MuscleIndex)
-  {
-    double Frame;
-    // try {
-    do
+using namespace Robo;
+using namespace NewHand;
+//--------------------------------------------------------------------------------
+frames_t  Hand::muscleMaxLast(const Control &control) const
+{
+    frames_t last = 0;
+    for (const auto &c : control)
     {
-      Frame = (atStop) ? this->framesStop[JointIndex][this->hs.lasts_[MuscleIndex]] :
-                         this->framesMove[JointIndex][this->hs.lasts_[MuscleIndex]];
-
-    } while ( USE_SPEED && atStop
-          && (this->hs.prevFrame_[MuscleIndex] < Frame)
-          && (  ++this->hs.lasts_[MuscleIndex] < this->minStopFrames[JointIndex]) );
-
-    // } catch (...) { Frame = 0.; }
-
-    // double Frame  = (atStop) ? this->framesStop[JointIndex][this->hs.lasts_[MuscleIndex]] :
-    //                            this->framesMove[JointIndex][this->hs.lasts_[MuscleIndex]];
-    // 
-    // if ( USE_SPEED && atStop && this->hs.prevFrame_[MuscleIndex] < Frame )
-    //                     Frame = this->hs.prevFrame_[MuscleIndex];
-
-    return Frame;
-  };
-
-  //------------------------------------------------
-  JointsIndexEnum JointIndex = jointIndex (jointByMuscle (muscle));
-  double Frame = hs.prevFrame_[MuscleIndex] = frameUseSpeed (JointIndex, MuscleIndex);
-  // ??? hs.velosity_;
-
-  // --- WIND ----------------------------------
-  if ( USE_WIND && !frame )
-  { 
-    auto MAX = *std::max_element (framesMove[JointIndex].begin (), framesMove[JointIndex].end ());
-    Frame = random (EPS, MAX);
-  }
-  // -------------------------------------------
-  return Frame;
-}
-bool    NewHand::Hand::muscleFrame (MusclesEnum muscle, frames_t frame, bool atStop)
-{
-  double Frame = nextFrame (muscle, frame, atStop);
-
-  double shiftClvcl = 0.;
-  double angleShldr = 0.;
-  double angleElbow = 0.;
-  double angleWrist = 0.;
-
-  double maxClvclShift = static_cast<double>(maxJointAngles[ClvclIndex]) / 100.;
-  auto   maxShldrAngle = maxJointAngles[ShldrIndex];
-  auto   maxElbowAngle = maxJointAngles[ElbowIndex];
-  auto   maxWristAngle = maxJointAngles[WristIndex];
-
-  switch ( muscle )
-  { 
-    case ClvclOpn: shiftClvcl = (hs.shiftClvcl_ + Frame > maxClvclShift) ? (maxClvclShift - hs.shiftClvcl_) :  Frame; break;
-    case ClvclCls: shiftClvcl = (hs.shiftClvcl_ - Frame < 0.0          ) ? (          0.0 - hs.shiftClvcl_) : -Frame; break;
-    case ShldrOpn: angleShldr = (hs.angleShldr_ - Frame < 1.0          ) ? (          1.0 - hs.angleShldr_) : -Frame; break;
-    case ShldrCls: angleShldr = (hs.angleShldr_ + Frame > maxShldrAngle) ? (maxShldrAngle - hs.angleShldr_) :  Frame; break;
-    case ElbowOpn: angleElbow = (hs.angleElbow_ - Frame < 1.0          ) ? (          1.0 - hs.angleElbow_) : -Frame; break;
-    case ElbowCls: angleElbow = (hs.angleElbow_ + Frame > maxElbowAngle) ? (maxElbowAngle - hs.angleElbow_) :  Frame; break;
-    case WristOpn: angleWrist = (hs.angleWrist_ - Frame < 1.0          ) ? (          1.0 - hs.angleWrist_) : -Frame; break;
-    case WristCls: angleWrist = (hs.angleWrist_ + Frame > maxWristAngle) ? (maxWristAngle - hs.angleWrist_) :  Frame; break;
-  }
-
-  hs.curPosShldr_.x -= shiftClvcl;
-  hs.curPosArm_.x   -= shiftClvcl;
-  hs.curPosHand_.x  -= shiftClvcl;
-  hs.curPosPalm_.x  -= shiftClvcl;
-
-  hs.curPosArm_ .rotate (hs.curPosShldr_, angleShldr);
-
-  hs.curPosHand_.rotate (hs.curPosShldr_, angleShldr);
-  hs.curPosHand_.rotate (hs.curPosArm_,   angleElbow);
-
-  hs.curPosPalm_.rotate (hs.curPosShldr_, angleShldr);
-  hs.curPosPalm_.rotate (hs.curPosArm_,   angleElbow);
-  hs.curPosPalm_.rotate (hs.curPosHand_,  angleWrist);
-
-  hs.angleWrist_ += angleWrist;
-  hs.angleElbow_ += angleElbow;
-  hs.angleShldr_ += angleShldr;
-  hs.shiftClvcl_ += shiftClvcl;
-
-  return (shiftClvcl || angleShldr || angleElbow || angleWrist);
-}
-//--------------------------------------------------------------------------------
-void    NewHand::Hand::muscleBrake (MusclesIndexEnum MuscleIndex, JointsIndexEnum JointIndex)
-{
-  hs.lastsMove[MuscleIndex] = 0U;
-  hs.lastsStop[MuscleIndex] = minStopFrames[JointIndex];
-  hs.lasts_   [MuscleIndex] = 0U;
-}
-void    NewHand::Hand::muscleFinal (MusclesIndexEnum MuscleIndex, MusclesEnum muscle)
-{
-  /* может производиться торможение противоположным мускулом */
-  if ( !hs.lastsMove[MuscleIndex] )
-  {
-    /* если движения нет и торможение трением завершилось */
-    //-------------------------------------------------------
-    std::function<bool (frames_t)> NonZero = [](frames_t F) { return (F != 0U); };
-    //-------------------------------------------------------
-    hs.lastsMove[MuscleIndex] = 0U;
-    hs.lastsStop[MuscleIndex] = 0U;
-    hs.lasts_   [MuscleIndex] = 0U;
-    //-------------------------------------------------------
-    /* исключаем остановленный двигатель */
-    hs.musclesMove_ = hs.musclesMove_ ^ muscle;
-
-    /* проверяем, что остальные двигатели уже остановились */
-    if ( boost::algorithm::none_of (hs.lastsMove, NonZero)
-      && boost::algorithm::none_of (hs.lastsStop, NonZero) )
-    { /* Полная остановка руки */
-      hs.moveEnd_ = true;
-      hs.musclesMove_ = Hand::EmptyMov;
+        if (c.muscle >= musclesCount())
+            throw std::exception("Invalid control");
+        Joint joint = JofM(M(c.muscle));
+        last = last ? std::min(last, physics.maxMoveFrames[joint]) : physics.maxMoveFrames[joint];
     }
-    //-------------------------------------------------------
-  }
+    return last;
 }
-void    NewHand::Hand::muscleMove  (MusclesIndexEnum MuscleIndex, MusclesEnum muscle,
-                                    frames_t last, bool control)
-{
-  /* если не производится никакого движения и нет сигнала о начале нового */
-  if ( !control && !hs.lastsMove[MuscleIndex] && !hs.lastsStop[MuscleIndex] )
-    return;
-  //-------------------------------------------------------
-  hs.moveEnd_ = false;
-
-  JointsIndexEnum  JointIndex = jointIndex (jointByMuscle (muscle));
-  //-------------------------------------------------------
-  if ( control && !hs.lastsMove[MuscleIndex] )
-  { /* начало нового движения руки */
-    if ( hs.lasts_[MuscleIndex] )
-    {
-      /* сохранить примерную скорость движения - инерция! */
-      Hand::frames_t  frame = 0U;
-      while ( hs.prevFrame_[MuscleIndex] > framesMove[JointIndex][frame] )
-      /* framesStop[JointIndex][hs.lasts_[muscleIndex]] */
-      { ++frame; }
-
-      hs.lasts_[MuscleIndex] = (frame > 5U) ? (frame - 5U) : 0U;
-    }
-    else
-    { hs.lasts_[MuscleIndex] = 0U; }
-
-    auto  lastMax = maxMoveFrames[JointIndex] - hs.lasts_[MuscleIndex];
-    hs.lastsMove[MuscleIndex] = last ? std::min (last, lastMax) : lastMax;
-    hs.lastsStop[MuscleIndex] = 0U;
-  }
-  else if ( hs.lastsMove[MuscleIndex] && control )
-  { /* остановка движения - по сигналу */
-    muscleBrake (MuscleIndex, JointIndex);
-  }
-  else if ( hs.lastsMove[MuscleIndex] && hs.lasts_[MuscleIndex] >= maxMoveFrames[JointIndex] )
-  { /* остановка движения - по истечении доступных фреймов */
-    muscleBrake (MuscleIndex, JointIndex);  // muscleFinal (MuscleIndex, muscle);
-  }
-  else if ( hs.lastsMove[MuscleIndex] && hs.lasts_[MuscleIndex] >= hs.lastsMove[MuscleIndex] )
-  { /* остановка основного движения - по истечении заданной длительности */
-    muscleBrake (MuscleIndex, JointIndex);
-  }
-  else if ( hs.lastsMove[MuscleIndex] && hs.lasts_[MuscleIndex] <  hs.lastsMove[MuscleIndex] )
-  { /* продолжение движения */
-    if ( !muscleFrame (muscle, hs.lasts_[MuscleIndex], false) )
-    { /* Окончательная остановка */
-      muscleBrake (MuscleIndex, JointIndex);  // muscleFinal (MuscleIndex, muscle);
-    } // end if
-  } // end else if
-
-  //-------------------------------------------------------
-  /* Движение по инерции */
-  if (   (hs.lastsStop[MuscleIndex])
-      && (hs.lasts_   [MuscleIndex] >= hs.lastsStop[MuscleIndex]
-       || !muscleFrame (muscle, hs.lasts_[MuscleIndex], true)) )
-  { /* Конец полного движения */
-    muscleFinal (MuscleIndex, muscle);
-  } // end if
-  //-------------------------------------------------------
-
-  /* Time is moving forward! */
-  ++hs.lasts_[MuscleIndex];
-}
-//--------------------------------------------------------------------------------
-NewHand::Hand::Hand (IN const Point &palm,
-                     IN const Point &hand,     IN const Point &arm,
-                     IN const Point &shoulder, IN const Point &clavicle,
-                     IN const JointsMotionLaws &joints_frames ) throw (...) :
-                     
-                     StopDistaceRatio (0.55), // 55% от общего пробега
-                     maxJointAngles ({  40U /* maxClvclShift */ , 105U /* maxShldrAngle */ ,
-                                       135U /* maxElbowAngle */ , 100U /* maxWristAngle */ }),
-                     maxMoveFrames ({  600U /* ClvclIndex */    , 700U /* ShldrIndex */ ,
-                                       550U /* ElbowIndex */    , 350U /* WristIndex */ }),
-                     visitedSaveEach (10),
-
-                     palm_ (palm), hand_ (hand), arm_ (arm),
-                     shoulder_ (shoulder), clavicle_ (clavicle),
-                     drawPalm_ (false)
+frames_t  Hand::muscleMaxLast(muscle_t muscle) const
 { 
-  for ( auto j : joints_frames )
-  { joints_.push_back (j.first); }
-
-  if ( !joints_frames.size () || joints_frames.size () > JointsCount )
-    throw new std::exception ("Incorrect joints count"); // _T ??
-
-  for ( auto joint : joints_ )
-  {
-    if ( joint & Wrist )
-      drawPalm_ = true;
-
-    muscles_.push_back (muscleByJoint (joint, true));
-    muscles_.push_back (muscleByJoint (joint, false));
-
-    JointsIndexEnum  jIndex = jointIndex (joint);
-    minStopFrames[jIndex] = static_cast<frames_t> (maxMoveFrames[jIndex] * StopDistaceRatio);
-
-    framesMove[jIndex].resize (maxMoveFrames[jIndex]);
-    framesStop[jIndex].resize (minStopFrames[jIndex]);
-
-    joints_frames.find (joint)->second.moveLaw->generate (framesMove[jIndex].begin (), maxMoveFrames[jIndex],
-                                                          minFrameMove, maxJointAngles[jIndex]);
-
-    double  maxVelosity = *boost::max_element (framesMove[jIndex]);
-
-    joints_frames.find (joint)->second.stopLaw->generate (framesStop[jIndex].begin (), minStopFrames[jIndex],
-                                                          minFrameMove, maxJointAngles[jIndex] * StopDistaceRatio,
-                                                          maxVelosity);
-    
-    // ------------------------------------------------------------------------------------
-
-    // #pragma warning (disable:4996)
-    // {
-    //   tstringstream ss;   
-    //   ss << _T ("framesMove_") << j << _T (".txt");
-    //   FILE *f = _wfopen (ss.str ().c_str (), _T ("w"));
-    //   for ( auto d : framesMove[jIndex] )
-    //     fwprintf (f, _T ("%lf "), d);
-    //   fclose (f);
-    // }
-    // { tstringstream ss;
-    //   ss << _T ("framesStop_") << j << _T (".txt");
-    //   FILE *f = _wfopen (ss.str ().c_str (), _T ("w"));
-    //   for ( auto d : framesStop[jIndex] )
-    //     fwprintf (f, _T ("%lf "), d);
-    //   fclose (f);
-    // }
-
-  }
-  std::sort (joints_.begin (), joints_.end ());
-
-  musclesCumul = Hand::EmptyMov;
-  for ( auto real_muscle : muscles_ )
-  { musclesCumul = musclesCumul | real_muscle; }
-
-  createControls ();
-  reset ();
+    if (muscle >= musclesCount())
+        throw std::exception("Invalid control");
+    return physics.maxMoveFrames[JofM(M(muscle))];
 }
 //--------------------------------------------------------------------------------
-bool  NewHand::Hand::timeValidStartOppositeMuscle (IN  MusclesEnum muscle)
+void    Hand::jointMove   (joint_t joint_move, double offset)
 {
-  if ( !muscle ) 
-  { return false; }
-  //-------------------------
-  for ( auto joint : joints_ )
-  {
-    auto mo = muscleByJoint (joint, true);
-    auto mc = muscleByJoint (joint, false);
-  
-    if ( ((mo & hs.musclesMove_) && hs.lastsMove[jointIndex (joint)] && (mc & muscle))
-      || ((mc & hs.musclesMove_) && hs.lastsMove[jointIndex (joint)] && (mo & muscle)) )
-    { return false; }
-  } // end for
-  //-------------------------
-  return true;
+    //Joint joint = J(joint_move);
+    //switch (joint)
+    //{
+    //case Joint::Clvcl:
+    //{
+    //    status.curPos[Joint::Clvcl].x -= offset; // curPosShldr_
+    //    status.curPos[Joint::Shldr].x -= offset; // curPosArm_
+    //    status.curPos[Joint::Elbow].x -= offset; // curPosHand_
+    //    status.curPos[Joint::Wrist].x -= offset; // curPosPalm_
+    //    status.angles[Joint::Clvcl] += offset;
+    //    break;
+    //}
+    //case Joint::Shldr:
+    //{
+    //    status.curPos[Joint::Shldr].rotate(status.curPos[Joint::Clvcl], offset);
+    //    status.curPos[Joint::Elbow].rotate(status.curPos[Joint::Clvcl], offset);
+    //    status.curPos[Joint::Wrist].rotate(status.curPos[Joint::Clvcl], offset);
+    //    status.angles[Joint::Shldr] += offset;
+    //    break;
+    //}
+    //case Joint::Elbow:
+    //{
+    //    status.curPos[Joint::Elbow].rotate(status.curPos[Joint::Shldr], offset);
+    //    status.curPos[Joint::Wrist].rotate(status.curPos[Joint::Shldr], offset);
+    //    status.angles[Joint::Elbow] += offset;
+    //    break;
+    //}
+    //case Joint::Wrist:
+    //{
+    //    status.curPos[Joint::Wrist].rotate(status.curPos[Joint::Elbow], offset);
+    //    status.angles[Joint::Wrist] += offset;
+    //    break;
+    //}
+    //}
+
+    const Point &base = physics.jointsOpenCoords[Joint::JCount];
+    const Point &prev = (joint_move + 1 == jointsCount()) ? base : status.curPos[J(joint_move + 1)];
+    for (joint_t j = joint_move + 1; j > 0; --j)
+    {
+        Joint joint = J(j-1);
+        if (joint == Joint::Clvcl)
+            status.curPos[joint].x -= offset;
+        else
+            status.curPos[joint].rotate(prev, offset);
+    }
+    status.angles[J(joint_move)] += offset;
 }
 //--------------------------------------------------------------------------------
-void                     NewHand::Hand::step (IN  MusclesEnum muscle, IN frames_t last)
+bool    Hand::muscleFrame (muscle_t m)
 {
-  if ( muscle )
-  {
+    Muscle muscle = M(m);
+    Joint joint = JofM(muscle);
+    double Frame = 0.;
+    //------------------------------------------------
+    if (status.lastsMove[muscle] > 0)
+    {
+        assert(status.lastsStop[muscle] == 0);
+
+        auto last = status.lastsMove[muscle] - 1;
+        const auto &frames = physics.framesMove[joint];
+
+        do
+        {
+            Frame = (last >= frames.size()) ? frames.back() : frames[last];
+        } while (status.prevFrame[muscle] >= Frame && ++last < frames.size());
+    }
+    else if (status.lastsStop[muscle] > 0)
+    {
+        assert(status.lastsMove[muscle] == 0);
+
+        auto last = status.lastsStop[muscle] - 1;
+        const auto &frames = physics.framesStop[joint];
+
+        do
+        {
+            Frame = (last >= frames.size()) ? frames.back() : frames[last];
+        } while (status.prevFrame[muscle] < Frame && ++last < frames.size());
+    }
+    else throw std::exception("!lastsMove & !lastsStop");
+    // /* next frame with stop speed smooth */
+    //do
+    //{
+    //    // TODO: удлинить массив доступных фрэймов движения? - незачем, т.к. 
+    //    //       до конца прохода по массиву произойдёт удар по ограничению
+    //    if (status.lastsStop[muscle] < physics.minStopFrames[joint])
+    //    {
+    //        Frame = 0.;
+    //        break;
+    //    }
+    //    Frame = ((atStop) ? (physics.framesStop[joint][status.lastsStop[muscle]++]) :
+    //        (physics.framesMove[joint][status.lastsMove[muscle]++]));
+    //
+    //} while (atStop && status.prevFrame[muscle] < Frame);
+    //------------------------------------------------
+    status.prevFrame[muscle] = Frame;
+    // ??? status.velosity  -- momentum velosity
+
+    // --- WIND ---
+    if (status.windy && status.lastsMove[muscle] == 1)
+        Frame = random(Hand::minFrameMove * 180. / M_PI, *boost::max_element(physics.framesMove[joint]));
+    // -------------------------------------------
+    // maxOffset
+    double mOf = (joint == Joint::Clvcl) ?
+        (static_cast<double>(physics.jointsMaxAngles[Joint::Clvcl]) / 100.) :
+                             physics.jointsMaxAngles[joint];
+
+    double offset = 0.;
+    switch (muscle)
+    {
+    case Muscle::ClvclOpn: offset = (status.angles[Joint::Clvcl] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Clvcl])*/ : +Frame; break;
+    case Muscle::ClvclCls: offset = (status.angles[Joint::Clvcl] - Frame < 0.0) ? 0. /*(0.0 - status.angles[Joint::Clvcl])*/ : -Frame; break;
+    case Muscle::ShldrOpn: offset = (status.angles[Joint::Shldr] - Frame < 1.0) ? 0. /*(1.0 - status.angles[Joint::Shldr])*/ : -Frame; break;
+    case Muscle::ShldrCls: offset = (status.angles[Joint::Shldr] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Shldr])*/ : +Frame; break;
+    case Muscle::ElbowOpn: offset = (status.angles[Joint::Elbow] - Frame < 1.0) ? 0. /*(1.0 - status.angles[Joint::Elbow])*/ : -Frame; break;
+    case Muscle::ElbowCls: offset = (status.angles[Joint::Elbow] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Elbow])*/ : +Frame; break;
+    case Muscle::WristOpn: offset = (status.angles[Joint::Wrist] - Frame < 1.0) ? 0. /*(1.0 - status.angles[Joint::Wrist])*/ : -Frame; break;
+    case Muscle::WristCls: offset = (status.angles[Joint::Wrist] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Wrist])*/ : +Frame; break;
+    }
+
+    jointMove(jointByMuscle(m), offset);
+    return (fabs(offset) >= Hand::minFrameMove);
+}
+//--------------------------------------------------------------------------------
+void    Hand::muscleMove  (frames_t frame, muscle_t m, frames_t last)
+{
+    Muscle muscle = M(m);
+    /* если не производится никакого движения и нет сигнала о начале нового */
+    if (!last && !status.lastsMove[muscle] && !status.lastsStop[muscle])
+        return;
+    //-------------------------------------------------------
+    status.moveEnd = false;
+    //-------------------------------------------------------
+    if (last)
+    {
+        if (status.lastsMove[muscle] == 0)
+        {
+            /* движение не было - начало нового движения */
+            status.lastsStop[muscle] = 0;
+            status.lastsMove[muscle] = 1;
+            status.lasts[muscle] = last;
+
+            if (!status.lastsStop[muscle])
+                status.musclesMove[muscle] = frame;
+        }
+        else // if (status.lastsMove[muscle])
+        {
+            /* движение было - остановка по сигналу */
+            status.lastsStop[muscle] = 1;
+            status.lastsMove[muscle] = 0;
+            status.lasts[muscle] = 0;
+        }
+    }
+    //-------------------------------------------------------
+    if (status.lastsMove[muscle] > 0)
+    {
+        if (/* остановка движения - по истечении доступных фреймов */
+            //status.lasts[muscle] >= physics.maxMoveFrames[joint]
+            /* остановка по истечении заявленной длительности */
+            status.lasts[muscle] <= status.lastsMove[muscle]
+            /* продолжение движения, если остался на месте (блокировка противоположным мускулом) */
+            || !muscleFrame(m))
+        {
+            /* остановка основного движения - по истечении заданной длительности */
+            status.lastsStop[muscle] = 1;
+            status.lastsMove[muscle] = 0;
+            status.lasts[muscle] = 0;
+        }
+        else
+        {
+            /* Time is moving forward! */
+            ++status.lastsMove[muscle];
+            ++status.musclesMove[muscle];
+        }
+    }
+    //-------------------------------------------------------
+    if (status.lastsStop[muscle] > 0)
+    {
+        /* Движение по инерции */
+        if (!muscleFrame(m))
+        {
+            /* если движения нет и торможение трением завершилось */
+            assert(status.lastsMove[muscle] == 0);
+            //-------------------------------------------------------
+            status.lastsMove[muscle] = 0;
+            status.lastsStop[muscle] = 0;
+            status.lasts[muscle] = 0;
+            //-------------------------------------------------------
+            /* исключаем остановленный двигатель */
+            status.musclesMove[muscle] = 0;
+            /* проверяем, что остальные двигатели уже остановились */
+            if (boost::algorithm::none_of(status.musclesMove, [](const auto &v) { return (v != 0); }))
+            {
+                /* Полная остановка руки */
+                status.moveEnd = true;
+            }
+        }
+        else
+        {
+            /* Time is moving forward! */
+            ++status.lastsStop[muscle];
+            ++status.musclesMove[muscle];
+        }
+    }
+}
+//--------------------------------------------------------------------------------
+Hand::Hand(IN const Point &baseClavicle, IN const std::list<JointInput> &joints) :
+    params(joints),
+    physics(baseClavicle, joints),
+    status(joints)
+{ 
+    if (!joints.size() || joints.size() > JointsMaxCount)
+        throw std::exception("Incorrect joints count");
+    reset();
+}
+
+Hand::Hand(IN const Point &baseClavicle, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints) :
+    Hand(baseClavicle, JInputs<Hand::JointInput>(joints)) {}
+
+Hand::Params::Params(IN const std::list<JointInput> &joints) :
+    musclesUsedCount(0),
+    jointsUsedCount(0),
+    dynamics(false),
+    oppHandle(false),
+    drawPalm(false),
+    palmRadius(0.05),
+    jointRadius(0.03),
+    sectionWidth(0.01)
+{
+    muscle_t m = 0;
+    joint_t j = 0;
+    for (auto& jInput : joints)
+    {
+        if (!jInput.show)
+            continue;
+
+        musclesUsedCount += 2;
+        jointsUsedCount++;
+        Joint joint = jInput.type;
+
+        defOpen[joint] = jInput.defaultPose;
+        jointsUsed[j++] = joint;
+
+        musclesUsed[m++] = MofJ(joint, true);
+        musclesUsed[m++] = MofJ(joint, false);
+
+        if (joint == Joint::Wrist)
+            drawPalm = true;
+    }
+
+    for (; m < MusclesMaxCount; ++m)
+        musclesUsed[m] = MInvalid;
+    for (; j < JointsMaxCount; ++j)
+        jointsUsed[j] = JInvalid;
+
+    std::sort(std::begin(musclesUsed), std::end(musclesUsed));
+    std::sort(std::begin(jointsUsed), std::end(jointsUsed));
+}
+
+Hand::Physics::Physics(IN const Point &baseClavicle, IN const std::list<JointInput> &joints)
+{
+    jointsOpenCoords[JCount] = baseClavicle;
+    for (const auto &jInput : joints)
+    {
+        if (!jInput.show)
+            continue;
+
+        Joint joint = jInput.type;
+        auto law = jInput.frames;
+
+        jointsOpenCoords[joint] = jInput.openCoords;
+        jointsMaxAngles[joint] = jInput.maxAngle;
+        maxMoveFrames[joint] = jInput.maxMoveFrames;
+        minStopFrames[joint] = static_cast<frames_t>(maxMoveFrames[joint] * law.stopDistanceRatio);
+
+        framesMove[joint].resize(maxMoveFrames[joint]);
+        framesStop[joint].resize(minStopFrames[joint]);
+
+        law.moveLaw->generate(framesMove[joint].begin(),
+                              maxMoveFrames[joint],
+                              Hand::minFrameMove * 180. / M_PI,
+                              jointsMaxAngles[joint]);
+
+        double  maxVelosity = *boost::max_element(framesMove[joint]);
+        law.stopLaw->generate(framesStop[joint].begin(),
+                              minStopFrames[joint] - 1,
+                              Hand::minFrameMove * 180. / M_PI,
+                              jointsMaxAngles[joint] * law.stopDistanceRatio,
+                              maxVelosity);
+        /* last frame must be 0 to deadend */
+        framesStop[joint][minStopFrames[joint] - 1] = 0;
+    }
+}
+//--------------------------------------------------------------------------------
+void      Hand::step(IN frames_t frame, IN muscle_t muscle, IN frames_t last)
+{
     /* Исключить незадействованные двигатели */
-    muscle = musclesCumul & muscle;
-    /* Совместимо ли новое с тем, что уже сейчас движется? */
-    if ( timeValidStartOppositeMuscle (muscle) )
-    // if ( musclesValidUnion (hs.musclesMove_ | muscle) )
-    { hs.musclesMove_ = hs.musclesMove_ | muscle; }
-    /* Если нет выходим без изменений */
-    else  return;
-  }
-
-  if ( hs.musclesMove_ )
-  {
-    for ( auto m : muscles_ )
+    if (muscle < musclesCount() && last > 0)
     {
-      if ( m & hs.musclesMove_ )
-      { muscleMove (muscleIndex (m), m, last, ((m & muscle) != 0U)); }
-    } // end for
-  } // end if
+        ///if (muscle != Robo::MInvalid)
+        ///{
+        ///    Control control;
+        ///    for (muscle_t m = 0; m < musclesCount(); ++m)
+        ///        if (status.musclesMove[M(m)] > 0)
+        ///        {
+        ///            Hand::Muscle m_ = M(m);
+        ///            frames_t start = (frame - (status.lastsMove[m_] + status.lastsStop[m_]));
+        ///            control.append({ m, start, status.lasts[m_] });
+        ///        }
+        ///        else if (m == muscle) control.append({ m, frame, last });
+        ///
+        ///    /* Совместимо ли новое с тем, что уже сейчас движется? */
+        ///    controlValidate(control);
+        ///    ///if (timeValidToStartOppositeMuscle(muscle))
+        ///}
+
+        if (status.musclesMove[M(muscle)] <= frame)
+            muscleMove(frame, muscle, last);
+    }
+    else if (muscle == Robo::MInvalid && last == 0)
+    {
+        for (muscle_t m = 0; m < musclesCount(); ++m)
+            while (status.musclesMove[M(m)] > 0 && status.musclesMove[M(m)] <= frame)
+                muscleMove(frame, m, last);
+    }
+    else throw std::exception("Controls invalid!");
 }
-NewHand::Hand::frames_t  NewHand::Hand::move (IN  MusclesEnum muscle, IN frames_t last)
+//--------------------------------------------------------------------------------
+frames_t  Hand::move(IN Muscle muscle, IN frames_t last)
 {
-  frames_t  actual_last = 0U;
-  /* simultaniusly moving */
-  if ( last )
-  {
-    step (muscle, last);
+    frames_t frame = 0;
+    if (muscle < musclesCount() && last > 0)
+    {
+        step(frame, muscle, last);
+        /* Что-то должно двигаться, иначе беск.цикл */
+        while (!moveEnd())
+            step(frame++);
+    }
+    return frame;
+}
+frames_t  Hand::move(IN Muscle muscle, IN frames_t last, OUT Trajectory &visited)
+{
+    frames_t frame = 0;
+    if (muscle < musclesCount() && last > 0)
+    {
+        /* start movement */
+        step(frame, muscle, last);
+
+        while (!moveEnd())
+        {
+            /* just moving */
+            step(frame);
+            if ( !(frame % getVisitedRarity()) )
+                visited.push_back(position());
+            ++frame;
+        }
+        visited.push_back(position());
+    }
+    return frame;
+}
+//--------------------------------------------------------------------------------
+frames_t  Hand::move(IN const Control& controls, OUT Trajectory& visited)
+{
+    /// TODO: ControlsValidate
     /* Что-то должно двигаться, иначе беск.цикл */
-    while ( hs.musclesMove_ && !hs.moveEnd_ )
+    if (!controls.size())
+        throw std::exception("Controls are empty!");
+    /* Управление должно быть отсортировано по времени запуска двигателя */
+    if (controls[0].start != 0 || !boost::range::is_sorted(controls))
+        throw std::exception("Controls are not sorted!");
+
+
+    /* Исключить незадействованные двигатели */
+    //auto ctrlInvalid = [muscles = musclesCount()](const auto &a) {
+    //    return (a.last == 0) || (a.muscle >= muscles);
+    //};
+    //if (ba::none_of(controls, ctrlInvalid))
+    //    throw std::exception("Controls have UnUsed muscles!");
+    for (auto &a : controls)
+        if (a.last == 0 || a.muscle >= musclesCount())
+            throw std::exception("Controls have UnUsed muscles!");
+
+
+    frames_t frame = 0;
+    /* Запускаем двигатели */
+    for (const auto &c : controls)
     {
-      step ();
-      ++actual_last;
+        if (frame < c.start)
+        {
+            step(frame);
+            if (!(frame % getVisitedRarity()))
+                visited.push_back(position());
+            ++frame;
+        }
+        else if (frame == c.start)
+        {
+            step(frame, c.muscle, c.last);
+            /* (no ++frame) могут стартовать одновременно
+            * несколько мускулов, разной продолжительности
+            */
+        }
+    } // end for
+
+    while (!moveEnd())
+    {
+        step(frame);
+        if (!(frame % getVisitedRarity()))
+            visited.push_back(position());
+        ++frame;
     }
-  } // end if
-  return  actual_last;
-}
-NewHand::Hand::frames_t  NewHand::Hand::move (IN  MusclesEnum muscle, IN frames_t last,
-                                              OUT std::list<Point> &visited)
-{
-  frames_t  frame = 0U;
-  frames_t  actual_last = 0U;
-  /* simultaniusly moving */
-  if ( last )
-  {
-    /* start movement */
-    step (muscle, last);
-    // visited.push_back (position);
-    // tcout << std::endl << tstring (position) << std::endl;
-    while ( hs.musclesMove_ && !hs.moveEnd_ )
-    { /* just moving */
-      step ();
-      if ( !(frame % visitedSaveEach) )
-        visited.push_back (position);
-      // tcout << tstring (position) << std::endl;
-      ++actual_last;
-      ++frame;
-    }
-    visited.push_back (position);
-  }
-  return  actual_last;
-}
-NewHand::Hand::frames_t  NewHand::Hand::move (IN  std::initializer_list<Control> controls,
-                                              OUT std::list<Point> *visited) throw (...)
-{ return  move (controls.begin (), controls.end (), visited); }
-//--------------------------------------------------------------------------------
-void  NewHand::Hand::reset ()
-{
-  //-----------------------------------------------------------------
-  hs.curPosClvcl_ = clavicle_;
-  hs.curPosShldr_ = shoulder_;
-  hs.curPosArm_   = arm_;
-  hs.curPosHand_  = hand_;
-  hs.curPosPalm_  = palm_;
-  //-----------------------------------------------------------------
-  hs.shiftClvcl_ = hs.angleShldr_ = 0.;
-  hs.angleElbow_ = hs.angleWrist_ = 0.;
-  //-----------------------------------------------------------------
-  hs.prevFrame_.fill (EPS);
-
-  hs.lasts_.fill (0U);
-  //-----------------------------------------------------------------
-  hs.lastsMove.fill (0U);
-  hs.lastsStop.fill (0U);
-  //-----------------------------------------------------------------
-  hs.musclesMove_ = Hand::EmptyMov;
-  //-----------------------------------------------------------------
-  hs.moveEnd_ = false; 
-  // hs.velosity_ = 0.;
-}
-void  NewHand::Hand::set   (IN NewHand::Hand::JointsSet &jointsOpenPercent)
-                          //JointsEnum joint, const std::array<double, Hand::JointsCount> &jOp)
-{
-  if ( jointsOpenPercent.size () )
-  {
-    int index = 0;
-    double  shiftClvcl, angleShldr, angleElbow, angleWrist;
-    //------------------------------------------------------
-    if ( jointsOpenPercent.find(Clvcl) != jointsOpenPercent.end () ) // joint & Clvcl )
-    { // ?? index --> ClvclIndex
-      double maxClvcl = static_cast<double>(maxJointAngles[ClvclIndex]) / 100.; // maxClvclShift;
-
-      shiftClvcl = (jointsOpenPercent[Clvcl] > 100.0) ? 100.0 : jointsOpenPercent[Clvcl];
-      shiftClvcl = shiftClvcl / 100.0 * maxClvcl;
-      ++index;
-    }
-    else shiftClvcl = hs.shiftClvcl_;
-
-    if ( jointsOpenPercent.find (Shldr) != jointsOpenPercent.end () ) // joint & Shldr )
-    { // ?? index --> ShldrIndex
-      angleShldr = (jointsOpenPercent[Shldr] > 100.0) ? 100.0 : jointsOpenPercent[Shldr];
-      angleShldr = angleShldr / 100.0 * maxJointAngles[ShldrIndex]; // maxShldrAngle;
-      ++index;
-    }
-    else angleShldr = hs.angleShldr_;
-
-    if ( jointsOpenPercent.find (Elbow) != jointsOpenPercent.end () ) // joint & Elbow )
-    { // ?? index --> ElbowIndex
-      angleElbow = (jointsOpenPercent[Elbow] > 100.0) ? 100.0 : jointsOpenPercent[Elbow];
-      angleElbow = angleElbow / 100.0 * maxJointAngles[ElbowIndex]; // maxElbowAngle;
-      ++index;
-    }
-    else angleElbow = hs.angleElbow_;
-
-    if ( jointsOpenPercent.find (Wrist) != jointsOpenPercent.end () ) // joint & Wrist )
-    { // ?? index --> WristIndex
-      angleWrist = (jointsOpenPercent[Wrist] > 100.0) ? 100.0 : jointsOpenPercent[Wrist];
-      angleWrist = angleElbow / 100.0 * maxJointAngles[WristIndex]; // maxWristAngle;
-      ++index;
-    }
-    else angleWrist = hs.angleWrist_;
-    //------------------------------------------------------
-    reset ();
-    //------------------------------------------------------
-    hs.curPosShldr_ .x -= shiftClvcl;
-    hs.curPosArm_   .x -= shiftClvcl;
-    hs.curPosHand_  .x -= shiftClvcl;
-    hs.curPosPalm_  .x -= shiftClvcl;
-
-    hs.curPosArm_ .rotate (hs.curPosShldr_, angleShldr);
-
-    hs.curPosHand_.rotate (hs.curPosShldr_, angleShldr);
-    hs.curPosHand_.rotate (hs.curPosArm_,   angleElbow);
-
-    hs.curPosPalm_.rotate (hs.curPosShldr_, angleShldr);
-    hs.curPosPalm_.rotate (hs.curPosArm_,   angleElbow);
-    hs.curPosPalm_.rotate (hs.curPosHand_,  angleWrist);
-    //------------------------------------------------------
-    hs.shiftClvcl_ = shiftClvcl;
-    hs.angleShldr_ = angleShldr;
-    hs.angleElbow_ = angleElbow;
-    hs.angleWrist_ = angleWrist;
-  }
+    /* final position */
+    visited.push_back(position());
+    return frame;
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesIndexEnum  NewHand::Hand::muscleIndex (IN MusclesEnum  muscle) const
+void  Hand::reset()
 {
-  if ( !muscle ) return MusclesCount; // EmptyMov
-  for ( MusclesEnum m : muscles_ )
-  {
-    if ( m & muscle )
-      switch ( muscle )
-      {
-        case Hand::ClvclOpn: return Hand::ClvclOpnIndex;
-        case Hand::ClvclCls: return Hand::ClvclClsIndex;
-        case Hand::ShldrOpn: return Hand::ShldrOpnIndex;
-        case Hand::ShldrCls: return Hand::ShldrClsIndex;
-        case Hand::ElbowOpn: return Hand::ElbowOpnIndex;
-        case Hand::ElbowCls: return Hand::ElbowClsIndex;
-        case Hand::WristOpn: return Hand::WristOpnIndex;
-        case Hand::WristCls: return Hand::WristClsIndex;
-        // default: return MusclesCount;
-      }
-  }
-  return MusclesCount;
-}
-NewHand::Hand::JointsIndexEnum   NewHand::Hand::jointIndex  (IN  JointsEnum  joint ) const
-{
-  if ( !joint ) return JointsCount; // Empty
-  for ( JointsEnum j : joints_ )
-  {
-    if ( j & joint )
-      switch ( joint )
-      {
-        case Hand::Clvcl: return Hand::ClvclIndex;
-        case Hand::Shldr: return Hand::ShldrIndex;
-        case Hand::Elbow: return Hand::ElbowIndex;
-        case Hand::Wrist: return Hand::WristIndex;
-        // default: return JointsCount;
-      }
-  }
-  return JointsCount;
+    /* drop status */
+    for (muscle_t m = 0; m < musclesCount(); ++m)
+    {
+        Muscle muscle = M(m);
+
+        status.lastsMove[muscle] = 0;
+        status.lastsStop[muscle] = 0;
+        status.lasts[muscle] = 0;
+
+        status.musclesMove[muscle] = 0;
+        status.prevFrame[muscle] = 0;
+        //status.acceleration[muscle] = 0.;
+        //status.velosity[muscle] = 0.;
+    }
+    //-----------------------------------------------------
+    status.moveEnd = false;
+    //-----------------------------------------------------
+    for (joint_t joint = 0; joint < jointsCount(); ++joint)
+    {
+        /* make it at resetJoint(): status[ curPos, angles ] */
+        resetJoint(joint);
+    }
 }
 //--------------------------------------------------------------------------------
-void  NewHand::Hand::draw (IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
-{ 
-  //--- draw constants ----------------------------------------------
-  const double    PalmRadius = 0.05;
-  const double   JointRadius = 0.03;
-  const double  SectionWidth = 0.01;
-  
-  //-----------------------------------------------------------------
-  HPEN   hPen_old   =   (HPEN) SelectObject (hdc, hPen);
-  HBRUSH hBrush_old = (HBRUSH) SelectObject (hdc, hBrush);
-  //-----------------------------------------------------------------
-  Point c (   clavicle_   ),
-        s (hs.curPosShldr_), a (hs.curPosArm_ ),
-        h (hs.curPosHand_ ), w (hs.curPosPalm_);
+void  Hand::resetJoint(IN joint_t joint)
+{
+    // TODO: ?drop muscle status
+    /* reset joint to default */
+    setJoints({ {joint, params.defOpen[J(joint)]} });
+}
+//--------------------------------------------------------------------------------
+void  Hand::setJoints(IN const JointsOpenPercent &percents)
+{
+    for (const auto &jr : percents)
+    {
+        Joint joint = J(jr.first);
+        double ratio = jr.second / 100.;
+        
+        if (ratio > 1. || ratio < 0.)
+            throw std::runtime_error("invalid joint percent: must be 0 >= percent >= 100");
 
-  Point su (shoulder_.x + SectionWidth - hs.shiftClvcl_, shoulder_.y + SectionWidth),
-        sd (shoulder_.x - SectionWidth - hs.shiftClvcl_, shoulder_.y - SectionWidth),
-        au (     arm_.x + SectionWidth - hs.shiftClvcl_,      arm_.y + SectionWidth),
-        ad (     arm_.x - SectionWidth - hs.shiftClvcl_,      arm_.y - SectionWidth),
-        hu (    hand_.x + SectionWidth - hs.shiftClvcl_,     hand_.y + SectionWidth),
-        hd (    hand_.x - SectionWidth - hs.shiftClvcl_,     hand_.y - SectionWidth);
+        double maxAngle = (joint == Joint::Clvcl) ?
+            static_cast<double>(physics.jointsMaxAngles[Joint::Clvcl]) / 100. :
+                                physics.jointsMaxAngles[joint];
 
-  Point wu, wd;
-  if ( drawPalm_ )
-  {
-    wu = Point ( palm_.x + SectionWidth - hs.shiftClvcl_,  palm_.y + SectionWidth),
-    wd = Point ( palm_.x - SectionWidth - hs.shiftClvcl_,  palm_.y - SectionWidth);
-  }
-  //-----------------------------------------------------------------
-  su.rotate (s, hs.angleShldr_);
-  sd.rotate (s, hs.angleShldr_);
-  
-  au.rotate (s, hs.angleShldr_);
-  ad.rotate (s, hs.angleShldr_);
+        double angle = ratio * maxAngle;
+        if (status.angles[joint] != angle)
+        {
+            /* status[ curPos, angles ] */
+            jointMove(jr.first, (angle - status.angles[joint]));
+        }
+    }
+}
+//--------------------------------------------------------------------------------
+void  Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
+{
+    HPEN   hPen_old = (HPEN)SelectObject(hdc, hPen);
+    HBRUSH hBrush_old = (HBRUSH)SelectObject(hdc, hBrush);
+    //-----------------------------------------------------------------
 
-  hu.rotate (s, hs.angleShldr_);
-  hd.rotate (s, hs.angleShldr_);
-  hu.rotate (a, hs.angleElbow_);
-  hd.rotate (a, hs.angleElbow_);
-
-  if ( drawPalm_ )
-  {
-    wu.rotate (s, hs.angleShldr_);
-    wd.rotate (s, hs.angleShldr_);
-    wu.rotate (a, hs.angleElbow_);
-    wd.rotate (a, hs.angleElbow_);
-    wu.rotate (h, hs.angleWrist_);
-    wd.rotate (h, hs.angleWrist_);
-  }
-  //-----------------------------------------------------------------
-  MoveToEx (hdc, Tx (1.00), Ty (su.y), NULL);
-  LineTo   (hdc, Tx (su.x), Ty (su.y));
-  LineTo   (hdc, Tx (au.x), Ty (au.y));
-
-  MoveToEx (hdc, Tx (1.00), Ty (sd.y), NULL);
-  LineTo   (hdc, Tx (sd.x), Ty (sd.y));
-  LineTo   (hdc, Tx (ad.x), Ty (ad.y));
-
-  au.rotate (a, hs.angleElbow_);
-  ad.rotate (a, hs.angleElbow_);
-
-  MoveToEx (hdc, Tx (au.x), Ty (au.y), NULL);
-  LineTo   (hdc, Tx (hu.x), Ty (hu.y));
-
-  MoveToEx (hdc, Tx (ad.x), Ty (ad.y), NULL);
-  LineTo   (hdc, Tx (hd.x), Ty (hd.y));
-
-  if ( drawPalm_ )
-  {
-    //---palm-------------------- --------------------------------------
-    DrawCircle (hdc, w, PalmRadius);
+    // // c-clavicle, s-shoulder, a-arm, h-hand, p-palm
+    //Point c(physics.jointsOpenCoords[Joint::Clvcl + 1]),
+    //      s(status.curPos[Joint::Clvcl]), a(status.curPos[Joint::Shldr]),
+    //      h(status.curPos[Joint::Elbow]), p(status.curPos[Joint::Wrist]);
+    //
+    // // u-up, d-down // звенья - верхняя и нижняя палки
+    //Point su(physics.jointsOpenCoords[Joint::Clvcl].x + params.sectionWidth - status.angles[Joint::Clvcl],
+    //         physics.jointsOpenCoords[Joint::Clvcl].y + params.sectionWidth),
+    //      sd(physics.jointsOpenCoords[Joint::Clvcl].x - params.sectionWidth - status.angles[Joint::Clvcl],
+    //         physics.jointsOpenCoords[Joint::Clvcl].y - params.sectionWidth),
+    //      au(physics.jointsOpenCoords[Joint::Shldr].x + params.sectionWidth - status.angles[Joint::Clvcl],
+    //         physics.jointsOpenCoords[Joint::Shldr].y + params.sectionWidth),
+    //      ad(physics.jointsOpenCoords[Joint::Shldr].x - params.sectionWidth - status.angles[Joint::Clvcl],
+    //         physics.jointsOpenCoords[Joint::Shldr].y - params.sectionWidth),
+    //      hu(physics.jointsOpenCoords[Joint::Elbow].x + params.sectionWidth - status.angles[Joint::Clvcl],
+    //         physics.jointsOpenCoords[Joint::Elbow].y + params.sectionWidth),
+    //      hd(physics.jointsOpenCoords[Joint::Elbow].x - params.sectionWidth - status.angles[Joint::Clvcl],
+    //         physics.jointsOpenCoords[Joint::Elbow].y - params.sectionWidth);
+    //
+    //Point wu, wd;
+    //if (params.drawPalm)
+    //{
+    //    wu = Point(physics.jointsOpenCoords[Joint::Wrist].x + params.sectionWidth - status.angles[Joint::Clvcl],
+    //               physics.jointsOpenCoords[Joint::Wrist].y + params.sectionWidth);
+    //    wd = Point(physics.jointsOpenCoords[Joint::Wrist].x - params.sectionWidth - status.angles[Joint::Clvcl],
+    //               physics.jointsOpenCoords[Joint::Wrist].y - params.sectionWidth);
+    //}
+    // //-----------------------------------------------------------------
+    //su.rotate(s, status.angles[Joint::Shldr]);
+    //sd.rotate(s, status.angles[Joint::Shldr]);
+    //
+    //au.rotate(s, status.angles[Joint::Shldr]);
+    //ad.rotate(s, status.angles[Joint::Shldr]);
+    //
+    //hu.rotate(s, status.angles[Joint::Shldr]);
+    //hd.rotate(s, status.angles[Joint::Shldr]);
+    //hu.rotate(a, status.angles[Joint::Elbow]);
+    //hd.rotate(a, status.angles[Joint::Elbow]);
+    //
+    //if (params.drawPalm)
+    //{
+    //    wu.rotate(s, status.angles[Joint::Shldr]);
+    //    wd.rotate(s, status.angles[Joint::Shldr]);
+    //    wu.rotate(a, status.angles[Joint::Elbow]);
+    //    wd.rotate(a, status.angles[Joint::Elbow]);
+    //    wu.rotate(h, status.angles[Joint::Wrist]);
+    //    wd.rotate(h, status.angles[Joint::Wrist]);
+    //}
+    // //-----------------------------------------------------------------
+    //MoveToEx (hdc, Tx(1.00), Ty(su.y), NULL);
+    //LineTo   (hdc, Tx(su.x), Ty(su.y));
+    //LineTo   (hdc, Tx(au.x), Ty(au.y));
+    //
+    //MoveToEx (hdc, Tx(1.00), Ty(sd.y), NULL);
+    //LineTo   (hdc, Tx(sd.x), Ty(sd.y));
+    //LineTo   (hdc, Tx(ad.x), Ty(ad.y));
+    //
+    //au.rotate(a, status.angles[Joint::Elbow]);
+    //ad.rotate(a, status.angles[Joint::Elbow]);
+    //
+    //MoveToEx (hdc, Tx(au.x), Ty(au.y), NULL);
+    //LineTo   (hdc, Tx(hu.x), Ty(hu.y));
+    //
+    //MoveToEx (hdc, Tx(ad.x), Ty(ad.y), NULL);
+    //LineTo   (hdc, Tx(hd.x), Ty(hd.y));
+    //
+    //if (params.drawPalm)
+    //{
+    //    //---palm-------------------- --------------------------------------
+    //    DrawCircle(hdc, p, params.palmRadius);
+    //
+    //    //------------------------------------------------------------------
+    //    hu.rotate(h, status.angles[Wrist]);
+    //    hd.rotate(h, status.angles[Wrist]);
+    //
+    //    LineTo   (hdc, Tx(wd.x), Ty(wd.y));
+    //    MoveToEx (hdc, Tx(hu.x), Ty(hu.y), NULL);
+    //    LineTo   (hdc, Tx(wu.x), Ty(wu.y));
+    //}
+    // //---clavicle-------------------------------------------------------
+    //DrawCircle(hdc, c, params.jointRadius);
+    //
+    // //---shoulder-------------------------------------------------------
+    //DrawCircle(hdc, s, params.jointRadius);
+    //
+    // //---arm--------------------- --------------------------------------
+    //DrawCircle(hdc, a, params.jointRadius);
+    //
+    // //---hand-------------------- --------------------------------------
+    //DrawCircle(hdc, h, params.jointRadius);
 
     //------------------------------------------------------------------
-    hu.rotate (h, hs.angleWrist_);
-    hd.rotate (h, hs.angleWrist_);
+    Point base = physics.jointsOpenCoords[Joint::Clvcl + 1];
 
-    LineTo (hdc, Tx (wd.x), Ty (wd.y));
-    MoveToEx (hdc, Tx (hu.x), Ty (hu.y), NULL);
-    LineTo (hdc, Tx (wu.x), Ty (wu.y));
-  }
-  //---clavicle-------------------------------------------------------
-  DrawCircle (hdc, c, JointRadius);
+    MoveToEx (hdc, Tx(1.00),   Ty(base.y + params.sectionWidth), NULL);
+    LineTo   (hdc, Tx(base.x), Ty(base.y + params.sectionWidth));
 
-  //---shoulder-------------------------------------------------------
-  DrawCircle (hdc, s, JointRadius);
+    MoveToEx (hdc, Tx(1.00),   Ty(base.y - params.sectionWidth), NULL);
+    LineTo   (hdc, Tx(base.x), Ty(base.y - params.sectionWidth));
 
-  //---arm--------------------- --------------------------------------
-  DrawCircle (hdc, a, JointRadius);
-  
-  //---hand-------------------- --------------------------------------
-  DrawCircle (hdc, h, JointRadius);
-  
-  //------------------------------------------------------------------
-  // отменяем ручку
-  SelectObject (hdc, hPen_old);
-  SelectObject (hdc, hBrush_old);
-}
-//--------------------------------------------------------------------------------
-std::vector<const Point*>  NewHand::Hand::jointsPositions () const
-{
-  std::vector<const Point*> vec;
-  vec.push_back (&hs.curPosClvcl_);
-  for ( auto j : joints_ )
-  {
-    if ( j == Clvcl )
-      vec.push_back (&(hs.curPosShldr_));
-    else if ( j == Shldr )
-      vec.push_back (&(hs.curPosArm_));
-    else if ( j == Elbow )
-      vec.push_back (&(hs.curPosHand_));
-    else if ( j == Wrist )
-      vec.push_back (&(hs.curPosPalm_));
-  }
-  return vec;
-}
-//--------------------------------------------------------------------------------
-void  NewHand::Hand::recursiveControlsAppend (NewHand::Hand::MusclesEnum  muscles,
-                                              NewHand::Hand::JointsEnum   joints,
-                                              size_t cur_deep, size_t max_deep)
-{
-  for ( auto j : joints_ )
-  {
-    if ( !(j & joints) && (j > joints) )
+    for (joint_t j = 0; j < jointsCount(); ++j)
     {
-      if ( cur_deep == max_deep )
-      {
-        controls.push_back (muscles | muscleByJoint (j, true ));
-        controls.push_back (muscles | muscleByJoint (j, false));
-      }
-      else
-      {
-        recursiveControlsAppend (muscles | muscleByJoint (j, true ), j | joints, cur_deep + 1U, max_deep);
-        recursiveControlsAppend (muscles | muscleByJoint (j, false), j | joints, cur_deep + 1U, max_deep);
-      } // end else
-    } // end if
-  } // end for
-};
-void  NewHand::Hand::createControls ()
-{
-  for ( auto m : muscles_ )
-  { controls.push_back (m); }
+        Joint joint = J(j);
 
-  /* 1 << 0,1,2,3,4,5,6,7 */
-  /* Impossible (0 & 1) (2 & 3) (4 & 5) (6 & 7) */
+        const Point &B = status.curPos[joint];
+        const Point &A = (j + 1 == jointsCount()) ? base : status.curPos[J(j + 1)];
 
-  size_t    maxSimultMoves = joints_.size ();
-  for ( size_t SimultMoves = 1U; SimultMoves < maxSimultMoves; ++SimultMoves )
-    recursiveControlsAppend (Hand::EmptyMov, Hand::Empty, 0U, SimultMoves);
+        double sw = params.sectionWidth / boost_distance(A, B);
+
+        Point up_c{ rotate(B + (A - B) * sw, B, -90.) }, up_n{ rotate(A + (B - A) * sw, A, +90.) };
+        Point dn_c{ rotate(B + (A - B) * sw, B, +90.) }, dn_n{ rotate(A + (B - A) * sw, A, -90.) };
+        
+        MoveToEx (hdc, Tx(up_c.x), Ty(up_c.y), NULL);
+        LineTo   (hdc, Tx(up_n.x), Ty(up_n.y));
+
+        MoveToEx (hdc, Tx(dn_c.x), Ty(dn_c.y), NULL);
+        LineTo   (hdc, Tx(dn_n.x), Ty(dn_n.y));
+
+        drawCircle(hdc, status.curPos[joint], (joint == Joint::Wrist) ? params.palmRadius : params.jointRadius);
+    }
+    drawCircle(hdc, base, params.jointRadius);
+    //------------------------------------------------------------------
+    // отменяем ручку
+    SelectObject(hdc, hPen_old);
+    SelectObject(hdc, hBrush_old);
 }
 //--------------------------------------------------------------------------------
-NewHand::Hand::MusclesEnum  NewHand::Hand::selectControl (IN NewHand::Hand::MusclesEnum  muscle) const
-{ 
-  if ( !muscle )
-  { return controls[random (controls.size ())]; }
-  else
-  {
-    for ( auto m : controls )
-      if ( !(m & muscle) && musclesValidUnion (m | muscle) )
-        return m;
-    // auto m = controls[random (controls.size ())];
-    // while ( (m & muscle) || !musclesValidUnion (m | muscle) )
-    //   m = controls[random (controls.size ())];
-  }
-  return  EmptyMov;
+void  Hand::drawWorkSpace(OUT Trajectory &workSpace)
+{
+    reset();
+    for (joint_t joint = 0; joint < jointsCount(); ++joint)
+        setJoints({ { joint , 0. } });
+
+    // TODO: for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle) {}
+    Muscle sequence[] = {
+        Muscle::ClvclOpn, Muscle::ShldrCls, Muscle::ClvclCls,
+        Muscle::ElbowCls, Muscle::WristCls, Muscle::ShldrOpn,
+        Muscle::ElbowOpn, Muscle::WristOpn
+    };
+    for (Muscle muscle : sequence)
+    {
+        auto &used = params.musclesUsed;
+        if (std::find(used.begin(), used.end(), muscle) != used.end())
+        {
+            Control control{ { muscle, 0, muscleMaxLast(muscle) } };
+            move(control, workSpace);
+        }
+    }
+    reset();
 }
+//--------------------------------------------------------------------------------
+void  Hand::controlsValidate(Control &controls) const
+{
+    /// TODO: ControlsValidate
+    /* Что-то должно двигаться, иначе беск.цикл */
+    if (!controls.size())
+        throw std::exception("Controls are empty!");
+    /* Управление должно быть отсортировано по времени запуска двигателя */
+    if (controls[0].start != 0 || !boost::range::is_sorted(controls))
+        throw std::exception("Controls are not sorted!");
+    /* Исключить незадействованные двигатели */
+    auto ctrlInvalid = [muscles = musclesCount()](const auto &a) {
+        return (a.last == 0) || (a.muscle >= muscles);
+    };
+    if (boost::algorithm::none_of(controls, ctrlInvalid))
+        throw std::exception("Controls have UnUsed muscles!");
+
+    /// TODO: (last > 0) !!!!!!!!
+    
+
+    size_t joints[JCount];
+    memset(joints, JInvalid, sizeof(joints));
+    for (size_t i = 0; i < controls.size(); ++i)
+    {
+        joint_t j = jointByMuscle(controls[i].muscle);
+        if (joints[j] != JInvalid)
+        {
+            if (controls[j].last > controls[i].last)
+            {
+                controls[i].start = controls[j].last + 1U; // control[j].start;
+                controls[j].start = 0U;
+            }
+            else
+            {
+                controls[j].start = controls[i].last + 1U; // control[i].start;
+                controls[i].start = 0U;
+            }
+        }
+        joints[j] = i;
+    }
+}
+//--------------------------------------------------------------------------------
+bool  Hand::controlsCheck(const Control &controls) const
+{
+    /// TODO: controlsCheck
+    return true;
+}
+
+//--------------------------------------------------------------------------------
+//bool  Hand::timeValidToStartOppositeMuscle(IN muscle_t muscle)
+//{
+//    if (!muscle) return false;
+//
+//    for (auto joint : joints_)
+//    {
+//        auto mo = muscleByJoint(joint, true);
+//        auto mc = muscleByJoint(joint, false);
+//
+//        if (((mo & hs.musclesMove_) && hs.lastsMove[joint] && (mc & muscle))
+//         || ((mc & hs.musclesMove_) && hs.lastsMove[joint] && (mo & muscle)))
+//        {
+//            return false;
+//        }
+//    }
+//    return true;
+//}
+//--------------------------------------------------------------------------------
+//Hand::Muscle Hand::selectControl(IN Muscle muscle) const
+//{
+//    if (!muscle)
+//    { return controls[random(controls.size())]; }
+//    else
+//    {
+//        for (auto m : controls)
+//            if (!(m & muscle) && musclesValidUnion(m | muscle))
+//                return m;
+//        // auto m = controls[random (controls.size ())];
+//        // while ( (m & muscle) || !musclesValidUnion (m | muscle) )
+//        //   m = controls[random (controls.size ())];
+//    }
+//    return  EmptyMov;
+//}
 //--------------------------------------------------------------------------------

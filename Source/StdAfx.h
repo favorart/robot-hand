@@ -34,6 +34,14 @@
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
+//--------------------------------
+
+#ifdef _MSC_VER
+#include <boost/config/compiler/visualc.hpp>
+#endif
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+namespace pt = boost::property_tree;
 
 // #if !defined(NDEBUG)
 // #define BOOST_MULTI_INDEX_ENABLE_INVARIANT_CHECKING
@@ -57,10 +65,17 @@
 #include <boost/next_prior.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <boost/range/adaptors.hpp>
+#include <boost/range/algorithm.hpp>
+#include <boost/range/algorithm_ext/is_sorted.hpp>
+#include <boost/range/combine.hpp>
+#include <boost/range/iterator.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/format.hpp>
 
+#include <boost/math/special_functions/sign.hpp>
+#include <boost/assign.hpp>
 #include <boost/functional/hash.hpp>
 
 #include <boost/algorithm/algorithm.hpp>
@@ -73,15 +88,10 @@
 #include <boost/algorithm/cxx11/iota.hpp>
 #include <boost/algorithm/cxx11/find_if_not.hpp>
 #include <boost/algorithm/cxx11/is_sorted.hpp>
-// #include <boost/algorithm/cxx11/is_partitioned.hpp>
-// #include <boost/algorithm/cxx11/is_permutation.hpp>
+//#include <boost/algorithm/cxx11/is_partitioned.hpp>
+//#include <boost/algorithm/cxx11/is_permutation.hpp>
 //#include <boost/algorithm/cxx11/partition_copy.hpp>
 //#include <boost/algorithm/cxx11/partition_point.hpp>
-
-#include <boost/range/adaptors.hpp>
-#include <boost/range/algorithm.hpp>
-
-#include <boost/assign.hpp>
 
 #include <boost/thread.hpp>
 #include <boost/atomic/atomic.hpp>
@@ -94,8 +104,13 @@
 #include <boost/geometry/geometries/linestring.hpp>
 
 typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
-inline double  boost_distance (boost_point2_t a, boost_point2_t b)
-{ return boost::geometry::distance<boost_point2_t> (a,b); }
+inline double boost_distance(boost_point2_t a, boost_point2_t b)
+{ return boost::geometry::distance<boost_point2_t>(a, b); }
+
+namespace ba = boost::algorithm;
+namespace br = boost::range;
+namespace bg = boost::geometry;
+
 
 // #include <boost/range/algorithm/permutation.hpp>
 #include <boost/lambda/lambda.hpp>
@@ -131,23 +146,36 @@ inline double  boost_distance (boost_point2_t a, boost_point2_t b)
 #include <windows.h>
 #include <tchar.h>
 
-// TCHAR based std::string
-typedef std::basic_string<TCHAR> tstring;
-// TCHAR based std::istream
-typedef std::basic_istream<TCHAR> tistream;
-// TCHAR based std::ostream
-typedef std::basic_ostream<TCHAR> tostream;
-// TCHAR based std::fstream;
-typedef std::basic_fstream<TCHAR> tfstream;
-// TCHAR based std::stringstream
-typedef std::basic_stringstream<TCHAR> tstringstream;
+//typedef std::basic_string<TCHAR> tstring;               // TCHAR based
+//typedef std::basic_istream<TCHAR> tistream;             // TCHAR based
+//typedef std::basic_ostream<TCHAR> tostream;             // TCHAR based
+//typedef std::basic_fstream<TCHAR> tfstream;             // TCHAR based
+//typedef std::basic_stringstream<TCHAR> tstringstream;   // TCHAR based
 
 #if defined(UNICODE) || defined(_UNICODE)
-#define tcout std::wcout
 #define tcin  std::wcin
+#define tcout std::wcout
+#define tcerr std::wcerr
+
+using tstring =  std::wstring;
+using tistream = std::wistream;
+using tostream = std::wostream;
+using tfstream = std::wfstream;
+using tstringstream = std::wstringstream;
+
+using tptree = pt::wptree;
 #else
-#define tcout std::cout
 #define tcin  std::cin
+#define tcout std::cout
+#define tcerr std::cerr
+
+using tstring  = std::string;
+using tistream = std::istream;
+using tostream = std::ostream;
+using tfstream = std::fstream;
+using tstringstream = std::stringstream;
+
+using tptree = pt::ptree;
 #endif
 
 //---defines---------------------------

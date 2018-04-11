@@ -20,77 +20,89 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Resource\resource.h" />
-    <ClInclude Include="Source\HandMoves\Record.h" />
-    <ClInclude Include="Source\HandMoves\Store.h" />
-    <ClInclude Include="Source\HandMoves\Target.h" />
+    <ClInclude Include="Source\RoboPos\RoboLearnMoves.h" />
+    <ClInclude Include="Source\RoboDB\RoboMovesRecord.h" />
+    <ClInclude Include="Source\RoboDB\RoboMovesStore.h" />
+    <ClInclude Include="Source\RoboPos\RoboMovesTarget.h" />
     <ClInclude Include="Source\Hand\Hand.h" />
     <ClInclude Include="Source\Hand\HandMotionLaws.h" />
-    <ClInclude Include="Source\Hand\HandMotionLawsCustom.h" />
-    <ClInclude Include="Source\Hand\HandMuscles.h" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\llsq\llsq.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\qr_solve\qr_solve.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\r8lib\r8lib.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\test_ls\test_ls.hpp" />
-    <ClInclude Include="Source\libs\lp_solve\include\lp_lib.h" />
-    <ClInclude Include="Source\MyWindow\Draw.h" />
-    <ClInclude Include="Source\MyWindow\DrawLetters.h" />
+    <ClInclude Include="Source\Robo\RoboMuscles.h" />
+    <ClInclude Include="libs\Combinations.h" />
+    <ClInclude Include="libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.hpp" />
+    <ClInclude Include="libs\J.Burkardt (FSU)\llsq\llsq.hpp" />
+    <ClInclude Include="libs\J.Burkardt (FSU)\qr_solve\qr_solve.hpp" />
+    <ClInclude Include="libs\J.Burkardt (FSU)\r8lib\r8lib.hpp" />
+    <ClInclude Include="libs\J.Burkardt (FSU)\test_ls\test_ls.hpp" />
+    <ClInclude Include="libs\lp_solve\include\lp_lib.h" />
+    <ClInclude Include="Source\MyWindow\WindowDraw.h" />
+    <ClInclude Include="Source\MyWindow\WindowDrawLetters.h" />
     <ClInclude Include="Source\MyWindow\WindowData.h" />
     <ClInclude Include="Source\MyWindow\WindowHeader.h" />
-    <ClInclude Include="Source\Position\DirectionPredictor.h" />
-    <ClInclude Include="Source\Position\LinearOperator.h" />
-    <ClInclude Include="Source\Position\Position.h" />
+    <ClInclude Include="Source\RoboPos\RoboPosMDirections.h" />
+    <ClInclude Include="Source\RoboPos\RoboPosLinear.h" />
+    <ClInclude Include="Source\RoboPos\RoboPos.h" />
+    <ClInclude Include="Source\RoboPos\RoboPosTour.h" />
+    <ClInclude Include="Source\Robo\Robo.h" />
+    <ClInclude Include="Source\Robo\RoboControl.h" />
+    <ClInclude Include="Source\RoboPos\RoboEdges.h" />
+    <ClInclude Include="Source\Robo\RoboMotionLaws.h" />
     <ClInclude Include="Source\StdAfx.h" />
-    <ClInclude Include="Source\Utilities\Combinations.h" />
+    <ClInclude Include="Source\Tank\Tank.h" />
+    <ClInclude Include="Source\Utilities\ConfigJSON.h" />
     <ClInclude Include="Source\Utilities\Point.h" />
-    <ClInclude Include="Source\Utilities\Utilities.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HandMangoLaw.cpp" />
-    <ClCompile Include="Source\HandMoves\Record.cpp" />
-    <ClCompile Include="Source\HandMoves\Store.cpp" />
-    <ClCompile Include="Source\HandMoves\Target.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboLearnMoves.cpp" />
+    <ClCompile Include="Source\RoboDB\RoboMovesRecord.cpp" />
+    <ClCompile Include="Source\RoboDB\RoboMovesStore.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboMovesTarget.cpp" />
     <ClCompile Include="Source\Hand\Hand.cpp" />
-    <ClCompile Include="Source\Hand\HandMuscles.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\llsq\llsq.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\qr_solve\qr_solve.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\r8lib\r8lib.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\test_ls\test_ls.cpp" />
-    <ClCompile Include="Source\MyWindow\Console.cpp" />
-    <ClCompile Include="Source\MyWindow\Draw.cpp" />
-    <ClCompile Include="Source\MyWindow\DrawLetters.cpp" />
+    <ClCompile Include="Source\Robo\RoboMuscles.cpp" />
+    <ClCompile Include="libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.cpp" />
+    <ClCompile Include="libs\J.Burkardt (FSU)\llsq\llsq.cpp" />
+    <ClCompile Include="libs\J.Burkardt (FSU)\qr_solve\qr_solve.cpp" />
+    <ClCompile Include="libs\J.Burkardt (FSU)\r8lib\r8lib.cpp" />
+    <ClCompile Include="libs\J.Burkardt (FSU)\test_ls\test_ls.cpp" />
+    <ClCompile Include="Source\Utilities\Console.cpp" />
+    <ClCompile Include="Source\MyWindow\WindowDraw.cpp" />
+    <ClCompile Include="Source\MyWindow\WindowDrawLetters.cpp" />
     <ClCompile Include="Source\MyWindow\WindowData.cpp" />
     <ClCompile Include="Source\MyWindow\WindowMain.cpp" />
     <ClCompile Include="Source\MyWindow\WindowMessageHandlers.cpp" />
     <ClCompile Include="Source\MyWindow\WindowMessageLoop.cpp" />
-    <ClCompile Include="Source\Position\DirectionPredictor.cpp" />
-    <ClCompile Include="Source\Position\GradientMethod.cpp" />
-    <ClCompile Include="Source\Position\Position.cpp" />
-    <ClCompile Include="Source\Position\Position_old.cpp" />
-    <ClCompile Include="Source\Position\RundownMethod.cpp" />
-    <ClCompile Include="Source\Position\SimplexMethod.cpp" />
-    <ClCompile Include="Source\Position\LinearOperator.cpp" />
-    <ClCompile Include="Source\Position\Tests.cpp" />
-    <ClCompile Include="Source\Position\TourWorkSpace.cpp" />
-    <ClCompile Include="Source\Position\TourWorkSpace1.cpp" />
-    <ClCompile Include="Source\Position\WeightedMean.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPosMDirections.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPosGradient.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPos.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboMovesRundown.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboMovesSimplex.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPosLinear.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboMovesTests.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPosTour.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPosTourNoRec.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboMovesWeightedMean.cpp" />
+    <ClCompile Include="Source\Robo\RoboControl.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboEdges.cpp" />
     <ClCompile Include="Source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Source\Tank\Tank.cpp" />
+    <ClCompile Include="Source\Utilities\ConfigJSON.cpp" />
     <ClCompile Include="Source\Utilities\Point.cpp" />
+    <ClCompile Include="Source\Utilities\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Resource\ElbowMoveFrames.txt" />
-    <Text Include="Resource\ElbowStopFrames.txt" />
-    <Text Include="Resource\ShoulderMoveFrames.txt" />
-    <Text Include="Resource\ShoulderStopFrames.txt" />
+    <Text Include="configHand-j2.json" />
+    <Text Include="Resource\configHand-j4.json" />
+    <Text Include="Resource\configTank.json" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource\resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resource\config.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{31D13702-BE83-40A3-9194-4A05CE7CDB34}</ProjectGuid>
@@ -102,13 +114,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -145,9 +157,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath)</SourcePath>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\lp_solve\include\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\libs\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(VC_SourcePath)</SourcePath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -159,9 +171,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath)</SourcePath>
+    <IncludePath>$(ProjectDir)Source\Tank;$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(ProjectDir)Source\libs\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\;$(VC_SourcePath)</SourcePath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -177,17 +189,21 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\b11\boost_1_66_0;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAs>CompileAsCpp</CompileAs>
-      <ForcedUsingFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedUsingFiles>
+      <ForcedUsingFiles>
+      </ForcedUsingFiles>
       <ShowIncludes>false</ShowIncludes>
+      <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)libs\lp_solve\lib32;C:\b11\boost_1_66_0\libs;C:\b11\boost_1_66_0\lib32-msvc-14.1;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>liblpsolve55.lib;liblpsolve55d.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -219,7 +235,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\b11\boost_1_66_0;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -232,7 +248,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)Source\libs\lp_solve\lib32;C:\b11\boost_1_66_0\libs;C:\b11\boost_1_66_0\lib32-msvc-14.1;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>liblpsolve55.lib;liblpsolve55d.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

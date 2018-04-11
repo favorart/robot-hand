@@ -1,319 +1,222 @@
-﻿#include "StdAfx.h"
-#include "HandMotionLaws.h"
+﻿#pragma once
+
+#include "StdAfx.h"
+#include "Robo.h"
 
 
 #ifndef  _NEW_HAND_H_
 #define  _NEW_HAND_H_
 //------------------------------------------------------------------------------
-namespace NewHand
+namespace Robo {
+class EnvEdgesHand;
+namespace NewHand {
+
+#define HAND_VER 3
+
+class Hand : public RoboI
 {
-  class Hand
-  {
-  public:         
-    typedef unsigned int time_t;
-    typedef unsigned int frames_t;
+public:
     //----------------------------------------------------
-    typedef enum : uint8_t
-    { /* Opn - open,
-       * Cls - close
-       */
-      EmptyMov = 0,
-      ClvclOpn = 1 << 0,
-      ClvclCls = 1 << 1,
-      ShldrOpn = 1 << 2,
-      ShldrCls = 1 << 3,
-      ElbowOpn = 1 << 4,
-      ElbowCls = 1 << 5,
-      WristOpn = 1 << 6,
-      WristCls = 1 << 7
-    } MusclesEnum;
-
-    typedef enum : uint8_t
-    {
-      ClvclOpnIndex = 0U,
-      ClvclClsIndex = 1U,
-      ShldrOpnIndex = 2U,
-      ShldrClsIndex = 3U,
-      ElbowOpnIndex = 4U,
-      ElbowClsIndex = 5U,
-      WristOpnIndex = 6U,
-      WristClsIndex = 7U,
-      MusclesCount  = 8U
-    } MusclesIndexEnum;
-
-    //----------------------------------------------------
-    typedef enum : uint8_t
-    { Empty = 0,
-      Clvcl = 1 << 0, // 1,  // ключица:   clavicle
-      Shldr = 1 << 1, // 2,  // плечо:     shoulder
-      Elbow = 1 << 2, // 4,  // локоть:    elbow
-      Wrist = 1 << 3  // 8   // запястье:  carpus , wrist
-    } JointsEnum;
-
-    typedef enum : uint8_t
-    {
-      ClvclIndex  = 0,
-      ShldrIndex  = 1,
-      ElbowIndex  = 2,
-      WristIndex  = 3,
-      JointsCount = 4
-    } JointsIndexEnum;
-    //----------------------------------------------------
-    typedef std::array< JointsEnum,  JointsCount> j_array;
-    typedef std::array<MusclesEnum, MusclesCount> m_array;
-    //----------------------------------------------------
-    std::vector< JointsEnum>  joints_;
-    std::vector<MusclesEnum>  muscles_;
-    //----------------------------------------------------
-    MusclesEnum  musclesCumul;
-    //----------------------------------------------------
-    MusclesIndexEnum   muscleIndex (IN MusclesEnum  muscle) const;
-     JointsIndexEnum    jointIndex (IN  JointsEnum   joint) const;
-     //----------------------------------------------------
-    frames_t  maxMuscleLast (IN MusclesEnum  muscle);
-    //----------------------------------------------------
-    frames_t  visitedSaveEach;
-
-  private:
-    //----------------------------------------------------
-    struct HandStatus
-    {
-      //---current position---------------------------------
-      Point  curPosPalm_, curPosHand_, curPosArm_,
-             curPosShldr_, curPosClvcl_;
-      // TODO: make array
-
-      double angleWrist_, angleElbow_,
-             angleShldr_, shiftClvcl_;
-      // TODO: make array
-
-      bool   moveEnd_;
-
-      //---parameters of hydraulic force--------------------
-      std::array<frames_t, MusclesCount> lastsMove;
-      std::array<frames_t, MusclesCount> lastsStop;
-      std::array<frames_t, MusclesCount> lasts_;
-
-      MusclesEnum  musclesMove_;
-      //----------------------------------------------------
-      std::array<double, MusclesCount> prevFrame_;
-      //----------------------------------------------------
-      double  velosity_;
+    enum Muscle : uint8_t
+    {   /* Opn - open, Cls - close */
+        WristOpn  = 0,
+        WristCls  = 1,
+        ElbowOpn  = 2,
+        ElbowCls  = 3,
+        ShldrOpn  = 4,
+        ShldrCls  = 5,
+        ClvclOpn  = 6,
+        ClvclCls  = 7,
+        MCount    = 8,
+        MInvalid  = 9
     };
-    HandStatus hs;
-
-    bool drawPalm_;
-    //---base position------------------------------------
-    Point   palm_, hand_, arm_, shoulder_, clavicle_;
-    // TODO: make array
-
-    //---angle limits-------------------------------------
-    const std::array<size_t, JointsCount> maxJointAngles;
-    // maxClvclShift, maxShldrAngle, 
-    // maxElbowAngle, maxWristAngle
-    const double  StopDistaceRatio;
-
-    //---internal phisical parameters---------------------
-    std::array<frames_t, JointsCount>  maxMoveFrames;
-    std::array<frames_t, JointsCount>  minStopFrames;
-
-    std::array<std::vector<double>, JointsCount>  framesMove;
-    std::array<std::vector<double>, JointsCount>  framesStop;
-    //----------------------------------------------------
-    double    nextFrame (MusclesEnum muscle, frames_t frame, bool atStop);
-    bool    muscleFrame (MusclesEnum muscle, frames_t frame, bool atStop);
-
-    void    muscleBrake (MusclesIndexEnum MuscleIndex, JointsIndexEnum JointIndex);
-    void    muscleFinal (MusclesIndexEnum MuscleIndex, MusclesEnum muscle);
-    void    muscleMove  (MusclesIndexEnum MuscleIndex, MusclesEnum muscle,
-                         frames_t last, bool control);
-    //----------------------------------------------------
-    std::vector<MusclesEnum>  controls;
-    void  createControls ();
-    void  recursiveControlsAppend (MusclesEnum  muscles,
-                                   JointsEnum   joints,
-                                   size_t       cur_deep,
-                                   size_t       max_deep);
 
     //----------------------------------------------------
-    const double  minFrameMove = EPS;
-    //----------------------------------------------------
-
-  public:
-    typedef  std::map<JointsEnum, MotionLaws::JointMotionLaw>  JointsMotionLaws;
-    //----------------------------------------------------
-    Hand (IN const Point &palm,
-          IN const Point &hand,
-          IN const Point &arm,
-          IN const Point &shoulder,
-          IN const Point &clavicle,
-          IN const JointsMotionLaws &joints_frames) throw (...);
-    //----------------------------------------------------
-    void  draw (IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
-    //----------------------------------------------------
-    struct Control
+    enum Joint : uint8_t
     {
-      MusclesEnum  muscle;
-      frames_t     start;
-      frames_t     last;
-      //----------------------------------------------------
-      Control () : muscle (EmptyMov), start (0U), last (0U) {}
-      Control (MusclesEnum  muscle, frames_t start, frames_t last) :
-        muscle (muscle), start (start), last (last) {}
-      //----------------------------------------------------
-      Control&  operator= (const Control &c)
-      {
-        if ( this != &c )
-        {
-          muscle = c.muscle;
-          start = c.start;
-          last = c.last;
-        }
-        return *this;
-      }
-      //----------------------------------------------------
-      bool  operator<  (const Control &c) const
-      { return start < c.start; }
-      bool  operator== (const Control &c) const
-      {
-        return  (muscle == c.muscle)
-             && (start == c.start)
-             && (last == c.last);
-      }
-      bool  operator!= (const Control &c) const
-      {
-        return  (muscle != c.muscle)
-             || (start != c.start)
-             || (last != c.last);
-      }
-      bool  operator== (const MusclesEnum m) const
-      { return  (muscle == m); }
-      bool  operator!= (const MusclesEnum m) const
-      { return  (muscle != m); }
-      //----------------------------------------------------
-      template<class Archive>
-      void  serialize (Archive & ar, const unsigned int version)
-      { ar & muscle & start & last; }
-      //----------------------------------------------------
-      operator tstring () const
-      {
-        tstringstream ss;
-        ss << muscle << _T(" ") << start << _T(" ") << last;
-        return  ss.str ();
-      }
+        Wrist     = 0, // запястье:  wrist (carpus)
+        Elbow     = 1, // локоть:    elbow
+        Shldr     = 2, // плечо:     shoulder
+        Clvcl     = 3, // ключица:   clavicle
+        JCount    = 4,
+        JInvalid  = 5
     };
+
+    static const size_t MusclesMaxCount = (size_t)(Hand::Muscle::MCount);
+    static const size_t JointsMaxCount = (size_t)(Hand::Joint::JCount);
     //----------------------------------------------------
-    template <class Iter>
-    frames_t  move (IN Iter begin, IN Iter end, OUT std::list<Point> *visited=NULL) throw (...)
+    frames_t muscleMaxLast(IN muscle_t) const;
+    frames_t muscleMaxLast(IN const Control&) const;
+    //----------------------------------------------------
+    static Muscle MofJ(Joint joint, bool open) { return Muscle(size_t(joint) * 2 + !open); }
+    static Joint  JofM(Muscle muscle) { return Joint(size_t(muscle) / 2); }
+    //----------------------------------------------------
+    Muscle M(muscle_t muscle) const
     {
-      frames_t  frame = 0U;
-      frames_t  actual_last = 0U;
-
-      if ( !std::is_sorted (begin, end) )
-        throw new std::exception ("Controls are not sorted");
-
-      /* Исключить незадействованные двигатели */
-      MusclesEnum control_muscles = Hand::EmptyMov;
-      for ( Iter it = begin; it != end; ++it )
-      { control_muscles = control_muscles | it->muscle; }
-
-      if ( std::none_of (begin, end, [](const Hand::Control &c) { return (c.last > 0); }) )
-      { return  0U; }
-
-      /* Simultaniusly moving */
-      if ( musclesCumul & control_muscles )
-      { /*  Что-то должно двигаться, иначе бесконечный цикл. */
-        Iter  iter = begin;
-        for ( frames_t time = iter->start; iter != end; ++time )
-        {
-          if ( time == iter->start )
-          { /* Если стартуют одновременно, но разной продолжительности. */
-            while ( iter != end && time == iter->start )
-            {
-              step (iter->muscle, iter->last);
-              if ( iter != begin )
-                ++actual_last;
-              ++iter;
-              if ( visited && !(frame % visitedSaveEach) )
-                visited->push_back (position);
-            }
-          }
-          else
-          {
-            step ();
-            ++actual_last;
-            if ( visited && !(frame % visitedSaveEach) )
-              visited->push_back (position);
-          }
-          ++frame;
-        } // end for
-
-        while ( !hs.moveEnd_ )
-        {
-          step ();
-          ++actual_last;
-          if ( visited && !(frame % visitedSaveEach) )
-            visited->push_back (position);
-          ++frame;
-        }
-        if ( visited )
-          visited->push_back (position);
-      } // end if
-      return  actual_last;
+        if (muscle >= params.musclesUsedCount)
+            return MInvalid;
+        return params.musclesUsed[muscle];
     }
-    frames_t  move (IN std::initializer_list<Control> controls, OUT std::list<Point> *visited=NULL) throw (...);
-    frames_t  move (IN MusclesEnum muscle, IN frames_t last);
-    frames_t  move (IN MusclesEnum muscle, IN frames_t last, OUT std::list<Point> &visited);
-    //----------------------------------------------------
-    bool  timeValidStartOppositeMuscle (IN  MusclesEnum muscle);
-    //----------------------------------------------------
-    void  step (IN MusclesEnum muscle=EmptyMov, IN frames_t last=0U);
-    //----------------------------------------------------
-    const Point&  jointPosition (IN Hand::JointsEnum joint) const throw (...)
+    Joint  J(joint_t joint) const
     {
-      switch ( joint )
-      {
-        case Hand::Clvcl: return clavicle_;
-        case Hand::Shldr: return shoulder_;
-        case Hand::Elbow: return      arm_;
-        case Hand::Wrist: return     hand_;
-        default: throw new std::exception ("Inorrect joint");  // _T ??
-      }
+        if (joint >= params.jointsUsedCount)
+            return JInvalid;
+        return params.jointsUsed[joint];
     }
     //----------------------------------------------------
+    joint_t   jointsCount() const { return params.jointsUsedCount; }
+    muscle_t musclesCount() const { return params.musclesUsedCount; }
     //----------------------------------------------------
-    typedef std::map<Hand::JointsEnum, double> JointsSet;
+    bool musclesValidUnion(Muscle m1, Muscle m2)
+    { return (m1 < MCount && m2 < MCount && (m1 / 2) != (m2 / 2)); }
+    //----------------------------------------------------
+    struct JointInput : public Robo::JointInput
+    {
+        Joint             type{ Joint::JInvalid };
+        Point       openCoords{};
+        size_t        maxAngle{};
+        frames_t maxMoveFrames{};
+        double     defaultPose{};
+        //MotionLaws::JointMotionLaw  frames{ nullptr, nullptr };
+        //bool show;
+        //[ &palm, &hand, &arm, &shoulder ]
+        JointInput() : Robo::JointInput() {}
+        JointInput(Joint type, const Point &openCoords, size_t maxAngle,
+                   frames_t  maxMoveFrames, double defaultPose,
+                   const MotionLaws::JointMotionLaw &frames, bool show) :
+            type(type), openCoords(openCoords), maxAngle(maxAngle),
+            maxMoveFrames(maxMoveFrames), defaultPose(defaultPose),
+            Robo::JointInput(frames, show) {}
+    };
+    //----------------------------------------------------
+    Hand(IN const Point &baseClavicle, IN const std::list<JointInput> &joints);
+    Hand(IN const Point &baseClavicle, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints);
+    //----------------------------------------------------
 
-    /*  jointsOpenPercent = { Clvcl, Shldr, Elbow, Wrist } < 100.0 %  */
-    void  set (IN Hand::JointsSet &jointsOpenPercent);
-    void  reset ();
+private:
     //----------------------------------------------------
-    std::vector<const Point*>  jointsPositions () const;
+    struct Params
+    {
+        std::array<Muscle, MusclesMaxCount> musclesUsed;
+        std::array<Joint,   JointsMaxCount>  jointsUsed;
+        std::array<double,  JointsMaxCount>     defOpen;
+
+        uint8_t musclesUsedCount;
+        uint8_t jointsUsedCount;
+
+        bool dynamics;
+        bool oppHandle;
+
+        //--- draw constants ---
+        bool drawPalm;
+                
+        double   palmRadius;
+        double  jointRadius;
+        double sectionWidth;
+
+        Params(IN const std::list<JointInput> &jointInputs);
+    };
+
     //----------------------------------------------------
-    MusclesEnum  selectControl (IN size_t choose) const
-    { return  (choose < controls.size ()) ? controls[choose] : Hand::EmptyMov; }
-    MusclesEnum  selectControl (IN MusclesEnum  muscle=Hand::EmptyMov) const;
+    struct Status
+    {
+        // ---current position---
+        std::array<Point, JointsMaxCount>  curPos{};  // curPos_Palm, curPos_Hand, curPos_Arm, curPos_Shldr (curPosClvcl fixed)
+        std::array<double, JointsMaxCount> angles{};  // angle_Wrist, angle_Elbow, angle_Shldr, shift_Clvcl
+
+        bool moveEnd = false; // флаг окончания движения - полной остановки
+
+        // ---parameters of hydraulic force---
+        std::array<frames_t, MusclesMaxCount> lastsMove{}; // текущая продолжительность основного движения данного мускула (индекс кадра в массиве moveFrames)
+        std::array<frames_t, MusclesMaxCount> lastsStop{}; // текущая продолжительность торможения данного мускула (индекс кадра в массиве moveFrames)
+        std::array<frames_t, MusclesMaxCount> lasts{};     // индекс кадра в массиве moveFrames 
+
+        // ---frames---
+        std::array<frames_t, MusclesMaxCount> musclesMove{}; // задействованные в движениии двители
+        std::array<double,   MusclesMaxCount>   prevFrame{}; // величина смещения сочленения в предыдущий такт для данного мускула
+        //std::array<double, JointsMaxCount>     velosity{}; // скорость сочленения в данный такт
+        //std::array<double, JointsMaxCount> acceleration{}; // ускорение сочленения в данный такт        
+        unsigned visitedRarity = 10;
+        bool windy = false;
+
+        Status(IN const std::list<Hand::JointInput> &jointInputs)
+        {
+            for (auto &input : jointInputs)
+                if (input.show)
+                    curPos[input.type] = input.openCoords;
+        }
+    };
+
     //----------------------------------------------------
-    /* Microsoft specific: C++ properties */
-    __declspec(property(get = get_mend)) bool moveEnd;
-    bool  get_mend () const { return hs.moveEnd_; }
-    __declspec(property(get = get_posit)) const Point& position;
-    const Point&  get_posit () const { return (drawPalm_) ? hs.curPosPalm_ : hs.curPosHand_; }
-    __declspec(property(get = get_pos)) boost_point2_t pos;
-    boost_point2_t  get_pos () const { return (drawPalm_) ? hs.curPosPalm_ : hs.curPosHand_; }
-    __declspec(property(get = get_n_controls)) size_t controlsCount;
-    size_t  get_n_controls () const { return controls.size (); }
+    struct Physics
+    {
+        //---internal phisical parameters---
+        std::array<Point, JointsMaxCount + 1> jointsOpenCoords{}; // palm, hand, arm, shoulder (clavicle fixed)
+        std::array<size_t, JointsMaxCount>    jointsMaxAngles{};  // maxWristAngle, maxElbowAngle, maxShldrAngle, maxClvclShift
+
+        std::array<frames_t, JointsMaxCount>  maxMoveFrames{}; // число кадров от полного раскрытия сустава до полного закрытия
+        std::array<frames_t, JointsMaxCount>  minStopFrames{}; // число кадров для остановки сустава при полном ускорении
+
+        //---велична изменения угла в каждый кадр---
+        std::array<std::vector<double>, JointsMaxCount> framesMove{}; // при движении
+        std::array<std::vector<double>, JointsMaxCount> framesStop{}; // при остановке
+
+        Physics(IN const Point &baseClavicle, IN const std::list<JointInput> &jointInputs);
+    };
+
     //----------------------------------------------------
-  };
-  //------------------------------------------------------------------------------
-  const tstring  HAND_NAME = _T ("NewHand");
-#define SET_DEFAULT  set(   NewHand::Hand::JointsSet    \
-                         { {NewHand::Hand::Clvcl,  0.}, \
-                           {NewHand::Hand::Shldr,  0.}, \
-                           {NewHand::Hand::Elbow, 70.}, \
-                           {NewHand::Hand::Wrist, 50.}  \
-                         });
-  //------------------------------------------------------------------------------
+    Status status;
+    const Params params;
+    const Physics physics;
+        
+    //----------------------------------------------------
+    bool muscleFrame (muscle_t);
+    void muscleMove  (frames_t frame, muscle_t m, frames_t last);
+    //----------------------------------------------------
+    void  jointMove  (joint_t joint, double offset);
+    //----------------------------------------------------
+    frames_t  Hand::move(IN Muscle muscle, IN frames_t last);
+    frames_t  Hand::move(IN Muscle muscle, IN frames_t last, OUT Trajectory &visited);
+        
+public:
+    //----------------------------------------------------
+    void      drawWorkSpace(OUT Trajectory&);
+
+    void      draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
+    void      step(IN frames_t frame, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
+    frames_t  move(IN const Control &control, OUT Trajectory &visited);
+    //----------------------------------------------------
+    void controlsValidate(Control&) const;
+    bool controlsCheck(const Control&) const;
+    
+    //----------------------------------------------------
+    /*  jointsOpenPercent={ j={ Clvcl, Shldr, Elbow, Wrist }, val <= 100.0% } */
+    void  setJoints(IN const JointsOpenPercent&);
+    void  resetJoint(IN joint_t);
+    void  reset();
+    
+    Point jointPos(IN joint_t joint) const
+    {
+        if (joint >= JCount)
+            throw std::exception("Inorrect joint");
+        return status.curPos[J(joint)];
+    }
+    //----------------------------------------------------    
+    bool          moveEnd() const { return status.moveEnd; }
+    const Point& position() const { return status.curPos[(params.drawPalm ? Joint::Wrist : Joint::Elbow)]; }
+
+    unsigned getVisitedRarity() const { return status.visitedRarity; }
+    void     setVisitedRarity(unsigned rarity) { status.visitedRarity = rarity; }
+
+    unsigned getWindy() const { return status.windy; }
+    void     setWindy(bool windy) { status.windy = windy; }
+    //----------------------------------------------------
+    tstring name() const { return _T("Hand-v3"); }
+    //----------------------------------------------------
+    friend class Robo::EnvEdgesHand;
 };
+
+}
+}
 //------------------------------------------------------------------------------
 #endif // _NEW_HAND_H_

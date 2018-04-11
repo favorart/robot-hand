@@ -1,86 +1,107 @@
 ﻿#include "StdAfx.h"
 #include "WindowData.h"
-#include "Draw.h"
-#include "Position.h"
+#include "WindowDraw.h"
+#include "WindowDrawLetters.h"
 
-using namespace std;
-using namespace HandMoves;
+#include "RoboPos.h"
+#include "RoboMuscles.h"
+#include "RoboLearnMoves.h"
 
-bool zoom = false;
+
+using namespace Robo;
+using namespace RoboMoves;
 //------------------------------------------------------------------------------
-win_point*  WindowSize (void)
-{ static win_point Width_Height;
-  return &Width_Height;
-}
-void     SetWindowSize (int Width_, int Height_)
-{ WindowSize ()->x = Width_;
-  WindowSize ()->y = Height_;
-}
-
 /* normal */
-int  T2x (double logic_x)
-{ return  (int) (MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
-int  T2y (double logic_y)
-{ return  (int) (MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
+uint_t Tx_norm (double logic_x)
+{ return static_cast<uint_t>(MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
+uint_t Ty_norm (double logic_y)
+{ return static_cast<uint_t>(MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
 /* zoom */
-int  T1x (double logic_x)
-{ return  (int) (MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
-int  T1y (double logic_y)
-{ return  (int) (MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
+uint_t Tx_zoom (double logic_x)
+{ return static_cast<uint_t>(MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
+uint_t Ty_zoom (double logic_y)
+{ return static_cast<uint_t>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
 
-int  Tx  (double logic_x)
-{ return  (zoom) ? T1x (logic_x) : T2x (logic_x); }
-int  Ty  (double logic_y)
-{ return  (zoom) ? T1y (logic_y) : T2y (logic_y); }
+uint_t  Tx  (double logic_x)
+{ return  (MyWindowData::zoom) ? Tx_zoom(logic_x) : Tx_norm(logic_x); }
+uint_t  Ty  (double logic_y)
+{ return  (MyWindowData::zoom) ? Ty_zoom(logic_y) : Ty_norm(logic_y); }
 
-Point  logic_coord (win_point* coord)
+// наоборот: координаты Windows -> логические координаты
+Point LogicCoords (win_point* coord)
 {
   Point p;
-  if ( zoom )
-  {
-    p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize ()->x - 2. * MARGIN))) - 0.5;
+  if ( MyWindowData::zoom )
+  { p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize ()->x - 2. * MARGIN))) - 0.5;
     p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize ()->y - 2. * MARGIN))) + 0.0;
   }
   else
-  {
-    p.x = ((coord->x - MARGIN) / (( 0.5) * (WindowSize ()->x - 2. * MARGIN))) - 1.;
+  { p.x = ((coord->x - MARGIN) / (( 0.5) * (WindowSize ()->x - 2. * MARGIN))) - 1.;
     p.y = ((coord->y - MARGIN) / ((-0.5) * (WindowSize ()->y - 2. * MARGIN))) + 1.;
   }
   return p;
 }
 //-------------------------------------------------------------------------------
 /* Create a string with last error message */
-tstring  GetLastErrorToString ()
+tstring  getLastErrorString ()
 {
-  DWORD  error = GetLastError ();
-  if ( error )
+  DWORD error = GetLastError();
+  if (error)
   {
     LPVOID lpMsgBuf;
-    DWORD bufLen = FormatMessageW ( FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                                    // FORMAT_MESSAGE_IGNORE_INSERTS |
-                                    FORMAT_MESSAGE_FROM_SYSTEM,
-                                    NULL,
-                                    error,
-                                    MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                    (LPTSTR) &lpMsgBuf,
-                                    0, NULL);
-    if ( bufLen )
+    DWORD bufLen = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                  // FORMAT_MESSAGE_IGNORE_INSERTS |
+                                  FORMAT_MESSAGE_FROM_SYSTEM,
+                                  NULL,
+                                  error,
+                                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                  (LPTSTR)&lpMsgBuf,
+                                  0, NULL);
+    if (bufLen)
     {
-      LPCSTR lpMsgStr = (LPCSTR) lpMsgBuf;
-      tstring result (lpMsgStr, lpMsgStr + bufLen);
-
-      LocalFree (lpMsgBuf);
+      LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
+      tstring result(lpMsgStr, lpMsgStr + bufLen);
+      
+      LocalFree(lpMsgBuf);
       return result;
     }
   }
-  return  tstring ();
+  return tstring();
 }
 //-------------------------------------------------------------------------------
-void OnWindowCreate (HWND &hWnd, RECT &myRect,
+tstring getJointsHelp(const Robo::RoboI& robo)
+{
+    tstringstream ss;
+    std::pair<TCHAR, TCHAR> buttons[] = { { 'A', 'Z' },{ 'S', 'X' },{ 'D', 'C' },{ 'F', 'V' } };
+    for (joint_t joint = 0; joint < robo.jointsCount(); ++joint)
+    {
+        tstring m_open, m_close;
+        if (typeid(robo) == typeid(Robo::NewHand::Hand))
+        {
+            auto &hand = dynamic_cast<const Robo::NewHand::Hand&>(robo);
+            m_open  = muscleHelp(hand.M(RoboI::muscleByJoint(joint, false)));
+            m_close = muscleHelp(hand.M(RoboI::muscleByJoint(joint, true)));
+        }
+        else if (typeid(robo) == typeid(Robo::Mobile::Tank))
+        {
+            auto &tank = dynamic_cast<const Robo::Mobile::Tank&>(robo);
+            m_open  = muscleHelp(tank.M(RoboI::muscleByJoint(joint, false)));
+            m_close = muscleHelp(tank.M(RoboI::muscleByJoint(joint, true)));
+        }
+        else throw std::exception("Not Implemented");
+
+        ss << _T("  ") << buttons[joint].first  << _T(" - ") << m_open  << _T("  \r")
+           << _T("  ") << buttons[joint].second << _T(" - ") << m_close << _T("  \r");
+    }
+    return ss.str();
+}
+//-------------------------------------------------------------------------------
+void onWindowCreate (HWND &hWnd, RECT &myRect,
                      HWND &hLabCanv, HWND &hLabHelp,
                      HWND &hLabMAim, HWND &hLabTest,
-                     HWND &hLabStat, LabelsPositions &lp)
+                     HWND &hLabStat, LabelsPositions &lp,
+                     tstring &jointsHelp)
 {
   RECT Rect;
 
@@ -184,10 +205,7 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
   ss << _T ("  Клавиши управления:  \r\r") // "Enter - авто-тест  \r")
      << _T ("  Ctrl+O - OpenFile  |  Ctrl+S - SaveFile  |  Esc - выход  \r\r")
      << _T ("  R - сбросить состояние руки  \r\r")
-     << _T ("  Z - двинуть ключицей вправо  \r  X - сомкнуть плечо  \r")
-     << _T ("  С - сомкнуть локоть  \r  V - сомкнуть ладонь  \r")
-     << _T ("  A - двинуть ключицей влево  \r  S - раскрыть плечо  \r")
-     << _T ("  D - раскрыть локоть  \r  F - раскрыть ладонь  \r")
+     << jointsHelp
      << _T ("  Повторное нажатие на кнопку во время движения  \r")
      << _T ("  останавливает соответствующее движение.  \r\r")
      << _T ("  Q - показать все конечные точки в БД  \r")
@@ -201,9 +219,6 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
      << _T ("  O - Random Test,   P - Cover Test  \r")
      << _T ("  1 - STAGE,  2 - STAGE,  3 - STAGE  \r\r")
      << _T ("  \r\r");
-  // << _T ("Для выбора цели отрисовки  \r")
-  // << _T ("M + !no!/%2u + Enter,  \rN + !no!/%2u + Enter   \r")
-  // << _T (", где 0 <= !no! - номер строки/столбца"),
 
   // Setting the Label's text
   SendMessage (hLabHelp,         /* Label   */
@@ -211,13 +226,13 @@ void OnWindowCreate (HWND &hWnd, RECT &myRect,
                (WPARAM) NULL,    /* Unused  */
                (LPARAM) ss.str ().c_str ());
 
-  SetTimer (hWnd,                   /* Handle to main window */
+  SetTimer (hWnd,                   /* RoboIle to main window */
             IDT_TIMER_VISION,       /* Timer identifier      */
-            30,                     /* 1/10-second interval  */
+            120 /*30*/,             /* 1/10-second interval  */
             (TIMERPROC) NULL);      /* No Timer callback     */
 }
 
-void OnWindowSize (HWND &hWnd, RECT &myRect,
+void onWindowSize (HWND &hWnd, RECT &myRect,
                    HWND &hLabCanv, HWND &hLabHelp,
                    HWND &hLabMAim, HWND &hLabTest,
                    HWND &hLabStat, LabelsPositions &lp)
@@ -230,7 +245,7 @@ void OnWindowSize (HWND &hWnd, RECT &myRect,
   myRect.bottom = Rect.bottom;
   myRect.right = Rect.left + (Rect.bottom - Rect.top);
 
-  SetWindowSize ( /* Rect.right - Rect.left */
+  setWindowSize ( /* Rect.right - Rect.left */
                  Rect.bottom - Rect.top,
                  Rect.bottom - Rect.top);
 
@@ -285,75 +300,63 @@ void OnWindowSize (HWND &hWnd, RECT &myRect,
                 (UINT) NULL);   
 }
 
-void OnWindowPaint (HWND &hWnd, RECT &myRect,
+void onWindowPaint (HWND &hWnd, RECT &myRect,
                     MyWindowData &wd)
 {
   PAINTSTRUCT ps = {};
   
   HDC  hdc = BeginPaint (hWnd, &ps);
   //-------------------------------------------
-  if ( wd.hStaticBitmapChanged && !wd.testing )
+  if ( wd.canvas.hStaticBitmapChanged && !wd.testing )
   {
-    /* Создание ещё одного теневого контекста
-     * для отрисовки неизменной и
-     * (в некоторых случаях ресурсоёмкой)
-     * части картинки единожды.
+    /*  Создание ещё одного теневого контекста для отрисовки неизменной
+     *  и (в некоторых случаях ресурсоёмкой) части картинки единожды.
      */
-    if ( !wd.hStaticDC )
+    if ( !wd.canvas.hStaticDC )
     {
-      wd.hStaticDC = CreateCompatibleDC (hdc);
-      if ( !wd.hStaticDC )
-      {
-        MessageBox (hWnd, GetLastErrorToString ().c_str (),
-                    _T ("ERROR"), MB_OK | MB_ICONERROR);
-      }
+      wd.canvas.hStaticDC = CreateCompatibleDC (hdc);
+      if ( !wd.canvas.hStaticDC )
+        MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
     }
 
     /* Удаляем старый объект */
-    if ( wd.hStaticBitmap )
+    if ( wd.canvas.hStaticBitmap )
     {
-      DeleteObject (wd.hStaticBitmap);
-      wd.hStaticBitmap = NULL;
+      DeleteObject (wd.canvas.hStaticBitmap);
+      wd.canvas.hStaticBitmap = NULL;
     }
     /* Создаём новый растровый холст */
-    wd.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
-                                                    myRect.bottom - myRect.top);
-    if ( !wd.hStaticBitmap )
-    {
-      MessageBox (hWnd, GetLastErrorToString ().c_str (),
-                  _T ("ERROR"), MB_OK | MB_ICONERROR);
-    }
-    SelectObject (wd.hStaticDC, wd.hStaticBitmap);
+    wd.canvas.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
+                                                           myRect.bottom - myRect.top);
+    if ( !wd.canvas.hStaticBitmap )
+      MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
+    SelectObject (wd.canvas.hStaticDC, wd.canvas.hStaticBitmap);
 
     /* Рисуем всё заново */
     //======================================
     /* Закраска фона рабочей области */
-    FillRect (wd.hStaticDC, &myRect, wd.hBrush_back);
+    FillRect (wd.canvas.hStaticDC, &myRect, wd.canvas.hBrush_back);
     /* set transparent brush to fill shapes */
-    SelectObject (wd.hStaticDC, wd.hBrush_null);
-    SetBkMode    (wd.hStaticDC, TRANSPARENT);
+    SelectObject (wd.canvas.hStaticDC, wd.canvas.hBrush_null);
+    SetBkMode    (wd.canvas.hStaticDC, TRANSPARENT);
     //-------------------------------------
-    OnPaintStaticBckGrnd (wd.hStaticDC, wd);
+    onPaintStaticBckGrnd (wd.canvas.hStaticDC, wd);
     //-------------------------------------
     /* Здесь рисуем на контексте hCmpDC */
-    OnPaintStaticFigures (wd.hStaticDC, wd);
-    wd.hStaticBitmapChanged = false;
+    onPaintStaticFigures (wd.canvas.hStaticDC, wd);
+    wd.canvas.hStaticBitmapChanged = false;
     //======================================
   }
   //-------------------------------------
   /* Создание теневого контекста для двойной буфферизации */
   HDC   hCmpDC = CreateCompatibleDC (hdc);
   if ( !hCmpDC )
-  { MessageBox (hWnd, GetLastErrorToString ().c_str (),
-                _T ("ERROR"), MB_OK | MB_ICONERROR);
-  }
+    MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
 
-  HBITMAP  hBmp = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
-                                               myRect.bottom - myRect.top);
+  HBITMAP hBmp = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
+                                              myRect.bottom - myRect.top);
   if ( !hBmp )
-  { MessageBox (hWnd, GetLastErrorToString ().c_str (),
-                _T ("ERROR"), MB_OK | MB_ICONERROR);
-  }
+    MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
   SelectObject (hCmpDC, hBmp);
   //-------------------------------------
   if ( !wd.testing )
@@ -362,11 +365,11 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     BitBlt (hCmpDC, 0, 0,
             myRect.right - myRect.left,
             myRect.bottom - myRect.top,
-            wd.hStaticDC, 0, 0,
+            wd.canvas.hStaticDC, 0, 0,
             SRCCOPY);
     //-------------------------------------
     /* set transparent brush to fill shapes */
-    SelectObject (hCmpDC, wd.hBrush_null);
+    SelectObject (hCmpDC, wd.canvas.hBrush_null);
     SetBkMode (hCmpDC, TRANSPARENT);
   }
   else
@@ -374,17 +377,17 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
     /* Рисуем всё заново */
     //======================================
     /* Закраска фона рабочей области */
-    FillRect (hCmpDC, &myRect, wd.hBrush_back);
+    FillRect (hCmpDC, &myRect, wd.canvas.hBrush_back);
     /* set transparent brush to fill shapes */
-    SelectObject (hCmpDC, wd.hBrush_null);
+    SelectObject (hCmpDC, wd.canvas.hBrush_null);
     SetBkMode (hCmpDC, TRANSPARENT);
     //-------------------------------------
-    OnPaintStaticBckGrnd (hCmpDC, wd);
+    onPaintStaticBckGrnd (hCmpDC, wd);
     //-------------------------------------
   }
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
-  OnPainDynamicFigures (hCmpDC, wd);
+  onPainDynamicFigures (hCmpDC, wd);
   //-------------------------------------
   /* Копируем изображение из теневого контекста на экран */
   SetStretchBltMode (hdc, COLORONCOLOR);
@@ -401,348 +404,258 @@ void OnWindowPaint (HWND &hWnd, RECT &myRect,
   EndPaint (hWnd, &ps);
 }
 //-------------------------------------------------------------------------------
-void OnWindowKeyDown (HWND &hWnd, RECT &myRect,
-                      WPARAM wParam, LPARAM lparam,
-                      MyWindowData &wd)
+void onWindowKeyDown(HWND &hWnd, RECT &myRect,
+                     WPARAM wParam, LPARAM lparam,
+                     MyWindowData &wd)
 {
-  char symbol = (char) (wParam);
-  switch ( symbol )
-  {
-    // case 0x0D: /* Process a carriage return */
-    // {
-    //   fm = 0; fn = 0;
-    //   //========================================
-    //   InvalidateRect (hWnd, &myRect, TRUE);
-    //   break;
-    // }
+    char symbol = static_cast<char>(wParam);
+    switch (symbol)
+    {
+    case 0x0D: /* Process a carriage return */
+    {
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
+    }
 
     case 'q':
     {
-      //========================================
-      // OnShowDBPoints (wd);
-      wd.allPointsDB_show = !wd.allPointsDB_show;
-      wd.hStaticBitmapChanged = true;
-      //========================================
-      InvalidateRect (hWnd, &myRect, FALSE);
-      break;
+        //========================================
+        // onShowDBPoints (wd);
+        wd.canvas.allPointsDBShow = !wd.canvas.allPointsDBShow;
+        wd.canvas.hStaticBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
     }
 
     case 't':
-    { 
-      //========================================
-      wd.trajectory_frames.clear ();
-      wd.hand.SET_DEFAULT;
+    {
+        //========================================
+        wd.trajFrames.clear();
+        wd.pRobo->reset();
 
-      // // wd.trajectory_frames_muscle = selectHandMove (random (HandMovesCount));
-      // wd.trajectory_frames_muscle = wd.hand.selectControl ();
-      // wd.trajectory_frames_lasts = random (1U, wd.hand.maxMuscleLast (wd.trajectory_frames_muscle));
+        // // wd.trajFrames_muscle = selectRoboIMove (random (RoboIMovesCount));
+        // wd.trajFrames_muscle = wd.pRobo->selectControl ();
+        // wd.trajFrames_lasts = random (1U, wd.pRobo->muscleMaxLast (wd.trajFrames_muscle));
+        Control controls;
+        controls.fillRandom(wd.pRobo->musclesCount(),
+                            [&robo=*wd.pRobo](muscle_t m) { return (robo.muscleMaxLast(m) / 2); }); /// Tank: 500, 2
 
-      void  fillControlsRandom (IN Hand &hand, OUT HandMoves::controling_t &controls);
-
-      boost::optional<controling_t> controls = controling_t{};
-      fillControlsRandom (wd.hand, *controls);
-
-      wd.trajectory_frames.step (wd.store, wd.hand, controls);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{controls});
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
-    
+
     case 'o':
     { //========================================
-      const size_t  tries = 1000U;
-      WorkerThreadRunStoreTask (wd, _T ("\n *** random test ***  "),
-                                HandMoves::testRandom,
-                                wd.hand, tries);
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        const size_t  tries = 1000U;
+        WorkerThreadRunTask(wd, _T("\n *** random test ***  "), testRandom,
+                            std::ref(*wd.pStore), std::ref(*wd.pRobo), tries);
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case 'p':
     {
-      //========================================
-      const size_t nested = 2U;
-      WorkerThreadRunStoreTask (wd, _T ("\n *** cover test ***  "),
-                                HandMoves::testCover,
-                                wd.hand, nested);
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        const size_t nested = 2U;
+        WorkerThreadRunTask(wd, _T("\n *** cover test ***  "), testCover,
+                            std::ref(*wd.pStore), std::ref(*wd.pRobo), nested);
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
-    
+
     case '1':
     {
-      //========================================
-      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 1 ***  "),
-                                [](Store &store, Hand &hand, RecTarget &target)
-                                {
-                                  Positions::LearnMovements lm (store, hand, target);
-                                  lm.STAGE_1 ();
-                                }
-                                , wd.hand, wd.target);
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        WorkerThreadRunTask(wd, _T(" *** STAGE 1 ***  "),
+                            [](RoboPos::LearnMoves &lm) { lm.STAGE_1(); }
+                            , std::ref(*wd.pLM));
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case '2':
     {
-      //========================================
-      WorkerThreadRunStoreTask (wd, _T (" *** STAGE 2 ***  "),
-                                [](Store &store, Hand &hand, RecTarget &target)
-                                {
-                                  Positions::LearnMovements lm (store, hand, target);
-                                  lm.STAGE_2 ();
-                                }
-                                , wd.hand, wd.target);
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        WorkerThreadRunTask(wd, _T(" *** STAGE 2 ***  "),
+                            [](RoboPos::LearnMoves &lm) { lm.STAGE_2(); },
+                            std::ref(*wd.pLM));
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case '3':
     {
-      //========================================
-      if ( !wd.testing && !wd.pWorkerThread )
-      {
-        wd.testing = true;
-
-        tstring  message{ _T (" *** STAGE 3 ***  ") };
-        /* Set text of label 'Stat'  */
-        SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
-
-        wd.complexity = 0U;
-        wd.pWorkerThread = new boost::thread ([](Store &store, Hand &hand, RecTarget &target,
-                                                 trajectory_t &uncovered, size_t &complexity)
-                                              {
-                                                try
-                                                {
-                                                  Positions::LearnMovements lm (store, hand, target);
-                                                  lm.STAGE_3 (uncovered, complexity, false);
-                                                }
-                                                catch ( boost::thread_interrupted& )
-                                                { /* tcout << _T("WorkingThread interrupted!") << std::endl; */ }
-                                              }
-                                              , std::ref (wd.store),
-                                                wd.hand,
-                                                std::ref (wd.target),
-                                                std::ref (wd.uncoveredPoints),
-                                                std::ref (wd.complexity));
-      }
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        WorkerThreadRunTask(wd, _T(" *** STAGE 3 ***  "),
+                            [](RoboPos::LearnMoves &lm, Trajectory &uncovered, size_t &complexity) {
+            try
+            { lm.STAGE_3(uncovered, complexity, false); }
+            catch (boost::thread_interrupted&)
+            { /* tcout << _T("WorkingThread interrupted!") << std::endl; */ }
+        } , std::ref(*wd.pLM), std::ref(wd.canvas.uncoveredPointsList), std::ref(wd.complexity));
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case '0':
     {
-      //========================================
-      wd.store.clear ();
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        wd.pStore->clear();
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case 'j':
     {
-      Positions::LearnMovements lm (wd.store, wd.hand, wd.target);
-      lm.testStage3 (wd.store, wd.hand, wd.target, wd.uncoveredPoints);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        wd.pLM->testStage3(wd.canvas.uncoveredPointsList);  /* OLD */
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case 'k':
     {
-      //========================================
-      WorkerThreadRunStoreTask (wd, _T (" *** Stage 2 test ***  "),
-                                [] (Store &store, Hand &hand, RecTarget &target)
-                                { 
-                                  Positions::LearnMovements lm (store, hand, target);
-                                  lm.testStage2 (store, hand, target);
-                                }
-                                , wd.hand, wd.target);
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        WorkerThreadRunTask(wd, _T(" *** Stage 2 test ***  "),
+                            [](RoboPos::LearnMoves &lm) { lm.testStage2(); /* OLD */ },
+                            std::ref(*wd.pLM));
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
 
     case 'u':
     {
-      //========================================
-      if ( !wd.testing && !wd.pWorkerThread )
-      {
-        wd.testing = true;
-
-        tstring  message{ _T (" *** Uncover ***  ") };
-        /* Set text of label 'Stat'  */
-        SendMessage (wd.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM> (message.c_str ()));
-
-        wd.pWorkerThread = new boost::thread ([](Store &store, Hand &hand, RecTarget &target,
-                                                 trajectory_t &uncovered)
-                                              {
-                                                try
-                                                {
-                                                  Positions::LearnMovements lm (store, hand, target);
-                                                  lm.uncover (uncovered);
-                                                }
-                                                catch ( boost::thread_interrupted& )
-                                                { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
-                                              }
-                                              , std::ref (wd.store),
-                                                wd.hand,
-                                                std::ref (wd.target),
-                                                std::ref (wd.uncoveredPoints));
-      }
-      WorkerThreadTryJoin (wd);
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        WorkerThreadRunTask(wd, _T(" *** Uncover ***  "),
+                            [](RoboPos::LearnMoves &lm, Trajectory &uncovered) {
+            try
+            { lm.uncover(uncovered); }
+            catch (boost::thread_interrupted&)
+            { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
+        } , std::ref(*wd.pLM), std::ref(wd.canvas.uncoveredPointsList));
+        WorkerThreadTryJoin(wd);
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case 'i':
     {
-      //========================================
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        /// ???
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
 
     case 'w':
     {
-      if ( !wd.working_space.size () )
-      {
-        Hand::MusclesEnum muscle;
-        wd.hand.set (   Hand::JointsSet
-                     { {Hand::Clvcl, 0.},
-                       {Hand::Shldr, 0.},
-                       {Hand::Elbow, 0.},
-                       {Hand::Wrist, 0.},
-                     });
-    
-        muscle = Hand::ClvclOpn;
-        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-    
-        muscle = Hand::ShldrCls;
-        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-    
-        muscle = Hand::ClvclCls;
-        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-    
-        muscle = Hand::ElbowCls;
-        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-    
-        muscle = Hand::ShldrOpn;
-        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-    
-        muscle = Hand::ElbowOpn;
-        wd.hand.move (muscle, wd.hand.maxMuscleLast (muscle), wd.working_space);
-    
-        wd.hand.SET_DEFAULT;
-      }
-      wd.working_space_show = !wd.working_space_show;
-      wd.hStaticBitmapChanged = true;
-      InvalidateRect (hWnd, &myRect, FALSE);
-      break;
+        //========================================
+        if (!wd.canvas.workingSpaceTraj.size())
+            wd.pRobo->drawWorkSpace(wd.canvas.workingSpaceTraj);
+
+        wd.canvas.workingSpaceShow = !wd.canvas.workingSpaceShow;
+        wd.canvas.hStaticBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
     }
 
     case 'e':
     {
-      if ( wd.pWorkerThread )
-      {
-        wd.pWorkerThread->interrupt ();
-        WorkerThreadTryJoin (wd);
-      }
-      break;
+        //========================================
+        if (wd.pWorkerThread)
+        {
+            wd.pWorkerThread->interrupt();
+            WorkerThreadTryJoin(wd);
+        }
+        //========================================
+        break;
     }
 
     case 'g':
     {
-      //========================================
-      wd.scaleLetters.show = !wd.scaleLetters.show;
-      //========================================
-      InvalidateRect (hWnd, &myRect, FALSE);
-      break;
-    } 
+        //========================================
+        wd.canvas.pLetters->show = !wd.canvas.pLetters->show;
+        //========================================
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
+    }
 
     case 'y':
     {
-      //========================================
-      zoom = !zoom;
-      //========================================
-      wd.hStaticBitmapChanged = true;
-      InvalidateRect (hWnd, &myRect, FALSE);
-      break;
+        //========================================
+        MyWindowData::zoom = !MyWindowData::zoom;
+        //========================================
+        wd.canvas.hStaticBitmapChanged = true;
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
     }
 
     case 'h':
     {
-      //========================================
-      wd.uncovered_show = !wd.uncovered_show;
-      wd.hStaticBitmapChanged = true;
-      //========================================
-      InvalidateRect (hWnd, &myRect, TRUE);
-      break;
+        //========================================
+        wd.canvas.uncoveredPointsShow = !wd.canvas.uncoveredPointsShow;
+        wd.canvas.hStaticBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
     }
     //========================================
-    /* Clavicle */
-    case 'z': wd.hand.step (Hand::ClvclCls); break; /* двинуть ключицей вправо */
-    case 'a': wd.hand.step (Hand::ClvclOpn); break; /* двинуть ключицей влево */
-    /* Sholder */
-    case 'x': wd.hand.step (Hand::ShldrCls); break;
-    case 's': wd.hand.step (Hand::ShldrOpn); break;
-    /* Elbow */
-    case 'c': wd.hand.step (Hand::ElbowCls); break;
-    case 'd': wd.hand.step (Hand::ElbowOpn); break;
-    /* Wrist */
-    case 'v': wd.hand.step (Hand::WristCls); break;
-    case 'f': wd.hand.step (Hand::WristOpn); break;
+    /* Wrist */ /* LTrack */
+    case 'z': wd.pRobo->step(wd.frames, 0, wd.pRobo->muscleMaxLast(0)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break; /* двинуть ключицей влево */
+    case 'a': wd.pRobo->step(wd.frames, 1, wd.pRobo->muscleMaxLast(1)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break; /* двинуть ключицей вправо */
+    /* Elbow */ /* RTrack */                                            /*                          */             
+    case 'x': wd.pRobo->step(wd.frames, 2, wd.pRobo->muscleMaxLast(2)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
+    case 's': wd.pRobo->step(wd.frames, 3, wd.pRobo->muscleMaxLast(3)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
+    /* Sholder */                                                       /*                          */             
+    case 'c': wd.pRobo->step(wd.frames, 4, wd.pRobo->muscleMaxLast(4)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
+    case 'd': wd.pRobo->step(wd.frames, 5, wd.pRobo->muscleMaxLast(5)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
+    /* Clavicle */                                                      /*                          */             
+    case 'v': wd.pRobo->step(wd.frames, 6, wd.pRobo->muscleMaxLast(6)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
+    case 'f': wd.pRobo->step(wd.frames, 7, wd.pRobo->muscleMaxLast(7)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
     /* Reset */
-    case 'r': 
+    case 'r':
     {
-      wd.hand.SET_DEFAULT;
+        //========================================
+        wd.frames = 0;
+        wd.pRobo->reset();
 
-      wd.adjPointsDB.clear ();
-      wd.trajectoriesDB.clear ();
+        wd.mouse.click = false;
+        wd.trajFrames.clear();
 
-      wd.mouse_haved = false;
+        wd.canvas.testingTrajsList.clear();
+        wd.canvas.uncoveredPointsList.clear();
+        wd.canvas.pointsDB.clear();
+        wd.canvas.trajsDB.clear();
 
-      wd.trajectory_frames.clear ();
-      wd.testing_trajectories.clear ();
-
-      wd.uncoveredPoints.clear ();
-
-      /* Setting the Label's text */
-      SendMessage (wd.hLabMAim,      /* Label   */
-                   WM_SETTEXT,       /* Message */
-                   (WPARAM) NULL,    /* Unused  */
-                   (LPARAM) _T (" "));
-      break;
+        /* Setting the Label's text */
+        SendMessage(wd.canvas.hLabMAim,  /* Label   */
+                    WM_SETTEXT,          /* Message */
+                    (WPARAM)NULL,        /* Unused  */
+                    (LPARAM)_T(" "));
+        //========================================
+        break;
     }
-    //========================================
-    // case 'm': if ( !fn ) fm = 1; break;
-    // case 'n': if ( !fm ) fn = 1; break;
-
-    // case '0': case '1': case '2': case '3': case '4':
-    // case '5': case '6': case '7': case '8': case '9':
-    // {
-    //   //      if ( fm ) p_x = p_x * 10U + ((uchar_t) wParam - 0x30);
-    //   // else if ( fn ) p_y = p_y * 10U + ((uchar_t) wParam - 0x30);
-    // 
-    //   // if ( p_x >= tgRowsCount ) p_x = tgRowsCount - 1U;
-    //   // if ( p_y >= tgColsCount ) p_y = tgColsCount - 1U;
-    //   //========================================
-    //   break;
-    // }
-  }
+    }
 }
 //-------------------------------------------------------------------------------
 tstring   OpenFileDialog (HWND hWnd)
@@ -751,31 +664,31 @@ tstring   OpenFileDialog (HWND hWnd)
   OPENFILENAME  OpenFileName = {};
   TCHAR         szFilePath[MAX_PATH];  /* buffer for file name */
   TCHAR         szFileName[MAX_PATH];
-
+  
   /* Initialize OpenFileName */
-  OpenFileName.lStructSize = sizeof (OPENFILENAME);
+  OpenFileName.lStructSize = sizeof(OPENFILENAME);
   OpenFileName.hwndOwner = hWnd;
-
+  
   OpenFileName.lpstrFileTitle = szFileName;
-  OpenFileName.nMaxFileTitle = sizeof (szFileName);
+  OpenFileName.nMaxFileTitle = sizeof(szFileName);
   OpenFileName.lpstrFile = szFilePath;
-  OpenFileName.nMaxFile = sizeof (szFilePath);
-
+  OpenFileName.nMaxFile = sizeof(szFilePath);
+  
   /*  GetOpenFileName does not use the
-  *  contents to initialize itself. 
+  *  contents to initialize itself.
   */
   OpenFileName.lpstrFile[0] = '\0';
   OpenFileName.lpstrFileTitle[0] = '\0';
-
-  OpenFileName.lpstrDefExt = _T ("bin");
-  OpenFileName.lpstrFilter = _T ("Binary\0*.bin\0All\0*.*\0");
+  
+  OpenFileName.lpstrDefExt = _T("bin");
+  OpenFileName.lpstrFilter = _T("Binary\0*.bin\0All\0*.*\0");
   OpenFileName.nFilterIndex = 1;
   OpenFileName.lpstrInitialDir = NULL;
   OpenFileName.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
-
+  
   // Display the Open dialog box. 
-  if ( !GetOpenFileName (&OpenFileName) )
-  { return  _T (""); }
+  if (!GetOpenFileName(&OpenFileName))
+  { return  _T(""); }
   return  OpenFileName.lpstrFile;
 }
 tstring   SaveFileDialog (HWND hWnd)
@@ -783,127 +696,51 @@ tstring   SaveFileDialog (HWND hWnd)
   OPENFILENAME  SaveFileName = {};
   TCHAR         szFileName[MAX_PATH] = {};
   TCHAR         szFilePath[MAX_PATH] = {};
-
-  SaveFileName.lStructSize = sizeof (OPENFILENAME);
+  
+  SaveFileName.lStructSize = sizeof(OPENFILENAME);
   SaveFileName.hwndOwner = hWnd;
   
   SaveFileName.lpstrFile = szFilePath;
-  SaveFileName.nMaxFile = sizeof (szFilePath);
+  SaveFileName.nMaxFile = sizeof(szFilePath);
   SaveFileName.lpstrFileTitle = szFileName;
-  SaveFileName.nMaxFileTitle = sizeof (szFileName);
-
+  SaveFileName.nMaxFileTitle = sizeof(szFileName);
+  
   SaveFileName.lpstrFile[0] = '\0';
   SaveFileName.lpstrFileTitle[0] = '\0';
-
-  SaveFileName.lpstrDefExt = _T ("bin");
-  SaveFileName.lpstrFilter = _T ("Binary\0*.bin\0All\0*.*\0");
+  
+  SaveFileName.lpstrDefExt = _T("bin");
+  SaveFileName.lpstrFilter = _T("Binary\0*.bin\0All\0*.*\0");
   SaveFileName.nFilterIndex = 1;
   SaveFileName.lpstrInitialDir = NULL;
-
+  
   SaveFileName.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
-
+  
   // Display the Open dialog box. 
-  if ( GetSaveFileName (&SaveFileName) )
+  if (GetSaveFileName(&SaveFileName))
   { return _T(""); }
   return SaveFileName.lpstrFile;
 }
 //-------------------------------------------------------------------------------
-tstring   GetTextToString (HWND hWnd)
+tstring   getWindowTitleString (HWND hWnd)
 {
-  int  len = GetWindowTextLength (hWnd) + 1U;
-  std::vector<TCHAR>  buffer (len);
-  GetWindowText (hWnd, buffer.data (), len);
-  // SendMessage (hWnd, WM_GETTEXT, (WPARAM) len, (LPARAM) buffer.data ());
-  return  tstring (buffer.begin (), buffer.end () - 1);
+  int  len = GetWindowTextLength(hWnd) + 1U;
+  std::vector<TCHAR>  buffer(len);
+  GetWindowText(hWnd, buffer.data(), len);
+  // SendMessage(hWnd, WM_GETTEXT, (WPARAM) len, (LPARAM) buffer.data ());
+  return tstring(buffer.begin(), buffer.end() - 1);
 }
 //-------------------------------------------------------------------------------
-tstring   CurrentTimeToString (tstring format, std::time_t *the_time)
+tstring   getCurrentTimeString (tstring format, std::time_t *the_time)
 {
   std::time_t rawtime;
-  if ( !the_time )
-  { rawtime = std::time (nullptr); }
+  if (!the_time)
+  { rawtime = std::time(nullptr); }
   else
   { rawtime = *the_time; }
-  struct tm  *TimeInfo = std::localtime (&rawtime);
-
+  struct tm  *TimeInfo = std::localtime(&rawtime);
+  
   tstringstream ss;
-  ss << std::put_time (TimeInfo, format.c_str ());
-  return ss.str ();
-}
-//-------------------------------------------------------------------------------
-void      MakeGradient (color_interval_t  colors, size_t n_levels,
-                        gradient_t  &gradient)
-{ 
-  gradient.clear ();
-  gradient.resize (n_levels);
-
-  COLORREF cf = colors.first, cs = colors.second;
-  /* loop to create the gradient */
-  for ( size_t i = 0U; i < n_levels; ++i )
-  {
-    unsigned char  r, g, b;
-    /* Determine the colors */
-    r = static_cast<unsigned char> (GetRValue (cf) + (i * (GetRValue (cs) - GetRValue (cf)) / n_levels));
-    g = static_cast<unsigned char> (GetGValue (cf) + (i * (GetGValue (cs) - GetGValue (cf)) / n_levels));
-    b = static_cast<unsigned char> (GetBValue (cf) + (i * (GetBValue (cs) - GetBValue (cf)) / n_levels));
-    /* Append new color */
-    gradient[i] = RGB (r, g, b);
-  }
-}
-//-------------------------------------------------------------------------------
-void      OnEraseBackGround_WithGradient (HWND hwnd)
-{
-  /* Vars */
-  HDC dc; /* Standard Device Context; used to do the painting */
-
-          /* rect = Client Rect of the window;
-          Temp = Temparary rect tangle for the color bands */
-  RECT rect, temp;
-  HBRUSH color; /* A brush to do the painting with */
-
-                /* Get the dc for the wnd */
-  dc = GetDC (hwnd);
-
-  /* Get the client rect */
-  GetClientRect (hwnd, &rect);
-
-  /* Start color; Change the R,G,B values
-  to the color of your choice */
-  int r1 = 255, g1 = 0, b1 = 0;
-
-  /* End Color; Change the R,G,B values
-  to the color of your choice */
-  int r2 = 255, g2 = 255, b2 = 0;
-
-  /* loop to create the gradient */
-  for ( int i = 0; i<rect.right; i++ )
-  {
-    /* Color ref. for the gradient */
-    int r, g, b;
-    /* Determine the colors */
-    r = r1 + (i * (r2 - r1) / rect.right);
-    g = g1 + (i * (g2 - g1) / rect.right);
-    b = b1 + (i * (b2 - b1) / rect.right);
-
-    /* Fill in the rectangle information */
-
-    /* The uper left point of the rectangle
-    being painted; uses i as the starting point*/
-    temp.left = i;
-    /* Upeer Y cord. Always start at the top */
-    temp.top = 0;
-    /* Okay heres the key part,
-    create a rectangle thats 1 pixel wide */
-    temp.right = i + 1;
-    /* Height of the rectangle */
-    temp.bottom = rect.bottom;
-
-    /* Create a brush to draw with;
-    these colors are randomized */
-    color = CreateSolidBrush (RGB (r, g, b));
-
-    /* Finally fill in the rectange */
-    FillRect (dc, &temp, color);
-  }
+  ss << std::put_time(TimeInfo, format.c_str());
+  return ss.str();
 }
 //-------------------------------------------------------------------------------
