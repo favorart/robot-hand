@@ -168,7 +168,7 @@ namespace Positions
     double  distance = boost_distance (hand_pos, aim),
       start_distance = distance;
     // -----------------------------------------------
-    Hand::frames_t  velosity = floor (distance / precision + 0.5);
+    Hand::frames_t  velosity = Hand::frames_t (floor (distance / precision + 0.5));
     Hand::frames_t  velosity_prev = 0U;
     // -----------------------------------------------
     size_t  controls_curr = 0U;
@@ -197,7 +197,7 @@ namespace Positions
           { break; }
         }
         // -----------------------------------------------
-        velosity = floor (distance / precision + 0.5);
+        velosity = Hand::frames_t (floor (distance / precision + 0.5));
         // -----------------------------------------------
         auto it = controls.begin ();
         std::advance (it, controls_curr / 2U);
@@ -302,7 +302,7 @@ namespace Positions
             break;
           }
           // --------------------------------------------------
-          currents[it_curr] = (*it >= currents.size ()) ? -1 : 1;
+          currents[it_curr] = (*it >= int(currents.size ())) ? -1 : 1;
           it_prev = it_curr;
         } // end for
         // --------------------------------------------------
@@ -416,7 +416,7 @@ namespace Positions
     hand.SET_DEFAULT;
     while ( distance > precision )
     {
-      velosity = floor (distance / precision + 0.5);
+      velosity = Hand::frames_t (floor (distance / precision + 0.5));
       velosity = (velosity) ? velosity : 1U;
       // -----------------------------------------------
       /* Восстановить прошлое управление */
@@ -449,7 +449,7 @@ namespace Positions
         distance = next_distance;
         hand_position = hand_pos;
         // -----------------------------------------------
-        Hand::frames_t  velosity_new = floor ((distance) / precision + 0.5);
+        Hand::frames_t  velosity_new = Hand::frames_t (floor ((distance) / precision + 0.5));
         velosity_new = (velosity_new) ? velosity_new : 1U;
 
         if ( velosity_new != velosity )

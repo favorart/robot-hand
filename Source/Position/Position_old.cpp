@@ -90,8 +90,8 @@ namespace Positions
               {
                 /* взвешенное cреднее арифметическое */
                 double weight = boost_distance (aim, pRec->hit) / all_distance;
-                control.start += weight * c.start;
-                control.last += weight * c.last;
+                control.start += Hand::frames_t(weight * c.start);
+                control.last += Hand::frames_t(weight * c.last);
               }
               else
               {

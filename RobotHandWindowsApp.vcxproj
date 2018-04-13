@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -27,18 +27,11 @@
     <ClInclude Include="Source\Hand\HandMotionLaws.h" />
     <ClInclude Include="Source\Hand\HandMotionLawsCustom.h" />
     <ClInclude Include="Source\Hand\HandMuscles.h" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\llsq\llsq.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\qr_solve\qr_solve.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\r8lib\r8lib.hpp" />
-    <ClInclude Include="Source\libs\J.Burkardt (FSU)\test_ls\test_ls.hpp" />
-    <ClInclude Include="Source\libs\lp_solve\include\lp_lib.h" />
     <ClInclude Include="Source\MyWindow\Draw.h" />
     <ClInclude Include="Source\MyWindow\DrawLetters.h" />
     <ClInclude Include="Source\MyWindow\WindowData.h" />
     <ClInclude Include="Source\MyWindow\WindowHeader.h" />
     <ClInclude Include="Source\Position\DirectionPredictor.h" />
-    <ClInclude Include="Source\Position\LinearOperator.h" />
     <ClInclude Include="Source\Position\Position.h" />
     <ClInclude Include="Source\StdAfx.h" />
     <ClInclude Include="Source\Utilities\Combinations.h" />
@@ -52,11 +45,6 @@
     <ClCompile Include="Source\HandMoves\Target.cpp" />
     <ClCompile Include="Source\Hand\Hand.cpp" />
     <ClCompile Include="Source\Hand\HandMuscles.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\llsq\llsq.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\qr_solve\qr_solve.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\r8lib\r8lib.cpp" />
-    <ClCompile Include="Source\libs\J.Burkardt (FSU)\test_ls\test_ls.cpp" />
     <ClCompile Include="Source\MyWindow\Console.cpp" />
     <ClCompile Include="Source\MyWindow\Draw.cpp" />
     <ClCompile Include="Source\MyWindow\DrawLetters.cpp" />
@@ -69,8 +57,6 @@
     <ClCompile Include="Source\Position\Position.cpp" />
     <ClCompile Include="Source\Position\Position_old.cpp" />
     <ClCompile Include="Source\Position\RundownMethod.cpp" />
-    <ClCompile Include="Source\Position\SimplexMethod.cpp" />
-    <ClCompile Include="Source\Position\LinearOperator.cpp" />
     <ClCompile Include="Source\Position\Tests.cpp" />
     <ClCompile Include="Source\Position\TourWorkSpace.cpp" />
     <ClCompile Include="Source\Position\TourWorkSpace1.cpp" />
@@ -82,12 +68,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Utilities\Point.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Resource\ElbowMoveFrames.txt" />
-    <Text Include="Resource\ElbowStopFrames.txt" />
-    <Text Include="Resource\ShoulderMoveFrames.txt" />
-    <Text Include="Resource\ShoulderStopFrames.txt" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource\resource.rc" />
@@ -102,26 +82,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -177,17 +157,20 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\b11\boost_1_66_0;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <CompileAs>CompileAsCpp</CompileAs>
-      <ForcedUsingFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedUsingFiles>
+      <ForcedUsingFiles>
+      </ForcedUsingFiles>
       <ShowIncludes>false</ShowIncludes>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\b11\boost_1_66_0\libs;C:\b11\boost_1_66_0\lib32-msvc-14.1;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -219,7 +202,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\b11\boost_1_66_0;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -232,7 +215,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\b11\boost_1_66_0\libs;C:\b11\boost_1_66_0\lib32-msvc-14.1;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

@@ -7,7 +7,7 @@
 #include "target.h"
 #include "Store.h"
 
-#include "LinearOperator.h"
+//#include "LinearOperator.h"
 #include "DirectionPredictor.h"
 
 namespace Positions

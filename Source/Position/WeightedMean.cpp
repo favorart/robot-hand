@@ -30,12 +30,12 @@ namespace Positions
         {
           controls.push_back (Hand::Control (c.muscle,
                                              0U, //c.start * weight,
-                                             c.last * weight));
+                                             Hand::frames_t(c.last * weight)));
         }
         else
         {
           // it->start += c.start * weight;
-          it->last += c.last * weight;
+          it->last += Hand::frames_t(c.last * weight);
         } // end if
       } // end for-for
 

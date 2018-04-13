@@ -11,7 +11,7 @@ namespace Positions
     //---basics-----------------------------------------------
     HandMoves::Store &store; Hand &hand; RecTarget &target;
     //--------------------------------------------------------
-    size_t  max_nested;
+    int  max_nested;
     Point   hand_pos_base;        
     //---iterating--------------------------------------------
     HandMoves::controling_t     controls;
@@ -153,7 +153,7 @@ namespace Positions
             {
               if ( b_braking )
               { auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+                for ( auto ji = 0; ji <= joint_index; ++ji, ++it )
                   if ( arr_controlings[ji].last )
                     arr_controlings[ji].start = it->last + 1U;
               }
@@ -188,7 +188,7 @@ namespace Positions
               else if ( b_braking && (lasts_step_increment == 1U) )
               {
                 auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+                for ( auto ji = 0; ji <= joint_index; ++ji, ++it )
                 {
                   auto opposite_muscle = muscleOpposite (it->muscle);
                   auto prev_last = arr_controlings[ji].last;
@@ -203,7 +203,7 @@ namespace Positions
               if ( arr_controlings[0].last )
               {
                 if ( arr_controlings[0].last > lasts_step_braking )
-                  for ( size_t ji = 0; ji <= joint_index; ++ji )
+                  for ( auto ji = 0; ji <= joint_index; ++ji )
                     arr_controlings[ji].last -= lasts_step_braking;
               }
               else
@@ -216,7 +216,7 @@ namespace Positions
           //------------------------------------------
           if ( b_target ) { board.second = last_i; }
           //------------------------------------------
-          for ( size_t ji = 0; ji <= joint_index; ++ji )
+          for ( auto ji = 0; ji <= joint_index; ++ji )
           { arr_controlings[ji].last = 0U; }
           //------------------------------------------
           if ( b_target )
@@ -435,7 +435,7 @@ namespace Positions
               if ( b_braking )
               {
                 auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+                for ( auto ji = 0; ji <= joint_index; ++ji, ++it )
                   if ( arr_controlings[ji].last )
                     arr_controlings[ji].start = it->last + 1U;
               }
@@ -475,7 +475,7 @@ namespace Positions
               else if ( b_braking )
               {
                 auto it = controls.begin ();
-                for ( size_t ji = 0; ji <= joint_index; ++ji, ++it )
+                for ( auto ji = 0; ji <= joint_index; ++ji, ++it )
                 {
                   auto opposite_muscle = muscleOpposite (it->muscle);
                   auto prev_last = arr_controlings[ji].last;
@@ -490,7 +490,7 @@ namespace Positions
               if ( arr_controlings[0].last )
               {
                 if ( arr_controlings[0].last > lasts_step_braking )
-                  for ( size_t ji = 0; ji <= joint_index; ++ji )
+                  for ( auto ji = 0; ji <= joint_index; ++ji )
                     arr_controlings[ji].last -= lasts_step_braking;
               }
               // else if ( d < 10 * step_distance )
@@ -505,7 +505,7 @@ namespace Positions
             //------------------------------------------
           if ( b_target ) { board.second = last_i; }
           //------------------------------------------
-          for ( size_t ji = 0; ji <= joint_index; ++ji )
+          for ( auto ji = 0; ji <= joint_index; ++ji )
           { arr_controlings[ji].last = 0U; }
           //------------------------------------------
           if ( 0 ) // b_target ) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

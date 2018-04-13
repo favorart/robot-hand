@@ -85,7 +85,7 @@ void  HandMoves::Store::draw (HDC hdc, HPEN hPen, double circleRadius) const
 void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius) const
 {
   vector<HPEN> hPens (gradient.size());
-  for ( int i = 0; i < gradient.size (); ++i )
+  for ( auto i = 0u; i < gradient.size (); ++i )
   {
     // tcout << '(' << GetRValue (c) << ' '
     //                   << GetGValue (c) << ' '

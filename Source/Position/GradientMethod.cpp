@@ -35,7 +35,7 @@ namespace Positions
       int last_mc_l = (it_mc_l != lower_controls.end ()) ? (it_mc_l->last - last_mc_i) : 0U;
       int last_mc_g = (it_mc_g != upper_controls.end ()) ? (it_mc_g->last - last_mc_i) : 0U;
       // -----------------------------------------------
-      const int  int_normalizer = (d_d / precision); /* velosity */ // 400;
+      const int  int_normalizer = int(d_d / precision); /* velosity */ // 400;
       
 
       // -----------------------------------------------
@@ -49,7 +49,7 @@ namespace Positions
         {
           d = d_d / (last_mo_l + last_mo_g);
           // direction_o = ((d_d * int_normalizer) / (last_mo_l + last_mo_g));
-          direction_o = d * int_normalizer;
+          direction_o = int(d * int_normalizer);
         }
 
         if ( direction_o == 0 )
@@ -69,7 +69,7 @@ namespace Positions
         {
           d = d_d / (last_mc_l + last_mc_g);
           // direction_c = ((d_d * int_normalizer) / (last_mc_l + last_mc_g));
-          direction_c = d * int_normalizer;
+          direction_c = int(d * int_normalizer);
         }
 
         if ( direction_c == 0 )

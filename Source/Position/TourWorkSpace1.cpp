@@ -27,7 +27,7 @@ namespace Positions
 
     borders_t  indices_borders; /* min--max */
     std::vector<Hand::Control>  indices;
-    size_t max_nested;
+    int max_nested;
 
     // --- braking ---
     // std::vector<Hand::Control>  arr_controlings;

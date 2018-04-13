@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "HandMotionLawsCustom.h"
 #include "lagrange_interp_1d.hpp"
 

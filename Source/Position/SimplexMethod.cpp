@@ -3,7 +3,6 @@ namespace SimplexMethod
 {
   extern "C"
   {
-#define WIN32
 #include "lp_lib.h"
 
     int  calculate (IN  int nCols /* variables in the model */,
