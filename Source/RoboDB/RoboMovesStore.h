@@ -21,6 +21,8 @@ namespace RoboMoves
   struct ByD {};
   struct ByC {};
 
+  using distance_t = double;
+
   typedef std::list<Record>                   adjacency_t;
   typedef std::list<const Record*>            adjacency_ptrs_t;
   typedef std::list<std::shared_ptr<Record>>  adjacency_sh_ptrs_t;
@@ -114,41 +116,36 @@ namespace RoboMoves
                  >
     >;
 
-    //using InverseIndex = std::unordered_multimap < std::reference_wrapper<const Point>,
-    //                                               std::reference_wrapper<const Record>,
-    //                                               PointHasher,
-    //                                               std::equal_to<Point> > ;
-
-    //==============================================================================
-    
     using InverseIndex = std::vector<std::pair<const Point*, const Record*>>;
-    
+    //==============================================================================   
     MultiIndexMoves _store{};
     mutable boost::mutex _store_mutex{};
     InverseIndex _inverse{};
-
+    size_t _inverse_index_last{ 0 };
     //==============================================================================
-    //inline size_t kdtree_get_point_count() const { return _inverse.size(); }
-    //
-    //// Returns the dim'th component of the idx'th point in the class:
-    //// Since this is inlined and the "dim" argument is typically an immediate value, the
-    ////  "if/else's" are actually solved at compile time.
-    //inline double kdtree_get_pt(const int idx, int dim) const
-    //{ return (dim) ? _inverse[idx].first.get().y : _inverse[idx].first.get().x; }
-    //    
-    //// Optional bounding-box computation: return false to default to a standard bbox computation loop.
-    ////   Return true if the BBOX was already computed by the class and returned in "bb" so it can be avoided to redo it again.
-    ////   Look at bb.size() to find out the expected dimensionality (e.g. 2 or 3 for point clouds)
-    //template <class BBOX>
-    //bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
-    //
-    //// construct a kd-tree index:
+    /// \returns number of points in kdtree
+    inline size_t kdtree_get_point_count() const { return _inverse.size(); }
     
-    using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor< nanoflann::L2_Simple_Adaptor<double, Store>, Store, 2 /* dim */ >;
-    KDTree _inverse_kdtree{ 2, _store, nanoflann::KDTreeSingleIndexAdaptorParams(10) };
+    /// \returns the dim-th component of the i-th point
+    inline double kdtree_get_pt(const int i, int dim) const
+    { return (dim) ? _inverse[i].first->y : _inverse[i].first->x; }
+        
+    /// Optional bounding-box computation: return false by default
+    /// \return true if the BBOX was already computed (to avoid the redoing) and return it in "bb"
+    template <class BBOX>
+    bool kdtree_get_bbox(BBOX&/*bb*/) const { return false; }
     
-    //friend class KDTree;
-    //friend class KDTreeSingleIndexDynamicAdaptor_;
+    static const size_t KDTDim = 2;
+    using KDTDist = nanoflann::L2_Simple_Adaptor<double, Store>;
+    using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor<KDTDist, Store, KDTDim>;    
+    using KDTree1 = nanoflann::KDTreeSingleIndexDynamicAdaptor_<KDTDist, Store, KDTDim, size_t>;
+    using KDTreeBase = nanoflann::KDTreeBaseClass<KDTree1, KDTDist, Store, KDTDim, size_t>;
+    friend class KDTreeBase;
+    friend class KDTree1;
+    friend class KDTree;
+    //==============================================================================
+    /// Construct a kd-tree index
+    KDTree _inverse_kdtree{ KDTDim, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10) };
     //==============================================================================
     friend class boost::serialization::access;
     //BOOST_SERIALIZATION_SPLIT_MEMBER()
@@ -177,7 +174,7 @@ namespace RoboMoves
     //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */
     template <class range_t, class index_t>
-    size_t  adjacencyRectPoints (OUT range_t &range, IN const Point &min, IN const Point &max) const
+    size_t  adjacencyRectPoints(OUT range_t &range, IN const Point &min, IN const Point &max) const
     {
       boost::lock_guard<boost::mutex> lock(_store_mutex);
       // -----------------------------------------------
@@ -199,10 +196,12 @@ namespace RoboMoves
       {
         if ( (min.x <= it->hit.x && min.y <= it->hit.y)
           && (max.x >= it->hit.x && max.y >= it->hit.y) )
-        { rangeInserter (range, *it); }
+            rangeInserter(range, *it);
       }
+
+      CINFO(" min=" << min << " max=" << max << " adjacency=" << range.size());
       // -----------------------------------------------
-      return range.size ();
+      return range.size();
     }
     /* круглая окрестность точки */
     template <class range_t>
@@ -225,7 +224,9 @@ namespace RoboMoves
         // -----------------------------------------------
         for (auto it = itFirstLower; it != itFirstUpper; ++it)
             if (boost_distance(aim, it->hit) <= radius)
-            { rangeInserter(range, *it); }
+                rangeInserter(range, *it);
+
+        CINFO(" aim " << aim << " r " << radius << " adjacency " << range.size());
         // -----------------------------------------------
         return range.size();
     }
@@ -317,8 +318,9 @@ namespace RoboMoves
             rangeInserter(range, *it);
             ++count;
         }
+        CINFO(" aim " << aim << " count " << count);
         // -----------------------------------------------
-        return  count;
+        return count;
     }
     //------------------------------------------------------------------------------
     void draw(HDC hdc, double radius) const
@@ -331,51 +333,35 @@ namespace RoboMoves
     void pick_up(const tstring &filename, bool text_else_bin = true);
 
     //------------------------------------------------------------------------------
-    // using InverseIndexPassing = std::pair<InverseIndex::const_iterator, InverseIndex::const_iterator>;
-    // 
-    // /// for (auto it=ret.first; it!=ret.second; ++it) {}
-    // InverseIndexPassing moves_passed_point(const Point &p, double radius) const
-    
-    //using InverseIndexPassing = std::pair<InverseIndex::const_iterator, InverseIndex::const_iterator>;
     template <class range_t>
-    size_t near_passed_points(OUT range_t &range, IN const Point &p, IN double radius) const
+    size_t near_passed_points(OUT range_t &range, IN const Point &p, IN distance_t radius) const
     {
-        boost::lock_guard<boost::mutex>  lock(_store_mutex);
-        // -----------------------------------------------
         static_assert (boost::is_same<range_t, adjacency_t>::value
                     || boost::is_same<range_t, adjacency_ptrs_t>::value
                     || boost::is_same<range_t, adjacency_sh_ptrs_t>::value,
                        "Incorrect type to template function.");
         // -----------------------------------------------
-        _inverse_kdtree.addPoints(_inverse_kdtree.getAllIndices().size(), _inverse.size());
+        near_passed_build_index();
         // -----------------------------------------------
-        double query_point[] = { p.x, p.y };
-        nanoflann::SearchParams searchParams{ 10 /* !IGNORED */, EPS, true /* sorted by distance to aim */ };
-    
-        std::vector<std::pair<size_t, double>> found_points_indices;
-        size_t n_found = _inverse_kdtree.radiusSearch(query_point, radius, result, searchParams);
-        // -----------------------------------------------
-        RangeInserter rangeInserter;
-        for (auto &p : found_points_indices)
-            rangeInserter(range, _inverse[p.first].second);
-        // -----------------------------------------------
-        return n_found;
-    }
-    
-    /// 
-    bool near_passed_build_index()
-    {
-        try
         {
             boost::lock_guard<boost::mutex> lock(_store_mutex);
-            _inverse_kdtree.addPoints(_inverse_kdtree.getAllIndices().size(), _inverse.size());
+            // -----------------------------------------------
+            double aim[] = { p.x, p.y };
+            nanoflann::SearchParams searchParams{ 10 /* !IGNORED */, Utils::EPSILONT, true /* sorted by distance to aim */ };
+
+            using inverse_pos_t = size_t;
+            std::vector<std::pair<inverse_pos_t, distance_t>> found_points_positions; // result
+            size_t n_found = _inverse_kdtree.radiusSearch(aim, radius, found_points_positions, searchParams);
+            // -----------------------------------------------
+            RangeInserter rangeInserter;
+            for (auto &p : found_points_indices)
+                rangeInserter(range, _inverse[p.first].second);
         }
-        catch (const std::exception &e)
-        {
-            CERROR(e.what());
-        }
-        return true;
+        CINFO(" near to " << p << " passed " << n_found);
+        return n_found;
     }
+    /// Construct Inverse Index of all passed points
+    bool near_passed_build_index();
     //------------------------------------------------------------------------------
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
     using MultiIndexMovesPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;
@@ -388,6 +374,7 @@ namespace RoboMoves
         auto itFirstLower = indexP.lower_bound(boost::make_tuple(aim.x - radius, aim.y - radius));
         auto itFirstUpper = indexP.upper_bound(boost::make_tuple(aim.x + radius, aim.y + radius));
         // -----------------------------------------------
+        CINFO(" aim " << aim << " r " << radius << " adjacency");
         return std::make_pair(itFirstLower, itFirstUpper);
     }
     //------------------------------------------------------------------------------
@@ -406,6 +393,8 @@ namespace RoboMoves
         _inverse.clear();
         for (size_t i = 0; i < _inverse_kdtree.getAllIndices().size(); ++i)
             _inverse_kdtree.removePoint(i);
+        _inverse_index_last = 0;
+        CINFO(" store clear");
     }
     bool  empty() const
     {
@@ -417,16 +406,6 @@ namespace RoboMoves
         // boost::lock_guard<boost::mutex>  lock(_store_mutex);
         return _store.size();
     }
-    //------------------------------------------------------------------------------
-
-
-    //==============================================================================
-    inline size_t kdtree_get_point_count() const { return _inverse.size(); }
-    inline double kdtree_get_pt(const int idx, int dim) const
-    { return (dim) ? _inverse[idx].first->y : _inverse[idx].first->x; }
-    template <class BBOX>
-    bool kdtree_get_bbox(BBOX& /* bb */) const { return false; }
-    //==============================================================================
   };
 }
 //------------------------------------------------------------------------------

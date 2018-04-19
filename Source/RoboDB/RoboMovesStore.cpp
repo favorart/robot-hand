@@ -52,7 +52,7 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
 }
 
 // --------------------------------------------------------------
-void  RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)> getPen) const
+void RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)> getPen) const
 {
     try
     {
@@ -75,7 +75,7 @@ void  RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)>
 }
 
 //------------------------------------------------------------------------------
-void  RoboMoves::Store::insert(const Record &rec)
+void RoboMoves::Store::insert(const Record &rec)
 {
     try
     {
@@ -99,7 +99,7 @@ void  RoboMoves::Store::insert(const Record &rec)
 }
 
 //------------------------------------------------------------------------------
-void  RoboMoves::Store::dump_off(const tstring &filename, bool text_else_bin) const
+void RoboMoves::Store::dump_off(const tstring &filename, bool text_else_bin) const
 {
     try
     {
@@ -118,6 +118,7 @@ void  RoboMoves::Store::dump_off(const tstring &filename, bool text_else_bin) co
             boost::archive::binary_oarchive boa(ofs);
             boa & *this;
         }
+        CINFO("saved '" << filename << "' store " << size() << " inverse " << _inverse.size());
     }
     catch (const std::exception &e)
     {
@@ -126,7 +127,7 @@ void  RoboMoves::Store::dump_off(const tstring &filename, bool text_else_bin) co
 }
 
 //------------------------------------------------------------------------------
-void  RoboMoves::Store::pick_up(const tstring &filename, bool text_else_bin)
+void RoboMoves::Store::pick_up(const tstring &filename, bool text_else_bin)
 {
     if (!fs::exists(filename))
         CERROR(_T("File '") << filename << _T("' does not exists."));
@@ -154,13 +155,34 @@ void  RoboMoves::Store::pick_up(const tstring &filename, bool text_else_bin)
         for (const auto &rec : _store)
             for (const auto &p : rec.trajectory)
                 _inverse.push_back({ &p, &rec });
-        //_inverse_kdtree.addPoints(0, _inverse.size());
 
+        CINFO("loaded '" << filename << "' store " << size() << " inverse " << _inverse.size());
     }
     catch (const std::exception &e)
     {
         CERROR(e.what());
     }
 }
+
 //------------------------------------------------------------------------------
+bool RoboMoves::Store::near_passed_build_index()
+{
+    if (_inverse_index_last == _inverse.size())
+        return true;
+
+    try
+    {
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
+
+        _inverse_kdtree.addPoints(_inverse_index_last, _inverse.size() - 1);
+        CINFO("built " << _inverse.size() - _inverse_index_last);
+        _inverse_index_last = _inverse.size();
+        return true;
+    }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
+        return false;
+    }
+}
 

@@ -1776,7 +1776,7 @@ namespace nanoflann
 		KDTreeSingleIndexDynamicAdaptor(const int dimensionality, const DatasetAdaptor& inputData, const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams() , const size_t maximumPointCount = 1000000000U) :
 			dataset(inputData), index_params(params), distance(inputData)
 		{
-			treeCount = std::log2(maximumPointCount);
+			treeCount = static_cast<size_t>(std::log2(maximumPointCount));
 			pointCount = 0U;
 			dim = dimensionality;
 			treeIndex.clear();
