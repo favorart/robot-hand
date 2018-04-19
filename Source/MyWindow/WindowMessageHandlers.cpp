@@ -9,27 +9,28 @@
 
 
 using namespace Robo;
+using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
 /* normal */
-uint_t Tx_norm (double logic_x)
-{ return static_cast<uint_t>(MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
-uint_t Ty_norm (double logic_y)
-{ return static_cast<uint_t>(MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
+LONG Tx_norm (double logic_x)
+{ return static_cast<LONG>(MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
+LONG Ty_norm (double logic_y)
+{ return static_cast<LONG>(MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
 
 /* zoom */
-uint_t Tx_zoom (double logic_x)
-{ return static_cast<uint_t>(MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
-uint_t Ty_zoom (double logic_y)
-{ return static_cast<uint_t>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
+LONG Tx_zoom (double logic_x)
+{ return static_cast<LONG>(MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
+LONG Ty_zoom (double logic_y)
+{ return static_cast<LONG>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
 
-uint_t  Tx  (double logic_x)
+LONG  Tx  (double logic_x)
 { return  (MyWindowData::zoom) ? Tx_zoom(logic_x) : Tx_norm(logic_x); }
-uint_t  Ty  (double logic_y)
+LONG  Ty  (double logic_y)
 { return  (MyWindowData::zoom) ? Ty_zoom(logic_y) : Ty_norm(logic_y); }
 
 // наоборот: координаты Windows -> логические координаты
-Point LogicCoords (win_point* coord)
+Point LogicCoords (PPOINT coord)
 {
   Point p;
   if ( MyWindowData::zoom )
@@ -44,7 +45,7 @@ Point LogicCoords (win_point* coord)
 }
 //-------------------------------------------------------------------------------
 /* Create a string with last error message */
-tstring  getLastErrorString ()
+tstring getLastErrorString()
 {
   DWORD error = GetLastError();
   if (error)
@@ -67,10 +68,10 @@ tstring  getLastErrorString ()
       return result;
     }
   }
-  return tstring();
+  return tstring{};
 }
 //-------------------------------------------------------------------------------
-tstring getJointsHelp(const Robo::RoboI& robo)
+tstring getJointsHelpString(const Robo::RoboI& robo)
 {
     tstringstream ss;
     std::pair<TCHAR, TCHAR> buttons[] = { { 'A', 'Z' },{ 'S', 'X' },{ 'D', 'C' },{ 'F', 'V' } };
@@ -96,20 +97,20 @@ tstring getJointsHelp(const Robo::RoboI& robo)
     }
     return ss.str();
 }
+
 //-------------------------------------------------------------------------------
-void onWindowCreate (HWND &hWnd, RECT &myRect,
-                     HWND &hLabCanv, HWND &hLabHelp,
-                     HWND &hLabMAim, HWND &hLabTest,
-                     HWND &hLabStat, LabelsPositions &lp,
-                     tstring &jointsHelp)
+void onWindowCreate (HWND hWnd, MyWindowData &wd)
 {
   RECT Rect;
+  RECT &myRect = wd.canvas.myRect;
 
   GetClientRect (hWnd, &Rect);
   myRect.left = Rect.left;
   myRect.top = Rect.top;
   myRect.bottom = Rect.bottom;
   myRect.right = Rect.left + (Rect.bottom - Rect.top);
+
+  auto &lp = wd.canvas.lp;
 
   lp.LabelsLeft    = Rect.bottom - Rect.top;
   lp.LabelsWidth   = Rect.right - (Rect.bottom - Rect.top);
@@ -124,6 +125,12 @@ void onWindowCreate (HWND &hWnd, RECT &myRect,
   lp.LabTestHeight = 49U;
   lp.LabStatTop    = Rect.top + 125U + (Rect.bottom - Rect.top) * 2U / 3U;
   lp.LabStatHeight = Rect.bottom - ((Rect.bottom - Rect.top) * 2U / 3U - 125U);
+
+  auto &hLabCanv = wd.canvas.hLabCanvas;
+  auto &hLabHelp = wd.canvas.hLabHelp;
+  auto &hLabMAim = wd.canvas.hLabMAim;
+  auto &hLabTest = wd.canvas.hLabTest;
+  auto &hLabStat = wd.canvas.hLabStat;
 
   // Create a Static Label control
   hLabCanv = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
@@ -205,7 +212,7 @@ void onWindowCreate (HWND &hWnd, RECT &myRect,
   ss << _T ("  Клавиши управления:  \r\r") // "Enter - авто-тест  \r")
      << _T ("  Ctrl+O - OpenFile  |  Ctrl+S - SaveFile  |  Esc - выход  \r\r")
      << _T ("  R - сбросить состояние руки  \r\r")
-     << jointsHelp
+     << getJointsHelpString(*wd.pRobo)
      << _T ("  Повторное нажатие на кнопку во время движения  \r")
      << _T ("  останавливает соответствующее движение.  \r\r")
      << _T ("  Q - показать все конечные точки в БД  \r")
@@ -226,18 +233,30 @@ void onWindowCreate (HWND &hWnd, RECT &myRect,
                (WPARAM) NULL,    /* Unused  */
                (LPARAM) ss.str ().c_str ());
 
-  SetTimer (hWnd,                   /* RoboIle to main window */
+  SetTimer (hWnd,                   /* Handle to main window */
             IDT_TIMER_VISION,       /* Timer identifier      */
-            120 /*30*/,             /* 1/10-second interval  */
+            30,                     /* 1/10-second interval  */
             (TIMERPROC) NULL);      /* No Timer callback     */
-}
+  
+  wd.pRobo->reset();
 
-void onWindowSize (HWND &hWnd, RECT &myRect,
-                   HWND &hLabCanv, HWND &hLabHelp,
-                   HWND &hLabMAim, HWND &hLabTest,
-                   HWND &hLabStat, LabelsPositions &lp)
+  if (fs::exists(wd.currFileName))
+  {
+      WorkerThreadRunTask(wd, _T("  *** loading ***  "),
+                          [](MyWindowData &wd, const tstring &filename) {
+                              wd.pStore->pick_up(filename);
+                              /// wd.load(filename); TODO:
+                          }, std::ref(wd), wd.currFileName);
+      WorkerThreadTryJoin(wd);
+  }
+
+  SendMessage(hWnd, WM_USER_STORE, NULL, NULL);
+}
+//------------------------------------------------------------------------------
+void onWindowSize (HWND hWnd, MyWindowData &wd)
 {
   RECT Rect;
+  RECT &myRect = wd.canvas.myRect;
 
   GetClientRect (hWnd, &Rect);
   myRect.left = Rect.left;
@@ -248,6 +267,8 @@ void onWindowSize (HWND &hWnd, RECT &myRect,
   setWindowSize ( /* Rect.right - Rect.left */
                  Rect.bottom - Rect.top,
                  Rect.bottom - Rect.top);
+
+  auto &lp = wd.canvas.lp;
 
   lp.LabelsLeft = Rect.bottom - Rect.top;
   lp.LabelsWidth = Rect.right - (Rect.bottom - Rect.top);
@@ -262,6 +283,12 @@ void onWindowSize (HWND &hWnd, RECT &myRect,
   lp.LabTestHeight = 49U;
   lp.LabStatTop = Rect.top + 125U + (Rect.bottom - Rect.top) * 2U / 3U;
   lp.LabStatHeight = Rect.bottom - ((Rect.bottom - Rect.top) * 2U / 3U - 125U);
+
+  auto &hLabCanv = wd.canvas.hLabCanvas;
+  auto &hLabHelp = wd.canvas.hLabHelp;
+  auto &hLabMAim = wd.canvas.hLabMAim;
+  auto &hLabTest = wd.canvas.hLabTest;
+  auto &hLabStat = wd.canvas.hLabStat;
 
   /* Set position noCanvas label */
   SetWindowPos (hLabCanv, NULL,
@@ -297,13 +324,19 @@ void onWindowSize (HWND &hWnd, RECT &myRect,
                 (int) lp.LabStatTop,     /* Y co-ordinates */
                 (int) lp.LabelsWidth,             /* Width */
                 (int) lp.LabStatHeight,          /* Height */
-                (UINT) NULL);   
+                (UINT) NULL);
+  
+  wd.canvas.hStaticBitmapChanged = true;
+  wd.canvas.hDynamicBitmapChanged = true;
 }
-
-void onWindowPaint (HWND &hWnd, RECT &myRect,
-                    MyWindowData &wd)
+//------------------------------------------------------------------------------
+void onWindowPaint (HWND hWnd, MyWindowData &wd)
 {
+  if ( !wd.canvas.hStaticBitmapChanged && !wd.canvas.hDynamicBitmapChanged )
+      return;
+
   PAINTSTRUCT ps = {};
+  RECT &myRect = wd.canvas.myRect;
   
   HDC  hdc = BeginPaint (hWnd, &ps);
   //-------------------------------------------
@@ -315,8 +348,7 @@ void onWindowPaint (HWND &hWnd, RECT &myRect,
     if ( !wd.canvas.hStaticDC )
     {
       wd.canvas.hStaticDC = CreateCompatibleDC (hdc);
-      if ( !wd.canvas.hStaticDC )
-        MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
+      if ( !wd.canvas.hStaticDC ) CERROR("");
     }
 
     /* Удаляем старый объект */
@@ -328,8 +360,7 @@ void onWindowPaint (HWND &hWnd, RECT &myRect,
     /* Создаём новый растровый холст */
     wd.canvas.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
                                                            myRect.bottom - myRect.top);
-    if ( !wd.canvas.hStaticBitmap )
-      MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
+    if ( !wd.canvas.hStaticBitmap ) CERROR("");
     SelectObject (wd.canvas.hStaticDC, wd.canvas.hStaticBitmap);
 
     /* Рисуем всё заново */
@@ -350,13 +381,11 @@ void onWindowPaint (HWND &hWnd, RECT &myRect,
   //-------------------------------------
   /* Создание теневого контекста для двойной буфферизации */
   HDC   hCmpDC = CreateCompatibleDC (hdc);
-  if ( !hCmpDC )
-    MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
+  if ( !hCmpDC ) CERROR("");
 
   HBITMAP hBmp = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
                                               myRect.bottom - myRect.top);
-  if ( !hBmp )
-    MessageBox (hWnd, getLastErrorString ().c_str (), _T("ERROR"), MB_OK | MB_ICONERROR);
+  if ( !hBmp ) CERROR("");
   SelectObject (hCmpDC, hBmp);
   //-------------------------------------
   if ( !wd.testing )
@@ -388,6 +417,7 @@ void onWindowPaint (HWND &hWnd, RECT &myRect,
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
   onPainDynamicFigures (hCmpDC, wd);
+  wd.canvas.hDynamicBitmapChanged = false;
   //-------------------------------------
   /* Копируем изображение из теневого контекста на экран */
   SetStretchBltMode (hdc, COLORONCOLOR);
@@ -403,18 +433,88 @@ void onWindowPaint (HWND &hWnd, RECT &myRect,
   //---------------------------------------------
   EndPaint (hWnd, &ps);
 }
-//-------------------------------------------------------------------------------
-void onWindowKeyDown(HWND &hWnd, RECT &myRect,
-                     WPARAM wParam, LPARAM lparam,
-                     MyWindowData &wd)
+//------------------------------------------------------------------------------
+void onWindowTimer(HWND hWnd, MyWindowData &wd, WPARAM wParam)
 {
+    switch (wParam)
+    {
+    case IDT_TIMER_STROKE:
+    {
+        //=======================
+        onWindowTimer(wd);
+        //=======================
+        break;
+    }
+    case IDT_TIMER_VISION:
+    {
+        //=======================
+        onWindowTimer(wd);
+        //=======================
+        if (wd.canvas.store_size != wd.pStore->size())
+        {
+            SendMessage(hWnd, WM_USER_STORE, NULL, NULL);
+            if (!wd.testing)
+            {
+                wd.canvas.hStaticBitmapChanged = true;
+                wd.canvas.hDynamicBitmapChanged = true;
+            }
+        }
+        if (wd.testing)
+        { WorkerThreadTryJoin(wd); }
+        //=======================
+        InvalidateRect(hWnd, &wd.canvas.myRect, TRUE); // FALSE
+        break;
+    }
+    }
+}
+//------------------------------------------------------------------------------
+void onWindowStoreSz(HWND hWnd, MyWindowData &wd)
+{
+    tstringstream ss;
+    ss << _T("Storage size: ") << wd.pStore->size() << _T("  ");
+    wd.canvas.store_size = wd.pStore->size();
+    /* Setting the Label's text */
+    SendMessage(wd.canvas.hLabStat,  /* Label Stat */
+                WM_SETTEXT,          /* Message    */
+                (WPARAM)NULL,        /* Unused     */
+                (LPARAM)ss.str().c_str());
+}
+//------------------------------------------------------------------------------
+void onWindowMouse(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lParam)
+{
+    // Если был щелчок левой кнопкой - узнаём координаты
+    wd.mouse.coords.x = LOWORD(lParam);
+    wd.mouse.coords.y = HIWORD(lParam);
+    //=======================
+    if (inside(&wd.canvas.myRect, &wd.mouse.coords))
+    {
+        wd.mouse.click = true;
+        wd.mouse.aim = LogicCoords(&wd.mouse.coords);
+
+        auto s = tstring{ wd.mouse.aim } + _T("  ");
+        /* Setting the Label's text */
+        SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL,
+                    reinterpret_cast<WPARAM>(s.c_str()));
+        // -------------------------------------------------
+        /// TODO: (onWindowMouse): if (!wd.testing) { makeRoboMove(wd); }
+    }
+    //=======================
+    InvalidateRect(hWnd, &wd.canvas.myRect, TRUE);
+}
+//-------------------------------------------------------------------------------
+void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
+{
+    RECT &myRect = wd.canvas.myRect;
     char symbol = static_cast<char>(wParam);
+    //========================================
     switch (symbol)
     {
     case 0x0D: /* Process a carriage return */
     {
         //========================================
+        wd.canvas.hDynamicBitmapChanged = true;
         InvalidateRect(hWnd, &myRect, TRUE);
+        //========================================
         break;
     }
 
@@ -423,12 +523,22 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
         //========================================
         // onShowDBPoints (wd);
         wd.canvas.allPointsDBShow = !wd.canvas.allPointsDBShow;
+        //========================================
         wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, FALSE);
         break;
     }
 
+    case 'i':
+    {
+        //========================================
+        wd.pStore->near_passed_build_index();
+        //========================================
+        break;
+    }
+    
     case 't':
     {
         //========================================
@@ -443,6 +553,7 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
                             [&robo=*wd.pRobo](muscle_t m) { return (robo.muscleMaxLast(m) / 2); }); /// Tank: 500, 2
 
         wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{controls});
+        wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, TRUE);
         break;
@@ -453,9 +564,9 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
         const size_t  tries = 1000U;
         WorkerThreadRunTask(wd, _T("\n *** random test ***  "), testRandom,
                             std::ref(*wd.pStore), std::ref(*wd.pRobo), tries);
-        WorkerThreadTryJoin(wd);
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -465,9 +576,9 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
         const size_t nested = 2U;
         WorkerThreadRunTask(wd, _T("\n *** cover test ***  "), testCover,
                             std::ref(*wd.pStore), std::ref(*wd.pRobo), nested);
-        WorkerThreadTryJoin(wd);
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -475,11 +586,11 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 1 ***  "),
-                            [](RoboPos::LearnMoves &lm) { lm.STAGE_1(); }
+                            [](LearnMoves &lm) { lm.STAGE_1(); }
                             , std::ref(*wd.pLM));
-        WorkerThreadTryJoin(wd);
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -487,11 +598,11 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 2 ***  "),
-                            [](RoboPos::LearnMoves &lm) { lm.STAGE_2(); },
+                            [](LearnMoves &lm) { lm.STAGE_2(); },
                             std::ref(*wd.pLM));
-        WorkerThreadTryJoin(wd);
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -499,15 +610,15 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 3 ***  "),
-                            [](RoboPos::LearnMoves &lm, Trajectory &uncovered, size_t &complexity) {
+                            [](LearnMoves &lm, Trajectory &uncovered) {
             try
-            { lm.STAGE_3(uncovered, complexity, false); }
+            { lm.STAGE_3(uncovered); }
             catch (boost::thread_interrupted&)
-            { /* tcout << _T("WorkingThread interrupted!") << std::endl; */ }
-        } , std::ref(*wd.pLM), std::ref(wd.canvas.uncoveredPointsList), std::ref(wd.complexity));
-        WorkerThreadTryJoin(wd);
+            { CINFO("WorkingThread interrupted!"); }
+        } , std::ref(*wd.pLM), std::ref(wd.canvas.uncoveredPointsList));
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -515,6 +626,7 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         wd.pStore->clear();
+        wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, TRUE);
         break;
@@ -524,6 +636,7 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         wd.pLM->testStage3(wd.canvas.uncoveredPointsList);  /* OLD */
         //========================================
+        wd.canvas.hDynamicBitmapChanged = true;
         InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
@@ -532,11 +645,11 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** Stage 2 test ***  "),
-                            [](RoboPos::LearnMoves &lm) { lm.testStage2(); /* OLD */ },
+                            [](LearnMoves &lm) { lm.testStage2(); /* OLD */ },
                             std::ref(*wd.pLM));
-        WorkerThreadTryJoin(wd);
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -545,24 +658,15 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** Uncover ***  "),
-                            [](RoboPos::LearnMoves &lm, Trajectory &uncovered) {
+                            [](LearnMoves &lm, Trajectory &uncovered) {
             try
             { lm.uncover(uncovered); }
             catch (boost::thread_interrupted&)
-            { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
+            { CINFO("WorkingThread interrupted!"); }
         } , std::ref(*wd.pLM), std::ref(wd.canvas.uncoveredPointsList));
-        WorkerThreadTryJoin(wd);
+        if (WorkerThreadTryJoin(wd))
+            InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
-        break;
-    }
-
-    case 'i':
-    {
-        //========================================
-        /// ???
-        //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
 
@@ -571,9 +675,10 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
         //========================================
         if (!wd.canvas.workingSpaceTraj.size())
             wd.pRobo->drawWorkSpace(wd.canvas.workingSpaceTraj);
-
         wd.canvas.workingSpaceShow = !wd.canvas.workingSpaceShow;
+        //========================================
         wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, FALSE);
         break;
@@ -585,7 +690,8 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
         if (wd.pWorkerThread)
         {
             wd.pWorkerThread->interrupt();
-            WorkerThreadTryJoin(wd);
+            if (WorkerThreadTryJoin(wd))
+                InvalidateRect(hWnd, &myRect, TRUE);
         }
         //========================================
         break;
@@ -595,6 +701,9 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         wd.canvas.pLetters->show = !wd.canvas.pLetters->show;
+        //========================================
+        wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, FALSE);
         break;
@@ -606,6 +715,8 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
         MyWindowData::zoom = !MyWindowData::zoom;
         //========================================
         wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
+        //========================================
         InvalidateRect(hWnd, &myRect, FALSE);
         break;
     }
@@ -614,24 +725,26 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
     {
         //========================================
         wd.canvas.uncoveredPointsShow = !wd.canvas.uncoveredPointsShow;
+        //========================================
         wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
     //========================================
     /* Wrist */ /* LTrack */
-    case 'z': wd.pRobo->step(wd.frames, 0, wd.pRobo->muscleMaxLast(0)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break; /* двинуть ключицей влево */
-    case 'a': wd.pRobo->step(wd.frames, 1, wd.pRobo->muscleMaxLast(1)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break; /* двинуть ключицей вправо */
-    /* Elbow */ /* RTrack */                                            /*                          */             
-    case 'x': wd.pRobo->step(wd.frames, 2, wd.pRobo->muscleMaxLast(2)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
-    case 's': wd.pRobo->step(wd.frames, 3, wd.pRobo->muscleMaxLast(3)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
-    /* Sholder */                                                       /*                          */             
-    case 'c': wd.pRobo->step(wd.frames, 4, wd.pRobo->muscleMaxLast(4)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
-    case 'd': wd.pRobo->step(wd.frames, 5, wd.pRobo->muscleMaxLast(5)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
-    /* Clavicle */                                                      /*                          */             
-    case 'v': wd.pRobo->step(wd.frames, 6, wd.pRobo->muscleMaxLast(6)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
-    case 'f': wd.pRobo->step(wd.frames, 7, wd.pRobo->muscleMaxLast(7)); /*wd.pRobo->step(wd.frames);*/ ++wd.frames; break;
+    case 'z': wd.pRobo->step(wd.frames, 0, wd.pRobo->muscleMaxLast(0)); ++wd.frames; break; /* двинуть ключицей влево */
+    case 'a': wd.pRobo->step(wd.frames, 1, wd.pRobo->muscleMaxLast(1)); ++wd.frames; break; /* двинуть ключицей вправо */
+    /* Elbow */ /* RTrack */                                                        
+    case 'x': wd.pRobo->step(wd.frames, 2, wd.pRobo->muscleMaxLast(2)); ++wd.frames; break;
+    case 's': wd.pRobo->step(wd.frames, 3, wd.pRobo->muscleMaxLast(3)); ++wd.frames; break;
+    /* Sholder */                                                                   
+    case 'c': wd.pRobo->step(wd.frames, 4, wd.pRobo->muscleMaxLast(4)); ++wd.frames; break;
+    case 'd': wd.pRobo->step(wd.frames, 5, wd.pRobo->muscleMaxLast(5)); ++wd.frames; break;
+    /* Clavicle */                                                                  
+    case 'v': wd.pRobo->step(wd.frames, 6, wd.pRobo->muscleMaxLast(6)); ++wd.frames; break;
+    case 'f': wd.pRobo->step(wd.frames, 7, wd.pRobo->muscleMaxLast(7)); ++wd.frames; break;
     /* Reset */
     case 'r':
     {
@@ -653,11 +766,187 @@ void onWindowKeyDown(HWND &hWnd, RECT &myRect,
                     (WPARAM)NULL,        /* Unused  */
                     (LPARAM)_T(" "));
         //========================================
+        wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
         break;
     }
     }
 }
+//------------------------------------------------------------------------------
+void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
+{
+    RECT &myRect = wd.canvas.myRect;
+    //========================================
+    switch (wParam)
+    {
+    case 'O':
+        if (GetAsyncKeyState(VK_CONTROL))
+        {
+            tstring FileName = OpenFileDialog(hWnd);
+            tstring DefaultName = wd.currFileName;
+            //========================================
+            if (!FileName.empty())
+            {
+                WorkerThreadRunTask(wd, _T("  *** loading ***  "),
+                                    [FileName, DefaultName](RoboMoves::Store &store) {
+                    /// TODO:
+                    ///if (!store.empty())
+                    ///{
+                    ///    store.dump_off(DefaultName);
+                    ///    store.clear();
+                    ///}
+                    store.pick_up(FileName);
+                }, std::ref(*wd.pStore));
+                WorkerThreadTryJoin(wd);
+                wd.currFileName = FileName;
+            }
+            //========================================
+        }
+        break;
+
+    case 'S':
+        if (GetAsyncKeyState(VK_CONTROL))
+        {
+            //========================================
+            // tstring FileName = SaveFileDialog(hWnd);
+            if (!wd.pStore->empty())
+            {
+                WorkerThreadRunTask(wd, _T("  *** saving ***  "),
+                                    [](const RoboMoves::Store &store, const tstring &filename) {
+                    store.dump_off(filename); /// wd->save();
+                }, std::ref(*wd.pStore), wd.getCurrFileName());
+                WorkerThreadTryJoin(wd);
+            }
+            //========================================
+        }
+        break;
+
+    case 'R':
+        if (GetAsyncKeyState(VK_CONTROL))
+        {
+            //========================================
+            wd.pStore->dump_off(wd.getCurrFileName()); /// wd.save();
+            //========================================
+        }
+        break;
+
+    case 0x1B: // Esc
+        SendMessage(hWnd, WM_QUIT, 0, 0);
+        break;
+    }
+
+}
 //-------------------------------------------------------------------------------
+/*!
+*
+*   \param[in]  viewRect    rectangle of the viewed area
+*   \param[in]  zoomFactor  factor of zoom relative to viewRect, ex 1.1
+*   \param[in]  mousePos    position of the mouse
+*   \param[out] zoomedRect  viexRect after zoom
+*
+*    A little schema:
+*
+*    viewRect
+*    *-----------------------------------------------------------------------*
+*    |                       ^                                               |
+*    |                       | d_up                                          |
+*    |        zoomedRect     v                                               |
+*    |      *-----------------------------------------*                      |
+*    |d_left|                                         |       d_right        |
+*    |<---->|                mousePos                 |<-------------------->|
+*    |      |                    +                    |                      |
+*    |      |                                         |                      |
+*    |      |                                         |                      |
+*    |      *-----------------------------------------*                      |
+*    |                       ^                                               |
+*    |                       |                                               |
+*    |                       |                                               |
+*    |                       | d_down                                        |
+*    |                       |                                               |
+*    |                       v                                               |
+*    *-----------------------------------------------------------------------*
+*
+*    dX = d_left + d_right
+*    dY = d_up + d_down
+*
+*    The origin of rects is the upper left corner.
+*/
+void zoomArea(IN Point &zoomCenter, IN double zoomFactor, OUT RECT &zoomedRect)
+{
+    double view_left = -1., view_right = 1., view_top = 1., view_bottom = -1.;
+    /*
+    *    First, find differences of size between zoomed rect and original rect
+    *    Here, 1 / zoomFactor is used, because computations are made relative to the
+    *    original view area, not the final rect):
+    */
+    double dX = 2. /*width(viewRect)*/ * (1. - 1. / zoomFactor);
+    double dY = 2. /*height(viewRect)*/ * (1. - 1. / zoomFactor);
+
+    /*
+    *    Second, find d_* using the position of the mouse.
+    *    pX = position of the mouse along X axis, relative to viewRect (percentage)
+    *    pY = position of the mouse along Y axis, relative to viewRect (percentage)
+    *    The value of d_right and d_down is not computed because is not directly needed
+    *    in the final result.
+    */
+    
+    double pX = (zoomCenter.x - view_left) / 2. /*width(viewRect)*/;
+    double pY = (zoomCenter.y - view_top) / 2. /*height(viewRect)*/;
+
+    double d_left = pX * dX;
+    double d_up = pY * dY;
+
+    /* Third and last, compute the output rect */
+    zoomedRect.left = Tx(view_left + d_left);
+    zoomedRect.top = Ty(view_top + d_up);
+    zoomedRect.right = Tx(view_right - dX);
+    zoomedRect.bottom = Ty(view_bottom - dY);
+}
+
+// That's it!
+// For your problem, you need to separate the view(your window) 
+// from the scene(objects that are drawed).
+// You should have a function drawing a part of(or all) the scene :
+
+// void drawScene(RECT viewArea);
+// //and a function zooming an area(using the algorithm presented before) :
+// RECT zoomArea(RECT rectToZoom, Point zoomCenter, double factor);
+// // Now, your callback is a lot more simpler :
+
+void onMouseWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
+{
+    POINT pos;
+    if (!GetCursorPos(&pos))
+        return;
+
+    Point mousePos = LogicCoords(&pos);
+    Point mousePosRelative;
+
+    // Get the position of the mouse relative to the window (in percent)
+    mousePosRelative.x = mousePos.x / 2. /*double(Window.GetClientWidth())*/;
+    mousePosRelative.y = mousePos.y / 2. /*double(Window.GetClientHeight())*/;
+
+    // // Get Mouse position in scene coordinates and not window coordinates.
+    // // viewArea is in scene coordinates
+    // // window = your window or your draw information on the scene
+    // // The following assumes that you're using a scene with X left-to-right and Y top-to-bottom.
+    // double XMouse = window.viewArea.width * mousePosRelative.x + window.viewArea.upperleft.X;
+    // double YMouse = window.viewArea.height * mousePosRelative.y + window.viewArea.upperleft.Y;
+    // 
+    // // Zoom parameters
+    // double zFactor = 0.1 * GET_WHEEL_DELTA_WPARAM(WParam);
+    // 
+    // RECT viewArea = getViewArea(); // or something like this
+    // Point zCenter(XMouse, YMouse);
+    // 
+    // // Zoom
+    // RECT zoomedRect = zoomArea(viewArea, zCenter, zFactor);
+    // drawScene(zoomedRect);
+}
+
+
 tstring   OpenFileDialog (HWND hWnd)
 {
   /* common dialog box structure */
@@ -675,8 +964,8 @@ tstring   OpenFileDialog (HWND hWnd)
   OpenFileName.nMaxFile = sizeof(szFilePath);
   
   /*  GetOpenFileName does not use the
-  *  contents to initialize itself.
-  */
+   *  contents to initialize itself.
+   */
   OpenFileName.lpstrFile[0] = '\0';
   OpenFileName.lpstrFileTitle[0] = '\0';
   

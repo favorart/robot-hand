@@ -1,18 +1,17 @@
 ﻿#include "StdAfx.h"
 #include "RoboMovesStore.h"
 
-
 //------------------------------------------------------------------------------
 size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double side,
                                               OUT std::pair<Record, Record> &x_pair,
                                               OUT std::pair<Record, Record> &y_pair) const
 {
-    boost::lock_guard<boost::mutex> lock(store_mutex_);
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
     //-------------------------------------------------------
     size_t count = 0U;
     //-------------------------------------------------------
     {
-        const MultiIndexMoves::index<ByX>::type &X_index = store_.get<ByX>();
+        const MultiIndexMoves::index<ByX>::type &X_index = _store.get<ByX>();
         auto pair_x = X_index.range((aim.x - side) <= boost::lambda::_1, boost::lambda::_1 <= (aim.x + side));
 
         decltype(pair_x.first)  it_max_x = X_index.end();
@@ -31,7 +30,7 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
     }
     //-------------------------------------------------------
     {
-        const MultiIndexMoves::index<ByY>::type  &Y_index = store_.get<ByY>();
+        const MultiIndexMoves::index<ByY>::type  &Y_index = _store.get<ByY>();
         auto pair_y = Y_index.range((aim.y - side) <= boost::lambda::_1, boost::lambda::_1 <= (aim.y + side));
 
         decltype(pair_y.first)  it_max_y = Y_index.end();
@@ -51,192 +50,117 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
     //-------------------------------------------------------
     return count;
 }
-//------------------------------------------------------------------------------
-void  RoboMoves::Store::draw(HDC hdc, HPEN hPen, double circleRadius) const
-{
-    HPEN hPen_old = (HPEN)SelectObject(hdc, hPen);
-    // --------------------------------------------------------------
-    std::unordered_map<Point, double, PointHasher>  map_points;
-    // --------------------------------------------------------------
-    {
-        boost::lock_guard<boost::mutex>  lock(store_mutex_);
-        for (auto &rec : store_)
-        {
-            /*  Если в одну точку попадают несколько движений -
-             *  выбрать лучшее движение по элегантности */
-            auto pRec = map_points.find(rec.hit);
-            if (pRec != map_points.end())
-            {
-                double elegance = rec.eleganceMove();
-                if (pRec->second < elegance)
-                    map_points.insert(std::make_pair(rec.hit, elegance));
-            }
-            else
-            { map_points.insert(std::make_pair(rec.hit, rec.eleganceMove())); }
-        }
-    }
-    // --------------------------------------------------------------
-    for (auto &pt : map_points)
-        drawCircle(hdc, pt.first, circleRadius);
-    // --------------------------------------------------------------
-    SelectObject(hdc, hPen_old);
-}
-void  RoboMoves::Store::draw(HDC hdc, color_gradient_t gradient, double circleRadius) const
-{
-    std::vector<HPEN> hPens(gradient.size());
-    for (auto i = 0U; i < gradient.size(); ++i)
-    {
-        // tcout << '(' << GetRValue (c) << ' '
-        //                   << GetGValue (c) << ' '
-        //                   << GetBValue (c) << ' '
-        //            << ')' << ' '; // std::endl;
-    
-        HPEN hPen = CreatePen(PS_SOLID, 1, gradient[i]);
-        // DrawCircle(hdc, Point(0.01 * i - 0.99, 0.9), 0.01, hPen);
-        hPens[i] = hPen;
-    }
 
+// --------------------------------------------------------------
+void  RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)> getPen) const
+{
     try
     {
-        boost::lock_guard<boost::mutex> lock(store_mutex_);
-        // --------------------------------------------------------------
-        for (auto &rec : store_)
+        unsigned i = 0;
+        for (const auto &rec : _store)
         {
-            // double elegance = rec.eleganceMove ();
-            // tcout << elegance << std::endl;
-            // size_t index = static_cast<size_t> (elegance * (gradient.size () - 1));
-            // // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // index = index >= gradient.size () ? gradient.size () - 1 : index;
+            drawCircle(hdc, rec.hit, radius, getPen(rec.longestMusclesControl()));
 
-            // double longs = static_cast<double> (rec.longestMusclesControl () - minTimeLong);
-            size_t longs = rec.longestMusclesControl();
-
-            size_t index;
-            if (longs > 500U)
-                index = 2U;
-            else if (longs > 200U)
-                index = 1U;
-            else
-                index = 0U;
-
-            // double step  = static_cast<double> (maxTimeLong - minTimeLong) / gradient.size ();
-            // size_t index = static_cast<size_t> (longs / step);
-
-            // size_t index = static_cast<size_t>
-            //               (((longs       - minTimeLong) /
-            //                 (maxTimeLong - minTimeLong)) * (gradient.size (); - 1));
-
-            // COLORREF col = GetPixel (hdc, Tx (rec.hit.x), Ty (rec.hit.y));
-            // if ( col >= RGB(255,0,0) && col <= RGB(0,0,255) && gradient[index] < col )
-
-            if (circleRadius > 0.)
-            { drawCircle(hdc, rec.hit, 0.01, hPens[index]); }
-            else
-            { SetPixel(hdc, Tx(rec.hit.x), Ty(rec.hit.y), gradient[index]); }
-
-            boost::this_thread::interruption_point();
+            if (++i == 100)
+            {
+                boost::this_thread::interruption_point();
+                i = 1;
+            }
         }
     }
     catch (boost::thread_interrupted&)
-    { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
-    // --------------------------------------------------------------
-    for (auto hPen : hPens) { DeleteObject(hPen); }
-}
-//------------------------------------------------------------------------------
-void  RoboMoves::Store::save(tstring filename) const
-{
-    boost::this_thread::disable_interruption  no_interruption;
-    boost::lock_guard<boost::mutex>  lock(store_mutex_);
-    try
     {
-        std::ofstream ofs(filename, std::ios_base::binary | std::ios_base::out);
-        // boost::archive::text_oarchive  toa(ofs);
-        boost::archive::binary_oarchive   boa(ofs);
-        //boa & minTimeLong & maxTimeLong & store_;
-    }
-    catch (...)
-    {
-        tstring last_error = getLastErrorString();
-        MessageBoxW(NULL, last_error.c_str(), _T("Error"), MB_OK);
+        CINFO("WorkingThread interrupted");
     }
 }
-void  RoboMoves::Store::load(tstring filename)
-{
-    if (isFileExists(filename.c_str()))
-    {
-        boost::this_thread::disable_interruption  no_interruption;
-        boost::lock_guard<boost::mutex>  lock(store_mutex_);
 
-        std::ifstream ifs(filename, std::ios_base::binary | std::ios_base::in);
-        //std::stringstream buffer(std::ios_base::binary | std::ios_base::in | std::ios_base::out);
-        //buffer << ifs.rdbuf();
-        //ifs.close();
-      
-        // boost::archive::text_iarchive tia(ifs);
-        boost::archive::binary_iarchive  bia(ifs);
-        //boost::archive::binary_iarchive     bia(buffer);
-        //bia & minTimeLong & maxTimeLong & store_;
-        //-------------------------------------------
-    }
-}
 //------------------------------------------------------------------------------
 void  RoboMoves::Store::insert(const Record &rec)
 {
-    // if (rec.aim in store)
-    // {
-    //   /* Вверх класть более удачные, отн. кол-ва движение и точность попадания */
-    //  
-    //   /* ??? Несколько вариантов одного и того же движения ??? */
-    //   // массив траекторий для каждой точки
-    //
-    //   ?? store.insert (rec);
-    // } else
     try
     {
-        // tcout << tstring (rec) << std::endl; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+        /* массив траекторий для каждой точки
+        *  Несколько вариантов одного и того же движения
+        *  Вверх класть более удачные, отн. кол-ва движение и точность попадания
+        */
         boost::this_thread::disable_interruption no_interruption;
-        boost::lock_guard<boost::mutex> lock(store_mutex_);
-
-        store_.insert(rec);
-
-        // auto result = store_.insert(rec);
-        // if (result.second)
-        // {
-        //     Robo::frames_t longs = rec.longestMusclesControl();
-        //     if (!maxTimeLong && !minTimeLong)
-        //     {
-        //         maxTimeLong = longs;
-        //         minTimeLong = longs;
-        //     }
-        //     else if (longs > maxTimeLong)
-        //     { maxTimeLong = longs; }
-        //     else if (longs < minTimeLong)
-        //     { minTimeLong = longs; }
-        // }
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        // ==============================
+        auto status = _store.insert(rec);
+        // ==============================
+        if (status.second)
+            for (const auto &p : rec.trajectory)
+                _inverse.push_back({ &p, &(*status.first) });
     }
-    catch (...)
-    { MessageBox(NULL, getLastErrorString().c_str(), _T(" Error "), MB_OK); }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
+    }
 }
+
 //------------------------------------------------------------------------------
-void  RoboMoves::Store::insert(Robo::RoboI &robo, const Robo::Control &controls)
+void  RoboMoves::Store::dump_off(const tstring &filename, bool text_else_bin) const
 {
-    Robo::Trajectory trajectory;
+    try
+    {
+        boost::this_thread::disable_interruption no_interruption;
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
 
-    robo.reset();
-    Point pos_base = robo.position();
+        if (text_else_bin)
+        {
+            std::ofstream ofs(filename, std::ios_base::out);
+            boost::archive::text_oarchive toa(ofs);
+            toa & *this;
+        }
+        else
+        {
+            std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
+            boost::archive::binary_oarchive boa(ofs);
+            boa & *this;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
+    }
+}
 
-    robo.move(controls, trajectory);
+//------------------------------------------------------------------------------
+void  RoboMoves::Store::pick_up(const tstring &filename, bool text_else_bin)
+{
+    if (!fs::exists(filename))
+        CERROR(_T("File '") << filename << _T("' does not exists."));
 
-    const Point& pos = robo.position();
+    clear();
 
     try
     {
-        // boost::this_thread::disable_interruption no_interruption;
-        // boost::lock_guard<boost::mutex> lock(store_mutex_);
-        insert(Record(pos, pos_base, pos, controls, trajectory));
+        boost::this_thread::disable_interruption no_interruption;
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
+
+        if (text_else_bin)
+        {
+            std::ifstream ifs(filename, std::ios_base::in);
+            boost::archive::text_iarchive tia(ifs);
+            tia & *this;
+        }
+        else
+        {
+            std::ifstream ifs(filename, std::ios_base::in | std::ios_base::binary);
+            boost::archive::binary_iarchive bia(ifs);
+            bia & *this;
+        }
+
+        for (const auto &rec : _store)
+            for (const auto &p : rec.trajectory)
+                _inverse.push_back({ &p, &rec });
+        //_inverse_kdtree.addPoints(0, _inverse.size());
+
     }
-    catch (...)
-    { MessageBox(NULL, getLastErrorString().c_str(), _T(" Error "), MB_OK); }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
+    }
 }
 //------------------------------------------------------------------------------
+

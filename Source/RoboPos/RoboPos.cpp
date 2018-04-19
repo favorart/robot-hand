@@ -13,12 +13,12 @@ void specifyBordersByRecord(IN const Record &rec, IN OUT borders_t &borders)
         auto it = borders.find(c.muscle);
         if (it != borders.end())
         {
-            if (c.last < it->second.first)
-                it->second.first = c.last;
-            if (c.last > it->second.second)
-                it->second.second = c.last;
+            if (c.last < it->second.min_lasts)
+                it->second.min_lasts = c.last;
+            if (c.last > it->second.max_lasts)
+                it->second.max_lasts = c.last;
         }
-        else { borders[c.muscle] = std::make_pair(c.last, c.last); }
+        else { borders[c.muscle] = { c.last, c.last }; }
     }
 }
 //------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ void specifyBordersByRecord(IN const Record &rec, IN OUT borders_t &borders)
 void RoboPos::defineRobotBorders(IN const RoboI &robo, IN frames_t min_lasts, OUT borders_t &borders)
 {
     for (muscle_t muscle = 0; muscle < robo.musclesCount(); ++muscle)
-    { borders[muscle] = std::make_pair(min_lasts, robo.muscleMaxLast(muscle)); }
+    { borders[muscle] = { min_lasts, robo.muscleMaxLast(muscle) }; }
 }
 
 /// Статистичеки найти приблизительную границу мишени по длительности работы мускулов

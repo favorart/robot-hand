@@ -112,17 +112,17 @@ namespace br = boost::range;
 namespace bg = boost::geometry;
 
 
-// #include <boost/range/algorithm/permutation.hpp>
+//#include <boost/range/algorithm/permutation.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include <boost/function.hpp>
 
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/access.hpp>
 #include <boost/serialization/version.hpp>
+#include <boost/serialization/access.hpp>
 #include <boost/serialization/list.hpp>
-// #include <boost/serialization/map.hpp>
-// #include <boost/serialization/bitset.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/unordered_map.hpp>
 
 // a portable text archive
 #include <boost/archive/text_oarchive.hpp> // saving
@@ -131,31 +131,30 @@ namespace bg = boost::geometry;
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
-// #include <boost/interprocess/allocators/allocator.hpp>
-// #include <boost/interprocess/containers/string.hpp>
-// #include <boost/interprocess/managed_mapped_file.hpp>
-// #include <boost/interprocess/sync/named_mutex.hpp>
-// #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
+//#include <boost/interprocess/allocators/allocator.hpp>
+//#include <boost/interprocess/containers/string.hpp>
+//#include <boost/interprocess/managed_mapped_file.hpp>
+//#include <boost/interprocess/sync/named_mutex.hpp>
+//#include <boost/interprocess/sync/scoped_lock.hpp>
 
 /* Visual Leak Detector */
-// #include <vld.h>
+//#include <vld.h>
 
 /* Windows */
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <tchar.h>
-
-//typedef std::basic_string<TCHAR> tstring;               // TCHAR based
-//typedef std::basic_istream<TCHAR> tistream;             // TCHAR based
-//typedef std::basic_ostream<TCHAR> tostream;             // TCHAR based
-//typedef std::basic_fstream<TCHAR> tfstream;             // TCHAR based
-//typedef std::basic_stringstream<TCHAR> tstringstream;   // TCHAR based
-
+////-------------------------------------------------------------------------------
 #if defined(UNICODE) || defined(_UNICODE)
 #define tcin  std::wcin
 #define tcout std::wcout
 #define tcerr std::wcerr
+
+#define to_tstring std::to_wstring
 
 using tstring =  std::wstring;
 using tistream = std::wistream;
@@ -169,6 +168,8 @@ using tptree = pt::wptree;
 #define tcout std::cout
 #define tcerr std::cerr
 
+#define to_tstring std::to_string
+
 using tstring  = std::string;
 using tistream = std::istream;
 using tostream = std::ostream;
@@ -179,10 +180,6 @@ using tptree = pt::ptree;
 #endif
 
 //---defines---------------------------
-#define   EPS        1e-4
-#define   EPS_VIS    1e-2
-
-#define   INHERITANCE_FINAL
 #define   IN
 #define   OUT
 
@@ -190,6 +187,8 @@ typedef unsigned char  uchar_t;
 typedef uint32_t        uint_t;
 typedef uint64_t       ulong_t;
 //--------------------------------
+#include "Utils.h"
+#include "verbose.h"
 #include "Point.h"
 #include "resource.h"
 //-------------------------------------

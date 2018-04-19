@@ -1,4 +1,6 @@
 #pragma once
+
+#include "Utils.h"
 #include "RoboControl.h"
 #include "RoboMotionLaws.h"
 
@@ -8,22 +10,10 @@ namespace Robo
 //-------------------------------------------------------------------------------
 //struct TStringSerializableI { virtual operator tstring() const = 0; };
 //-------------------------------------------------------------------------------
-template <typename Integer>
-Integer  random(Integer max)
-{ return  (max) ? (static_cast<Integer> (rand()) % (max)) : (max); }
-template <typename Integer>
-Integer  random(Integer min, Integer max)
-{ return  (max) ? (static_cast<Integer> (rand()) % (max) + min) : (max); }
-
-inline double  random(double max)
-{ return  (static_cast<double> (rand()) / RAND_MAX) * max; }
-inline double  random(double min, double max)
-{ return  (static_cast<double> (rand()) / RAND_MAX) * (max - min) + min; }
-//-------------------------------------------------------------------------------
 using Trajectory = std::list<Point>;
 using Trajectories = std::list<Trajectory>;
 using joint_t = uint8_t;
-const joint_t  JInvalid = 0xFF;
+const joint_t JInvalid = 0xFF;
 //-------------------------------------------------------------------------------
 struct JointInput
 {
@@ -55,7 +45,14 @@ public:
     { return (joint * 2 + !open); }
     static joint_t  jointByMuscle(IN muscle_t muscle)
     { return (muscle / 2); }
-    
+
+    //----------------------------------------------------
+    RoboI() {}
+    RoboI(RoboI&&) = delete;
+    RoboI(const RoboI&) = delete;
+    RoboI(const Point&, const std::list<Robo::JointInput>&) {}
+    RoboI(const Point&, const std::list<std::shared_ptr<Robo::JointInput>>&) {}
+
     //----------------------------------------------------
     virtual joint_t  jointsCount() const = 0;
     virtual muscle_t musclesCount() const = 0;
@@ -73,12 +70,12 @@ public:
     //----------------------------------------------------
     using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;
     virtual void setJoints(IN const JointsOpenPercent&) = 0;
-    virtual void resetJoint(IN muscle_t) = 0;
+    virtual void resetJoint(IN joint_t) = 0;
     virtual void reset() = 0;
 
     virtual Point jointPos(IN joint_t) const = 0;
     //----------------------------------------------------
-    virtual void controlsValidate(Control&) const = 0;
+    virtual void controlsValidate(const Control&) const = 0;
     //----------------------------------------------------
     virtual bool moveEnd() const = 0;
     virtual const Point& position() const = 0;

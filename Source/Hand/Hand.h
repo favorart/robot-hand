@@ -186,8 +186,7 @@ public:
     void      step(IN frames_t frame, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
     frames_t  move(IN const Control &control, OUT Trajectory &visited);
     //----------------------------------------------------
-    void controlsValidate(Control&) const;
-    bool controlsCheck(const Control&) const;
+    void controlsValidate(const Control&) const;
     
     //----------------------------------------------------
     /*  jointsOpenPercent={ j={ Clvcl, Shldr, Elbow, Wrist }, val <= 100.0% } */

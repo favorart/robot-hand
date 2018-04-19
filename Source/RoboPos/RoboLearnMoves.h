@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 
 #include "StdAfx.h"
 
@@ -10,30 +10,37 @@
 
 namespace RoboPos
 {
-/*  Количество точек, в окресности искомой точки.
-*  Что я могу варьировать?
-*
-*  v  1. Длительность работы каждого мускула
-*  v  2. Время старта каждого мускула
-*  v  3. Тормозить мускулом? (прерывать '1' входа на которкое время)
-*
-*  ?  4. Может быть !1 перелом! траектории (полная остановка)
-*  Он может нам понадобиться в зависимости от законов движения
-*  разных мускулов, если один до второго не успевает... (?позже включить??)
+//------------------------------------------------------------------------------
+/* С‚РµСЃС‚РѕРІС‹Рµ РґРІРёР¶РµРЅРёСЏ СЂСѓРєРѕР№ */
+void  testRandom (IN OUT RoboMoves::Store &store, IN Robo::RoboI &robo, IN size_t tries);
+void  testCover  (IN OUT RoboMoves::Store &store, IN Robo::RoboI &robo, IN size_t nesting /* = 1,2,3 */);
+//------------------------------------------------------------------------------
+
+/*!  РљРѕР»РёС‡РµСЃС‚РІРѕ С‚РѕС‡РµРє, РІ РѕРєСЂРµСЃРЅРѕСЃС‚Рё РёСЃРєРѕРјРѕР№ С‚РѕС‡РєРё.
+*    Р§С‚Рѕ СЏ РјРѕРіСѓ РІР°СЂСЊРёСЂРѕРІР°С‚СЊ?
+*   
+*    v  1. Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ СЂР°Р±РѕС‚С‹ РєР°Р¶РґРѕРіРѕ РјСѓСЃРєСѓР»Р°
+*    v  2. Р’СЂРµРјСЏ СЃС‚Р°СЂС‚Р° РєР°Р¶РґРѕРіРѕ РјСѓСЃРєСѓР»Р°
+*    v  3. РўРѕСЂРјРѕР·РёС‚СЊ РјСѓСЃРєСѓР»РѕРј? (РїСЂРµСЂС‹РІР°С‚СЊ '1' РІС…РѕРґР° РЅР° РєРѕС‚РѕСЂРєРѕРµ РІСЂРµРјСЏ)
+*   
+*    ?  4. РњРѕР¶РµС‚ Р±С‹С‚СЊ !1 РїРµСЂРµР»РѕРј! С‚СЂР°РµРєС‚РѕСЂРёРё (РїРѕР»РЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР°)
+*    РћРЅ РјРѕР¶РµС‚ РЅР°Рј РїРѕРЅР°РґРѕР±РёС‚СЊСЃСЏ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ Р·Р°РєРѕРЅРѕРІ РґРІРёР¶РµРЅРёСЏ
+*    СЂР°Р·РЅС‹С… РјСѓСЃРєСѓР»РѕРІ, РµСЃР»Рё РѕРґРёРЅ РґРѕ РІС‚РѕСЂРѕРіРѕ РЅРµ СѓСЃРїРµРІР°РµС‚... (?РїРѕР·Р¶Рµ РІРєР»СЋС‡РёС‚СЊ??)
 */
 class LearnMoves
 {
-    RoboMoves::Store &store;
-    Robo::RoboI &robo;
-    Point base_pos;
+    RoboMoves::Store &_store;
+    Robo::RoboI &_robo;
+    std::shared_ptr<Robo::RoboI> _p_robo_copy;
+    Point _base_pos;
 
-    RecTarget &target;
-    const double precision; ///< Точность = 1.5 мм  
-    size_t complexity = 0;  ///< Подсчёт сложности
+    RecTarget &_target;
+    const double _precision; ///< РўРѕС‡РЅРѕСЃС‚СЊ = 1.5 РјРј  
+    size_t _complexity = 0;  ///< РџРѕРґСЃС‡С‘С‚ СЃР»РѕР¶РЅРѕСЃС‚Рё
 
-    ConfigJSON::StageInput1 stage1;
-    ConfigJSON::StageInput2 stage2;
-    ConfigJSON::StageInput3 stage3;
+    ConfigJSON::StageInput1 _stage1_params;
+    ConfigJSON::StageInput2 _stage2_params;
+    ConfigJSON::StageInput3 _stage3_params;
 
     //==============================================
     bool  actionRobo(IN const Point &aim, IN const Robo::Control &controls, OUT Point &hit);
@@ -86,50 +93,51 @@ class LearnMoves
 
     //==============================================
     /* Mixtures */
-    size_t  weightedMean(IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
+    size_t  weightedMean(IN const Point &aim, OUT Point &hand_position);
     //------------------------------------------------------------------------------
-    size_t  rundownMDir(IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
-    size_t  rundownFull(IN const Point &aim, OUT Point &hand_position, IN bool verbose = false);
+    size_t  rundownMDir(IN const Point &aim, OUT Point &hand_position);
+    size_t  rundownFull(IN const Point &aim, OUT Point &hand_position);
     //------------------------------------------------------------------------------
 
 public:
     LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target) :
-        store(store), robo(robo), target(target), precision(target.precision())
+        _store(store), _robo(robo), _target(target), _precision(target.precision())
     {
-        robo.reset();
-        base_pos = robo.position();
+        _robo.reset();
+        _base_pos = _robo.position();
     }
     LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target,
                IN double precision,
                IN const ConfigJSON::StageInput1 &stage1,
                IN const ConfigJSON::StageInput2 &stage2,
                IN const ConfigJSON::StageInput3 &stage3) :
-        store(store), robo(robo), target(target),
-        precision(precision),
-        stage1(stage1), stage2(stage2), stage3(stage3)
+        _store(store), _robo(robo), _target(target), _precision(precision),
+        _stage1_params(stage1), _stage2_params(stage2), _stage3_params(stage3)
     {
-        robo.reset();
-        base_pos = robo.position();
+        _robo.reset();
+        _base_pos = _robo.position();
     }
+
+    size_t complexity() const { return _complexity; };
     //------------------------------------------------------------------------------
-    /* грубое покрытие всего рабочего пространства */
-    void  STAGE_1(IN bool verbose = true);
-    /* Покрытие всей мишени не слишком плотно */
-    void  STAGE_2(IN bool verbose = true);
-    /* Попадание в оставшиеся непокрытыми точки мишени */
-    void  STAGE_3(OUT Robo::Trajectory &uncovered, OUT size_t &complexity, IN bool verbose = true);
+    /// РіСЂСѓР±РѕРµ РїРѕРєСЂС‹С‚РёРµ РІСЃРµРіРѕ СЂР°Р±РѕС‡РµРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР°
+    void  STAGE_1();
+    /// РџРѕРєСЂС‹С‚РёРµ РІСЃРµР№ РјРёС€РµРЅРё РЅРµ СЃР»РёС€РєРѕРј РїР»РѕС‚РЅРѕ
+    void  STAGE_2();
+    /// РџРѕРїР°РґР°РЅРёРµ РІ РѕСЃС‚Р°РІС€РёРµСЃСЏ РЅРµРїРѕРєСЂС‹С‚С‹РјРё С‚РѕС‡РєРё РјРёС€РµРЅРё
+    void  STAGE_3(OUT Robo::Trajectory &uncovered);
     //------------------------------------------------------------------------------
     void  uncover(OUT Robo::Trajectory &uncovered);
     //------------------------------------------------------------------------------
-    size_t  gradientMethod(IN const Point &aim, IN bool verbose = false);
-    size_t  gradientMethod_admixture(IN const Point &aim, IN bool verbose = false);
+    size_t  gradientMethod(IN const Point &aim);
+    size_t  gradientMethod_admixture(IN const Point &aim);
 
     //------------------------------------------------------------------------------
-    /* грубое покрытие всего рабочего пространства */
+    /* РіСЂСѓР±РѕРµ РїРѕРєСЂС‹С‚РёРµ РІСЃРµРіРѕ СЂР°Р±РѕС‡РµРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР° */
     void  testStage1();
-    /* Покрытие всей мишени не слишком плотно */
+    /* РџРѕРєСЂС‹С‚РёРµ РІСЃРµР№ РјРёС€РµРЅРё РЅРµ СЃР»РёС€РєРѕРј РїР»РѕС‚РЅРѕ */
     void  testStage2();
-    /* Попадание в оставшиеся непокрытыми точки мишени */
+    /* РџРѕРїР°РґР°РЅРёРµ РІ РѕСЃС‚Р°РІС€РёРµСЃСЏ РЅРµРїРѕРєСЂС‹С‚С‹РјРё С‚РѕС‡РєРё РјРёС€РµРЅРё */
     void  testStage3(OUT std::list<Point> &uncovered);
     //------------------------------------------------------------------------------
     void  Mean(IN const Point &aim,
@@ -146,9 +154,7 @@ public:
     //------------------------------------------------------------------------------
     bool  tryToHitTheAim(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const Point &aim);
     //------------------------------------------------------------------------------
-    void  rundownMethod_old(IN const Point &aim,
-                            IN const Robo::Control &controls,
-                            IN Point &hand_position);
+    void  rundownMethod_old(IN const Point &aim, IN const Robo::Control &controls, IN Point &hand_pos);
     //------------------------------------------------------------------------------
 }; // end LearnMovements
 

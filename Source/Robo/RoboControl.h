@@ -4,8 +4,8 @@
 namespace Robo
 {
 //-------------------------------------------------------------------------------
-using frames_t = size_t;   // descrete time
-using muscle_t = uint8_t;  // muscle index (no holes)
+using frames_t = size_t;   ///< descrete time
+using muscle_t = uint8_t;  ///< muscle index (no holes)
 //-------------------------------------------------------------------------------
 class RoboI;
 const muscle_t MInvalid = 0xFF;
@@ -35,27 +35,38 @@ struct Actuator
     bool operator!= (const muscle_t  m) const
     { return (this->muscle != m); }
     //----------------------------------------------------
-    friend tostream& operator<<(tostream &out, const Actuator &a);
-
+    friend tostream& operator<<(tostream&, const Actuator&);
+    friend tistream& operator>>(tistream&, Actuator&);
+    //----------------------------------------------------
     template<class Archive>
-    void  serialize(Archive &ar, const unsigned int version)
+    void serialize(Archive &ar, unsigned version)
     { ar & muscle & start & last; }
 };
 //-------------------------------------------------------------------------------
 class  Control
 {
-    static const unsigned MAX_ACTUATORS = 8;         // number of brakes
-    std::array<Actuator, MAX_ACTUATORS> actuators{}; // sorted by start
+    static const unsigned MAX_ACTUATORS = 8;         ///< number of brakes
+    std::array<Actuator, MAX_ACTUATORS> actuators{}; ///< sorted by start
     size_t actuals = 0;
+
+    // ----------------------------------------
+    friend class boost::serialization::access;
+    template <class Archive>
+    void serialize(Archive &ar, unsigned version)
+    {
+        ar & actuals;
+        for (auto &a : actuators)
+            ar & a;
+    }
 
 public:
     Control() = default;
-    Control(const Actuator& a) : Control()
+    Control(const Actuator &a) : Control()
     { actuators[actuals++] = a; }
-    Control(const Actuator* a, size_t sz);
+    Control(const Actuator *a, size_t sz);
 
-    Control(const Control&) = default;
     Control(Control&&) = default;
+    Control(const Control&) = default;
     Control& operator=(const Control &c) = default;
 
     //----------------------------------------------------
@@ -64,13 +75,12 @@ public:
 
     auto begin()       -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
     auto begin() const -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
-    auto   end()       -> decltype(boost::end(actuators)) { return boost::begin(actuators) + actuals; } // std::advance()
-    auto   end() const -> decltype(boost::end(actuators)) { return boost::begin(actuators) + actuals; } // std::advance()
+    auto   end()       -> decltype(boost::end(actuators)) { return boost::begin(actuators) + actuals; } // ?? std::advance()
+    auto   end() const -> decltype(boost::end(actuators)) { return boost::begin(actuators) + actuals; } // ?? std::advance()
 
     //----------------------------------------------------
-    size_t size() const { return actuals; }
+    size_t size() const { return (actuals); }
     void append(const Actuator& a); // sorted
-    void pop_back();
     void push_back(const Actuator& a) { append(a); }
 
     void clear()
@@ -108,41 +118,42 @@ public:
                               IN frames_t lasts_min = 50,
                               IN unsigned moves_count_min = 1,
                               IN unsigned moves_count_max = 3);
-
     //----------------------------------------------------
-    template<class Archive>
-    void  serialize(Archive &ar, const unsigned int version)
-    { for (auto& a : actuators) a.serialize(ar, version); }
-    //----------------------------------------------------
-    friend tostream& operator<<(tostream &out, const Control &controls);
+    friend tostream& operator<<(tostream&, const Control&);
+    friend tistream& operator>>(tistream&, Control&);
 };
-
+//-------------------------------------------------------------------------------
+inline Control EmptyMov() { return {}; }
 //-------------------------------------------------------------------------------
 inline Control operator+(const Control &cl, const Control &cr)
 { 
     Control c = cl;
     for (auto &a : cr)
-        if (a.muscle != Robo::MInvalid)
+        if (a.muscle != MInvalid && a.last != 0)
             c.append(a);
+        else CWARN("muscle==MInvalid or last==0");
     return c;
 }
 inline Control operator+(const Control &cl, const Actuator &a)
 {
     Control c = cl;
-    if (a.muscle != Robo::MInvalid)
+    if (a.muscle != MInvalid && a.last != 0)
         c.append(a);
+    else CWARN("muscle==MInvalid or last==0");
     return c;
 }
 inline Control operator+(const Control &cl, const std::vector<Actuator> &v)
 {
     Control c = cl;
     for (auto &a : v)
-        if (a.muscle != Robo::MInvalid)
+        if (a.muscle != MInvalid && a.last != 0)
             c.append(a);
+        //else CWARN("muscle==MInvalid or last==0");
     return c;
 }
-
-//-------------------------------------------------------------------------------
-inline Control EmptyMov() { return {}; }
 //-------------------------------------------------------------------------------
 }
+//-------------------------------------------------------------------------------
+BOOST_CLASS_VERSION(Robo::Actuator, 2)
+BOOST_CLASS_VERSION(Robo::Control, 2)
+//-------------------------------------------------------------------------------

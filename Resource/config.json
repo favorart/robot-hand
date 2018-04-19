@@ -98,6 +98,7 @@
         "b_target": false,
         "b_braking": false,
         "b_checking": false,
+        "b_predict": false,
         "step_distance": 0.07,
         "lasts_step_increment": 5
       }

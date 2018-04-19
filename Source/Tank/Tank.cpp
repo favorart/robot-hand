@@ -59,7 +59,7 @@ bool Tank::muscleFrame (Muscle muscle, bool atStop)
     
     // --- WIND ----------------------------------
     if (status.windy && status.lastsMove[muscle] == 1)
-        Frame = random(Tank::minFrameMove, *boost::max_element(physics.framesMove[joint]));
+        Frame = Utils::random(Tank::minFrameMove, *boost::max_element(physics.framesMove[joint]));
     // -------------------------------------------
     status.shifts[muscle] = Frame;
     // status.curPos !!! wait for realMove
@@ -591,7 +591,7 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
     realMove();
 }
 //--------------------------------------------------------------------------------
-void Tank::controlsValidate(Control&) const
+void Tank::controlsValidate(const Control&) const
 {
     /// TODO: controlsValidate
 }

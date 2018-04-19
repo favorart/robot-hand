@@ -15,7 +15,7 @@ frames_t  Hand::muscleMaxLast(const Control &control) const
     for (const auto &c : control)
     {
         if (c.muscle >= musclesCount())
-            throw std::exception("Invalid control");
+            throw std::logic_error("Invalid control");
         Joint joint = JofM(M(c.muscle));
         last = last ? std::min(last, physics.maxMoveFrames[joint]) : physics.maxMoveFrames[joint];
     }
@@ -24,7 +24,7 @@ frames_t  Hand::muscleMaxLast(const Control &control) const
 frames_t  Hand::muscleMaxLast(muscle_t muscle) const
 { 
     if (muscle >= musclesCount())
-        throw std::exception("Invalid control");
+        throw std::logic_error("Invalid control");
     return physics.maxMoveFrames[JofM(M(muscle))];
 }
 //--------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ bool    Hand::muscleFrame (muscle_t m)
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
         } while (status.prevFrame[muscle] < Frame && ++last < frames.size());
     }
-    else throw std::exception("!lastsMove & !lastsStop");
+    else throw std::logic_error("!lastsMove & !lastsStop");
     // /* next frame with stop speed smooth */
     //do
     //{
@@ -129,7 +129,7 @@ bool    Hand::muscleFrame (muscle_t m)
 
     // --- WIND ---
     if (status.windy && status.lastsMove[muscle] == 1)
-        Frame = random(Hand::minFrameMove * 180. / M_PI, *boost::max_element(physics.framesMove[joint]));
+        Frame = Utils::random(Hand::minFrameMove * 180. / M_PI, *boost::max_element(physics.framesMove[joint]));
     // -------------------------------------------
     // maxOffset
     double mOf = (joint == Joint::Clvcl) ?
@@ -220,7 +220,7 @@ void    Hand::muscleMove  (frames_t frame, muscle_t m, frames_t last)
             /* исключаем остановленный двигатель */
             status.musclesMove[muscle] = 0;
             /* проверяем, что остальные двигатели уже остановились */
-            if (boost::algorithm::none_of(status.musclesMove, [](const auto &v) { return (v != 0); }))
+            if (ba::none_of(status.musclesMove, [](const auto &v) { return (v != 0); }))
             {
                 /* Полная остановка руки */
                 status.moveEnd = true;
@@ -340,7 +340,7 @@ void      Hand::step(IN frames_t frame, IN muscle_t muscle, IN frames_t last)
         ///        }
         ///        else if (m == muscle) control.append({ m, frame, last });
         ///
-        ///    /* Совместимо ли новое с тем, что уже сейчас движется? */
+        ///    
         ///    controlValidate(control);
         ///    ///if (timeValidToStartOppositeMuscle(muscle))
         ///}
@@ -392,25 +392,7 @@ frames_t  Hand::move(IN Muscle muscle, IN frames_t last, OUT Trajectory &visited
 //--------------------------------------------------------------------------------
 frames_t  Hand::move(IN const Control& controls, OUT Trajectory& visited)
 {
-    /// TODO: ControlsValidate
-    /* Что-то должно двигаться, иначе беск.цикл */
-    if (!controls.size())
-        throw std::exception("Controls are empty!");
-    /* Управление должно быть отсортировано по времени запуска двигателя */
-    if (controls[0].start != 0 || !boost::range::is_sorted(controls))
-        throw std::exception("Controls are not sorted!");
-
-
-    /* Исключить незадействованные двигатели */
-    //auto ctrlInvalid = [muscles = musclesCount()](const auto &a) {
-    //    return (a.last == 0) || (a.muscle >= muscles);
-    //};
-    //if (ba::none_of(controls, ctrlInvalid))
-    //    throw std::exception("Controls have UnUsed muscles!");
-    for (auto &a : controls)
-        if (a.last == 0 || a.muscle >= musclesCount())
-            throw std::exception("Controls have UnUsed muscles!");
-
+    controlsValidate(controls);
 
     frames_t frame = 0;
     /* Запускаем двигатели */
@@ -427,8 +409,8 @@ frames_t  Hand::move(IN const Control& controls, OUT Trajectory& visited)
         {
             step(frame, c.muscle, c.last);
             /* (no ++frame) могут стартовать одновременно
-            * несколько мускулов, разной продолжительности
-            */
+             * несколько мускулов, разной продолжительности
+             */
         }
     } // end for
 
@@ -472,7 +454,7 @@ void  Hand::reset()
 //--------------------------------------------------------------------------------
 void  Hand::resetJoint(IN joint_t joint)
 {
-    // TODO: ?drop muscle status
+    // TODO: ??? drop muscle status
     /* reset joint to default */
     setJoints({ {joint, params.defOpen[J(joint)]} });
 }
@@ -485,7 +467,7 @@ void  Hand::setJoints(IN const JointsOpenPercent &percents)
         double ratio = jr.second / 100.;
         
         if (ratio > 1. || ratio < 0.)
-            throw std::runtime_error("invalid joint percent: must be 0 >= percent >= 100");
+            throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
 
         double maxAngle = (joint == Joint::Clvcl) ?
             static_cast<double>(physics.jointsMaxAngles[Joint::Clvcl]) / 100. :
@@ -635,7 +617,6 @@ void  Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 //--------------------------------------------------------------------------------
 void  Hand::drawWorkSpace(OUT Trajectory &workSpace)
 {
-    reset();
     for (joint_t joint = 0; joint < jointsCount(); ++joint)
         setJoints({ { joint , 0. } });
 
@@ -648,80 +629,38 @@ void  Hand::drawWorkSpace(OUT Trajectory &workSpace)
     for (Muscle muscle : sequence)
     {
         auto &used = params.musclesUsed;
-        if (std::find(used.begin(), used.end(), muscle) != used.end())
+        auto it = std::find(used.begin(), used.end(), muscle);
+        if (it != used.end())
         {
-            Control control{ { muscle, 0, muscleMaxLast(muscle) } };
+            muscle_t m = (it - used.begin());
+            Control control{ { m, 0, muscleMaxLast(m) } };
+            //CINFO(control);
             move(control, workSpace);
         }
     }
     reset();
 }
 //--------------------------------------------------------------------------------
-void  Hand::controlsValidate(Control &controls) const
+void  Hand::controlsValidate(const Control &controls) const
 {
-    /// TODO: ControlsValidate
     /* Что-то должно двигаться, иначе беск.цикл */
     if (!controls.size())
-        throw std::exception("Controls are empty!");
+        throw std::logic_error("Controls are empty!");
     /* Управление должно быть отсортировано по времени запуска двигателя */
-    if (controls[0].start != 0 || !boost::range::is_sorted(controls))
-        throw std::exception("Controls are not sorted!");
+    if (controls[0].start != 0 || !br::is_sorted(controls))
+        throw std::logic_error("Controls are not sorted!");
     /* Исключить незадействованные двигатели */
     auto ctrlInvalid = [muscles = musclesCount()](const auto &a) {
+        //CINFO(a);
         return (a.last == 0) || (a.muscle >= muscles);
     };
-    if (boost::algorithm::none_of(controls, ctrlInvalid))
-        throw std::exception("Controls have UnUsed muscles!");
+    if (ba::any_of(controls, ctrlInvalid))
+        throw std::logic_error("Controls have UNUSED or INVALID muscles!");
 
-    /// TODO: (last > 0) !!!!!!!!
-    
-
-    size_t joints[JCount];
-    memset(joints, JInvalid, sizeof(joints));
-    for (size_t i = 0; i < controls.size(); ++i)
-    {
-        joint_t j = jointByMuscle(controls[i].muscle);
-        if (joints[j] != JInvalid)
-        {
-            if (controls[j].last > controls[i].last)
-            {
-                controls[i].start = controls[j].last + 1U; // control[j].start;
-                controls[j].start = 0U;
-            }
-            else
-            {
-                controls[j].start = controls[i].last + 1U; // control[i].start;
-                controls[i].start = 0U;
-            }
-        }
-        joints[j] = i;
-    }
-}
-//--------------------------------------------------------------------------------
-bool  Hand::controlsCheck(const Control &controls) const
-{
-    /// TODO: controlsCheck
-    return true;
+    /// TODO: Opposite simultaneosly
+    /* Совместимо ли новое с тем, что уже сейчас движется? */
 }
 
-//--------------------------------------------------------------------------------
-//bool  Hand::timeValidToStartOppositeMuscle(IN muscle_t muscle)
-//{
-//    if (!muscle) return false;
-//
-//    for (auto joint : joints_)
-//    {
-//        auto mo = muscleByJoint(joint, true);
-//        auto mc = muscleByJoint(joint, false);
-//
-//        if (((mo & hs.musclesMove_) && hs.lastsMove[joint] && (mc & muscle))
-//         || ((mc & hs.musclesMove_) && hs.lastsMove[joint] && (mo & muscle)))
-//        {
-//            return false;
-//        }
-//    }
-//    return true;
-//}
 //--------------------------------------------------------------------------------
 //Hand::Muscle Hand::selectControl(IN Muscle muscle) const
 //{

@@ -25,6 +25,9 @@ bool  Point::operator!= (const Point &p) const
 //--------------------------------------------------------------------------------
 bool  Point::hit    (const Point &p, double eps) const
 { return ((abs (x_ - p.x_) < eps) && (abs (y_ - p.y_) < eps)); }
+bool  Point::hit(const Point &p) const
+{ return hit(p, Utils::EPSILONT); }
+
 
 void  Point::rotate_radians (const Point &center, double angle)
 {
@@ -77,8 +80,8 @@ Point alongLineAtDistance(const Point &from, const Point &to, double distance)
     return Point{ from + dirLn * distance };
 }
 //--------------------------------------------------------------------------------
-tistream&  operator>> (tistream &in,        Point &p)
-{ return in >> p.x_ >> p.y_; }
-tostream&  operator<< (tostream &out, const Point &p)
-{ return out << _T ('(') << p.x_ << _T (", ") << p.y_ << _T (')'); }
+tostream& operator<<(tostream &s, const Point &p)
+{ return s << _T('(') << p.x_ << _T(", ") << p.y_ << _T(')'); }
+tistream& operator>>(tistream &s, Point &p)
+{ return s >> ConfirmInput(_T("(")) >> p.x_ >> ConfirmInput(_T(", ")) >> p.y_ >> ConfirmInput(_T(")")); }
 //--------------------------------------------------------------------------------

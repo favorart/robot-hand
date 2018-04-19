@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 
 #include "Robo.h"
 #include "RoboPos.h"
@@ -11,77 +11,99 @@ using namespace RoboMoves;
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 //------------------------------------------------------------------------------
-/// грубое покрытие всего рабочего пространства
-void  RoboPos::LearnMoves::STAGE_1(IN bool verbose)
+/// РіСЂСѓР±РѕРµ РїРѕРєСЂС‹С‚РёРµ РІСЃРµРіРѕ СЂР°Р±РѕС‡РµРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР°
+void  RoboPos::LearnMoves::STAGE_1()
 {
-    std::shared_ptr<Tour> pTour{ new TourWorkSpace(store, robo, target) };
-    pTour->STAGE_1(verbose);
+    borders_t borders;
+    //std::shared_ptr<Tour> pTour{ new TourWorkSpace(_store, _robo, _target, borders) };
+    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, _target, borders) };
+
+    defineRobotBorders(_robo, 70U/*25U*/, borders);
+    /* mm :
+    *    (target.max - target.min) = 300 mm
+    *    1
+    *    0.84 <--> 300 mm
+    *    x    <-->   1 mm   ==> 0.0028
+    */
+    pTour->run(/* _b_distance */  true, // Stage 1
+               /* _b_target   */ false,
+               /* _b_braking  */  true,
+               /* _b_predict  */  true,
+               /* _b_checking */  true,
+               borders,
+               0.07 /*0.1*/, 5 /*1*/);
+               //0.1, 10);
+               //0.03, 3); // non-recursive
 }
-/// Покрытие всей мишени не слишком плотно
-void  RoboPos::LearnMoves::STAGE_2(IN bool verbose)
+/// РџРѕРєСЂС‹С‚РёРµ РІСЃРµР№ РјРёС€РµРЅРё РЅРµ СЃР»РёС€РєРѕРј РїР»РѕС‚РЅРѕ
+void  RoboPos::LearnMoves::STAGE_2()
 {
-    std::shared_ptr<Tour> pTour{ new TourWorkSpace(store, robo, target) };
-    pTour->STAGE_2(verbose);
+    borders_t borders;
+    //std::shared_ptr<Tour> pTour{ new TourWorkSpace(_store, _robo, _target, borders) };
+    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, _target, borders) };
+
+    defineTargetBorders(_target, _store, /* side */ 0.05, borders);
+
+    pTour->run(/* _b_distance */ false,
+               /* _b_target   */ true, // Stage 2
+               /* _b_braking  */ true,
+               /* _b_predict  */ true,
+               /* _b_checking */ true,
+               borders,
+               0.015 /*0.02*/, 2 /*3*/);
+               //0.015, 2); // non-recursive
 }
-/// Попадание в оставшиеся непокрытыми точки мишени
-void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered, OUT size_t &complexity, IN bool verbose)
+/// РџРѕРїР°РґР°РЅРёРµ РІ РѕСЃС‚Р°РІС€РёРµСЃСЏ РЅРµРїРѕРєСЂС‹С‚С‹РјРё С‚РѕС‡РєРё РјРёС€РµРЅРё
+void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 {
     size_t count = 0U;
     uncovered.clear();
     // -----------------------------------------------------
-    for (const auto &pt : target.coords())
+    for (const auto &pt : _target.coords())
     {
         ++count;
         // ---------------------------------------------------
-        tcout << _T("current: ") << count << _T(" / ")
-              << target.coords().size();// << _T (" \r");
-        
+        CINFO(_T("current: ") << count << _T(" / ") << _target.coords().size());
         // ---------------------------------------------------
         int tries = 32;
         Point p{ pt };
         // ---------------------------------------------------
-        auto rec = std::ref(store.ClothestPoint(pt, stage3.side));
-        while (tries >= 0 && boost_distance(rec.get().hit, pt) > target.precision())
+        auto rec = std::ref(_store.ClothestPoint(pt, _stage3_params.side));
+        while (tries >= 0 && boost_distance(rec.get().hit, pt) > _target.precision())
         {
-            complexity += gradientMethod_admixture(p, verbose);
+            _complexity += gradientMethod_admixture(p);
             // -------------------------------------------------
-            rec = std::ref(store.ClothestPoint(pt, stage3.side));
+            rec = std::ref(_store.ClothestPoint(pt, _stage3_params.side));
             // -------------------------------------------------
             double  rx = 0., ry = 0.;
             if ((tries % 3))
             {
-                double min = target.precision() * target.precision();
-                double max = target.precision() * 2.;
+                double min = _target.precision() * _target.precision();
+                double max = _target.precision() * 2.;
 
-                rx = random(min, max);
-                ry = random(min, max);
+                rx = Utils::random(min, max);
+                ry = Utils::random(min, max);
 
-                rx = random(2) ? -rx : rx;
-                ry = random(2) ? -ry : ry;
+                rx = Utils::random(2) ? -rx : rx;
+                ry = Utils::random(2) ? -ry : ry;
             }
             // -------------------------------------------------
             p = Point{ pt.x + rx, pt.y + ry };
             // -------------------------------------------------
             --tries;
-            // ++tries;
-            // if ( tries > 100 ) { break; }
         }
-
-        // if ( tries > 11 )
-        // { tcout << _T ("tries: ") << tries << _T (" \r"); }
-        // else
-        { tcout << _T(" \r"); }
         // ---------------------------------------------------
         {
-            const Record &rec = store.ClothestPoint(pt, stage3.side);
-            if (boost_distance(rec.hit, pt) > target.precision())
+            const Record &rec = _store.ClothestPoint(pt, _stage3_params.side);
+            if (boost_distance(rec.hit, pt) > _target.precision())
             { uncovered.push_back(pt); }
         }
     } // end for
     
     // -----------------------------------------------------
-    tcout << _T("TOTAL Complexity: ") << complexity << "  minutes:" << double(complexity) / 60. << std::endl;
-    tcout << _T("AVERAGE Complexity: ") << complexity / count << std::endl;
+    tcout << _T("TOTAL Complexity: ") << complexity()
+          << _T(" ") << double(complexity()) / 60. << _T(" minutes.") << std::endl;
+    tcout << _T("AVERAGE Complexity: ") << complexity() / count << std::endl;
     tcout << _T("Uncovered: ") << uncovered.size() << std::endl << std::endl;
 }
 
@@ -89,11 +111,11 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered, OUT size_t &comple
 void  RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 {
     uncovered.clear();
-    for (const auto &pt : target.coords())
+    for (const auto &pt : _target.coords())
     {
-        const Record &rec = store.ClothestPoint(pt, stage3.side);
+        const Record &rec = _store.ClothestPoint(pt, _stage3_params.side);
         // -------------------------------------------------------
-        if (boost_distance(rec.hit, pt) > target.precision())
+        if (boost_distance(rec.hit, pt) > _target.precision())
         { uncovered.push_back(pt); }
     }
 }
@@ -107,7 +129,7 @@ bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &cont
     // -----------------------------------------------
     boost::this_thread::interruption_point();
     // -----------------------------------------------
-    const Record *pRec = store.exactRecordByControl(controls);
+    const Record *pRec = _store.exactRecordByControl(controls);
     if (pRec) // visited.find (h) != visited.end () )
     {
         // if ( pRec ) { 
@@ -117,13 +139,13 @@ bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &cont
     else
     {
         Trajectory trajectory;
-        robo.reset();
-        robo.move(controls, trajectory);
-        hit = robo.position();
-        //robo.reset();
+        _robo.reset();
+        _robo.move(controls, trajectory);
+        hit = _robo.position();
+        //_robo.reset();
         // -----------------------------------------------
-        Record rec(aim, base_pos, hit, controls, trajectory);
-        store.insert(rec);
+        Record rec(aim, _base_pos, hit, controls, trajectory);
+        _store.insert(rec);
         res = true;
     }
     return res;
@@ -167,70 +189,67 @@ void  draftDistance(IN  Point  &robo_pos_prev,
 //------------------------------------------------------------------------------
 void  RoboPos::LearnMoves::testStage1()
 {
-    size_t complexity = 0U;
-
-    robo.reset();
-    Point  robo_pos_base = robo.position();
-
+    _complexity = 0;
+    _robo.reset();
+    Point  robo_pos_base = _robo.position();
     Point  robo_pos_prev_i = robo_pos_base;
     Point  robo_pos_prev_j = robo_pos_base;
 
-    /* Возьмём первый мускул наугад */
+    /* Р’РѕР·СЊРјС‘Рј РїРµСЂРІС‹Р№ РјСѓСЃРєСѓР» РЅР°СѓРіР°Рґ */
     for (muscle_t muscle_i : { RoboI::muscleByJoint(0, false),
-         RoboI::muscleByJoint(0, true) })
+                               RoboI::muscleByJoint(0, true) })
         for (muscle_t muscle_j : { RoboI::muscleByJoint(1, false),
-             RoboI::muscleByJoint(1, true) })
-            // if ( (muscle_i != muscle_j) && musclesValidUnion (muscle_i | muscle_j) )
+                                   RoboI::muscleByJoint(1, true) })
+        // if ( (muscle_i != muscle_j) && musclesValidUnion (muscle_i | muscle_j) )
         {
             Point robo_pos_i;
-            /* Нужен уменьшающийся шаг в зависимости от пройдённой дистанции */
-            frames_t  lasts_step = stage1.lasts_incr_value;
+            /* РќСѓР¶РµРЅ СѓРјРµРЅСЊС€Р°СЋС‰РёР№СЃСЏ С€Р°Рі РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РїСЂРѕР№РґС‘РЅРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё */
+            frames_t  lasts_step = _stage1_params.lasts_incr_value;
 
-            auto last_i_max = robo.muscleMaxLast(muscle_i),
-                last_j_max = robo.muscleMaxLast(muscle_j);
-            /* Попробуем его варьировать по длительности */
-            for (frames_t last_i = stage1.lasts_init_value; last_i < last_i_max; last_i += lasts_step)
+            auto last_i_max = _robo.muscleMaxLast(muscle_i),
+                 last_j_max = _robo.muscleMaxLast(muscle_j);
+            /* РџРѕРїСЂРѕР±СѓРµРј РµРіРѕ РІР°СЂСЊРёСЂРѕРІР°С‚СЊ РїРѕ РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё */
+            for (frames_t last_i = _stage1_params.lasts_init_value; last_i < last_i_max; last_i += lasts_step)
             {
-                for (frames_t last_j = stage1.lasts_init_value; last_j < last_j_max; last_j += lasts_step)
+                for (frames_t last_j = _stage1_params.lasts_init_value; last_j < last_j_max; last_j += lasts_step)
                 {
                     Control control;
                     control.append({ muscle_i, 0U, last_i });
                     control.append({ muscle_j, 0U /* start_j */, last_j });
 
-                    Trajectory  trajectory;
-                    robo.reset();
-                    robo.move(control, trajectory);
+                    Trajectory trajectory;
+                    _robo.reset();
+                    _robo.move(control, trajectory);
 
-                    Point robo_pos_j = robo.position();
-                    if (last_j == stage1.lasts_init_value)
+                    Point robo_pos_j = _robo.position();
+                    if (last_j == _stage1_params.lasts_init_value)
                         robo_pos_i = robo_pos_j;
 
                     Record rec(robo_pos_j, robo_pos_base, robo_pos_j, control, trajectory);
-                    store.insert(rec);
+                    _store.insert(rec);
 
-                    draftDistance(robo_pos_prev_j, robo_pos_j,
-                                  lasts_step, last_j, last_j_max,
-                                  stage1.lasts_incr_value, stage1.draft_distance);
+                    draftDistance(robo_pos_prev_j, robo_pos_j, lasts_step, last_j, last_j_max,
+                                  _stage1_params.lasts_incr_value, _stage1_params.draft_distance);
                     robo_pos_prev_j = robo_pos_j;
 
-                    ++complexity;
+                    ++_complexity;
 
                     try
                     { boost::this_thread::interruption_point(); }
                     catch (boost::thread_interrupted&)
-                    { return; } // end catch
-
+                    { 
+                        CINFO("thread interrupted");
+                        return;
+                    }
                 } // end for
 
-                draftDistance(robo_pos_prev_i, robo_pos_i,
-                              lasts_step, last_i, last_i_max,
-                              stage1.lasts_incr_value, stage1.draft_distance);
+                draftDistance(robo_pos_prev_i, robo_pos_i, lasts_step, last_i, last_i_max,
+                              _stage1_params.lasts_incr_value, _stage1_params.draft_distance);
                 robo_pos_prev_i = robo_pos_i;
-
             } // end for 
         }
     // ----------------------------------------------------
-    tcout << _T("\nStage 1 Complexity ") << complexity << std::endl;
+    tcout << _T("\nStage 1 complexity=") << complexity() << std::endl;
     // ----------------------------------------------------
 }
 
@@ -247,16 +266,16 @@ void  RoboPos::LearnMoves::testStage2()
     *         |                |
     *         +----------------+
     */
-    size_t complexity = 0U;
+    _complexity = 0;
 
     borders_t borders;
-    defineTargetBorders(target, store, stage1.draft_distance, borders);
-    NewHand::MainDirections MDs = NewHand::MainDirectionsFactory(robo);
+    defineTargetBorders(_target, _store, _stage2_params.draft_distance, borders);
+    MainDirections md = MainDirectionsFactory(_robo);
 
-    tcout << _T("borders: ") << borders.size() << std::endl;
+    CINFO("borders: " << borders.size());
 
-    robo.reset();
-    Point  robo_pos_base = robo.position();
+    _robo.reset();
+    Point  robo_pos_base = _robo.position();
 
     Point  robo_pos_prev_i = robo_pos_base;
     Point  robo_pos_prev_j = robo_pos_base;
@@ -265,91 +284,93 @@ void  RoboPos::LearnMoves::testStage2()
     frames_t  last_step = 1U;
 
     for (auto muscle_i : { RoboI::muscleByJoint(0, false),
-         RoboI::muscleByJoint(0, true) })
+                           RoboI::muscleByJoint(0, true) })
         for (auto muscle_j : { RoboI::muscleByJoint(1, false),
-             RoboI::muscleByJoint(1, true) })
-            // if ( (muscle_i != muscle_j) && musclesValidUnion (muscle_i | muscle_j) )
+                               RoboI::muscleByJoint(1, true) })
+        // if ( (muscle_i != muscle_j) && musclesValidUnion (muscle_i | muscle_j) )
         {
             Point  robo_pos_i;
-            /* Нужен уменьшающийся шаг в зависимости от пройдённой дистанции */
-            frames_t  last_step = stage2.lasts_incr_value;
+            /* РќСѓР¶РµРЅ СѓРјРµРЅСЊС€Р°СЋС‰РёР№СЃСЏ С€Р°Рі РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РїСЂРѕР№РґС‘РЅРЅРѕР№ РґРёСЃС‚Р°РЅС†РёРё */
+            frames_t  last_step = _stage2_params.lasts_incr_value;
 
-            auto  last_i_max = robo.muscleMaxLast(muscle_i),
-                last_j_max = robo.muscleMaxLast(muscle_j);
+            auto  last_i_max = _robo.muscleMaxLast(muscle_i),
+                 last_j_max = _robo.muscleMaxLast(muscle_j);
 
             bool target_contain = true;
-            for (frames_t last_i = borders[muscle_i].first;
-                 last_i > 0 && /* target_contain || */ last_i <= borders[muscle_i].second;
+            for (frames_t last_i = borders[muscle_i].min_lasts;
+                 last_i > 0 && /* target_contain || */ last_i <= borders[muscle_i].max_lasts;
                  last_i += last_step)
             {
-                for (frames_t last_j = borders[muscle_j].first /*- 50*/;
-                     last_j > 0 && /* target_contain || */ last_j <= borders[muscle_j].second /* + 50 */;
+                for (frames_t last_j = borders[muscle_j].min_lasts /*- 50*/;
+                     last_j > 0 && /* target_contain || */ last_j <= borders[muscle_j].max_lasts /* + 50 */;
                      last_j += last_step)
                 {
-                    Control control;
-                    control.append({ muscle_i, 0U, last_i });
-                    control.append({ muscle_j, 0U /* start_j */, last_j });
+                    Control controls;
+                    controls.append({ muscle_i, 0U, last_i });
+                    controls.append({ muscle_j, 0U /* start_j */, last_j });
 
                     Point predEnd = robo_pos_base;
-                    predEnd += MDs.predict(muscle_i, last_i);
-                    predEnd += MDs.predict(muscle_j, last_j);
+                    predEnd += md.predict(muscle_i, last_i);
+                    predEnd += md.predict(muscle_j, last_j);
 
-                    stats.fill(robo, target, control, predEnd);
+                    stats.fill(_robo, _target, controls, predEnd);
 
-                    /* типо на мишени */
-                    if (target.contain(predEnd))
+                    /* С‚РёРїРѕ РЅР° РјРёС€РµРЅРё */
+                    if (_target.contain(predEnd))
                     {
                         Trajectory  trajectory;
-                        robo.reset();
-                        robo.move(control, trajectory);
+                        _robo.reset();
+                        _robo.move(controls, trajectory);
 
-                        Point  robo_pos_j = robo.position();
-                        if (last_j == borders[muscle_j].first)
+                        Point  robo_pos_j = _robo.position();
+                        if (last_j == borders[muscle_j].min_lasts)
                             robo_pos_i = robo_pos_j;
                         //----------------------------------------------
-                        target_contain = target.contain(robo_pos_j);
+                        target_contain = _target.contain(robo_pos_j);
                         // tcout << tstring(robo_pos_j) << std::endl;
                         //----------------------------------------------
-                        Record  rec(robo_pos_j, robo_pos_base, robo_pos_j, control, trajectory);
-                        store.insert(rec);
+                        Record  rec(robo_pos_j, robo_pos_base, robo_pos_j, controls, trajectory);
+                        _store.insert(rec);
 
-                        draftDistance(robo_pos_prev_j, robo_pos_j, last_step,
-                                      last_j, last_j_max, stage2.lasts_incr_value,
-                                      stage2.draft_distance);
+                        draftDistance(robo_pos_prev_j, robo_pos_j, last_step, last_j, last_j_max,
+                                      _stage2_params.lasts_incr_value, _stage2_params.draft_distance);
                         robo_pos_prev_j = robo_pos_j;
 
-                        ++complexity;
+                        ++_complexity;
 
                         try
                         { boost::this_thread::interruption_point(); }
                         catch (boost::thread_interrupted&)
-                        { return; } // end catch
-
+                        {
+                            CINFO("thread interrupted");
+                            return;
+                        }
                     }
                     else
                     { target_contain = false; }
                 } // end for
 
-                draftDistance(robo_pos_prev_i, robo_pos_i, last_step, last_i, last_i_max, stage2.lasts_incr_value, stage2.draft_distance);
+                draftDistance(robo_pos_prev_i, robo_pos_i, last_step, last_i, last_i_max,
+                              _stage2_params.lasts_incr_value, _stage2_params.draft_distance);
                 robo_pos_prev_i = robo_pos_i;
             } // end for
         } // end if
 
     stats.print();
     // ----------------------------------------------------
-    tcout << _T("\nStage 2 Complexity ") << complexity << std::endl;
+    tcout << _T("\nStage 2 Complexity ") << complexity() << std::endl;
     // ----------------------------------------------------
-    robo.reset();
+    _robo.reset();
 }
 
 void  RoboPos::LearnMoves::testStage3(OUT std::list<Point> &uncovered)
 {
     // std::list<Point> uncovered;
-    // store.uncoveredTargetPoints (target, uncovered);
-    for (auto &pt : target.coords())
+    // _store.uncoveredTargetPoints (_target, uncovered);
+    for (auto &pt : _target.coords())
     {
-        adjacency_ptrs_t  range;
-        store.adjacencyPoints(range, pt, 2. * target.thickness());
+        adjacency_ptrs_t range;
+        _store.adjacencyPoints(range, pt, 2. * _target.thickness());
 
         if (range.empty())
         {
@@ -358,57 +379,46 @@ void  RoboPos::LearnMoves::testStage3(OUT std::list<Point> &uncovered)
         }
         else
         {
-            double precision = target.precision();
-            if (boost::algorithm::none_of(range, [&pt, precision](const Record *rec)
-                                          // (const std::shared_ptr<Record> &rec)
-            { return  (boost_distance(pt, rec->hit) <= precision); }))
-            {
-                /* UNCOVERED */
-                uncovered.push_back(pt);
-
-            } // end if
-
+            double precision = _target.precision();
+            if (ba::none_of(range, [&pt, precision](const Record *rec) {
+                return  (boost_distance(pt, rec->hit) <= precision); }))
+            { uncovered.push_back(pt); }
         } // end else
     } // end for
 }
 
 //------------------------------------------------------------------------------
-void  RoboPos::LearnMoves::testCoverTarget(IN Store &store, IN RoboI &robo, IN RecTarget &target)
+#define HAND_TEST_BREAK 0
+
+void  RoboPos::LearnMoves::testCoverTarget(IN Store &_store, IN RoboI &_robo, IN RecTarget &_target)
 {
-    /*    Покрыть всё в одно движение
-    *    Начать двигать какой-то мышцой (варьировать длительность),
-    *    К её движению сложить все комбинации остальных мышц.
-    */
-    robo.reset();
-    Point robo_base = robo.position();
-    Point robo_prev = robo.position();
+    /*    РџРѕРєСЂС‹С‚СЊ РІСЃС‘ РІ РѕРґРЅРѕ РґРІРёР¶РµРЅРёРµ
+     *    РќР°С‡Р°С‚СЊ РґРІРёРіР°С‚СЊ РєР°РєРѕР№-С‚Рѕ РјС‹С€С†РѕР№ (РІР°СЂСЊРёСЂРѕРІР°С‚СЊ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ),
+     *    Рљ РµС‘ РґРІРёР¶РµРЅРёСЋ СЃР»РѕР¶РёС‚СЊ РІСЃРµ РєРѕРјР±РёРЅР°С†РёРё РѕСЃС‚Р°Р»СЊРЅС‹С… РјС‹С€С†.
+     */
+    _robo.reset();
+    Point robo_base = _robo.position(), robo_prev = robo_base;
 
     try
     {
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-        tcout << _T("robo.muscles_.size = ") << (int)robo.muscles_.size() << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
-        /* Возьмём первый мускул наугад */
-        for (muscle_t muscle_i = 0; muscle_i < robo.musclesCount(); ++muscle_i)
+        CDEBUG(_T("robo.muscles_count = ") << int(_robo.musclesCount()));
+        /* Р’РѕР·СЊРјС‘Рј РїРµСЂРІС‹Р№ РјСѓСЃРєСѓР» РЅР°СѓРіР°Рґ */
+        for (muscle_t muscle_i = 0; muscle_i < _robo.musclesCount(); ++muscle_i)
         {
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-            tcout << muscle_i << _T("  ") << (int)robo.muscleMaxLast(muscle_i) << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
-            for (muscle_t muscle_j = 0; muscle_j < robo.musclesCount(); ++muscle_j)
+            CDEBUG(muscle_i << _T("  ") << (int)_robo.muscleMaxLast(muscle_i));
+            for (muscle_t muscle_j = 0; muscle_j < _robo.musclesCount(); ++muscle_j)
             {
                 if ((muscle_i != muscle_j) /*&& !musclesValidUnion(muscle_i, muscle_j)*/)
                     continue;
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                tcout << muscle_j << _T("  ") << (int)robo.muscleMaxLast(muscle_j) << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
-                /* Попробуем его варьировать по длительности */
-                for (frames_t last_i : boost::irange<frames_t>(5U, robo.muscleMaxLast(muscle_i) /*,2*/))
+
+                CDEBUG(muscle_j << _T("  ") << (int)_robo.muscleMaxLast(muscle_j));
+                /* РџРѕРїСЂРѕР±СѓРµРј РµРіРѕ РІР°СЂСЊРёСЂРѕРІР°С‚СЊ РїРѕ РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё */
+                for (frames_t last_i : boost::irange<frames_t>(5U, _robo.muscleMaxLast(muscle_i) /*,2*/))
                 {
                     Control control;
                     control.append({ muscle_i, 0U, last_i });
-                    for (frames_t last_j : boost::irange<frames_t>(3U, robo.muscleMaxLast(muscle_j) /*,2*/))
+                    for (frames_t last_j : boost::irange<frames_t>(3U, _robo.muscleMaxLast(muscle_j) /*,2*/))
                     {
-                        // for ( frames_t start_j : boost::irange<frames_t> (5U, last_i, 2) ) // ?? + inertial_lasts
                         for (frames_t start_j : boost::irange<frames_t>(5U, last_i))
                         {
                             boost::this_thread::interruption_point();
@@ -416,90 +426,71 @@ void  RoboPos::LearnMoves::testCoverTarget(IN Store &store, IN RoboI &robo, IN R
                             Trajectory  trajectory;
                             control.append({ muscle_j, start_j, last_j });
 
-                            robo.reset();
-                            robo.move(control, trajectory);
+                            _robo.reset();
+                            _robo.move(control, trajectory);
 
-                            // if ( robo.position().x > x_leftBorder && robo.position().x < x_rightBorder
-                            //   && robo.position().y < y_topBorder && robo.position().y > y_bottomBorder )
+                            // if ( _robo.position().x > x_leftBorder && _robo.position().x < x_rightBorder
+                            //   && _robo.position().y < y_topBorder  && _robo.position().y > y_bottomBorder )
 
-                            const Point&  robo_pos = robo.position();
-                            if (target.contain(robo_pos))
+                            const Point&  robo_pos = _robo.position();
+                            if (_target.contain(robo_pos))
                             {
-                                store.insert(Record(robo_pos, robo_base, robo_pos,
+                                _store.insert(Record(robo_pos, robo_base, robo_pos,
                                                     { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
                                                     trajectory));
                                 // trajectories.push_back (make_shared<Trajectory> (trajectory));
 
-                                if (store.size() == 200000)
+                                if (_store.size() == 200000)
                                 {
-                                    store.save(_T("NewRoboI_200000_moves_tightly_save.bin"));
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                    tcout << _T("NewRoboI_200000_moves_tightly_saved") << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                    _store.dump_off(_T("NewRoboI_200000_moves_tightly_save.bin"));
+                                    CDEBUG("NewRoboI_200000_moves_tightly_saved");
                                 }
-                                else if (store.size() == 400000)
+                                else if (_store.size() == 400000)
                                 {
-                                    store.save(_T("NewRoboI_400000_moves_tightly_save.bin"));
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                    tcout << _T("NewRoboI_400000_moves_tightly_saved") << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                    _store.dump_off(_T("NewRoboI_400000_moves_tightly_save.bin"));
+                                    CDEBUG("NewRoboI_400000_moves_tightly_saved");
                                 }
-                                else if (store.size() == 600000)
+                                else if (_store.size() == 600000)
                                 {
-                                    store.save(_T("NewRoboI_600000_moves_tightly_save.bin"));
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                    tcout << _T("NewRoboI_600000_moves_tightly_saved") << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                    _store.dump_off(_T("NewRoboI_600000_moves_tightly_save.bin"));
+                                    CDEBUG("NewRoboI_600000_moves_tightly_saved");
                                 }
-                                else if (store.size() == 1000000)
+                                else if (_store.size() == 1000000)
                                 {
-                                    store.save(_T("NewRoboI_1000000_moves_tightly_save.bin"));
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                    tcout << _T("NewRoboI_1000000_moves_tightly_saved") << std::endl;
-                                    tcout << muscle_i << ' ' << last_i << std::endl;
-                                    tcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                    _store.dump_off(_T("NewRoboI_1000000_moves_tightly_save.bin"));
+                                    CDEBUG("NewRoboI_1000000_moves_tightly_saved");
+                                    CDEBUG(muscle_i << ' ' << last_i);
+                                    CDEBUG(muscle_j << ' ' << start_j << ' ' << last_j);
                                 }
-                                else if (store.size() == 1500000)
+                                else if (_store.size() == 1500000)
                                 {
-                                    store.save(_T("NewRoboI_1500000_moves_tightly_save.bin"));
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                    tcout << _T("NewRoboI_1500000_moves_tightly_saved") << std::endl;
-                                    tcout << muscle_i << ' ' << last_i << std::endl;
-                                    tcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                    _store.dump_off(_T("NewRoboI_1500000_moves_tightly_save.bin"));
+                                    CDEBUG("NewRoboI_1500000_moves_tightly_saved");
+                                    CDEBUG(muscle_i << ' ' << last_i);
+                                    CDEBUG(muscle_j << ' ' << start_j << ' ' << last_j );
                                 }
-                                else if (store.size() == 2000000)
+                                else if (_store.size() == 2000000)
                                 {
-                                    store.save(_T("NewRoboI_2000000_moves_tightly_save.bin"));
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                    tcout << _T("NewRoboI_2000000_moves_tightly_saved") << std::endl;
-                                    tcout << muscle_i << ' ' << last_i << std::endl;
-                                    tcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                    _store.dump_off(_T("NewRoboI_2000000_moves_tightly_save.bin"));
+                                    CDEBUG("NewRoboI_2000000_moves_tightly_saved");
+                                    CDEBUG(muscle_i << ' ' << last_i);
+                                    CDEBUG(muscle_j << ' ' << start_j << ' ' << last_j);
                                 }
                             }
-
-#define   _HAND_TEST_BREAK
-#ifdef    _HAND_TEST_BREAK
-                            if (boost_distance(robo_pos, target.center()) > boost_distance(robo_prev, target.center()))
+                            if (HAND_TEST_BREAK && boost_distance(robo_pos, _target.center()) > boost_distance(robo_prev, _target.center()))
                             {
-                                // #ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                // tcout << _T ("break") << std::endl;
-                                // #endif // _HAND_TEST_CONSOLE_PRINTF
+                                CDEBUG("break");
                                 break;
                             }
                             robo_prev = robo_pos;
-#endif // _HAND_TEST_BREAK
+
                             try
                             { boost::this_thread::interruption_point(); }
                             catch (boost::thread_interrupted&)
                             {
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-                                tcout << _T("WorkingThread interrupted") << std::endl;
-                                tcout << muscle_i << ' ' << last_i << std::endl;
-                                tcout << muscle_j << ' ' << start_j << ' ' << last_j << std::endl;
-#endif // _HAND_TEST_CONSOLE_PRINTF
+                                CINFO("WorkingThread interrupted");
+                                CDEBUG(muscle_i << ' ' << last_i);
+                                CDEBUG(muscle_j << ' ' << start_j << ' ' << last_j);
                                 return;
                             } // end catch
                         } // end for
@@ -508,15 +499,10 @@ void  RoboPos::LearnMoves::testCoverTarget(IN Store &store, IN RoboI &robo, IN R
             } // end for
         } // end for
     } // end try
-#ifdef    _HAND_TEST_CONSOLE_PRINTF
-    catch (std::exception &ex)
+    catch (const std::exception &e)
     {
-        tcout << ex.what() << std::endl;
-#else
-    catch (...)
-    {
-#endif // _HAND_TEST_CONSOLE_PRINTF
+        CERROR(e.what());
         return;
     }
-    }
+}
 

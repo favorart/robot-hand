@@ -9,14 +9,26 @@ using namespace RoboMoves;
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 //------------------------------------------------------------------------------
-bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &pos_high)
+
+//DirectionPredictor  *pDP;
+//Point  predict_shift{ 0.15, -0.05 };
+////--------------------------------------------------------
+//double                 step_distance;
+//frames_t   _lasts_step_increment;
+//frames_t   _lasts_step_increment_thick = 20U;
+//frames_t   _lasts_step_initiate = 25U;
+//frames_t   _lasts_step_braking = 5U;
+
+//------------------------------------------------------------------------------
+bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high)
 {
     bool  target_contain = true;
     //------------------------------------------
     frames_t start_i = 0U;
     // frames_t last_lasts = 0U;
-    frames_t lasts_step; // = lasts_step_initiate;
-
+    frames_t lasts_step; // = _lasts_step_increment_init;
+    
+    //------------------------------------------
     bool  was_on_target = false;
     //------------------------------------------
     Point curr_pos = _base_pos, prev_pos = _base_pos;
@@ -27,32 +39,35 @@ bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls,
     Actuator control_i;
     //------------------------------------------
     for (auto muscle_i : { RoboI::muscleByJoint(joint, true),
-         RoboI::muscleByJoint(joint, false) })
+                           RoboI::muscleByJoint(joint, false) })
     {
+        control_i.muscle = muscle_i;
         //------------------------------------------
         auto &board = _borders[muscle_i];
-        if (board.first > 0
-            && board.first < board.second)
+        if (board.min_lasts == 0 && board.min_lasts >= board.max_lasts)
+        {}
         {
             lasts_step = _lasts_step_increment;
-            frames_t lasts_i_max = _robo.muscleMaxLast(muscle_i);
+            frames_t _lasts_i_max = _robo.muscleMaxLast(muscle_i);
             //------------------------------------------
             start_i = 0U;
             target_contain = true;
             //------------------------------------------
             frames_t last_i = 0U;
-            for (last_i = board.first;
-                (last_i < lasts_i_max) && (target_contain || !was_on_target) /* &&
-                (last_i <= board.second - start_i || target_contain) */;
+            for (last_i = board.min_lasts;
+                (last_i <  _lasts_i_max) && (target_contain || !was_on_target);
                  last_i += lasts_step)
             {
-                if ((last_i > board.second - start_i) && ((!_b_target || !target_contain) ||
+                control_i.last = last_i;
+
+                if ((last_i > board.max_lasts - start_i) &&
+                    (!_b_target || !target_contain ||
                      prev_pos.x > _target.max().x || prev_pos.y < _target.min().y))
                 {
                     break;
                 }
                 //------------------------------------------
-                if (0 <= joint && (joint + 1U) < _max_nested)
+                if (0U <= joint && (joint + 1u) < _max_nested)
                 {
                     //===============================================================
                     target_contain = runNestedForMuscle(joint + 1, controls + control_i, curr_pos) || !_b_target;
@@ -60,12 +75,13 @@ bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls,
                 }
                 else
                 {
-                    // if ( b_braking )
-                    // { auto it = controls.begin ();
-                    //   for ( size_t ji = 0; ji <= joint; ++ji, ++it )
-                    //     if ( arr_controlings[ji].last )
-                    //       arr_controlings[ji].start = it->last + 1U;
-                    // }
+                    if (_b_braking)
+                    {
+                        auto it = controls.begin();
+                        for (auto ji = 0; ji <= joint; ++ji, ++it)
+                            if (_breakings_controls[ji].last)
+                                _breakings_controls[ji].start = it->last + 1U;
+                    }
                     //===============================================================
                     target_contain = runNestedMove(controls + control_i, curr_pos) || !_b_target;
                     //===============================================================              
@@ -74,7 +90,7 @@ bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls,
                   //------------------------------------------
                 if (_b_target && (target_contain && !was_on_target))
                 {
-                    board.first = last_i;
+                    board.min_lasts = last_i;
                     was_on_target = true;
                 }
                 //------------------------------------------
@@ -94,28 +110,26 @@ bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls,
                         lasts_step -= _lasts_step_increment;
                     else if ((_lasts_step_increment > 1) && (lasts_step > _lasts_step_increment / 2))
                         lasts_step -= _lasts_step_increment / 2;
-                    // else if ( b_braking && (lasts_step_increment == 1U) )
-                    // {
-                    //   auto it = controls.begin ();
-                    //   for ( size_t ji = 0; ji <= joint; ++ji, ++it )
-                    //   {
-                    //     auto opposite_muscle = muscleOpposite (it->muscle);
-                    //     auto prev_last = arr_controlings[ji].last;
-                    //     arr_controlings[ji] = (Control (opposite_muscle, it->last + 1,
-                    //                                           (prev_last ? prev_last : 30) +
-                    //                                           lasts_step_braking));
-                    //   }
-                    // }
+                    else if (_b_braking && (_lasts_step_increment == 1U))
+                    {
+                        auto it = controls.begin();
+                        for (auto ji = 0; ji <= joint; ++ji, ++it)
+                        {
+                            auto opposite_muscle = RoboI::muscleOpposite(it->muscle);
+                            auto prev_last = _breakings_controls[ji].last;
+                            _breakings_controls[ji] = { opposite_muscle, it->last + 1, (prev_last ? prev_last : 30) + _lasts_step_braking_incr };
+                        }
+                    }
                 }
                 else if (d < _step_distance)
                 {
-                    // if ( arr_controlings[0].last )
-                    // {
-                    //   if ( arr_controlings[0].last > lasts_step_braking )
-                    //     for ( size_t ji = 0; ji <= joint; ++ji )
-                    //       arr_controlings[ji].last -= lasts_step_braking;
-                    // }
-                    // else
+                    if (_breakings_controls[0].last)
+                    {
+                        if (_breakings_controls[0].last > _lasts_step_braking_incr)
+                            for (auto ji = 0; ji <= joint; ++ji)
+                                _breakings_controls[ji].last -= _lasts_step_braking_incr;
+                    }
+                    else
                     { lasts_step += _lasts_step_increment; }
                 }
                 //------------------------------------------
@@ -123,26 +137,27 @@ bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls,
                 //------------------------------------------
             } // end for (last)
               //------------------------------------------
-            if (_b_target) { board.second = last_i; }
+            if (_b_target) { board.max_lasts = last_i; }
             //------------------------------------------
-            // for ( size_t ji = 0; ji <= joint; ++ji )
-            // { arr_controlings[ji].last = 0U; }
+            for (auto ji = 0; ji <= joint; ++ji)
+            { _breakings_controls[ji].last = 0U; }
             //------------------------------------------
             if (_b_target)
             {
                 start_i = 0U;
                 target_contain = true;
                 //------------------------------------------
-                // frames_t lasts_step_prev = lasts_step;
-                lasts_step = _lasts_step_increment_thick; // lasts_step_initiate;
+                // frames_t _lasts_step_prev = _lasts_step;
+                lasts_step = _lasts_step_increment_thick; // _lasts_step_initiate;
+                
                 //------------------------------------------
-                for (last_i = board.first;
-                    (last_i - lasts_step) < lasts_i_max && target_contain;
+                for (last_i = board.min_lasts;
+                    (last_i - lasts_step) < _lasts_i_max && target_contain;
                      last_i -= lasts_step)
                 {
                     control_i.last = last_i;
                     //------------------------------------------
-                    if (0U <= joint && (joint + 1U) < _max_nested)
+                    if (0u <= joint && (joint + 1u) < _max_nested)
                     {
                         //===============================================================
                         target_contain = runNestedForMuscle(joint + 1, controls + control_i, curr_pos) || !_b_target;
@@ -166,90 +181,68 @@ bool TourNoRecursion::runNestedForMuscle(IN joint_t joint, IN Control &controls,
                     { lasts_step += _lasts_step_increment_thick; }
                     //-----------------------------
                     prev_pos = curr_pos;
-                } // end for (lasts)
+                } // end for (_lasts)
                   //------------------------------------------
-                  // lasts_step = lasts_step_prev;
-            } // if (target)
+                  // _lasts_step = _lasts_step_prev;
+            } // if (_target)
         } // end if (border)
     } // end for (muscle)
-      //------------------------------------------
-    if ( /*hand_pos_high &&*/ high)
+    //------------------------------------------
+    if (high)
     {
-        pos_high = Point{ max_hand_pos_high.x / high,
-            max_hand_pos_high.y / high };
+        robo_pos_high = Point{ max_hand_pos_high.x / high,
+                               max_hand_pos_high.y / high };
     }
     //------------------------------------------
     return true;
 }
 
-//------------------------------------------------------------------------------
-bool TourNoRecursion::runNestedMove(IN Control &controls, OUT Point &robo_pos)
+
+bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos)
 {
-    // const Record &rec = store.ClothestPoint (robo_pos, 0.1);
-    // if ( boost_distance (rec.hit, robo_pos) < step_distance )
+    // const Record &rec = _store.ClothestPoint (hand_position, 0.1);
+    // if ( boost_distance (rec.hit, hand_position) < step_distance )
     // {
-    //   robo_pos = rec.hit;
-    //   return target.contain (robo_pos);
+    //   hand_position = rec.hit;
+    //   return _target.contain (hand_position);
     // }
 
-    bool target_contain = true;
-    Point predEnd = _base_pos;
+    Point end = _base_pos;
     //----------------------------------------------
-    // bool  has_braking = b_braking
-    //   && boost::algorithm::any_of (arr_controlings,
-    //                                [](const Control &item)
-    //                                { return  item.last; });
-    //----------------------------------------------
-    // Сontrol  new_controling;
-    // if ( has_braking )
-    // {
-    //   for ( const Control &c : controls )
-    //   { new_controling.push_back (c); }
-    //   /* записываем все разрывы */
-    //   for ( auto &c : arr_controlings )
-    //   { new_controling.push_back (c); }
-    //   new_controling.sort ();
-    // }
-    // Сontrol  &controling = (has_braking) ? new_controling : controls;
+    Control controling = controls + _breakings_controls;
     //----------------------------------------------
     if (_b_target || _b_distance)
     {
-        for (const auto &a : controls)
-        { predEnd = _md.predict({ a }); }
+        end = pDP->predict(controls);
         //----------------------------------------------
-        // if ( b_distance && b_target )
+        // if ( _b_distance && _b_target )
         // { end.x += predict_shift.x;
         //   end.y += predict_shift.y;
         // }
+        //----------------------------------------------
+        if (_b_checking)
+        { _counters.fill(_robo, _target, controling, end); }
     }
     //----------------------------------------------
-    if ((!_b_target || _target.contain(predEnd)) &&
-        (!_b_distance || boost_distance(_target.center(), predEnd) < _target_distance))
+    if ((!_b_target || _target.contain(end)) && (!_b_distance || boost_distance(_target.center(), end) < _target_distance))
     {
         /* ближе к мишени */
         Trajectory trajectory;
         //----------------------------------------------
         _robo.reset();
         /* двигаем рукой */
-        _robo.move(controls, trajectory);
-        // ++complexity; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        //----------------------------------------------
+        _robo.move(controling, trajectory);
+        ++_complexity;
         robo_pos = _robo.position();
-        target_contain = _target.contain(robo_pos);
         //----------------------------------------------
-        Record rec(robo_pos, _base_pos, robo_pos, controls, trajectory);
+        Record  rec(robo_pos, _base_pos, robo_pos, controling, trajectory);
         _store.insert(rec);
         //----------------------------------------------
-    } /* end if */
-    else
-    {
-        if (!_b_target)
-        { robo_pos = predEnd; }
-        target_contain = false;
     }
+    else if (!_b_target) { robo_pos = end; }
     //----------------------------------------------
     boost::this_thread::interruption_point();
     //----------------------------------------------
-    return  target_contain;
+    return _target.contain(robo_pos);
 }
 

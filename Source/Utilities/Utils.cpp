@@ -1,7 +1,6 @@
 ﻿#include "StdAfx.h"
 
-
-namespace Utils {
+int LV_CLEVEL = 1;
 //------------------------------------------------------------------------------
 /*  Размедение с повторениями:
  *    currents   - текущее размещение
@@ -32,19 +31,18 @@ void inputAngles(const tstring &filename, std::vector<double> &angles)
         size_t mii;
         if (fin >> mii && mii > 0)
             angles.reserve(mii);
-        else throw std::exception("ifstream: input error.");
+        else throw std::runtime_error("ifstream: input error.");
         // --------------------------------
         for (size_t i = 0; i < mii; ++i)
         {
             double angle;
             if (fin >> angle)
                 angles.push_back(angle);
-            else throw std::exception("ifstream: input error.");
+            else throw std::runtime_error("ifstream: input error.");
         }
     }
     else throw std::exception("ifstream: input error.");
 }
-
 void outputAngles(const tstring &filename, const std::vector<double> &angles)
 {
     std::ofstream fout(filename + _T("-out.txt"));
@@ -57,7 +55,7 @@ void outputAngles(const tstring &filename, const std::vector<double> &angles)
             fout << a << ' ';
         fout << std::endl;
     }
-    else throw std::exception("ifstream: output error.");
+    else throw std::runtime_error("ofstream: output error.");
 }
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -84,7 +82,7 @@ std::string ws2s(const std::wstring& s)
     return r;
 }
 //------------------------------------------------------------------------------
-tstring uni(const std::string& s)
+tstring Utils::uni(const std::string& s)
 {
 #if defined(UNICODE) || defined(_UNICODE)
     return s2ws(s);
@@ -92,7 +90,7 @@ tstring uni(const std::string& s)
     return s;
 #endif
 }
-tstring uni(const std::wstring& s)
+tstring Utils::uni(const std::wstring& s)
 {
 #if defined(UNICODE) || defined(_UNICODE)
     return s;
@@ -101,4 +99,29 @@ tstring uni(const std::wstring& s)
 #endif
 }
 //------------------------------------------------------------------------------
+tstring Utils::format(const TCHAR *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    std::vector<TCHAR> v(1024);
+    while (true)
+    {
+        va_list args2;
+        va_copy(args2, args);
+        int res = _vsntprintf(v.data(), v.size(), fmt, args2);
+        if ((res >= 0) && (res < static_cast<int>(v.size())))
+        {
+            va_end(args);
+            va_end(args2);
+            return tstring{ v.data() };
+        }
+        size_t size;
+        if (res < 0)
+            size = v.size() * 2;
+        else
+            size = static_cast<size_t>(res) + 1;
+        v.clear();
+        v.resize(size);
+        va_end(args2);
+    }
 }

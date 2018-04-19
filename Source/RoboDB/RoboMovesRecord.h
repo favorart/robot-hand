@@ -14,54 +14,28 @@ typedef std::vector<Robo::muscle_t>  muscles_array;
 
 class Record
 {
-    Point  aim_, move_begin_, move_final_;
-    //Robo::muscle_t muscles_;
-    Robo::Control    control_;
-    Robo::Trajectory visited_;
+    Point aim_{}; // TODO: REMOVE
+    Point move_begin_{}, move_final_{};
+    Robo::Control    control_{};
+    Robo::Trajectory visited_{};
+
+    //double _error_distance{};
+    //bool _outdated{};
 
     // ----------------------------------------
     friend class boost::serialization::access;
-    BOOST_SERIALIZATION_SPLIT_MEMBER()
-
     template <class Archive>
-    void  save(Archive & ar, const unsigned int version) const
-    {
-        ar << aim_ << move_begin_ << move_final_;
-        ar << /*muscles_ <<*/ control_ << visited_;
-    }
-    template <class Archive>
-    void  load(Archive & ar, const unsigned int version)
-    {
-        ar >> aim_ >> move_begin_ >> move_final_;
-        ar >> /*muscles_ >>*/ control_ >> visited_;
-    }
+    void serialize(Archive &ar, unsigned version)
+    { ar & aim_ & move_begin_ & move_final_ & control_ & visited_; }
 
 public:
+    Record() = default;
+    Record(Record&&) = default;
+    Record(const Record&) = default;
     // ----------------------------------------
-    struct ChangeAimPoint : public std::unary_function<Record, void>
-    {
-        ChangeAimPoint(const Point &aim) : aim_(aim) {}
-        void operator()(Record rec) { rec.aim_ = aim_; }
-    private:
-        Point aim_;
-    };
-    struct ChangeHitPoint : public std::unary_function<Record, void>
-    {
-        ChangeHitPoint(const Point &hit) : hit_(hit) {}
-        void operator()(Record rec) { rec.move_final_ = hit_; }
-    private:
-        Point hit_;
-    };
-
-    double  hit_x() const { return move_final_.x; }
-    double  hit_y() const { return move_final_.y; }
-
-    double  aim_x() const { return aim_.x; }
-    double  aim_y() const { return aim_.y; }
-
+    Record& operator=(Record&&) = default;
+    Record& operator=(const Record&) = default;
     // ----------------------------------------
-    Record() {}
-
     Record(IN const Point            &aim,
            IN const Point            &move_begin,
            IN const Point            &move_final,
@@ -76,40 +50,46 @@ public:
            IN const Point            &move_final,
            IN const Robo::Control    &controls,
            IN const Robo::Trajectory &visited);
-
-    // ----------------------------------------
-    operator tstring() const
-    {
-        tstringstream ss;
-        ss << _T("rec<x=") << hit.x << _T(", y=") << hit.y << _T(">");
-        return  ss.str();
-    }
     // ----------------------------------------
     bool  operator== (const Record &rec) const
     { return (this == &rec) || (control_ == rec.control_); }
     bool  operator!= (const Record &rec) const
     { return (this != &rec) && (control_ != rec.control_); }
     // ----------------------------------------
-    /* Microsoft specific: C++ properties */
-    __declspec(property(get = _get_aim))      const Point&            aim;
-    __declspec(property(get = _get_hit))      const Point&            hit;
-    __declspec(property(get = _get_traj))     const Robo::Trajectory& trajectory;
-    //__declspec(property(get = _get_muscles)) Robo::muscle_t         muscles;
-    __declspec(property(get = _get_controls)) const Robo::Control&    controls;
-    __declspec(property(get = _get_n_ctrls))  size_t                n_controls;
+    /* Container index keys  */
+    double  hit_x() const { return move_final_.x; }
+    double  hit_y() const { return move_final_.y; }
 
-    // ----------------------------------------
-    const Point&            _get_aim() const { return aim_; }
-    const Point&            _get_hit() const { return move_final_; }
-    const Robo::Trajectory& _get_traj() const { return visited_; }
-    //Robo::muscle_t        _get_muscles() const { return muscles_; }
-    size_t                  _get_n_ctrls() const { return control_.size(); }
-    const Robo::Control&    _get_controls() const { return control_; }
+    double  aim_x() const { return aim_.x; }
+    double  aim_y() const { return aim_.y; }
 
-    // ----------------------------------------
     double  distanceCovered() const
     { return boost_distance(move_final_, move_begin_); }
+    // ----------------------------------------
+    /* Microsoft specific: C++ properties */
+    __declspec(property(get = getAim))       const Point&            aim;
+    __declspec(property(get = getHit))       const Point&            hit;
+    __declspec(property(get = getVisited))   const Robo::Trajectory& trajectory;
+    __declspec(property(get = getControls))  const Robo::Control&    controls;
+    __declspec(property(get = getNControls)) size_t                n_controls;
 
+    // ----------------------------------------
+    const Point&            getAim() const { return aim_; }
+    const Point&            getHit() const { return move_final_; }
+    const Robo::Trajectory& getVisited() const { return visited_; }
+    size_t                  getNControls() const { return control_.size(); }
+    const Robo::Control&    getControls() const { return control_; }
+    
+    // ----------------------------------------
+    void clear()
+    {
+        aim_ = { 0.,0. };
+        move_begin_ = { 0.,0. };
+        move_final_ = { 0.,0. };
+        control_.clear();
+        visited_.clear();
+    }
+    // ----------------------------------------
     double  eleganceMove() const;
     // ----------------------------------------
     double  ratioDistanceByTrajectory() const;
@@ -120,6 +100,8 @@ public:
 
     Robo::frames_t  longestMusclesControl() const;
     // ----------------------------------------
+    friend tostream& operator<<(tostream &s, const RoboMoves::Record &rec);
+    friend tistream& operator>>(tistream &s, RoboMoves::Record &rec);
 };
 //------------------------------------------------------------------------------
 struct RecordHasher
@@ -135,8 +117,8 @@ struct RecordHasher
         return seed;
     }
 };
-
 }
+//------------------------------------------------------------------------------
 BOOST_CLASS_VERSION (RoboMoves::Record, 2)
 //------------------------------------------------------------------------------
 #endif // _RECORD_H_

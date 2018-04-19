@@ -283,8 +283,24 @@ $RECYCLE.BIN/
 *.txt
 *.user
 *.filters
+*.bin
+*.ipch
+
+# USER
+# =========================
+
 Debug/*
 Release/*
 excluded/*
-*.bin
-*.ipch
+
+libs/cvmlib-cvmlib_v8.2/*
+!libs/cvmlib-cvmlib_v8.2/lib/winifort/*
+!libs/cvmlib-cvmlib_v8.2/lib64/winifort/*
+!libs/cvmlib-cvmlib_v8.2/cvm/src/*
+
+libs/Shark-3.1.0/*
+!libs/Shark-3.1.0/include/shark/include/*
+!libs/Shark-3.1.0/src/*
+!libs/Shark-3.1.0/lib/*
+!libs/Shark-3.1.0/lib64/*
+

@@ -16,29 +16,32 @@ class LearnMoves;
 class RecTarget;
 class CanvasScaleLetters;
 
-namespace Utils {
-tstring uni(const std::string& s);
-tstring uni(const std::wstring& s);
-};
 //------------------------------------------------------------------------------
 struct MyWindowData
 {
     struct MouseHandler
     {
-        bool       click{ false };
-        win_point  coords{}; /* координаты мыши в пикселях */
-        Point      aim{};
+        bool   click{ false };
+        POINT coords{}; ///< координаты мыши в пикселях
+        Point    aim{};
     } mouse;
     // ---------------------------------
+    static bool zoom;
     struct Canvas
     {
-        HWND    hLabMAim, hLabTest, hLabStat;
+        HWND    hLabCanvas, hLabHelp, hLabMAim, hLabTest, hLabStat;
         HPEN    hPen_red, hPen_grn, hPen_blue, hPen_cian, hPen_orng;
         HBRUSH  hBrush_white, hBrush_null, hBrush_back;
         // ---------------------------------
+        RECT    myRect;
+        // ---------------------------------
         HDC     hStaticDC{ NULL };
         HBITMAP hStaticBitmap{ NULL };
+        // ---------------------------------
         bool    hStaticBitmapChanged{ true };
+        bool    hDynamicBitmapChanged{ true };
+        // ---------------------------------
+        LabelsPositions lp;
         // ---------------------------------
         std::shared_ptr<CanvasScaleLetters> pLetters{};
         // ---------------------------------
@@ -59,7 +62,7 @@ struct MyWindowData
         // --------------------------------
     } canvas;
 
-    // --- show_frames_trajectory ------
+    /// Show frames trajectory
     class TrajectoryFrames
     {
         const size_t skip_show_steps = 15U;
@@ -96,7 +99,9 @@ struct MyWindowData
                    const boost::optional<Robo::Control> controls = boost::none);
     };
     TrajectoryFrames trajFrames;
+    Robo::frames_t frames = 0; ///< Global App Time (to show animation)
     // ---------------------------------
+    bool testing = false;
     std::shared_ptr<boost::thread> pWorkerThread;
     // ---------------------------------
     std::shared_ptr<RecTarget> pTarget;
@@ -104,18 +109,29 @@ struct MyWindowData
     std::shared_ptr<RoboMoves::Store> pStore;
     std::shared_ptr<RoboPos::LearnMoves> pLM;
     // ---------------------------------
-    static bool zoom;
-    bool testing = false;
-    Robo::frames_t frames = 0;
-    // ---------------------------------
-    size_t   complexity = 0;
-    tstring  currFileName{};
-    // ---------------------------------
     struct StoreSearch
     {
         const double radius = 0.05;
         const double side = 0.1;
-    } search;
+    };
+    const StoreSearch search;
+    // ---------------------------------
+    tstring currFileName{};
+    tstring getCurrFileName() const
+    {
+        tstringstream ss;
+        ss << pRobo->name() << _T("-robo-moves-")
+           << getCurrentTimeString(_T("%Y.%m.%d-%H.%M"))
+           << _T(".bin");
+        // ?? currFileName = ss.str();
+        return ss.str();
+    }
+    // ---------------------------------
+    void MyWindowData::save(const tstring &fn_db) const;
+    void MyWindowData::load(const tstring &fn_db);
+
+    static std::list<Point> predicts;
+    static std::list<Point> reals;
     // ---------------------------------
     MyWindowData(const tstring &config, const tstring &database);
     ~MyWindowData();
@@ -124,8 +140,8 @@ struct MyWindowData
     void write_config(IN const tstring &filename) const;
 };
 //-------------------------------------------------------------------------------
-template<typename Function, typename... Args> inline
-void  WorkerThreadRunTask (MyWindowData &wd, tstring message, Function task, Args... args)
+template<typename Function, typename... Args>
+void  WorkerThreadRunTask (MyWindowData &wd, const tstring &message, Function task, Args... args)
 {
     try
     {
@@ -137,14 +153,13 @@ void  WorkerThreadRunTask (MyWindowData &wd, tstring message, Function task, Arg
             wd.pWorkerThread.reset(new boost::thread(task, args...));
         }
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
-        tstring line = Utils::uni(std::string{ e.what() });
-        MessageBox(NULL, line.c_str(), _T("Error"), MB_OK | MB_ICONERROR);
+        CERROR(e.what());
         //InvalidateRect(hWnd, &myRect, FALSE);
     }
 }
-void  WorkerThreadTryJoin (MyWindowData &wd);
+bool  WorkerThreadTryJoin (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 void  onPaintStaticBckGrnd (HDC hdc, MyWindowData &wd);
 void  onPaintStaticFigures (HDC hdc, MyWindowData &wd);

@@ -1,5 +1,6 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 #include "WindowHeader.h"
+#include "WindowData.h"
 
 
 int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -9,45 +10,62 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   WNDCLASS  wc;
   TCHAR     szClassName[] = _T("Graph interface window");
 
-  // Заполняем структуру класса окна
+  // Р—Р°РїРѕР»РЅСЏРµРј СЃС‚СЂСѓРєС‚СѓСЂСѓ РєР»Р°СЃСЃР° РѕРєРЅР°
   wc.style         = CS_HREDRAW | CS_VREDRAW;
   wc.lpfnWndProc   = WndProc;
   wc.cbClsExtra    = 0;
-  wc.cbWndExtra    = 0;
   wc.hInstance     = hInstance;
   wc.hIcon         = NULL;      
   wc.hCursor       = LoadCursor (NULL, IDC_ARROW);
   wc.hbrBackground = (HBRUSH) GetStockObject (WHITE_BRUSH);
   wc.lpszMenuName  = NULL;
   wc.lpszClassName = szClassName;
+  wc.cbWndExtra    = sizeof(MyWindowData*); // РІС‹РґРµР»СЏРµРј РјРµСЃС‚Рѕ РїРѕРґ СѓРєР°Р·Р°С‚РµР»СЊ РЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ РґР°РЅРЅС‹Рµ РІ hWnd
   
-  // Регистрируем класс окна
+  // Р РµРіРёСЃС‚СЂРёСЂСѓРµРј РєР»Р°СЃСЃ РѕРєРЅР°
   if( !RegisterClass (&wc) )
   { MessageBox (NULL, _T("Can't register window class."), _T("Error"), MB_OK);
     return 0;
   }
   
-  // Создаем основное окно приложения
-  hWnd = CreateWindow ( szClassName,                // Имя класса                    
-                        _T("robot-moves"),          // Текст заголовка 
-                        WS_OVERLAPPEDWINDOW,        // Стиль окна                                              
-                        0, 0,                       // Позиция левого верхнего угла   
-                        WIDTH, HIGHT,               // Ширина и высота окна     
-                        (HWND) NULL,                // Указатель на родительское окно NULL     
-                        (HMENU) NULL,               // Используется меню класса окна               
-                        (HINSTANCE) hInstance,      // Указатель на текущее приложение
-                        NULL );                     // Передается в качестве lParam в событие WM_CREATE
+  //=======================
+  // РЎРѕР·РґР°С‘Рј РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕРµ РѕРєРЅРѕ СЃ РєРѕРјРјР°РЅРґРЅРѕР№ СЃС‚СЂРѕРєРѕР№
+  // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј РІ РЅРµС‘ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ РїРѕС‚РѕРєРё РІРІРѕРґР°/РІС‹РІРѕРґР°
+  redirectConsoleIO();
+  // РР·РјРµРЅСЏРµРј Р·Р°РіРѕР»РѕРІРѕРє РєРѕРЅСЃРѕР»Рё
+  SetConsoleTitle(_T("cmd-robo-moves"));
+  //=======================
+  tstring config, database;
+  // РџРѕР»СѓС‡Р°РµРј РїР°СЂР°РјРµС‚СЂС‹ РєРѕРјР°РЅРґРЅРѕР№ СЃС‚СЂРѕРєРё
+  getConsoleArguments(config, database);
+  //=======================
+  std::srand(112); /// (unsigned int)clock());
+  //=======================
+  // РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёРµ РґР°РЅРЅС‹Рµ
+  MyWindowData wd(config, database);
+  //=======================
+  
+  // РЎРѕР·РґР°РµРј РѕСЃРЅРѕРІРЅРѕРµ РѕРєРЅРѕ РїСЂРёР»РѕР¶РµРЅРёСЏ
+  hWnd = CreateWindow ( szClassName,                // РРјСЏ РєР»Р°СЃСЃР°                    
+                        _T("robot-moves"),          // РўРµРєСЃС‚ Р·Р°РіРѕР»РѕРІРєР° 
+                        WS_OVERLAPPEDWINDOW,        // РЎС‚РёР»СЊ РѕРєРЅР°                                              
+                        0, 0,                       // РџРѕР·РёС†РёСЏ Р»РµРІРѕРіРѕ РІРµСЂС…РЅРµРіРѕ СѓРіР»Р°   
+                        WIDTH, HIGHT,               // РЁРёСЂРёРЅР° Рё РІС‹СЃРѕС‚Р° РѕРєРЅР°     
+                        (HWND) NULL,                // РЈРєР°Р·Р°С‚РµР»СЊ РЅР° СЂРѕРґРёС‚РµР»СЊСЃРєРѕРµ РѕРєРЅРѕ NULL     
+                        (HMENU) NULL,               // РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РјРµРЅСЋ РєР»Р°СЃСЃР° РѕРєРЅР°               
+                        (HINSTANCE) hInstance,      // РЈРєР°Р·Р°С‚РµР»СЊ РЅР° С‚РµРєСѓС‰РµРµ РїСЂРёР»РѕР¶РµРЅРёРµ
+                        (LPVOID) &wd );             // РџРµСЂРµРґР°РµС‚СЃСЏ РІ РєР°С‡РµСЃС‚РІРµ lParam РІ СЃРѕР±С‹С‚РёРµ WM_CREATE
   
   if( !hWnd ) 
   { MessageBox (NULL, _T("Can't create main window!"), _T("Error"), MB_OK);  
     return 0;
   }
   
-  // Показываем наше окно
+  // РџРѕРєР°Р·С‹РІР°РµРј РЅР°С€Рµ РѕРєРЅРѕ
   ShowWindow   (hWnd, nCmdShow); 
   UpdateWindow (hWnd);
   
-  // Выполняем цикл обработки сообщений до закрытия приложения
+  // Р’С‹РїРѕР»РЅСЏРµРј С†РёРєР» РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№ РґРѕ Р·Р°РєСЂС‹С‚РёСЏ РїСЂРёР»РѕР¶РµРЅРёСЏ
   while ( GetMessage (&lpMsg, NULL, 0, 0) )  
   { TranslateMessage (&lpMsg);
      DispatchMessage (&lpMsg);

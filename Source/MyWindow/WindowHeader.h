@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+п»ї#include "StdAfx.h"
 
 #ifndef  _WINDOW_H_
 #define  _WINDOW_H_
@@ -9,34 +9,36 @@
 #define   MARGIN     10
 #define   WIDTH      950
 #define   HIGHT      600
-//--------------------------------------------------------------------------------
-struct win_point { uint_t x, y; };
 
-// глобальные переменные - хранят актуальные размеры окна
-inline win_point* WindowSize()
+#define  WM_USER_TIMER  WM_USER+3
+#define  WM_USER_STORE  WM_USER+4
+//--------------------------------------------------------------------------------
+/// РіР»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ - С…СЂР°РЅСЏС‚ Р°РєС‚СѓР°Р»СЊРЅС‹Рµ СЂР°Р·РјРµСЂС‹ РѕРєРЅР°
+inline PPOINT WindowSize()
 {
-    static win_point Width_Height;
+    static POINT Width_Height;
     return &Width_Height;
 }
-// установить актуальные размеры окна при изменении
+/// СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р°РєС‚СѓР°Р»СЊРЅС‹Рµ СЂР°Р·РјРµСЂС‹ РѕРєРЅР° РїСЂРё РёР·РјРµРЅРµРЅРёРё
 inline void setWindowSize(int Width_, int Height_)
 {
     WindowSize()->x = Width_;
     WindowSize()->y = Height_;
 }
 
-// вещественные логические координаты     ( -1 < x <1;    -1<y<1     ) 
-// преобразуем в координаты окна Windows  (  0 < x <WIDTH; 0<y<HIGHT )
-uint_t Tx (double logic_x);
-uint_t Ty (double logic_y);
+// РІРµС‰РµСЃС‚РІРµРЅРЅС‹Рµ Р»РѕРіРёС‡РµСЃРєРёРµ РєРѕРѕСЂРґРёРЅР°С‚С‹     ( -1 < x <1;    -1<y<1     ) 
+// РїСЂРµРѕР±СЂР°Р·СѓРµРј РІ РєРѕРѕСЂРґРёРЅР°С‚С‹ РѕРєРЅР° Windows  (  0 < x <WIDTH; 0<y<HIGHT )
 
-Point LogicCoords (win_point* coord);
+LONG Tx (double logic_x);
+LONG Ty (double logic_y);
+
+Point LogicCoords (PPOINT coord);
 //-------------------------------------------------------------------------------
-// Процедуры обработки сообщений
+/// РџСЂРѕС†РµРґСѓСЂС‹ РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№
 LRESULT CALLBACK  WndProc (HWND, UINT, WPARAM, LPARAM);
 //-------------------------------------------------------------------------------
-/* Return TRUE if file 'fileName' exists */
-inline bool  isFileExists (const TCHAR *fileName)
+/// \return TRUE if file with fileName exists on disk
+inline bool isFileExists (const TCHAR *fileName)
 { DWORD  fileAttr = GetFileAttributes (fileName);
   return (0xFFFFFFFF != fileAttr);
 }
@@ -46,13 +48,12 @@ tstring   SaveFileDialog (HWND hWnd);
 
 tstring   getCurrentTimeString (tstring format, std::time_t *the_time=NULL);
 tstring   getWindowTitleString (HWND hWnd);
-tstring   getLastErrorString ();
 //-------------------------------------------------------------------------------
-struct MyWindowData;
-
 void  redirectConsoleIO ();
 void  getConsoleArguments (tstring &config, tstring &database);
 //-------------------------------------------------------------------------------
+struct MyWindowData;
+
 struct LabelsPositions
 {
   size_t LabelsLeft;
@@ -69,20 +70,24 @@ struct LabelsPositions
   size_t LabStatHeight;
 };
 
-void onWindowCreate (HWND &hWnd, RECT &myRect,
-                     HWND &hLabCanv, HWND &hLabHelp,
-                     HWND &hLabMAim, HWND &hLabTest,
-                     HWND &hLabStat, LabelsPositions &lp,
-                     tstring &jointsHelp);
-void onWindowSize   (HWND &hWnd, RECT &myRect,
-                     HWND &hLabCanv, HWND &hLabHelp,
-                     HWND &hLabMAim, HWND &hLabTest,
-                     HWND &hLabStat, LabelsPositions &lp);
-
-void onWindowPaint   (HWND &hWnd, RECT &myRect,
-                      MyWindowData &wd);
-void onWindowKeyDown (HWND &hWnd, RECT &myRect,
-                      WPARAM wParam, LPARAM lParam,
-                      MyWindowData &wd);
+void onWindowCreate  (HWND hWnd, MyWindowData &wd);
+void onWindowSize    (HWND hWnd, MyWindowData &wd);
+void onWindowPaint   (HWND hWnd, MyWindowData &wd);
+void onWindowTimer   (HWND hWnd, MyWindowData &wd, WPARAM wParam);
+void onWindowStoreSz (HWND hWnd, MyWindowData &wd);
+void onWindowMouse   (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lParam);
+void onWindowChar    (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam);
+void onWindowKeyDown (HWND hWnd, MyWindowData &wd, WPARAM wParam);
 //-------------------------------------------------------------------------------
+inline LONG width(PRECT rect)
+{ return abs(rect->right - rect->left); }
+inline LONG height(PRECT rect)
+{ return abs(rect->bottom - rect->top); }
+inline bool inside(PRECT rect, PPOINT pt)
+{
+    return  (pt->x > rect->left && pt->x < rect->right &&
+             pt->y > rect->top  && pt->y < rect->bottom);
+}
+//-------------------------------------------------------------------------------
+
 #endif // _WINDOW_H_

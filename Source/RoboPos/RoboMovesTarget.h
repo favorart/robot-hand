@@ -47,7 +47,7 @@ public:
   void  draw (HDC hdc, HPEN hPen,
               bool internalLines,
               bool internalPoints,
-              bool ellipseInsteadPixel) const;
+              double internalPointsRadius = 0.007) const;
 
   bool  contain (const Point &p) const
   { return (p.x >= min_.x && p.x <= max_.x && p.y >= min_.y && p.y <= max_.y); }

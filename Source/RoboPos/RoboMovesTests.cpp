@@ -1,32 +1,45 @@
 ﻿#include "StdAfx.h"
-#include "RoboMovesStore.h"
-
+#include "RoboLearnMoves.h"
 
 using namespace Robo;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
-void  RoboMoves::testRandom (IN OUT Store &store, IN RoboI &robo, IN size_t tries)
+void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
 {
     try
     {
         /* Для нового потока нужно снова переинициализировать rand */
         std::srand((unsigned int)clock());
-
-        for (size_t i = 0U; i < tries; ++i)
-        {
-            Control control;
-            control.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return (robo.muscleMaxLast(m) / 2); });
-            store.insert(robo, control);
-            boost::this_thread::interruption_point();
-        } // for tries
+        // ==============================
         robo.reset();
+        Point pos_base = robo.position();
+
+        for (size_t i = 0; i < tries; ++i)
+        {
+            Control controls;
+            controls.fillRandom(robo.musclesCount(), [&robo](muscle_t m) {
+                return (robo.muscleMaxLast(m) / 2);
+            });
+            // ==============================
+            Trajectory trajectory;
+            robo.move(controls, trajectory);
+            const Point& pos = robo.position();
+            // ==============================
+            store.insert(Record{ pos, pos_base, pos, controls,trajectory });
+            // ==============================
+            boost::this_thread::interruption_point();
+            // ==============================
+            robo.reset();
+        }
     }
     catch (boost::thread_interrupted&)
-    { /* tcout << _T("WorkingThread interrupted") << std::endl; */ }
+    {
+        CINFO("WorkingThread interrupted");
+    }
 }
 
 //------------------------------------------------------------------------------
-void  RoboMoves::testCover  (IN OUT Store &store, IN RoboI &robo, IN size_t nesting)
+void RoboPos::testCover(Store &store, RoboI &robo, size_t nesting)
 {
     const frames_t lasts_min = 50U;
     const frames_t lasts_step = 10U;
@@ -87,26 +100,30 @@ void  RoboMoves::testCover  (IN OUT Store &store, IN RoboI &robo, IN size_t nest
                                 ++tail_k;
 
                                 trajectory.erase(tail_k, trajectory.end());
-                                robo.resetJoint(muscle_k);
+                                robo.resetJoint(RoboI::jointByMuscle(muscle_k));
                                 boost::this_thread::interruption_point();
                             }
                         }
                         //=================================================
                         trajectory.erase(tail_j, trajectory.end());
-                        robo.resetJoint(muscle_j);
+                        robo.resetJoint(RoboI::jointByMuscle(muscle_j));
                         boost::this_thread::interruption_point();
                     }
                 }
-                robo.resetJoint(muscle_i);
+                robo.resetJoint(RoboI::jointByMuscle(muscle_i));
                 boost::this_thread::interruption_point();
             }
         }
         robo.reset();
     }
     catch (boost::thread_interrupted&)
-    { /* tcout << _T("WorkingThread interrupted" )<< std::endl; */ }
-    catch (...)
-    { MessageBox(NULL, _T("Error"), _T("Error"), MB_OK); }
+    {
+        CINFO("WorkingThread interrupted");
+    }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
+    }
 }
 //------------------------------------------------------------------------------
 

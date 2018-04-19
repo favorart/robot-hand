@@ -168,8 +168,7 @@ public:
     
     Point jointPos(joint_t joint) const { return status.curPos[J(joint)]; }
     //----------------------------------------------------
-    void controlsValidate(Control&) const;
-    ///void controlsCheck(const Control&) const;
+    void controlsValidate(const Control&) const;
     
     bool           moveEnd() const { return status.moveEnd; }
     const Point&  position() const

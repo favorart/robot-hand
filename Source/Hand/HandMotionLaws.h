@@ -82,11 +82,11 @@ public:
                 b = right_border;
         // --------------------------------
         double  norm_sum = 0.;
-        *iter = EPS;
+        *iter = Utils::EPSILONT;
         for (size_t i = 1U; i <= n; ++i)
         {
             double d = (log(double(i) / n + 2.)) * 0.2;
-            *iter = (d > 0) ? d : EPS;
+            *iter = (d > 0) ? d : Utils::EPSILONT;
             norm_sum += *iter;
             ++iter;
         }
@@ -116,7 +116,7 @@ public:
         double  a = left_border, b = right_border;
         // --------------------------------
         double  norm_sum = 0.;
-        *iter = EPS;
+        *iter = Utils::EPSILONT;
         for (size_t i = 1U; i <= n; ++i)
         {
             *iter = (exp(double(i) / (n - 1) - 1.2) * 2. - 0.6);
@@ -166,13 +166,10 @@ public:
 }
 
 #include "lagrange_interp_1d.hpp"
-namespace Utils
-{
-bool next_placement_repeats(std::vector<int> &currents, int n_alphabet);
 
 void inputAngles(const tstring &filename, std::vector<double> &angles);
 void outputAngles(const tstring &filename, const std::vector<double> &angles);
-}
+
 
 namespace Robo {
 namespace MotionLaws {
@@ -189,7 +186,7 @@ public:
                            double left_border, double right_border) const
     {
         std::vector<double> angles;
-        Utils::inputAngles(filename, angles);
+        inputAngles(filename, angles);
         // --------------------------------
         IterVecDoubles iter = first;
         // --------------------------------
@@ -225,7 +222,7 @@ public:
             ++iter;
         }
         // --------------------------------
-        /// TODO: Mango::generate() Utils::outputAngles(filename, angles);
+        /// TODO: Mango::generate() outputAngles(filename, angles);
     }
 };
 class MangoDeceleration : public JointStopLawI
@@ -240,7 +237,7 @@ public:
                           double max_velosity) const
     {
         std::vector<double> angles;
-        Utils::inputAngles(filename, angles);
+        inputAngles(filename, angles);
         //------------------------------------------------------
         IterVecDoubles iter = first;
         //------------------------------------------------------
@@ -278,7 +275,7 @@ public:
             ++iter;
         }
         //------------------------------------------------------
-        /// TODO: Mango::generate() Utils::outputAngles(filename, angles);
+        /// TODO: Mango::generate() outputAngles(filename, angles);
     }
 };
 //------------------------------------------------------------------------------

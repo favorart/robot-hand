@@ -16,13 +16,13 @@ RoboMoves::Record::Record(IN const Point         &aim,
     aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited)
 {
     if (!visited_.size())
-        throw std::exception("Incorrect trajectory in constructor Record");
+        throw std::logic_error("Incorrect trajectory in constructor Record");
 
     for (auto i = 0U; i < controls_count; ++i)
         control_.append({ muscles[i], starts[i], lasts[i] });
 
     if (!control_.validateMusclesTimes())
-        throw std::exception("Invalid muscles constructor Record parameter");
+        throw std::logic_error("Invalid muscles constructor Record parameter");
 }
 
 RoboMoves::Record::Record(IN const Point         &aim,
@@ -33,10 +33,10 @@ RoboMoves::Record::Record(IN const Point         &aim,
     aim_(aim), move_begin_(hand_begin), move_final_(hand_final), control_(controls), visited_(visited)
 {
     if (!visited_.size())
-        throw std::exception("Incorrect trajectory in constructor Record");
+        throw std::logic_error("Incorrect trajectory in constructor Record");
 
     if (!control_.validateMusclesTimes())
-        throw std::exception("Invalid muscles constructor Record parameter");
+        throw std::logic_error("Invalid muscles constructor Record parameter");
 }
 //---------------------------------------------------------
 
@@ -138,4 +138,34 @@ double RoboMoves::Record::ratioTrajectoryBrakes() const
     return 0.;
 }
 
-//---------------------------------------------------------
+//------------------------------------------------------------------------------
+tostream& RoboMoves::operator<<(tostream &s, const RoboMoves::Record &rec)
+{
+    s << rec.aim_ << std::endl;
+    s << rec.move_begin_ << std::endl;
+    s << rec.move_final_ << std::endl;
+    s << rec.control_ << std::endl;
+    s << rec.visited_.size() << _T(' ');
+    for (auto p : rec.visited_)
+        s << p << _T(' ');
+    s << std::endl << std::endl;
+    return s;
+}
+
+//------------------------------------------------------------------------------
+tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
+{
+    size_t sz;
+    s >> rec.aim_;
+    s >> rec.move_begin_;
+    s >> rec.move_final_;
+    s >> rec.control_;
+    s >> sz;
+    for (auto i : boost::irange(0u, sz))
+    {
+        Point p;
+        s >> p;
+        rec.visited_.push_back(p);
+    }
+    return s;
+}

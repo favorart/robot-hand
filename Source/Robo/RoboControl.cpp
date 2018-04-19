@@ -3,44 +3,37 @@
 #include "RoboControl.h"
 
 
-const double Robo::RoboI::minFrameMove = (EPS * M_PI / 180.);
+const double Robo::RoboI::minFrameMove = (Utils::EPSILONT * M_PI / 180.);
 //---------------------------------------------------------
-Robo::Control::Control(const Robo::Actuator* a, size_t sz) : Control()
+Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 {
-    if (sz >= MAX_ACTUATORS)
-        throw std::runtime_error("too much muscles for control");
+    if (sz > MAX_ACTUATORS)
+        throw std::logic_error("too much muscles for control");
 
-    actuals = sz;
-    for (size_t i = 0; i < sz; ++i)
-        actuators[i] = a[i];
+    for (actuals = 0; actuals < sz; ++actuals)
+        actuators[actuals] = a[actuals];
 }
 
 //---------------------------------------------------------
-void Robo::Control::append(const Robo::Actuator& a)
+void Robo::Control::append(const Robo::Actuator &a)
 {
-    if (actuals >= MAX_ACTUATORS - 1)
-        throw std::runtime_error("too much muscles for control");
-
+    if (actuals >= MAX_ACTUATORS)
+        throw std::logic_error("too much muscles for control");
+    // actuals is INDEX TO INSERT and LENGTH
     if (actuals == 0 || actuators[actuals - 1].start <= a.start)
     {
         actuators[actuals++] = a;
         return;
     }
-
-    /* sorted insert */
+    // sorted insert
     for (size_t i = 0; i < actuals; ++i)
         if (actuators[i].start > a.start)
         {
-            memmove(&actuators[i + 1], &actuators[i], actuals - i);
+            memmove(&actuators[i + 1], &actuators[i], (actuals + 1 - i) * sizeof(Actuator));
             actuators[i] = a;
             ++actuals;
             return;
         }
-}
-
-void Robo::Control::pop_back()
-{
-
 }
 
 //---------------------------------------------------------
@@ -77,16 +70,16 @@ void Robo::Control::fillRandom(IN Robo::muscle_t muscles_count, IN const std::fu
 {
     clear();
 
-    unsigned moves_count = random(moves_count_min, moves_count_max);
+    unsigned moves_count = Utils::random(moves_count_min, moves_count_max);
 
     Robo::Actuator a{ MInvalid /* muscle - empty move */, 0 /* start */ , 0 /* last */ };
     for (unsigned mv = 0; mv < moves_count; ++mv)
     {
-        a.muscle = random(muscles_count);
+        a.muscle = Utils::random(muscles_count);
         if (!a.last)
-        { a.last = random(lasts_min, muscleMaxLasts(a.muscle)); }
+        { a.last = Utils::random(lasts_min, muscleMaxLasts(a.muscle)); }
         else
-        { a.last = random(lasts_min, a.last); }
+        { a.last = Utils::random(lasts_min, a.last); }
     
         append(a);
         a.start += (a.last + 1);
@@ -142,21 +135,47 @@ void Robo::Control::fillRandom(IN Robo::muscle_t muscles_count, IN const std::fu
 //}
 
 //---------------------------------------------------------
-tostream& Robo::operator<<(tostream &out, const Robo::Actuator &a)
+tostream& Robo::operator<<(tostream &s, const Robo::Actuator &a)
 {
-    out << _T("{ ") /* << a.muscle */ 
-        << _T(" ") << a.start
-        << _T(" ") << a.last
-        << _T(" }");
-    return out;
-}
-tostream& Robo::operator<<(tostream &out, const Robo::Control &controls)
-{
-    out << _T("ctrl[ ");
-    for (const Robo::Actuator &a : controls)
-        out << a << _T(", ");
-    out << _T(" ]");
-    return out;
+    return s << _T("{ ") << uint32_t(a.muscle)
+             << _T(" ") << a.start
+             << _T(" ") << a.last
+             << _T(" }");
 }
 
+//---------------------------------------------------------
+tistream& Robo::operator>>(tistream &s, Robo::Actuator &a)
+{ 
+    uint32_t m;
+    s >> ConfirmInput(_T("{")) >> m
+      >> /*ConfirmInput(_T(" ")) >>*/ a.start
+      >> /*ConfirmInput(_T(" ")) >>*/ a.last
+      >> ConfirmInput(_T("}"));
+    a.muscle = m;
+    return s;
+}
+
+//---------------------------------------------------------
+tostream& Robo::operator<<(tostream &s, const Robo::Control &controls)
+{
+    s << _T("ctrl[ ");
+    for (const Robo::Actuator &a : controls)
+        s << a << (((&a - &controls.actuators[0]) == (controls.actuals - 1)) ? _T(" ]") : _T(", "));
+    return s;
+}
+
+//---------------------------------------------------------
+tistream& Robo::operator>>(tistream &s, Robo::Control &controls)
+{
+    s >> ConfirmInput(_T("ctrl[ "));
+    {
+        Robo::Actuator a;
+        s >> a >> ConfirmInput(_T(", "));
+        controls.append(a);
+    } while (s.fail());
+    //---------------------------
+    s.setstate(std::ios::goodbit);
+    s >> ConfirmInput(_T(" ]"));
+    return s;
+}
 //---------------------------------------------------------

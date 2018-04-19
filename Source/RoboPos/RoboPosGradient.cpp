@@ -15,7 +15,7 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double d_d
 {
     auto  iter = controls.begin();
     // -----------------------------------------------
-    for (joint_t joint = 0; joint < robo.jointsCount(); ++joint)
+    for (joint_t joint = 0; joint < _robo.jointsCount(); ++joint)
     {
         auto mo = RoboI::muscleByJoint(joint, true);
         auto mc = RoboI::muscleByJoint(joint, false);
@@ -36,7 +36,7 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double d_d
         int last_mc_l = (it_mc_l != lower_controls.end()) ? (it_mc_l->last - last_mc_i) : 0U;
         int last_mc_g = (it_mc_g != upper_controls.end()) ? (it_mc_g->last - last_mc_i) : 0U;
         // -----------------------------------------------
-        const auto int_normalizer = int(d_d / precision); /* velosity */ // 400;
+        const auto int_normalizer = int(d_d / _precision); /* velosity */ // 400;
         
         
         // -----------------------------------------------
@@ -114,12 +114,12 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double d_d
 }
 
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim, IN bool verbose)
+size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
 {
     size_t  gradient_complexity = 0U;
     // -----------------------------------------------
-    robo.reset();
-    Point base_pos = robo.position();
+    _robo.reset();
+    Point base_pos = _robo.position();
     Point pos; // hand_position
     // -----------------------------------------------
     double distance = boost_distance(base_pos, aim),
@@ -143,7 +143,7 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim, IN boo
         double  d_d = (upper_distance - lower_distance);
         // -----------------------------------------------
         double d = boost_distance(rec.hit, aim);
-        if (precision > d)
+        if (_precision > d)
         { break; }
         // -----------------------------------------------
         if (new_distance > d)
@@ -151,31 +151,31 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim, IN boo
         // -----------------------------------------------
         else
         {
-            gradient_complexity += weightedMean(aim, pos, verbose);
+            gradient_complexity += weightedMean(aim, pos);
 
             d = boost_distance(pos, aim);
-            if (precision > d)
+            if (_precision > d)
             { break; }
             else if (new_distance > d)
             { continue; }
             else
             {
-                gradient_complexity += rundownMDir(aim, pos, verbose);
+                gradient_complexity += rundownMDir(aim, pos);
 
                 d = boost_distance(pos, aim);
-                if (precision > d)
+                if (_precision > d)
                 { break; }
                 else if (new_distance > d)
                 { continue; }
                 else
                 {
-                    gradient_complexity += gradientMethod(aim, verbose);
+                    gradient_complexity += gradientMethod(aim);
 
-                    auto &rec = store.ClothestPoint(aim, stage3.side);
+                    auto &rec = _store.ClothestPoint(aim, _stage3_params.side);
                     pos = rec.hit;
 
                     d = boost_distance(pos, aim);
-                    if (precision > d)
+                    if (_precision > d)
                     { break; }
                     else if (new_distance > d)
                     { continue; }
@@ -202,7 +202,7 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim, IN boo
         // -----------------------------------------------
         if (new_distance > d)
         { new_distance = d; }
-        if (d > stage3.side)
+        if (d > _stage3_params.side)
         { /* FAIL */
             break;
         }
@@ -210,15 +210,12 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim, IN boo
         if (distance > new_distance)
         { distance = new_distance; }
         // -----------------------------------------------
-    } while (precision < distance);
+    } while (_precision < distance);
     // -----------------------------------------------
-    if (verbose)
-    {
-        tcout << _T("precision: ") << distance << std::endl;
-        tcout << _T("gradient admix complexity: ")
-              << gradient_complexity
-              << std::endl << std::endl;
-    }
+    tcout << _T("_precision: ") << distance << std::endl;
+    tcout << _T("gradient admix complexity: ")
+          << gradient_complexity
+          << std::endl << std::endl;
     // -----------------------------------------------
     return  gradient_complexity;
 }
@@ -262,11 +259,11 @@ bool RoboPos::LearnMoves::gradientClothestRecords(IN  const Point &aim,
 {
     if (!pRecClose) { return  false; }
     // ------------------------------------------------
-    Point min(aim.x - stage3.side, aim.y - stage3.side),
-          max(aim.x + stage3.side, aim.y + stage3.side);
+    Point min(aim.x - _stage3_params.side, aim.y - _stage3_params.side),
+          max(aim.x + _stage3_params.side, aim.y + _stage3_params.side);
     // ------------------------------------------------
     adjacency_ptrs_t range;
-    store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
+    _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     // ------------------------------------------------
     func_t  cmp_l = [](const Record &p, const Point &aim) { return  (p.hit.x < aim.x) && (p.hit.y < aim.y); };
     func_t  cmp_g = [](const Record &p, const Point &aim) { return  (p.hit.x > aim.x) && (p.hit.y > aim.y); };
@@ -301,17 +298,17 @@ bool RoboPos::LearnMoves::gradientClothestRecords(IN  const Point &aim,
     return true;
 }
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, IN bool verbose)
+size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
 {
     size_t  gradient_complexity = 0U;
     // -----------------------------------------------
 
     std::set<size_t> visited;
     // -----------------------------------------------
-    double distance = boost_distance(base_pos, aim);
+    double distance = boost_distance(_base_pos, aim);
     double new_distance = 0.;
     // -----------------------------------------------
-    robo.reset();
+    _robo.reset();
     do
     {
         Record  rec_close, rec_lower, rec_upper;
@@ -329,7 +326,7 @@ size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, IN bool verbose)
         if (new_distance < distance)
             distance = new_distance;
 
-        if (precision > new_distance) { break; }
+        if (_precision > new_distance) { break; }
 
         Control inits_controls{ rec_close.controls };
         // -----------------------------------------------
@@ -350,7 +347,7 @@ size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, IN bool verbose)
         // -----------------------------------------------
         double d = boost_distance(hit, aim);
         // -----------------------------------------------
-        if (precision > d)
+        if (_precision > d)
         { break; }
         // -----------------------------------------------
         else if (new_distance > d)
@@ -359,10 +356,10 @@ size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, IN bool verbose)
         else
         {
             visited.clear();
-            rundownFull(aim, hit, verbose);
+            rundownFull(aim, hit);
 
             d = boost_distance(hit, aim);
-            if (precision > d)
+            if (_precision > d)
             { break; }
             else if (new_distance > d)
             { continue; }
@@ -376,19 +373,12 @@ size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, IN bool verbose)
         if (distance > new_distance)
         { distance = new_distance; }
         // -----------------------------------------------
-#ifdef _DEBUG_PRINT
-        tcout << _T("prec: ") << best_distance << std::endl;
-#endif // _DEBUG_PRINT
-
-    } while (precision < distance);
+        CDEBUG(_T("prec: ") << distance);
+    } while (_precision < distance);
     // -----------------------------------------------
-    if (verbose)
-    {
-        tcout << _T("precision: ") << distance << std::endl;
-        tcout << _T("gradient complexity: ")
-              << gradient_complexity
-              << std::endl << std::endl;
-    }
+    tcout << _T("precision: ") << distance << std::endl;
+    tcout << _T("grad_complex ") << gradient_complexity
+          << std::endl << std::endl;
     // -----------------------------------------------
     return gradient_complexity;
 }

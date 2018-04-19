@@ -1,11 +1,8 @@
-//#include "stdafx.h"
-
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <string>
-
 #include <cmath>
 
 

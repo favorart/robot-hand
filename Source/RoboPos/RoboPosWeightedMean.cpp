@@ -40,16 +40,16 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
         } // end for-for
     // ----------------------------------------------
     /* controls check for correctness: opposite muscles work time */
-    robo.controlsValidate(controls);
+    _robo.controlsValidate(controls);
     // ----------------------------------------------
 }
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit, IN bool verbose)
+size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit)
 {
     size_t w_means_complexity = 0U;
-    double side_ = stage3.side;
+    double side_ = _stage3_params.side;
     // -----------------------------------------------
-    const Record &rec = store.ClothestPoint(aim, stage3.side);
+    const Record &rec = _store.ClothestPoint(aim, _stage3_params.side);
     // -----------------------------------------------
     // HandMoves::controling_t  controls{ rec.controls };
     Point pos = rec.hit;
@@ -57,7 +57,7 @@ size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit, IN
     double distance = boost_distance(aim, pos),
       next_distance = distance;
     // -----------------------------------------------
-    robo.reset();
+    _robo.reset();
     do
     {
         if (next_distance < distance)
@@ -65,16 +65,16 @@ size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit, IN
             distance = next_distance;
             hit = pos;
 
-            if (precision > distance)
+            if (_precision > distance)
             { break; }
         }
         // -----------------------------------------------
         adjacency_ptrs_t range;
-        store.adjacencyByPBorders(range, aim, side_);
+        _store.adjacencyByPBorders(range, aim, side_);
         if (range.empty())
         { break; }
         // -----------------------------------------------
-        side_ -= stage3.side_decrease_step;
+        side_ -= _stage3_params.side_decrease_step;
         // -----------------------------------------------
         Control controls;
         weightedMeanControls(aim, range, controls);
@@ -86,13 +86,10 @@ size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit, IN
         // -----------------------------------------------
     } while (next_distance < distance);
     // -----------------------------------------------
-    if (verbose)
-    {
-        tcout << _T("prec: ") << distance << std::endl;
-        tcout << _T("w_means complexity: ")
-              << w_means_complexity
-              << std::endl << std::endl;
-    }
+    tcout << _T("prec: ") << distance << std::endl;
+    tcout << _T("w_means complexity: ")
+          << w_means_complexity
+          << std::endl << std::endl;
     // -----------------------------------------------
     return w_means_complexity;
 }
@@ -111,7 +108,7 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     upper_controls.clear();
     // ------------------------------------------------
     adjacency_ptrs_t range;
-    store.adjacencyPoints(range, aim, stage3.side);
+    _store.adjacencyPoints(range, aim, _stage3_params.side);
 
     ClosestPredicate cp(aim);
     auto it_min = boost::range::min_element(range, cp);
@@ -121,19 +118,19 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     *pRec = (**it_min);
     range.clear();
     // ------------------------------------------------
-    min = Point(aim.x - stage3.side, pRec->hit.y - stage3.side);
-    max = Point(aim.x + stage3.side, pRec->hit.y);
+    min = Point(aim.x - _stage3_params.side, pRec->hit.y - _stage3_params.side);
+    max = Point(aim.x + _stage3_params.side, pRec->hit.y);
 
-    store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
+    _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     if (range.empty())
     { return false; }
     // ------------------------------------------------
     weightedMeanControls(aim, range, lower_controls, &lower_distance);
     // ------------------------------------------------
-    min = Point(aim.x - stage3.side, pRec->hit.y);
-    max = Point(aim.x + stage3.side, pRec->hit.y + stage3.side);
+    min = Point(aim.x - _stage3_params.side, pRec->hit.y);
+    max = Point(aim.x + _stage3_params.side, pRec->hit.y + _stage3_params.side);
 
-    store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
+    _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     if (range.empty())
     { return false; }
     // ------------------------------------------------

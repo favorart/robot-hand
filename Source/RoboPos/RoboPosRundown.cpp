@@ -11,7 +11,7 @@ using namespace RoboMoves;
 void   LearnMoves::rundownControls(IN OUT Control &controls)
 {
     const frames_t lasts_min = 1U;
-    for (joint_t j = 0; j < robo.jointsCount(); ++j)
+    for (joint_t j = 0; j < _robo.jointsCount(); ++j)
     {
         auto mo = RoboI::muscleByJoint(j, true);
         auto mc = RoboI::muscleByJoint(j, false);
@@ -116,11 +116,11 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
     return false;
 }
 //------------------------------------------------------------------------------
-size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position, IN bool verbose)
+size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position)
 {
     size_t rundown_complexity = 0U;
     // -----------------------------------------------
-    const Record &rec = store.ClothestPoint(aim, stage3.side);
+    const Record &rec = _store.ClothestPoint(aim, _stage3_params.side);
     Point robo_pos = rec.hit;
     // -----------------------------------------------
     Control  controls{ rec.controls };
@@ -129,12 +129,12 @@ size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position, IN
     double  distance = boost_distance(robo_pos, aim),
         start_distance = distance;
     // -----------------------------------------------
-    frames_t  velosity = frames_t(floor(distance / precision + 0.5));
+    frames_t  velosity = frames_t(floor(distance / _precision + 0.5));
     frames_t  velosity_prev = 0U;
     // -----------------------------------------------
     size_t  controls_curr = 0U;
     // -----------------------------------------------
-    robo.reset();
+    _robo.reset();
     while (!rundownNextControl(controls, controls_curr,
                                velosity, velosity_prev))
     {
@@ -154,11 +154,11 @@ size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position, IN
                 distance = next_distance;
                 robo_position = robo_pos;
 
-                if (precision > distance)
+                if (_precision > distance)
                 { break; }
             }
             // -----------------------------------------------
-            velosity = frames_t(floor(distance / precision + 0.5));
+            velosity = frames_t(floor(distance / _precision + 0.5));
             // -----------------------------------------------
             auto it = controls.begin();
             std::advance(it, controls_curr / 2U);
@@ -201,17 +201,15 @@ size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position, IN
         } // while
 
         // -----------------------------------------------
-        if (precision > distance) { break; }
+        if (_precision > distance) { break; }
         // -----------------------------------------------
-    } // while
-      // -----------------------------------------------
-    if (verbose)
-    {
-        tcout << _T("prec: ") << distance << std::endl;
-        tcout << _T("rundown complexity: ")
-            << rundown_complexity
-            << std::endl << std::endl;
-    }
+    } // end while
+      
+    // -----------------------------------------------
+    tcout << _T("prec: ") << distance << std::endl;
+    tcout << _T("rundown complexity: ")
+          << rundown_complexity
+          << std::endl << std::endl;
     // -----------------------------------------------
     return rundown_complexity;
 }
@@ -358,11 +356,11 @@ bool LearnMoves::rundownNextControl(IN OUT Control    &controls,
     return result;
 }
 //------------------------------------------------------------------------------
-size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position, IN bool verbose)
+size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position)
 {
     size_t  rundown_complexity = 0U;
     // -----------------------------------------------
-    const Record &rec = store.ClothestPoint(aim, stage3.side);
+    const Record &rec = _store.ClothestPoint(aim, _stage3_params.side);
     Point robo_pos = rec.hit;
     // -----------------------------------------------
     double distance = boost_distance(robo_pos, aim),
@@ -375,14 +373,14 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position, IN
     frames_t  velosity = 0U;
     frames_t  velosity_prev = 0U;
     // -----------------------------------------------
-    std::vector<int>  lasts_changes(robo.musclesCount());
+    std::vector<int>  lasts_changes(_robo.musclesCount());
     // -----------------------------------------------
-    RundownFullIncrementor   increm(robo.jointsCount());
+    RundownFullIncrementor   increm(_robo.jointsCount());
     // -----------------------------------------------
-    robo.reset();
-    while (distance > precision)
+    _robo.reset();
+    while (distance > _precision)
     {
-        velosity = frames_t(floor(distance / precision + 0.5));
+        velosity = frames_t(floor(distance / _precision + 0.5));
         velosity = (velosity) ? velosity : 1U;
         // -----------------------------------------------
         /* Восстановить прошлое управление */
@@ -404,7 +402,7 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position, IN
         { ++rundown_complexity; }
         // -----------------------------------------------
         next_distance = boost_distance(robo_pos, aim);
-        if (next_distance < precision)
+        if (next_distance < _precision)
         {
             robo_position = robo_pos;
             break;
@@ -415,7 +413,7 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position, IN
             distance = next_distance;
             robo_position = robo_pos;
             // -----------------------------------------------
-            frames_t velosity_new = frames_t(floor((distance) / precision + 0.5));
+            frames_t velosity_new = frames_t(floor((distance) / _precision + 0.5));
             velosity_new = (velosity_new) ? velosity_new : 1U;
 
             if (velosity_new != velosity)
@@ -433,7 +431,7 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position, IN
             { ++rundown_complexity; }
             // -----------------------------------------------
             next_distance = boost_distance(robo_pos, aim);
-            if (next_distance < precision)
+            if (next_distance < _precision)
             {
                 robo_position = robo_pos;
                 break;
@@ -462,12 +460,8 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position, IN
     } // end while
 
     // -----------------------------------------------
-    if (verbose)
-    {
-        tcout << _T("rundown complexity: ")
-            << rundown_complexity
-            << std::endl << std::endl;
-    }
+    tcout << _T("rundown complexity: ") << rundown_complexity
+          << std::endl << std::endl;
     // -----------------------------------------------
     return rundown_complexity;
 }

@@ -105,7 +105,7 @@ bool MyWindowData::zoom = false;
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
     pWorkerThread{ nullptr },
-    pTarget{ std::make_shared<RecTarget>( /* 200U, 200U, */ 18U, 18U, -0.41, 0.43, -0.03, -0.85) },
+    pTarget{ nullptr }, //{ std::make_shared<RecTarget>( /* 200U, 200U, */ 18U, 18U, -0.41, 0.43, -0.03, -0.85) },
     pStore{ std::make_shared<RoboMoves::Store>() }
 {
     read_config(config);
@@ -114,14 +114,7 @@ MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
     if (database != _T(""))
         currFileName = database;
     else
-    {
-        tstringstream ss;
-        ss << pRobo->name()
-           <<_T("-robo")
-           << getCurrentTimeString(_T("_%d-%m-%Y_%I-%M-%S"))
-           << _T("-moves.bin");
-        currFileName = ss.str();
-    }
+        currFileName = getCurrFileName();
     
     //Hand::JointInput wrist{ Hand::Joint::Wrist,
     //                        Point{ -0.75, 1.05 },
@@ -220,13 +213,25 @@ MyWindowData::~MyWindowData()
         pWorkerThread.reset();
     }
     //=======================
-    // pStore->save(currFileName);
+    // save(currFileName);
     //=======================
+}
+//-------------------------------------------------------------------------------
+void MyWindowData::save(const tstring &filename) const
+{
+    write_config(filename);
+    pStore->dump_off(filename);
+}
+void MyWindowData::load(const tstring &filename)
+{
+    read_config(filename);
+    pStore->pick_up(filename);
 }
 //-------------------------------------------------------------------------------
 void  onPaintStaticBckGrnd(HDC hdc, MyWindowData &wd)
 {
-    drawDecardsCoordinates(hdc);
+    drawCoordinates(hdc, wd.canvas.pLetters->show);
+    /// TODO : drawDecardsCoordinates(hdc);
     wd.pTarget->draw(hdc, wd.canvas.hPen_grn,
                      true /* false */,    /* internal lines */
                      true /* false */,   /* internal points */
@@ -234,34 +239,64 @@ void  onPaintStaticBckGrnd(HDC hdc, MyWindowData &wd)
 }
 void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
+    {
+        /// TODO : REMOVE
+        const double CircleRadius = 0.01;
+
+        for (auto &pred : MyWindowData::predicts)
+            drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_orng);
+
+        for (auto &pred : MyWindowData::reals)
+            drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_red);
+    }
     // --------------------------------------------------------------
     if (wd.canvas.workingSpaceShow)
         drawTrajectory(hdc, wd.canvas.workingSpaceTraj, wd.canvas.hPen_orng);
     // ----- Отрисовка точек БД -------------------------------------
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
     {
-        const size_t colorGradations = 15;
-        color_interval_t colors = std::make_pair(RGB(150, 10, 245), RGB(245, 10, 150));
-        // make_pair (RGB(0,0,130), RGB(255,0,0)); // 128
-        // make_pair (RGB(130,0,0), RGB(255,155,155));
-
-        color_gradient_t gradient;
-        makeGradient(colors, colorGradations, gradient);
-        //gradient_t gradient({ RGB(25, 255, 25), RGB(25, 25, 255), RGB(255, 25, 25) });
+        //const size_t colorGradations = 15;
+        //color_interval_t colors = std::make_pair(RGB(150, 10, 245), RGB(245, 10, 150));
+        //// make_pair (RGB(0,0,130), RGB(255,0,0)); // 128
+        //// make_pair (RGB(130,0,0), RGB(255,155,155));
+        //
+        //color_gradient_t gradient;
+        //makeGradient(colors, colorGradations, gradient);
+        ////gradient_t gradient({ RGB(25, 255, 25), RGB(25, 25, 255), RGB(255, 25, 25) });
+        
+        frames_t robo_max_last = 0;
+        for (muscle_t m : boost::irange<muscle_t>(0, wd.pRobo->musclesCount()))
+            if (robo_max_last < wd.pRobo->muscleMaxLast(m)) robo_max_last = wd.pRobo->muscleMaxLast(m);
         // --------------------------------------------------------------
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
-                            [hdc](Store &store, color_gradient_t gradient, double r,
-                                  Trajectory uncoveredPoints, HPEN hPen) {
-            store.draw(hdc, gradient, r);
+                            [hdc](Store &store, frames_t robo_max_last,
+                                  Trajectory uncoveredPoints, HPEN uncoveredPen) {
+            {
+                const size_t colorGradations = 15;
+                color_interval_t colors = std::make_pair(RGB(150, 10, 245), RGB(245, 10, 150));
+
+                color_gradient_t gradient;
+                makeGradient(colors, colorGradations, gradient);
+
+                std::vector<HPEN> gradientPens(gradient.size());
+                for (auto i = 0U; i < gradient.size(); ++i)
+                    gradientPens[i] = CreatePen(PS_SOLID, 1, gradient[i]);
+
+                auto genGradient = [&gradientPens, robo_max_last](size_t longs) {
+                    return gradientPens[Utils::interval_map(longs, { 0u, robo_max_last }, { 0u, gradientPens.size() })];
+                };
+
+                store.draw(hdc, (MyWindowData::zoom) ? 0.0005 : 0., genGradient);
+
+                for (auto pen : gradientPens) { DeleteObject(pen); }
+            }
 
             for (auto &pt : uncoveredPoints)
-                if (MyWindowData::zoom)
-                { drawCircle(hdc, pt, 0.005, hPen); }
-                else
-                { SetPixel(hdc, Tx(pt.x), Ty(pt.y), RGB(255, 0, 0)); }
-        }, std::ref(*wd.pStore), gradient, 0. /* (MyWindowData::zoom) ? 0.0005 : 0. */,
+                drawCircle(hdc, pt, (MyWindowData::zoom) ? 0.005 : 0., uncoveredPen);
+        }, std::ref(*wd.pStore), robo_max_last,
            wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{},
            wd.canvas.hPen_red);
+        
     } // end if
 }
 void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
@@ -270,54 +305,56 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
     // --------------------------------------------------------------
     /* Target to achive */
     // if ( wd.lt )  wd.lt->draw (hdc, wd);
-
-    // ----- Отрисовка фигуры ---------------------------------------
-    if (!wd.testing)
+    if (wd.canvas.hDynamicBitmapChanged && !wd.testing)
     {
+        // ----- Отрисовка фигуры ---------------------------------------
         wd.pRobo->draw(hdc, wd.canvas.hPen_red, wd.canvas.hBrush_white);
-        // --------------------------------------------------------------
+
         wd.trajFrames.draw(hdc, wd.canvas.hPen_orng);
-    }
-    // --------------------------------------------------------------
-    if (!wd.testing && wd.canvas.testingTrajsShow &&
-        !wd.canvas.testingTrajsList.empty())
-    {
-        for (auto &t : wd.canvas.testingTrajsList)
-            drawTrajectory(hdc, t, wd.canvas.hPen_blue);
-    }
-    // ----- Отрисовка точек БД -------------------------------------
-    if (!wd.canvas.pointsDB.empty())
-    {
-        HPEN hPen_old = (HPEN)SelectObject(hdc, wd.canvas.hPen_cian);
-        for (auto &p : wd.canvas.pointsDB)
-            drawCircle(hdc, p->hit, CircleRadius);
-        SelectObject(hdc, hPen_old);
+        // --------------------------------------------------------------
+        if (wd.canvas.testingTrajsShow && !wd.canvas.testingTrajsList.empty())
+        {
+            for (auto &t : wd.canvas.testingTrajsList)
+                drawTrajectory(hdc, t, wd.canvas.hPen_blue);
+        }
+        // ----- Отрисовка точек БД -------------------------------------
+        if (!wd.canvas.pointsDB.empty())
+        {
+            HPEN hPen_old = (HPEN)SelectObject(hdc, wd.canvas.hPen_cian);
+            for (auto &p : wd.canvas.pointsDB)
+                drawCircle(hdc, p->hit, CircleRadius);
+            SelectObject(hdc, hPen_old);
+        }
+        // --------------------------------------------------------------
+        if (wd.canvas.pLetters->show)
+        {
+            std::vector<Point> jPos(wd.pRobo->jointsCount());
+            for (joint_t joint = 0; joint < wd.pRobo->jointsCount(); ++joint)
+                jPos.push_back(wd.pRobo->jointPos(joint));
+            wd.canvas.pLetters->draw(hdc, jPos /*, &wd.pRobo->position()*/);
+        }
     }
     // --------------------------------------------------------------
     if (wd.mouse.click)
         drawCircle(hdc, wd.mouse.aim, wd.search.radius, wd.canvas.hPen_cian);
-    // --------------------------------------------------------------
-    if (wd.canvas.pLetters->show)
-    { 
-        std::vector<Point> jPos(wd.pRobo->jointsCount());
-        for (joint_t joint = 0; joint < wd.pRobo->jointsCount(); ++joint)
-            jPos.push_back(wd.pRobo->jointPos(joint));
-        wd.canvas.pLetters->draw(hdc, jPos /*, &wd.pRobo->position()*/);
-    }
-    // --------------------------------------------------------------
 }
 //-------------------------------------------------------------------------------
-void  WorkerThreadTryJoin(MyWindowData &wd)
+bool  WorkerThreadTryJoin(MyWindowData &wd)
 {
     if (wd.pWorkerThread && wd.pWorkerThread->try_join_for(boost::chrono::milliseconds(10)))
     {
         /* joined */
         wd.pWorkerThread.reset();
         wd.pWorkerThread = nullptr;
+
         wd.testing = false;
+        wd.canvas.hDynamicBitmapChanged = true;
+
         /* Set text of label 'Stat'  */
         SendMessage(wd.canvas.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(_T(" Done  ")));
+        return true;
     }
+    return false;
 }
 //-------------------------------------------------------------------------------
 void  onShowDBPoints(MyWindowData &wd)
@@ -350,6 +387,7 @@ void  onWindowTimer(MyWindowData &wd)
     {
         wd.pRobo->step(wd.frames);
         ++wd.frames;
+        wd.canvas.hDynamicBitmapChanged = true;
 
         if (wd.pRobo->moveEnd())
         {
@@ -357,16 +395,6 @@ void  onWindowTimer(MyWindowData &wd)
             break;
         }
     }
-}
-void  onWindowMouse(MyWindowData &wd)
-{
-    wd.mouse.click = true;
-    wd.mouse.aim = LogicCoords(&wd.mouse.coords);
-    /* Setting the Label's text */
-    tstring  message = tstring(wd.mouse.aim) + _T("  ");
-    SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL, (WPARAM)message.c_str());
-    // -------------------------------------------------
-    /// TODO: (onWindowMouse): if (!wd.testing) { makeRoboMove(wd); }
 }
 //-------------------------------------------------------------------------------
 bool  repeatRoboMove(MyWindowData &wd)
@@ -384,7 +412,7 @@ bool  repeatRoboMove(MyWindowData &wd)
         if (!wd.trajFrames.animation)
         {
             if (!boost::equal(wd.trajFrames.trajectory, rec.trajectory))
-            { throw std::exception("Incorrect Repeat Hand Move"); }
+            { throw std::exception("Incorrect Repeat Robo Move"); }
         }
         // -------------------------------------------------
         tstring text = getWindowTitleString(wd.canvas.hLabMAim);
@@ -410,7 +438,7 @@ bool  makeRoboMove(MyWindowData &wd)
     if (!repeatRoboMove(wd))
     {
         const Point &aim = wd.mouse.aim;
-        wd.pLM->gradientMethod_admixture(aim, true);
+        wd.pLM->gradientMethod_admixture(aim);
         // -------------------------------------------------
         if (0 /* Around Trajectories !!! */)
         {
@@ -498,9 +526,9 @@ void MyWindowData::read_config(IN const tstring &filename)
         unsigned skip_show_steps = root.get<unsigned>(_T("env.skip_show_steps")); /// ???
         bool animation = root.get<bool>(_T("env.animation")); /// ???
     }
-    catch (std::exception const& e)
+    catch (const std::exception &e)
     {
-        tcerr << _T("JSON: ") << Utils::uni(std::string{ e.what() }) << std::endl;
+        CERROR(e.what());
     }
 }
 void MyWindowData::write_config(IN const tstring &filename) const
@@ -543,9 +571,9 @@ void MyWindowData::write_config(IN const tstring &filename) const
         tfstream fout(filename, std::ios::out);
         pt::write_json(fout, root);
     }
-    catch (std::exception const& e)
+    catch (const std::exception &e)
     {
-        tcerr << _T("JSON: ") << Utils::uni(std::string{ e.what() }) << std::endl;
+        CERROR(e.what());
     }
 }
 //-------------------------------------------------------------------------------
