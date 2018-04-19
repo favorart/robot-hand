@@ -38,20 +38,9 @@ namespace HandMoves
 
     // ----------------------------------------
     friend class boost::serialization::access;
-    BOOST_SERIALIZATION_SPLIT_MEMBER ()
-
     template <class Archive>
-    void  save (Archive & ar, const unsigned int version) const
-    {
-      ar << aim_ << hand_begin_ << hand_final_;
-      ar << muscles_ << hand_controls_ << visited_;
-    }
-    template <class Archive>
-    void  load (Archive & ar, const unsigned int version)
-    {
-      ar >> aim_ >> hand_begin_ >> hand_final_;
-      ar >> muscles_ >> hand_controls_ >> visited_;
-    }
+    void serialize(Archive &ar, unsigned version)
+    { ar & aim_ & hand_begin_ & hand_final_ & muscles_ & hand_controls_ & visited_; }
 
   public:
     // ----------------------------------------

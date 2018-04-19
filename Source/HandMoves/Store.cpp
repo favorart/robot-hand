@@ -146,42 +146,44 @@ void  HandMoves::Store::draw (HDC hdc, gradient_t gradient, double circleRadius)
   for ( auto hPen : hPens ) { DeleteObject (hPen); }
 }
 //------------------------------------------------------------------------------
-void  HandMoves::Store::save (tstring filename) const
+void  HandMoves::Store::save(tstring filename) const
 {
-  boost::this_thread::disable_interruption  no_interruption;
-  boost::lock_guard<boost::mutex>  lock (store_mutex_);
-  try
-  {
-    ofstream  ofs (filename, std::ios_base::binary | std::ios_base::out);
-    // boost::archive::text_oarchive  toa (ofs);
-    boost::archive::binary_oarchive   boa (ofs);
-    boa & minTimeLong & maxTimeLong & store_;
-  }
-  catch ( ... )
-  {
-    tstring last_error = GetLastErrorToString ();
-    MessageBoxW (NULL, last_error.c_str (), _T ("Error"), MB_OK);
-  }
+    try
+    {
+        boost::this_thread::disable_interruption  no_interruption;
+        boost::lock_guard<boost::mutex>  lock(store_mutex_);
+
+        ofstream  ofs(filename, /*std::ios_base::binary |*/ std::ios_base::out);
+        boost::archive::text_oarchive boa (ofs);
+        //boost::archive::binary_oarchive boa(ofs);
+        boa & minTimeLong & maxTimeLong & store_;
+    }
+    catch (const std::exception &e)
+    {
+        MessageBoxA(NULL, e.what(), "Error", MB_OK);
+    }
 }
-void  HandMoves::Store::load (tstring filename)
+void  HandMoves::Store::load(tstring filename)
 {
-  if ( isFileExists (filename.c_str ()) )
-  {
-    boost::this_thread::disable_interruption  no_interruption;
-    boost::lock_guard<boost::mutex>  lock (store_mutex_);
+    if (!isFileExists(filename.c_str()))
+        return;
 
-    ifstream  ifs (filename,  std::ios_base::binary | std::ios_base::in);
-    std::stringstream buffer (std::ios_base::binary | std::ios_base::in | std::ios_base::out);
-    buffer << ifs.rdbuf ();
-    ifs.close ();
+    clear();
+    try
+    {
+        boost::this_thread::disable_interruption  no_interruption;
+        boost::lock_guard<boost::mutex>  lock(store_mutex_);
 
-    // ifstream  ifs (filename);         
-    // boost::archive::text_iarchive     ia (ifs);
-    // boost::archive::binary_iarchive   ia (ifs);
-    boost::archive::binary_iarchive     bia (buffer);
-    bia & minTimeLong & maxTimeLong & store_;
-    //-------------------------------------------
-  }
+        ifstream  ifs(filename, /*std::ios_base::binary |*/ std::ios_base::in);
+        boost::archive::text_iarchive bia (ifs);
+        //boost::archive::binary_iarchive bia(ifs);
+        bia & minTimeLong & maxTimeLong & store_;
+        //-------------------------------------------
+    }
+    catch (const std::exception &e)
+    {
+        MessageBoxA(NULL, e.what(), "Error", MB_OK);
+    }
 }
 //------------------------------------------------------------------------------
 void  HandMoves::Store::insert (const Record &rec)

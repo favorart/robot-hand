@@ -109,9 +109,6 @@ namespace HandMoves
     > MultiIndexMoves;
     //==============================================================================
     MultiIndexMoves store_;
-
-    gradient_t  gradient;
-
     mutable boost::mutex    store_mutex_;
     Hand::frames_t          minTimeLong, maxTimeLong;
     //==============================================================================
