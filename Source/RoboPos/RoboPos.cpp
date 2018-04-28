@@ -13,12 +13,12 @@ void specifyBordersByRecord(IN const Record &rec, IN OUT borders_t &borders)
         auto it = borders.find(c.muscle);
         if (it != borders.end())
         {
-            if (c.last < it->second.min_lasts)
-                it->second.min_lasts = c.last;
-            if (c.last > it->second.max_lasts)
-                it->second.max_lasts = c.last;
+            if (c.lasts < it->second.min_lasts)
+                it->second.min_lasts = c.lasts;
+            if (c.lasts > it->second.max_lasts)
+                it->second.max_lasts = c.lasts;
         }
-        else { borders[c.muscle] = { c.last, c.last }; }
+        else { borders[c.muscle] = { c.lasts, c.lasts }; }
     }
 }
 //------------------------------------------------------------------------------

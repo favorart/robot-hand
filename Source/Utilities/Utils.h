@@ -35,6 +35,9 @@ tstring format(const TCHAR *fmt, ...);
 }
 
 //-------------------------------------------------------------------------------
+tstring getLastErrorString();
+tstring getCurrentTimeString(tstring format, std::time_t *the_time);
+//-------------------------------------------------------------------------------
 class ConfirmInput
 {
     const TCHAR *_confirm;

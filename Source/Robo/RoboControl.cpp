@@ -1,4 +1,3 @@
-#include "StdAfx.h"
 #include "Robo.h"
 #include "RoboControl.h"
 
@@ -65,8 +64,8 @@ bool Robo::Control::validateMusclesTimes() const
 }
 
 //---------------------------------------------------------
-void Robo::Control::fillRandom(IN Robo::muscle_t muscles_count, IN const std::function<Robo::frames_t(Robo::muscle_t)> &muscleMaxLasts,
-                               IN Robo::frames_t lasts_min, IN unsigned moves_count_min, IN unsigned moves_count_max)
+void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const std::function<Robo::frames_t(Robo::muscle_t)> &muscleMaxLasts,
+                               Robo::frames_t lasts_min, unsigned moves_count_min, unsigned moves_count_max)
 {
     clear();
 
@@ -76,13 +75,13 @@ void Robo::Control::fillRandom(IN Robo::muscle_t muscles_count, IN const std::fu
     for (unsigned mv = 0; mv < moves_count; ++mv)
     {
         a.muscle = Utils::random(muscles_count);
-        if (!a.last)
-        { a.last = Utils::random(lasts_min, muscleMaxLasts(a.muscle)); }
+        if (!a.lasts)
+        { a.lasts = Utils::random(lasts_min, muscleMaxLasts(a.muscle)); }
         else
-        { a.last = Utils::random(lasts_min, a.last); }
+        { a.lasts = Utils::random(lasts_min, a.lasts); }
     
         append(a);
-        a.start += (a.last + 1);
+        a.start += (a.lasts + 1);
     }
 
     /* Tank */
@@ -139,7 +138,7 @@ tostream& Robo::operator<<(tostream &s, const Robo::Actuator &a)
 {
     return s << _T("{ ") << uint32_t(a.muscle)
              << _T(" ") << a.start
-             << _T(" ") << a.last
+             << _T(" ") << a.lasts
              << _T(" }");
 }
 
@@ -149,7 +148,7 @@ tistream& Robo::operator>>(tistream &s, Robo::Actuator &a)
     uint32_t m;
     s >> ConfirmInput(_T("{")) >> m
       >> /*ConfirmInput(_T(" ")) >>*/ a.start
-      >> /*ConfirmInput(_T(" ")) >>*/ a.last
+      >> /*ConfirmInput(_T(" ")) >>*/ a.lasts
       >> ConfirmInput(_T("}"));
     a.muscle = m;
     return s;

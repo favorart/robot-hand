@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+﻿
 
 int LV_CLEVEL = 1;
 //------------------------------------------------------------------------------
@@ -125,3 +125,45 @@ tstring Utils::format(const TCHAR *fmt, ...)
         va_end(args2);
     }
 }
+//-------------------------------------------------------------------------------
+/// Create a string with last error message
+tstring getLastErrorString()
+{
+    DWORD error = GetLastError();
+    if (error)
+    {
+        LPVOID lpMsgBuf;
+        DWORD bufLen = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                      // FORMAT_MESSAGE_IGNORE_INSERTS |
+                                      FORMAT_MESSAGE_FROM_SYSTEM,
+                                      NULL,
+                                      error,
+                                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                      (LPTSTR)&lpMsgBuf,
+                                      0, NULL);
+        if (bufLen)
+        {
+            LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
+            tstring result(lpMsgStr, lpMsgStr + bufLen);
+
+            LocalFree(lpMsgBuf);
+            return result;
+        }
+    }
+    return tstring{};
+}
+//-------------------------------------------------------------------------------
+tstring getCurrentTimeString(tstring format, std::time_t *the_time)
+{
+    std::time_t rawtime;
+    if (!the_time)
+    { rawtime = std::time(nullptr); }
+    else
+    { rawtime = *the_time; }
+    struct tm  *TimeInfo = std::localtime(&rawtime);
+
+    tstringstream ss;
+    ss << std::put_time(TimeInfo, format.c_str());
+    return ss.str();
+}
+//-------------------------------------------------------------------------------

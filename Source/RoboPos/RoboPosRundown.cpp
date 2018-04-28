@@ -20,7 +20,7 @@ void   LearnMoves::rundownControls(IN OUT Control &controls)
         auto it_c = std::find(controls.begin(), controls.end(), mc);
 
         if (it_o == controls.end() && it_c != controls.end())
-        { controls.append({ mo, it_c->last + 1U, lasts_min }); }
+        { controls.append({ mo, it_c->lasts + 1U, lasts_min }); }
         else if (it_o == controls.end())
         { controls.append({ mo, 0U, lasts_min }); }
 
@@ -28,7 +28,7 @@ void   LearnMoves::rundownControls(IN OUT Control &controls)
         {
             if (it_o == controls.end())
             { it_o = std::find(controls.begin(), controls.end(), mo); }
-            controls.append({ mc, it_o->last + 1U, lasts_min });
+            controls.append({ mc, it_o->lasts + 1U, lasts_min });
         }
     }
 }
@@ -42,12 +42,12 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
     auto it = controls.begin();
     if (controls_curr == 0U)
     {
-        it->last += velosity;
+        it->lasts += velosity;
         if (it->start == 0U)
         {
             auto  m_op = RoboI::muscleOpposite(it->muscle);
             auto it_op = boost::range::find(controls, m_op);
-            it_op->start = (it->last + 1U);
+            it_op->start = (it->lasts + 1U);
         }
     }
     else
@@ -56,24 +56,24 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
         // ---------------------------------
         if ((controls_curr % 2U))
         {
-            if (it->last >= (velosity_prev + velosity))
-            { it->last -= (velosity_prev + velosity); }
+            if (it->lasts >= (velosity_prev + velosity))
+            { it->lasts -= (velosity_prev + velosity); }
             else
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
                 auto it_op = boost::range::find(controls, m_op);
                 // ---------------------------------
-                it_op->last += (velosity_prev + velosity - it->last);
-                it->last = 0U;
+                it_op->lasts += (velosity_prev + velosity - it->lasts);
+                it->lasts = 0U;
                 // ---------------------------------
                 if (it_op->start == 0U)
                 {
-                    it->start = (it_op->last + 1U);
+                    it->start = (it_op->lasts + 1U);
                     it_op->start = 0U;
                 }
                 else
                 {
-                    it_op->start = (it->last + 1U);
+                    it_op->start = (it->lasts + 1U);
                     it->start = 0U;
                 }
             } // end else
@@ -82,7 +82,7 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
                 auto it_op = boost::range::find(controls, m_op);
-                it_op->start = (it->last + 1U);
+                it_op->start = (it->lasts + 1U);
             }
         }
         else
@@ -90,21 +90,21 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
             auto jt = std::prev(it);
             std::swap(it, jt);
             // ---------------------------------
-            (it)->last += velosity_prev;
-            (jt)->last += velosity;
+            (it)->lasts += velosity_prev;
+            (jt)->lasts += velosity;
             // ---------------------------------
             if (it->start == 0U)
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
                 auto it_op = boost::range::find(controls, m_op);
-                it_op->start = (it->last + 1U);
+                it_op->start = (it->lasts + 1U);
             }
             // ---------------------------------
             if (jt->start == 0U)
             {
                 auto  m_op = RoboI::muscleOpposite(jt->muscle);
                 auto jt_op = boost::range::find(controls, m_op);
-                jt_op->start = (jt->last + 1U);
+                jt_op->start = (jt->lasts + 1U);
             }
             // ---------------------------------
         } // end else
@@ -165,30 +165,30 @@ size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position)
             // ---------------------------------
             if ((controls_curr % 2U))
             {
-                if (it->last >= velosity)
-                { it->last -= velosity; }
+                if (it->lasts >= velosity)
+                { it->lasts -= velosity; }
                 else
                 {
                     auto  m_op = RoboI::muscleOpposite(it->muscle);
                     auto it_op = boost::range::find(controls, m_op);
                     // ---------------------------------
-                    it_op->last += (velosity - it->last);
-                    it->last = 0U;
+                    it_op->lasts += (velosity - it->lasts);
+                    it->lasts = 0U;
                     // ---------------------------------
                     if (it_op->start == 0U)
-                    { it->start = (it_op->last + 1U); }
+                    { it->start = (it_op->lasts + 1U); }
                     else
-                    { it_op->start = (it->last + 1U); }
+                    { it_op->start = (it->lasts + 1U); }
                 }
             }
             else
-            { it->last += velosity; }
+            { it->lasts += velosity; }
             // ---------------------------------
             if (it->start == 0U)
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
                 auto it_op = boost::range::find(controls, m_op);
-                it_op->start = (it->last + 1U);
+                it_op->start = (it->lasts + 1U);
             }
             // ---------------------------------        
             velosity_prev = velosity;
@@ -303,12 +303,12 @@ bool LearnMoves::rundownNextControl(IN OUT Control    &controls,
             // ---------------------------------
             if (last_change < 0)
             {
-                if (it->last >= velosity)
-                { it->last -= velosity; }
+                if (it->lasts >= velosity)
+                { it->lasts -= velosity; }
                 else
                 {
-                    velosity = it->last;
-                    it->last = 0U;
+                    velosity = it->lasts;
+                    it->lasts = 0U;
                 }
 
                 // {
@@ -334,17 +334,17 @@ bool LearnMoves::rundownNextControl(IN OUT Control    &controls,
                 auto it_op = boost::range::find(controls, m_op);
 
                 if (it->start < it_op->start)
-                { it_op->start = (it->last + 1U); }
+                { it_op->start = (it->lasts + 1U); }
             }
             else // last_change > 0
             {
-                it->last += velosity;
+                it->lasts += velosity;
                 // ---------------------------------
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
                 auto it_op = boost::range::find(controls, m_op);
 
                 if (it->start < it_op->start)
-                { it_op->start = (it->last + 1U); }
+                { it_op->start = (it->lasts + 1U); }
                 // ---------------------------------
             } // end else
             // ---------------------------------

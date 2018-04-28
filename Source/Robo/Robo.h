@@ -1,6 +1,4 @@
 #pragma once
-
-#include "Utils.h"
 #include "RoboControl.h"
 #include "RoboMotionLaws.h"
 
@@ -65,7 +63,8 @@ public:
     virtual void     step(IN frames_t frame, IN muscle_t muscle = MInvalid, IN frames_t last = 0) = 0;
 
     virtual void     draw(IN HDC, IN HPEN, IN HBRUSH) const = 0;
-    virtual void     drawWorkSpace(OUT Trajectory&) = 0;
+
+    virtual void     getWorkSpace(OUT Trajectory&) = 0;
 
     //----------------------------------------------------
     using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;

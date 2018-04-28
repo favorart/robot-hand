@@ -1,9 +1,5 @@
-﻿#include "StdAfx.h"
-#include "RoboMotionLaws.h"
+﻿#include "RoboMotionLaws.h"
 
-#ifndef   _MOTION_LAWS_CUSTOM_H_
-#define   _MOTION_LAWS_CUSTOM_H_
-//------------------------------------------------------------------------------
 namespace Robo {
 namespace MotionLaws {
 //------------------------------------------------------------------------------
@@ -337,5 +333,4 @@ inline JointMotionLaw getHandMLaw(IN HandMLaw type, IN boost::any param=nullptr)
 //------------------------------------------------------------------------------
 }
 }
-//------------------------------------------------------------------------------
-#endif // _MOTION_LAWS_CUSTOM_H_
+

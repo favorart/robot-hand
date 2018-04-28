@@ -1,11 +1,12 @@
-﻿#include "StdAfx.h"
-#include "WindowData.h"
+﻿#include "WindowData.h"
 #include "WindowDraw.h"
 #include "WindowDrawLetters.h"
 
 #include "RoboPos.h"
 #include "RoboMuscles.h"
 #include "RoboLearnMoves.h"
+
+#include "RoboPosApprox.h"
 
 
 using namespace Robo;
@@ -44,33 +45,6 @@ Point LogicCoords (PPOINT coord)
   return p;
 }
 //-------------------------------------------------------------------------------
-/* Create a string with last error message */
-tstring getLastErrorString()
-{
-  DWORD error = GetLastError();
-  if (error)
-  {
-    LPVOID lpMsgBuf;
-    DWORD bufLen = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                                  // FORMAT_MESSAGE_IGNORE_INSERTS |
-                                  FORMAT_MESSAGE_FROM_SYSTEM,
-                                  NULL,
-                                  error,
-                                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                  (LPTSTR)&lpMsgBuf,
-                                  0, NULL);
-    if (bufLen)
-    {
-      LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
-      tstring result(lpMsgStr, lpMsgStr + bufLen);
-      
-      LocalFree(lpMsgBuf);
-      return result;
-    }
-  }
-  return tstring{};
-}
-//-------------------------------------------------------------------------------
 tstring getJointsHelpString(const Robo::RoboI& robo)
 {
     tstringstream ss;
@@ -97,7 +71,6 @@ tstring getJointsHelpString(const Robo::RoboI& robo)
     }
     return ss.str();
 }
-
 //-------------------------------------------------------------------------------
 void onWindowCreate (HWND hWnd, MyWindowData &wd)
 {
@@ -534,7 +507,30 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     case 'i':
     {
         //========================================
-        wd.pStore->near_passed_build_index();
+        //wd.pStore->near_passed_build_index();
+
+        WorkerThreadRunTask(wd, _T("\n *** random test ***  "), [](Store &store, muscle_t musclesCount) {
+            tcout << _T("approx") << std::endl;
+            Approx approx(store.size(), musclesCount);
+            approx.constructXY(store);
+            if (!approx.solveQ())
+                return;
+            tcout << _T("writing") << std::endl;
+            {
+                tfstream ofs("approx.txt", std::ios_base::out);
+                //boost::archive::text_oarchive toa(ofs);
+                //toa & approx;
+                for (auto & rec : store)
+                {
+                    Point p = approx.predict(rec.controls);
+                    ofs << rec.hit << ' ' << p << std::endl;
+                }
+            }
+            Actuator a[] = { { 0, 0, 100 },{ 3, 0, 59 } };
+            Control c(a, 2);
+            Point p = approx.predict(c);
+            tcout << c << _T(" ") << p;
+        }, std::ref(*wd.pStore), wd.pRobo->musclesCount());
         //========================================
         break;
     }
@@ -674,7 +670,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //========================================
         if (!wd.canvas.workingSpaceTraj.size())
-            wd.pRobo->drawWorkSpace(wd.canvas.workingSpaceTraj);
+            wd.pRobo->getWorkSpace(wd.canvas.workingSpaceTraj);
         wd.canvas.workingSpaceShow = !wd.canvas.workingSpaceShow;
         //========================================
         wd.canvas.hStaticBitmapChanged = true;
@@ -945,8 +941,7 @@ void onMouseWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
     // RECT zoomedRect = zoomArea(viewArea, zCenter, zFactor);
     // drawScene(zoomedRect);
 }
-
-
+//-------------------------------------------------------------------------------
 tstring   OpenFileDialog (HWND hWnd)
 {
   /* common dialog box structure */
@@ -1017,19 +1012,5 @@ tstring   getWindowTitleString (HWND hWnd)
   GetWindowText(hWnd, buffer.data(), len);
   // SendMessage(hWnd, WM_GETTEXT, (WPARAM) len, (LPARAM) buffer.data ());
   return tstring(buffer.begin(), buffer.end() - 1);
-}
-//-------------------------------------------------------------------------------
-tstring   getCurrentTimeString (tstring format, std::time_t *the_time)
-{
-  std::time_t rawtime;
-  if (!the_time)
-  { rawtime = std::time(nullptr); }
-  else
-  { rawtime = *the_time; }
-  struct tm  *TimeInfo = std::localtime(&rawtime);
-  
-  tstringstream ss;
-  ss << std::put_time(TimeInfo, format.c_str());
-  return ss.str();
 }
 //-------------------------------------------------------------------------------

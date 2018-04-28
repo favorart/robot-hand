@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+﻿#pragma once
 
 #ifndef  _MOTION_LAWS_H_
 #define  _MOTION_LAWS_H_

@@ -1,5 +1,4 @@
-﻿#include "StdAfx.h"
-#include "RoboMovesStore.h"
+﻿#include "RoboMovesStore.h"
 
 //------------------------------------------------------------------------------
 size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double side,
@@ -54,6 +53,7 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
 // --------------------------------------------------------------
 void RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)> getPen) const
 {
+#ifdef MYWINDOW
     try
     {
         unsigned i = 0;
@@ -72,6 +72,7 @@ void RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)> 
     {
         CINFO("WorkingThread interrupted");
     }
+#endif // MY_WINDOW
 }
 
 //------------------------------------------------------------------------------

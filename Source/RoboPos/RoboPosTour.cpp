@@ -16,10 +16,10 @@ void TourWorkSpace::appendBreakings(IN joint_t joint, IN const Actuator &a)
     if (_b_braking)
     {
         // добавляем торможения, если исчерпали изменения длительности
-        if (_breakings_controls[joint].muscle != MInvalid && _breakings_controls[joint].last > 0)
+        if (_breakings_controls[joint].muscle != MInvalid && _breakings_controls[joint].lasts > 0)
         {
             // увеличиваем длительность
-            _breakings_controls[joint].last += _lasts_step_braking_incr;
+            _breakings_controls[joint].lasts += _lasts_step_braking_incr;
         }
         else
         {
@@ -28,7 +28,7 @@ void TourWorkSpace::appendBreakings(IN joint_t joint, IN const Actuator &a)
             // добавляем торможения
             auto opposite_muscle = RoboI::muscleOpposite(a.muscle);
             _breakings_controls[joint] = { opposite_muscle,
-                                          /*start=*/(a.start + a.last + 1),
+                                          /*start=*/(a.start + a.lasts + 1),
                                           _lasts_step_braking_init };
             _breakings_controls_actives++;
         }
@@ -63,8 +63,8 @@ void TourWorkSpace::removeBreakings(IN joint_t joint)
 {
     if (_b_braking)
     {
-        if (_breakings_controls[joint].last > _lasts_step_braking_incr)
-            _breakings_controls[joint].last -= _lasts_step_braking_incr;
+        if (_breakings_controls[joint].lasts > _lasts_step_braking_incr)
+            _breakings_controls[joint].lasts -= _lasts_step_braking_incr;
         else
         {
             _breakings_controls[joint] = { MInvalid, 0, 0 };
@@ -108,8 +108,8 @@ void TourWorkSpace::exactsBreakings(IN joint_t joint, IN const Control &controls
                       "Opposite(controls[ji].muscle)=" <<
                       RoboI::muscleOpposite(it->muscle));
             // просто уточняем начало торможений, если что-то изменилось
-            if (_breakings_controls[ji].muscle != MInvalid && _breakings_controls[ji].last > 0)
-                _breakings_controls[ji].start = (it->start + it->last + 1);
+            if (_breakings_controls[ji].muscle != MInvalid && _breakings_controls[ji].lasts > 0)
+                _breakings_controls[ji].start = (it->start + it->lasts + 1);
         }
     }
 }
@@ -118,7 +118,7 @@ void TourWorkSpace::exactsBreakings(IN joint_t joint, IN const Control &controls
 bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &robo_pos_high)
 {
     // стартруем разными сочленениями последовательно
-    const frames_t start_i = controls.size() ? (controls[-1].last + controls[-1].start) : 0;
+    const frames_t start_i = controls.size() ? (controls[-1].lasts + controls[-1].start) : 0;
     // стартруем разными сочленениями одновременно
     //const frames_t start_i = 0;
     //------------------------------------------
@@ -168,7 +168,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
             frames_t last_i = 0;
             for (last_i = board.min_lasts; last_i < lasts_i_max && (target_contain || !was_on_target); last_i += lasts_step)
             {
-                control_i.last = last_i;
+                control_i.lasts = last_i;
                 //------------------------------------------
                 if ((last_i > board.max_lasts) && (!_b_target || !target_contain ||
                     (prev_pos.x > _target.max().x) || (prev_pos.y < _target.min().y)))
@@ -258,7 +258,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
                 else if (d < _step_distance)
                 {
                     if (_b_braking && _breakings_controls_actives > 0 && 
-                        _breakings_controls[joint].last > 0 /* !!! */)
+                        _breakings_controls[joint].lasts > 0 /* !!! */)
                     {
                         // сначала по возможности отключаем торможения
                         removeBreakings(joint);
@@ -287,7 +287,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
                 //------------------------------------------
                 for (last_i = board.min_lasts; (last_i - lasts_step) < lasts_i_max && (target_contain); last_i -= lasts_step)
                 {
-                    control_i.last = last_i;
+                    control_i.lasts = last_i;
                     //------------------------------------------
                     if (0U <= joint && (joint + 1U) < _max_nested)
                     {

@@ -55,10 +55,10 @@ Point RoboPos::DirectionPredictor::predict(IN Robo::Control controls)
     for (auto &c : controls)
     {
         const auto &d = _directions[c.muscle];
-        if (c.last < d.shifts.size())
+        if (c.lasts < d.shifts.size())
         {
-            pred_end.x += d.shifts[c.last].x;
-            pred_end.y += d.shifts[c.last].y;
+            pred_end.x += d.shifts[c.lasts].x;
+            pred_end.y += d.shifts[c.lasts].y;
         }
     }
     return pred_end;

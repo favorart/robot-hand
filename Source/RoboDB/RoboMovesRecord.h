@@ -1,11 +1,6 @@
 ﻿#pragma once
-
-#include "StdAfx.h"
 #include "Robo.h"
 
-#ifndef  _ROBO_MOVES_RECORD_H_
-#define  _ROBO_MOVES_RECORD_H_
-//------------------------------------------------------------------------------
 namespace RoboMoves
 {
 
@@ -121,4 +116,3 @@ struct RecordHasher
 //------------------------------------------------------------------------------
 BOOST_CLASS_VERSION (RoboMoves::Record, 2)
 //------------------------------------------------------------------------------
-#endif // _RECORD_H_

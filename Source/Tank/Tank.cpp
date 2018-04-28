@@ -1,6 +1,8 @@
-#include "StdAfx.h"
+
+#ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowDraw.h"
+#endif // MY_WINDOW
 #include "RoboMuscles.h"
 #include "RoboEdges.h"
 #include "Tank.h"
@@ -478,7 +480,7 @@ frames_t Tank::move(IN const Control &controls, OUT Trajectory &visited)
                 ++frame;
             }
             /* start movement */
-            step(frame, c.muscle, c.last);
+            step(frame, c.muscle, c.lasts);
         }
 
         while (!moveEnd())
@@ -496,6 +498,7 @@ frames_t Tank::move(IN const Control &controls, OUT Trajectory &visited)
 //--------------------------------------------------------------------------------
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 {
+#ifdef MY_WINDOW
     const Point &L = status.curPos[Joint::LTrack];
     const Point &R = status.curPos[Joint::RTrack];
     
@@ -523,10 +526,11 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
         drawCircle(hdc, center_, r1_);
         drawCircle(hdc, center_, r2_);
     }
-#endif
+#endif // TANK_DEBUG
+#endif // MY_WINDOW
 }
 //--------------------------------------------------------------------------------
-void Tank::drawWorkSpace(OUT Trajectory &workSpace)
+void Tank::getWorkSpace(OUT Trajectory &workSpace)
 {
     reset();
     /// TODO: drawWorkSpace BUG

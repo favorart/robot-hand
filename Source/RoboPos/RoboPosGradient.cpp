@@ -28,13 +28,13 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double d_d
         auto it_mc_l = br::find(lower_controls, mc);
         auto it_mc_g = br::find(upper_controls, mc);
         
-        int last_mo_i = (it_mo_i != inits_controls.end()) ? (it_mo_i->last) : 0U;
-        int last_mo_l = (it_mo_l != lower_controls.end()) ? (it_mo_l->last - last_mo_i) : 0U;
-        int last_mo_g = (it_mo_g != upper_controls.end()) ? (it_mo_g->last - last_mo_i) : 0U;
+        int last_mo_i = (it_mo_i != inits_controls.end()) ? (it_mo_i->lasts) : 0U;
+        int last_mo_l = (it_mo_l != lower_controls.end()) ? (it_mo_l->lasts - last_mo_i) : 0U;
+        int last_mo_g = (it_mo_g != upper_controls.end()) ? (it_mo_g->lasts - last_mo_i) : 0U;
         
-        int last_mc_i = (it_mc_i != inits_controls.end()) ? (it_mc_i->last) : 0U;
-        int last_mc_l = (it_mc_l != lower_controls.end()) ? (it_mc_l->last - last_mc_i) : 0U;
-        int last_mc_g = (it_mc_g != upper_controls.end()) ? (it_mc_g->last - last_mc_i) : 0U;
+        int last_mc_i = (it_mc_i != inits_controls.end()) ? (it_mc_i->lasts) : 0U;
+        int last_mc_l = (it_mc_l != lower_controls.end()) ? (it_mc_l->lasts - last_mc_i) : 0U;
+        int last_mc_g = (it_mc_g != upper_controls.end()) ? (it_mc_g->lasts - last_mc_i) : 0U;
         // -----------------------------------------------
         const auto int_normalizer = int(d_d / _precision); /* velosity */ // 400;
         

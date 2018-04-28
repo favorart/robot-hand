@@ -1,6 +1,7 @@
-﻿#include "StdAfx.h"
+﻿#ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowDraw.h"
+#endif // MY_WINDOW
 #include "RoboMuscles.h"
 #include "RoboEdges.h"
 #include "Hand.h"
@@ -407,7 +408,7 @@ frames_t  Hand::move(IN const Control& controls, OUT Trajectory& visited)
         }
         else if (frame == c.start)
         {
-            step(frame, c.muscle, c.last);
+            step(frame, c.muscle, c.lasts);
             /* (no ++frame) могут стартовать одновременно
              * несколько мускулов, разной продолжительности
              */
@@ -484,6 +485,7 @@ void  Hand::setJoints(IN const JointsOpenPercent &percents)
 //--------------------------------------------------------------------------------
 void  Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 {
+#ifdef MY_WINDOW
     HPEN   hPen_old = (HPEN)SelectObject(hdc, hPen);
     HBRUSH hBrush_old = (HBRUSH)SelectObject(hdc, hBrush);
     //-----------------------------------------------------------------
@@ -613,9 +615,10 @@ void  Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     // отменяем ручку
     SelectObject(hdc, hPen_old);
     SelectObject(hdc, hBrush_old);
+#endif // MY_WINDOW
 }
 //--------------------------------------------------------------------------------
-void  Hand::drawWorkSpace(OUT Trajectory &workSpace)
+void  Hand::getWorkSpace(OUT Trajectory &workSpace)
 {
     for (joint_t joint = 0; joint < jointsCount(); ++joint)
         setJoints({ { joint , 0. } });
@@ -652,7 +655,7 @@ void  Hand::controlsValidate(const Control &controls) const
     /* Исключить незадействованные двигатели */
     auto ctrlInvalid = [muscles = musclesCount()](const auto &a) {
         //CINFO(a);
-        return (a.last == 0) || (a.muscle >= muscles);
+        return (a.lasts == 0) || (a.muscle >= muscles);
     };
     if (ba::any_of(controls, ctrlInvalid))
         throw std::logic_error("Controls have UNUSED or INVALID muscles!");

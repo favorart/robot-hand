@@ -9,8 +9,6 @@ constexpr int LV_CWARN  = 3;
 constexpr int LV_CERROR = 4;
 constexpr int LV_CALERT = 5;
 
-tstring  getLastErrorString();
-
 #define _CVERBOSE_(LV,message)       { if (LV_CLEVEL <= LV)                         \
                                        {                                            \
                                            fs::path p(__FILE__);                    \

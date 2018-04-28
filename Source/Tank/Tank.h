@@ -1,6 +1,5 @@
 #pragma once
 
-#include "StdAfx.h"
 #include "Robo.h"
 #include "RoboEdges.h"
 
@@ -157,8 +156,10 @@ private:
     
 public:
 
-    void      drawWorkSpace(OUT Trajectory &workSpace);
+    void      getWorkSpace(OUT Trajectory &workSpace);
+
     void      draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
+
     void      step(IN frames_t frames, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
     frames_t  move(IN const Control &control, OUT Trajectory &visited);
 

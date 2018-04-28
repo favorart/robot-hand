@@ -1,16 +1,14 @@
-﻿#include "StdAfx.h"
+﻿#pragma once
 
-#include <functional>
+// https://github.com/jlblancoc/nanoflann
+#include "nanoflann.hpp"
 
-#ifndef  _ROBO_MOVES_STORE_H_
-#define  _ROBO_MOVES_STORE_H_
-//------------------------------------------------------------------------------
 #include "RoboMovesRecord.h"
+#ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowDraw.h"
+#endif // MY_WINDOW
 
-#include "nanoflann.hpp"
-//------------------------------------------------------------------------------
 namespace RoboMoves
 {
   struct ByP {};
@@ -69,7 +67,7 @@ namespace RoboMoves
       {
         boost::hash_combine(seed, boost::hash_value (c.muscle));
         boost::hash_combine(seed, boost::hash_value (c.start));
-        boost::hash_combine(seed, boost::hash_value (c.last));
+        boost::hash_combine(seed, boost::hash_value (c.lasts));
       }
       return seed;
     }
@@ -411,4 +409,3 @@ namespace RoboMoves
 //------------------------------------------------------------------------------
 BOOST_CLASS_VERSION(RoboMoves::Store, 2)
 //------------------------------------------------------------------------------
-#endif // _ROBO_MOVES_STORE_H_

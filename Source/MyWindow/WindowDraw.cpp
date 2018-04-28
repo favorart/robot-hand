@@ -1,5 +1,4 @@
-﻿#include "StdAfx.h"
-#include "WindowDraw.h"
+﻿#include "WindowDraw.h"
 
 //------------------------------------------------------------------------------
 void  drawDecardsCoordinates(HDC hdc)

@@ -1,6 +1,4 @@
-﻿#include "StdAfx.h"
-#include "RoboMovesStore.h"
-
+﻿#include "RoboMovesStore.h"
 
 using namespace Robo;
 using namespace RoboMoves;
@@ -46,7 +44,7 @@ double  RoboMoves::Record::eleganceMove() const
     /* Суммарное время работы двигателей */
     double sum_time_muscles = 0.;
     for (size_t i = 0U; i < control_.size(); ++i)
-    { sum_time_muscles += control_[i].last; }
+    { sum_time_muscles += control_[i].lasts; }
 
     /* Количество движений */
     double controls_count_ratio = 1. / n_controls;
@@ -112,10 +110,10 @@ double  RoboMoves::Record::ratioTrajectoryDivirgence() const
 Robo::frames_t RoboMoves::Record::longestMusclesControl() const
 {
     auto cmpAc = [](const Actuator &a, const Actuator &b) {
-            return ((a.start + a.last) < (b.start + b.last));
+            return ((a.start + a.lasts) < (b.start + b.lasts));
         };
     const Actuator &longestControl = *boost::max_element(control_, cmpAc);
-    return  (longestControl.start + longestControl.last);
+    return  (longestControl.start + longestControl.lasts);
 }
 //---------------------------------------------------------
 double RoboMoves::Record::ratioUsedMusclesCount() const

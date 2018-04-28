@@ -87,13 +87,13 @@ Point RoboPos::MainDirections::predict(const Robo::Control &controls)
         Point frame = { 0., 0. };
         for (auto &c : controls)
         {
-            if (c.start >= time && (c.start + c.last) <= time)
+            if (c.start >= time && (c.start + c.lasts) <= time)
             {
                 const auto lasts = (time - c.start);
                 const Direction &d = _directions[c.muscle];
                 frame += (d.shifts[lasts] - (lasts ? d.shifts[lasts-1] : d.shifts[0]));
             }
-            else if ((c.start + c.last) > time)
+            else if ((c.start + c.lasts) > time)
                 reached++;
         }
         res += frame;

@@ -1,5 +1,4 @@
-﻿#include "StdAfx.h"
-#include "WindowData.h"
+﻿#include "WindowData.h"
 #include "WindowDraw.h"
 #include "WindowDrawLetters.h"
 
@@ -31,7 +30,7 @@ void  MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const boos
 
             for (size_t i = 0; i < controls_.size() && controls_[i].start == frames_; ++i)
             {
-                robo.step(frames_, controls_[i].muscle, controls_[i].last);
+                robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
                 control_cur_ = i;
             }
             ++frames_;
@@ -60,7 +59,7 @@ void  MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const boos
             // ============
             for (size_t i = control_cur_; (i < controls_.size()) && (controls_[i].start == frames_); ++i)
             {
-                robo.step(frames_, controls_[i].muscle, controls_[i].last);
+                robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
                 control_cur_ = i;
             }
             // ============

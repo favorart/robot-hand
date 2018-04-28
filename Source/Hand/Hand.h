@@ -1,12 +1,8 @@
 ﻿#pragma once
 
-#include "StdAfx.h"
 #include "Robo.h"
 
 
-#ifndef  _NEW_HAND_H_
-#define  _NEW_HAND_H_
-//------------------------------------------------------------------------------
 namespace Robo {
 class EnvEdgesHand;
 namespace NewHand {
@@ -180,7 +176,7 @@ private:
         
 public:
     //----------------------------------------------------
-    void      drawWorkSpace(OUT Trajectory&);
+    void      getWorkSpace(OUT Trajectory&);
 
     void      draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
     void      step(IN frames_t frame, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
@@ -217,5 +213,3 @@ public:
 
 }
 }
-//------------------------------------------------------------------------------
-#endif // _NEW_HAND_H_

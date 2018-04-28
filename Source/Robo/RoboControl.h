@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 
 namespace Robo
 {
@@ -15,11 +14,11 @@ struct Actuator
 {
     muscle_t  muscle = MInvalid;
     frames_t  start = 0;
-    frames_t  last = 0;
+    frames_t  lasts = 0;
     //----------------------------------------------------
     Actuator() = default;
-    Actuator(muscle_t muscle, frames_t start, frames_t last) :
-        muscle(muscle), start(start), last(last) {}
+    Actuator(muscle_t muscle, frames_t start, frames_t lasts) :
+        muscle(muscle), start(start), lasts(lasts) {}
     Actuator(Actuator&&) = default;
     Actuator(const Actuator&) = default;
     Actuator& operator=(const Actuator&) = default;
@@ -27,7 +26,7 @@ struct Actuator
     bool operator<  (const Actuator &a) const
     { return (start < a.start); }
     bool operator== (const Actuator &a) const
-    { return (muscle == a.muscle && start == a.start && last == a.last); }
+    { return (muscle == a.muscle && start == a.start && lasts == a.lasts); }
     bool operator!= (const Actuator &a) const
     { return !(*this == a); }
     bool operator== (const muscle_t  m) const
@@ -40,7 +39,7 @@ struct Actuator
     //----------------------------------------------------
     template<class Archive>
     void serialize(Archive &ar, unsigned version)
-    { ar & muscle & start & last; }
+    { ar & muscle & start & lasts; }
 };
 //-------------------------------------------------------------------------------
 class  Control
@@ -113,11 +112,11 @@ public:
     bool validateMusclesTimes() const;
 
     //----------------------------------------------------
-    void  Control::fillRandom(IN muscle_t muscles_count,
-                              IN const std::function<frames_t(muscle_t)> &muscleMaxLasts,
-                              IN frames_t lasts_min = 50,
-                              IN unsigned moves_count_min = 1,
-                              IN unsigned moves_count_max = 3);
+    void fillRandom(muscle_t muscles_count,
+                   const std::function<frames_t(muscle_t)> &muscleMaxLasts,
+                   frames_t lasts_min = 50,
+                   unsigned moves_count_min = 1,
+                   unsigned moves_count_max = 3);
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);
@@ -129,7 +128,7 @@ inline Control operator+(const Control &cl, const Control &cr)
 { 
     Control c = cl;
     for (auto &a : cr)
-        if (a.muscle != MInvalid && a.last != 0)
+        if (a.muscle != MInvalid && a.lasts != 0)
             c.append(a);
         else CWARN("muscle==MInvalid or last==0");
     return c;
@@ -137,7 +136,7 @@ inline Control operator+(const Control &cl, const Control &cr)
 inline Control operator+(const Control &cl, const Actuator &a)
 {
     Control c = cl;
-    if (a.muscle != MInvalid && a.last != 0)
+    if (a.muscle != MInvalid && a.lasts != 0)
         c.append(a);
     else CWARN("muscle==MInvalid or last==0");
     return c;
@@ -146,7 +145,7 @@ inline Control operator+(const Control &cl, const std::vector<Actuator> &v)
 {
     Control c = cl;
     for (auto &a : v)
-        if (a.muscle != MInvalid && a.last != 0)
+        if (a.muscle != MInvalid && a.lasts != 0)
             c.append(a);
         //else CWARN("muscle==MInvalid or last==0");
     return c;

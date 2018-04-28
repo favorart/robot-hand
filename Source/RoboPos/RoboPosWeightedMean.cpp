@@ -26,7 +26,7 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
 
             /* взвешенное НЕСМЕЩЁННОЕ cреднее арифметическое */
             double w = boost_distance(aim, pRec->hit) / sum_range_distances;
-            frames_t last = frames_t(c.last * w);
+            frames_t last = frames_t(c.lasts * w);
             if (it_muscle == controls.end())
             {
                 last = last ? last : 1; // ???
@@ -34,7 +34,7 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
             }
             else
             {
-                it_muscle->last += last;
+                it_muscle->lasts += last;
                 // ??? it->start += c.start * weight;
             }
         } // end for-for
