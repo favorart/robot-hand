@@ -512,9 +512,6 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         WorkerThreadRunTask(wd, _T("\n *** random test ***  "), [](Store &store, muscle_t musclesCount) {
             tcout << _T("approx") << std::endl;
             Approx approx(store.size(), musclesCount);
-            approx.constructXY(store);
-            if (!approx.solveQ())
-                return;
             tcout << _T("writing") << std::endl;
             {
                 tfstream ofs("approx.txt", std::ios_base::out);

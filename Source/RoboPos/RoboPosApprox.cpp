@@ -30,7 +30,11 @@ VectorXd RoboPos::Approx::convertRow(const Robo::Control &controls) const
     return res;
 }
 
-double RoboPos::Approx::noize(int i) const { return 0.5; }
+double RoboPos::Approx::noize(int i) const { return 0.000001; }
+
+
+
+double RoboPos::Approx::sizing() const { return 15.; }
 
 void RoboPos::Approx::constructXY(const RoboMoves::Store &store)
 {
@@ -46,124 +50,97 @@ void RoboPos::Approx::constructXY(const RoboMoves::Store &store)
 }
 
 
-double fuck(double c)
+Eigen::MatrixXd RoboPos::Approx::calcKFunction(Eigen::MatrixXd &X, bool predict) const
 {
-    return double(std::log(c) - 50);
-}
+    VectorXd vK = X.colwise().squaredNorm();
+    //std::cout << "vK=" << std::endl << vK << std::endl;
+    //std::cout << "_vK=" << std::endl << _vK << std::endl;
 
+    auto vK_rows_train = _vK.rows();
+    auto vK_rows_prdct = vK.size();
+
+    MatrixXd mK(vK_rows_prdct, vK_rows_train);
+    for (auto i : boost::irange(0, vK_rows_prdct))
+        for (auto j : boost::irange(0, vK_rows_train))
+            mK(i, j) = _vK[j] + vK[i];
+    //std::cout << "mK=" << mK.rows() << ", " << mK.cols() << std::endl; // << mK << std::endl;
+
+    int md_sz = X.cols();
+    auto mD = MatrixXd{ mK - 2. * X.transpose() * _nmX };
+    //std::cout << "mD=" << std::endl << mD << std::endl;
+    auto mI = MatrixXd{ mD.unaryExpr([](double c) { return (c <= 0); }) };
+    //std::cout << "mI=" << std::endl << mI << std::endl;
+
+    for (auto i : boost::irange(0, md_sz))
+        for (auto j : boost::irange(0, md_sz))
+            if (mI(j, i))
+                mD(j, i) = 1.;
+    //std::cout << "mD=" << std::endl << mD << std::endl;
+
+    mD = mD.unaryExpr([t= sizing()](double c) { return c * (std::log(c) - t); });
+
+    for (auto i : boost::irange(0, md_sz))
+        for (auto j : boost::irange(0, md_sz))
+            if (i == j)
+                mD(i, i) = noize();
+            else if (mI(j, i))
+                mD(j, i) = 0.;
+    //std::cout << "mD=" << std::endl << mD << std::endl;
+    return mD;
+}
 
 void RoboPos::Approx::constructXY()
 {
-    _vNorm = (_mX.rowwise().maxCoeff() - _mX.rowwise().minCoeff()) * sqrt(double(_mX.cols()));
+    if (!_mX.rows() || !_mX.cols() || !_mY.rows() || !_mY.cols())
+        throw std::runtime_error{ "Approx does not applied train data to construct" };
+
+    _vNorm = (_mX.colwise().maxCoeff() - _mX.colwise().minCoeff()) * sqrt(double(_mX.rows()));
     _vNorm = _vNorm.unaryExpr([](double c) { return (c == 0) ? 1. : 1. / c; });
     //std::cout << "vNorm=" << std::endl << _vNorm << std::endl;
 
-    _mX = _vNorm.asDiagonal() * _mX;
-    //std::cout << "mX=" << std::endl << _mX << std::endl;
+    _nmX = _vNorm.asDiagonal() * _mX.transpose();
+    //std::cout << "nmX=" << nmX.rows() << ", " << nmX.cols() << std::endl << nmX << std::endl;
+    _vK = _nmX.colwise().squaredNorm();
+    //std::cout << "_vK=" << _vK.rows() << ", " << _vK.cols() << std::endl << _vK << std::endl;
 
-    _mk = _mX.colwise().squaredNorm();
-    //std::cout << "_mk=" << std::endl << _mk << std::endl;
+    MatrixXd mD = calcKFunction(_nmX, false);
 
-    MatrixXd mk(_mk.rows(), _mk.rows());
-    for (auto i : boost::irange(0, _mk.rows()))
-        for (auto j : boost::irange(0, _mk.rows()))
-            mk(i, j) = _mk[i] + _mk[j];
-    std::cout << "_mk=" << std::endl << _mk << std::endl;
+    MatrixXd mA(mD.rows() + 1, mD.cols() + 1);
+    mA << mD, MatrixXd::Ones(mD.rows(), 1), MatrixXd::Ones(1, mD.cols() + 1);
+    mA(mD.rows(), mD.cols()) = 0;
+    //std::cout << "mA=" << mA.rows() << ", " << mA.cols() << std::endl;// << mA << std::endl;
 
-    auto md = MatrixXd{ mk - 2. * _mX.transpose() * _mX };
-    //std::cout << "md=" << std::endl << md << std::endl;
-
-    auto mt = MatrixXd{ md.unaryExpr([](double c) { return (c <= 0); }) };
-    //std::cout << "mt=" << std::endl << mt << std::endl;
-
-    for (auto i : boost::irange(0, md.cols()))
-        for (auto j : boost::irange(0, md.rows()))
-            if (mt(j, i))
-                md(j,i) = 1.;
-    //std::cout << "md=" << std::endl << md << std::endl;
-
-    md = md.unaryExpr([t=_t](double c) { return c * (std::log(c) - t); });
-
-    for (auto i : boost::irange(0, md.cols()))
-        for (auto j : boost::irange(0, md.rows()))
-            if (i == j)
-                md(i, i) = noize();
-            else if (mt(j, i))
-                md(j, i) = 0.;
-    //std::cout << "md=" << std::endl << md << std::endl;
-
-    MatrixXd mA(md.rows() + 1, md.cols() + 1);
-    mA << md, MatrixXd::Ones(md.rows(), 1),
-          MatrixXd::Ones(1, md.cols() + 1);
-    mA(md.rows(), md.cols()) = 0;
-    //std::cout << "mA=" << std::endl << mA << std::endl;
-
-    //ob = np.linalg.inv(md)
-    //mY = np.vstack(( rez.transpose(), np.zeros((1,rez.shape[0])) ))
-    //mQ = np.linalg.solve(md, mY)
-
-    MatrixXd mY(_mY.cols() + 1, _mY.rows());
-    mY << _mY.transpose(), MatrixXd::Zero(1, _mY.rows());
-
-    //std::cout << "mY= " << std::endl << mY << std::endl;
+    MatrixXd mY(_mY.rows() + 1, _mY.cols());
+    mY << _mY, MatrixXd::Ones(1, _mY.cols());
+    //std::cout << "mY= " << mY.rows() << ", " << mY.cols() << std::endl;// << _mY << std::endl;
     _mQ = mA.colPivHouseholderQr().solve(mY);
-    //std::cout << "mQ= " << std::endl << _mQ << std::endl;
+    //std::cout << "mQ= " << _mQ.rows() << ", " << _mQ.cols() << std::endl;// << _mQ << std::endl;
     _constructed = true;
 }
 
 Eigen::MatrixXd RoboPos::Approx::predict(Eigen::MatrixXd &X) const
 {
-    std::cout << "X=" << std::endl << X << std::endl;
-    auto tx = _vNorm.asDiagonal() * X;
-    std::cout << "tx=" << std::endl << tx << std::endl;
+    if (!_constructed)
+        throw std::runtime_error{ "Approx does not constructed train data to predict"};
+    if (X.cols() != _max_controls_count * Approx::control_size)
+        throw std::runtime_error{ "Invalid predict data" };
 
-    auto this_mk = tx.colwise().squaredNorm();
-    std::cout << "this_mk=" << std::endl << this_mk << std::endl;
-    std::cout << "_mk=" << std::endl << _mk << std::endl;
+    MatrixXd nmX = _vNorm.asDiagonal() * X.transpose();
+    MatrixXd mD = calcKFunction(nmX, true);
 
-    auto n = std::max(this_mk.rows(), this_mk.cols());
-    MatrixXd mk(_mk.rows(), n);
-    for (auto i : boost::irange(0, _mk.rows()))
-        for (auto j : boost::irange(0, n))
-            mk(i, j) = _mk[i] + this_mk[j];
-    std::cout << "mk=" << std::endl << mk << std::endl;
-    
-    auto md = MatrixXd{ mk - 2. * tx.transpose() * tx };
-    std::cout << "md=" << std::endl << md << std::endl;
-
-    auto mt = MatrixXd{ md.unaryExpr([](double c) { return (c <= 0); }) };
-    std::cout << "mt=" << std::endl << mt << std::endl;
-
-    for (auto i : boost::irange(0, md.cols()))
-        for (auto j : boost::irange(0, md.rows()))
-            if (mt(j, i))
-                md(j, i) = 1.;
-    std::cout << "md=" << std::endl << md << std::endl;
-
-    md = md.unaryExpr([t = _t](double c) { return c * (std::log(c) - t); });
-
-    for (auto i : boost::irange(0, md.cols()))
-        for (auto j : boost::irange(0, md.rows()))
-            if (i == j)
-                md(i, i) = noize();
-            else if (mt(j, i))
-                md(j, i) = 0.;
-    std::cout << "md=" << std::endl << md << std::endl;
-
-    MatrixXd mA(md.rows(), md.cols() + 1);
-    mA << md, MatrixXd::Ones(md.rows(), 1);
-
+    MatrixXd mA(mD.rows(), mD.cols() + 1);
+    mA << mD, MatrixXd::Ones(mD.rows(), 1);
     mA *= _mQ;
-    mA.transposeInPlace();
-
-    std::cout << "var= " << std::endl << mA << std::endl;
+    //std::cout << "mA= " << mA.rows() << ", " << mA.cols() << std::endl << mA << std::endl;
     return mA;
 }
 
 Point RoboPos::Approx::predict(Eigen::VectorXd &v) const
 {
+    MatrixXd mX = v;
+    MatrixXd mA = predict(mX);
     //return { y_function(x, _mQ.col(0)), y_function(x,  _mQ.col(1)) };
-    return Point{};
+    return Point{ mA(0,0), mA(0,1) };
 }
 
 Point RoboPos::Approx::predict(const Robo::Control &controls) const
@@ -179,38 +156,8 @@ bool RoboPos::Approx::clarify(const Robo::Control &controls, Point hit)
     return clarify(x, y);
 }
 
-bool RoboPos::Approx::clarify(const Eigen::VectorXd &x, const Eigen::VectorXd &y)
+bool RoboPos::Approx::clarify(const Eigen::VectorXd &x, const Eigen::Vector2d &y)
 {
-    /// ???
+    /// ??? https://www.encyclopediaofmath.org/index.php/Sequential_approximation
     return false;
 }
-
-bool RoboPos::Approx::solveQ()
-{
-    if (!_constructed)
-    {
-        CWARN("solveQ() of non-constructed Approx");
-        return false;
-    }
-
-    try
-    {
-        MatrixXd mA(_mX.rows(), _mX.rows());
-        
-        for (auto i : boost::irange(0, _mX.rows()))
-            for (auto j : boost::irange(0, _mX.rows()))
-                mA.row(i)[j] = (i == j) ? /* K_function(_mX.row(i) - _mX.row(j)) + */ noize() :
-                                             K_function(_mX.row(i) - _mX.row(j));
-        
-        _mQ.col(0) = mA.colPivHouseholderQr().solve(_mY.col(0));
-        _mQ.col(1) = mA.colPivHouseholderQr().solve(_mY.col(1));
-        return true;
-    }
-    catch (const std::exception& e)
-    {
-        CERROR(e.what());
-        _mQ.setZero();
-        return false;
-    }
-}
-
