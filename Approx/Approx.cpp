@@ -220,17 +220,38 @@ int main()
            0,    0,     90,    3,    0, 112, // [0,    0,     94,    3,    0, 112],    // [-9.683,    -3.534]
            1,    0,    249,    3,    0, 378, // [1,    0,    247,    3,    0, 378],    // [ 7.378,     4.418]
            0,    0,    473,    3,    0, 549; // [0,    0,    473,    3,    0, 549],    // [ 4.156,    -1.342]
-
+    
     try
     {
         Approx approx(X, Y);
 
-        auto rez = approx.predict(pred);
+        MatrixXd x = Map<MatrixXd, 0, OuterStride<>>(X.data(), 7, 6, OuterStride<>(X.rows()));
+        
+        VectorXi indices = VectorXi::LinSpaced(x.rows(), 0, x.rows());
+        std::random_shuffle(indices.data(), indices.data() + x.rows());
+        x = indices.asPermutation() * x;
+
+        auto rez = approx.predict(x);
+        //std::cout << rez << std::endl;
+        //auto rez = approx.predict(x);
         std::cout << rez << std::endl;
         std::cout << std::endl;
 
-        rez = approx.predict(X);
-        std::cout << rez << std::endl;
+        //auto rez = approx.predict(X);
+        //std::cout << rez << std::endl;
+        //std::cout << std::endl;
+        //
+        //rez = approx.predict(X);
+        //std::cout << rez << std::endl;
+        //std::cout << std::endl;
+
+        for (auto i = 0; i < 7; ++i)
+        {
+            VectorXd v{ X.row(i) };
+            //std::cout << v << std::endl;
+            Point p = approx.predict(v);
+            std::cout << p.x << ' ' << p.y << " - " << Y.row(i) << std::endl;
+        }
     }
     catch (const std::exception &e)
     {

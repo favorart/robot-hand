@@ -509,25 +509,48 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         //========================================
         //wd.pStore->near_passed_build_index();
 
-        WorkerThreadRunTask(wd, _T("\n *** random test ***  "), [](Store &store, muscle_t musclesCount) {
-            tcout << _T("approx") << std::endl;
-            Approx approx(store.size(), musclesCount);
-            tcout << _T("writing") << std::endl;
+        WorkerThreadRunTask(wd, _T("\n *** approx ***  "), [](Store &store, RoboI &robo) {
+            for (int i = 1; i < 20; ++i)
             {
-                tfstream ofs("approx.txt", std::ios_base::out);
-                //boost::archive::text_oarchive toa(ofs);
-                //toa & approx;
-                for (auto & rec : store)
+                tcout << i << _T(" approx sizing=") << i * 2 << std::endl;
+                Approx approx(store.size(), robo.musclesCount(), Approx::noize, [i]() {return i * 2; });
+                approx.constructXY(store);
+                //tcout << _T("writing") << std::endl;
                 {
-                    Point p = approx.predict(rec.controls);
-                    ofs << rec.hit << ' ' << p << std::endl;
+                    //tfstream ofs("approx.txt", std::ios_base::out);
+                    //boost::archive::text_oarchive toa(ofs);
+                    //toa & approx;
+
+                    double sum_error = 0.;
+                    for (auto & rec : store)
+                    {
+                        Point pred = approx.predict(rec.controls);
+                        double err = boost_distance(rec.hit, pred);
+                        //ofs << pred << " " << rec.hit << " " << err << std::endl;
+                        sum_error += err;
+                    }
+                    //ofs << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
+                    std::cout << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
+
+                    for (auto i = 0; i < 1000; ++i)
+                    {
+                        Control c;
+                        c.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return (robo.muscleMaxLast(m) / 2); });
+
+                        Trajectory traj;
+                        robo.reset();
+                        robo.move(c, traj);
+
+                        Point pred = approx.predict(c);
+                        double err = boost_distance(robo.position(), pred);
+                        //ofs << pred << " " << robo.position() << " " << err << std::endl;
+                        sum_error += err;
+                    }
+                    //ofs << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
+                    std::cout << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
                 }
             }
-            Actuator a[] = { { 0, 0, 100 },{ 3, 0, 59 } };
-            Control c(a, 2);
-            Point p = approx.predict(c);
-            tcout << c << _T(" ") << p;
-        }, std::ref(*wd.pStore), wd.pRobo->musclesCount());
+        }, std::ref(*wd.pStore), std::ref(*wd.pRobo));
         //========================================
         break;
     }
