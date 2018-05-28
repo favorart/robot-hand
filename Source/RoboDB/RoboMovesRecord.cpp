@@ -21,20 +21,24 @@ RoboMoves::Record::Record(IN const Point         &aim,
 
     if (!control_.validateMusclesTimes())
         throw std::logic_error("Invalid muscles constructor Record parameter");
+    updateErrDistance(move_final);
 }
 
 RoboMoves::Record::Record(IN const Point         &aim,
-                          IN const Point         &hand_begin,
-                          IN const Point         &hand_final,
+                          IN const Point         &move_begin,
+                          IN const Point         &move_final,
                           IN const Robo::Control &controls,
                           IN const Trajectory    &visited) :
-    aim_(aim), move_begin_(hand_begin), move_final_(hand_final), control_(controls), visited_(visited)
+    aim_(aim), move_begin_(move_begin), move_final_(move_final),
+    control_(controls), visited_(visited),
+    _update_time(std::time(NULL)), _update_traj(0)
 {
     if (!visited_.size())
         throw std::logic_error("Incorrect trajectory in constructor Record");
 
     if (!control_.validateMusclesTimes())
         throw std::logic_error("Invalid muscles constructor Record parameter");
+    updateErrDistance(move_final);
 }
 //---------------------------------------------------------
 
@@ -149,8 +153,6 @@ tostream& RoboMoves::operator<<(tostream &s, const RoboMoves::Record &rec)
     s << std::endl << std::endl;
     return s;
 }
-
-//------------------------------------------------------------------------------
 tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
 {
     size_t sz;
@@ -167,3 +169,5 @@ tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
     }
     return s;
 }
+
+//------------------------------------------------------------------------------

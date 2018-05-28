@@ -57,7 +57,7 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
                         (LPVOID) &wd );             // Передается в качестве lParam в событие WM_CREATE
   
   if( !hWnd ) 
-  { MessageBox (NULL, _T("Can't create main window!"), _T("Error"), MB_OK);  
+  { MessageBox (NULL, _T("Can't create main window!"), _T("Error"), MB_OK); 
     return 0;
   }
   

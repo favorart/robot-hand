@@ -240,55 +240,31 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
     {
         /// TODO : REMOVE
-        const double CircleRadius = 0.01;
-
-        for (auto &pred : MyWindowData::predicts)
-            drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_orng);
-
-        for (auto &pred : MyWindowData::reals)
-            drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_red);
+        //const double CircleRadius = 0.01;
+        //
+        //for (auto &pred : MyWindowData::predicts)
+        //    drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_orng);
+        //
+        //for (auto &pred : MyWindowData::reals)
+        //    drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_red);
     }
     // --------------------------------------------------------------
     if (wd.canvas.workingSpaceShow)
         drawTrajectory(hdc, wd.canvas.workingSpaceTraj, wd.canvas.hPen_orng);
     // ----- Отрисовка точек БД -------------------------------------
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
-    {
-        //const size_t colorGradations = 15;
-        //color_interval_t colors = std::make_pair(RGB(150, 10, 245), RGB(245, 10, 150));
-        //// make_pair (RGB(0,0,130), RGB(255,0,0)); // 128
-        //// make_pair (RGB(130,0,0), RGB(255,155,155));
-        //
-        //color_gradient_t gradient;
-        //makeGradient(colors, colorGradations, gradient);
-        ////gradient_t gradient({ RGB(25, 255, 25), RGB(25, 25, 255), RGB(255, 25, 25) });
-        
+    {   
         frames_t robo_max_last = 0;
         for (muscle_t m : boost::irange<muscle_t>(0, wd.pRobo->musclesCount()))
-            if (robo_max_last < wd.pRobo->muscleMaxLast(m)) robo_max_last = wd.pRobo->muscleMaxLast(m);
+            if (robo_max_last < wd.pRobo->muscleMaxLast(m))
+                robo_max_last = wd.pRobo->muscleMaxLast(m);
         // --------------------------------------------------------------
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
                             [hdc](Store &store, frames_t robo_max_last,
                                   Trajectory uncoveredPoints, HPEN uncoveredPen) {
-            {
-                const size_t colorGradations = 15;
-                color_interval_t colors = std::make_pair(RGB(150, 10, 245), RGB(245, 10, 150));
-
-                color_gradient_t gradient;
-                makeGradient(colors, colorGradations, gradient);
-
-                std::vector<HPEN> gradientPens(gradient.size());
-                for (auto i = 0U; i < gradient.size(); ++i)
-                    gradientPens[i] = CreatePen(PS_SOLID, 1, gradient[i]);
-
-                auto genGradient = [&gradientPens, robo_max_last](size_t longs) {
-                    return gradientPens[Utils::interval_map(longs, { 0u, robo_max_last }, { 0u, gradientPens.size() })];
-                };
-
-                store.draw(hdc, (MyWindowData::zoom) ? 0.0005 : 0., genGradient);
-
-                for (auto pen : gradientPens) { DeleteObject(pen); }
-            }
+            GradPens gradPens(robo_max_last);
+            auto getPen = [&gradPens](size_t longs) { return gradPens(longs); };
+            store.draw(hdc, (MyWindowData::zoom) ? 0.0005 : 0., getPen);
 
             for (auto &pt : uncoveredPoints)
                 drawCircle(hdc, pt, (MyWindowData::zoom) ? 0.005 : 0., uncoveredPen);

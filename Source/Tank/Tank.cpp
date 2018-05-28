@@ -1,4 +1,4 @@
-
+п»ї
 #ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowDraw.h"
@@ -77,7 +77,7 @@ bool Tank::muscleFrame (Muscle muscle, bool atStop)
 }
 void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
 {
-    /* если не производится никакого движения и нет сигнала о начале нового */
+    /* РµСЃР»Рё РЅРµ РїСЂРѕРёР·РІРѕРґРёС‚СЃСЏ РЅРёРєР°РєРѕРіРѕ РґРІРёР¶РµРЅРёСЏ Рё РЅРµС‚ СЃРёРіРЅР°Р»Р° Рѕ РЅР°С‡Р°Р»Рµ РЅРѕРІРѕРіРѕ */
     if (!last && !status.lastsMove[muscle] && !status.lastsStop[muscle])
         return;
     //-------------------------------------------------------
@@ -88,7 +88,7 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
         /* control given */
         if (!status.lastsMove[muscle])
         {
-            /* начало нового движения */
+            /* РЅР°С‡Р°Р»Рѕ РЅРѕРІРѕРіРѕ РґРІРёР¶РµРЅРёСЏ */
             status.lastsStop[muscle] = 0;
             status.lastsMove[muscle] = 1;
             status.lasts[muscle] = last;
@@ -98,7 +98,7 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
         }
         else
         {
-            /* остановка основного движения - по сигналу */
+            /* РѕСЃС‚Р°РЅРѕРІРєР° РѕСЃРЅРѕРІРЅРѕРіРѕ РґРІРёР¶РµРЅРёСЏ - РїРѕ СЃРёРіРЅР°Р»Сѓ */
             status.lastsStop[muscle] = 1;
             status.lastsMove[muscle] = 0;
             status.lasts[muscle] = 0;
@@ -107,13 +107,13 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
     //-------------------------------------------------------
     if (status.lastsMove[muscle])
     {
-        /* двигатель работает */
-        if (/* по истечении заданной длительности */
+        /* РґРІРёРіР°С‚РµР»СЊ СЂР°Р±РѕС‚Р°РµС‚ */
+        if (/* РїРѕ РёСЃС‚РµС‡РµРЅРёРё Р·Р°РґР°РЅРЅРѕР№ РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё */
             status.lasts[muscle] < status.lastsMove[muscle]
-            /* продолжение основного движения - остался на месте - блокировка противоположным мускулом */
+            /* РїСЂРѕРґРѕР»Р¶РµРЅРёРµ РѕСЃРЅРѕРІРЅРѕРіРѕ РґРІРёР¶РµРЅРёСЏ - РѕСЃС‚Р°Р»СЃСЏ РЅР° РјРµСЃС‚Рµ - Р±Р»РѕРєРёСЂРѕРІРєР° РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅС‹Рј РјСѓСЃРєСѓР»РѕРј */
             || !muscleFrame(muscle, false))
         {
-            /* остановка основного движения */
+            /* РѕСЃС‚Р°РЅРѕРІРєР° РѕСЃРЅРѕРІРЅРѕРіРѕ РґРІРёР¶РµРЅРёСЏ */
             status.lastsStop[muscle] = 1;
             status.lastsMove[muscle] = 0;
             status.lasts[muscle] = 0;
@@ -128,21 +128,21 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
     //-------------------------------------------------------
     if (status.lastsStop[muscle])
     {
-        /* движение по инерции */
+        /* РґРІРёР¶РµРЅРёРµ РїРѕ РёРЅРµСЂС†РёРё */
         if (!muscleFrame(muscle, true))
         {
-            /* полная остановка */
+            /* РїРѕР»РЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР° */
             status.lastsMove[muscle] = 0;
             status.lastsStop[muscle] = 0;
             status.lasts[muscle] = 0;
             //-----------------------------
-            /* исключаем остановленный двигатель */
+            /* РёСЃРєР»СЋС‡Р°РµРј РѕСЃС‚Р°РЅРѕРІР»РµРЅРЅС‹Р№ РґРІРёРіР°С‚РµР»СЊ */
             status.musclesMove[muscle] = 0;
             //-----------------------------
-            /* проверяем, что остальные двигатели уже остановились */
+            /* РїСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РѕСЃС‚Р°Р»СЊРЅС‹Рµ РґРІРёРіР°С‚РµР»Рё СѓР¶Рµ РѕСЃС‚Р°РЅРѕРІРёР»РёСЃСЊ */
             if (boost::algorithm::none_of(status.musclesMove, [](const auto &v) { return (v != 0); }))
             {
-                /* Полная остановка руки */
+                /* РџРѕР»РЅР°СЏ РѕСЃС‚Р°РЅРѕРІРєР° СЂСѓРєРё */
                 status.moveEnd = true;
             }
         }
@@ -304,7 +304,7 @@ void Tank::realMove()
         }
         else
         {
-            // нормаль
+            // РЅРѕСЂРјР°Р»СЊ
             normal = cpR - cpL;
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
@@ -326,7 +326,7 @@ void Tank::realMove()
         }
         else
         {
-            // нормаль
+            // РЅРѕСЂРјР°Р»СЊ
             normal = cpL - cpR;
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
@@ -412,7 +412,7 @@ void Tank::realMove()
 //--------------------------------------------------------------------------------
 void Tank::step(IN frames_t frame, muscle_t muscle, IN frames_t last)
 {
-    /* Исключить незадействованные двигатели */
+    /* РСЃРєР»СЋС‡РёС‚СЊ РЅРµР·Р°РґРµР№СЃС‚РІРѕРІР°РЅРЅС‹Рµ РґРІРёРіР°С‚РµР»Рё */
     if (muscle < musclesCount() && last > 0)
     {
         /// TODO: Controls check !!!
@@ -436,7 +436,7 @@ frames_t Tank::move(muscle_t muscle, IN frames_t last)
     frames_t frame = 0;
     if (muscle < musclesCount() && last > 0)
     {
-        /* Что-то должно двигаться, иначе беск.цикл */
+        /* Р§С‚Рѕ-С‚Рѕ РґРѕР»Р¶РЅРѕ РґРІРёРіР°С‚СЊСЃСЏ, РёРЅР°С‡Рµ Р±РµСЃРє.С†РёРєР» */
         step(frame, muscle, last);
 
         while (!moveEnd())

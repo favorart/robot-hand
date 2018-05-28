@@ -221,9 +221,9 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
 }
 //------------------------------------------------------------------------------
 const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptrs_t &range,
-                                                          IN const Point   &aim,
-                                                          IN const func_t  *pPred,
-                                                          IN OUT visited_t *pVisited)
+                                                          IN const Point            &aim,
+                                                          IN const HitPosRelToAim   *pHitPosPred,
+                                                          IN OUT   visited_t        *pVisited)
 {
     const Record *pRecMin = NULL;
     // ------------------------
@@ -240,7 +240,7 @@ const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptr
         // ------------------------
         dr = boost_distance(pRec->hit, aim);
         if ((!pVisited || pVisited->find(h) == pVisited->end())
-            && (!pPred || (*pPred) (*pRec, aim))
+            && (!pHitPosPred || (*pHitPosPred) (*pRec, aim))
             && (!pRecMin || dr < dm))
         {
             pRecMin = pRec; // &(*pRec);
@@ -251,11 +251,11 @@ const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptr
     return pRecMin;
 }
 //------------------------------------------------------------------------------
-bool RoboPos::LearnMoves::gradientClothestRecords(IN  const Point &aim,
-                                                  OUT Record *pRecClose,
-                                                  OUT Record *pRecLower,
-                                                  OUT Record *pRecUpper,
-                                                  IN OUT visited_t *pVisited)
+bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
+                                                      OUT Record *pRecClose,
+                                                      OUT Record *pRecLower,
+                                                      OUT Record *pRecUpper,
+                                                      IN OUT visited_t *pVisited)
 {
     if (!pRecClose) { return  false; }
     // ------------------------------------------------
@@ -265,8 +265,8 @@ bool RoboPos::LearnMoves::gradientClothestRecords(IN  const Point &aim,
     adjacency_ptrs_t range;
     _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     // ------------------------------------------------
-    func_t  cmp_l = [](const Record &p, const Point &aim) { return  (p.hit.x < aim.x) && (p.hit.y < aim.y); };
-    func_t  cmp_g = [](const Record &p, const Point &aim) { return  (p.hit.x > aim.x) && (p.hit.y > aim.y); };
+    HitPosRelToAim cmp_l = [](const Record &p, const Point &aim) { return  (p.hit.x < aim.x) && (p.hit.y < aim.y); };
+    HitPosRelToAim cmp_g = [](const Record &p, const Point &aim) { return  (p.hit.x > aim.x) && (p.hit.y > aim.y); };
     // ------------------------------------------------
     const Record *pRec = gradientClothestRecord(range, aim, NULL, pVisited);
     if (!pRec) { return false; }
@@ -312,10 +312,10 @@ size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
     do
     {
         Record  rec_close, rec_lower, rec_upper;
-        if (!gradientClothestRecords(aim, &rec_close,
-                                     &rec_lower,
-                                     &rec_upper,
-                                     &visited))
+        if (!gradientSomeClothestRecords(aim, &rec_close,
+                                         &rec_lower,
+                                         &rec_upper,
+                                         &visited))
         { 
             /* FAIL */
             break;

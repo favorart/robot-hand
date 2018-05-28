@@ -7,6 +7,7 @@
 #include "RoboMovesStore.h"
 #include "ConfigJSON.h"
 
+//#include "RoboPosApprox.h"
 
 namespace RoboPos
 {
@@ -73,17 +74,17 @@ class LearnMoves
                              IN OUT std::vector<int> &lasts_changes,
                              IN OUT Robo::frames_t   &velosity);
     //------------------------------------------------------------------------------
-    typedef std::function<bool(const RoboMoves::Record &, const Point &)> func_t;
+    typedef std::function<bool(const RoboMoves::Record &rec, const Point &aim)> HitPosRelToAim;
     typedef std::set<std::size_t> visited_t;
     //------------------------------------------------------------------------------
     const RoboMoves::Record*
-        gradientClothestRecord(IN const RoboMoves::adjacency_ptrs_t &range,
-                               IN const Point   &aim,
-                               IN const func_t  *pPred = NULL,
-                               IN OUT visited_t *pVisited = NULL);
+    gradientClothestRecord(IN const RoboMoves::adjacency_ptrs_t &range,
+                           IN const Point           &aim,
+                           IN const HitPosRelToAim  *pHitPosPred = NULL,
+                           IN OUT   visited_t       *pVisited = NULL);
     //------------------------------------------------------------------------------
     bool
-        gradientClothestRecords(IN  const      Point  &aim,
+    gradientSomeClothestRecords(IN  const      Point  &aim,
                                 OUT RoboMoves::Record *pRecClose,
                                 OUT RoboMoves::Record *pRecLower,
                                 OUT RoboMoves::Record *pRecUpper,

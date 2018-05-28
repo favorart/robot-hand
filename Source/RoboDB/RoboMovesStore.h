@@ -120,6 +120,9 @@ namespace RoboMoves
     mutable boost::mutex _store_mutex{};
     InverseIndex _inverse{};
     size_t _inverse_index_last{ 0 };
+
+    //==============================================================================
+    SimTime _trajectories_enumerate{ 0 };
     //==============================================================================
     /// \returns number of points in kdtree
     inline size_t kdtree_get_point_count() const { return _inverse.size(); }
@@ -322,10 +325,16 @@ namespace RoboMoves
     }
     //------------------------------------------------------------------------------
     void draw(HDC hdc, double radius) const
-    { draw(hdc, radius, [](size_t) { return (HPEN)GetStockObject(BLACK_PEN); }); }
+    {
+        auto getPen = [](size_t) { return (HPEN)GetStockObject(BLACK_PEN); };
+        draw(hdc, radius, getPen);
+    }
     void draw(HDC hdc, double radius, HPEN hPen) const
-    { draw(hdc, radius, [hPen](size_t) { return hPen; }); }
-    void draw(HDC hdc, double radius, std::function<HPEN(size_t)> getPen) const;
+    {
+        auto getPen = [hPen](size_t) { return hPen; };
+        draw(hdc, radius, getPen);
+    }
+    void draw(HDC hdc, double radius, const std::function<HPEN(size_t)> &getPen) const;
     //------------------------------------------------------------------------------
     void dump_off(const tstring &filename, bool text_else_bin = true) const;
     void pick_up(const tstring &filename, bool text_else_bin = true);

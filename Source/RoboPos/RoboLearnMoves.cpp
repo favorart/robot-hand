@@ -3,6 +3,7 @@
 #include "Robo.h"
 #include "RoboPos.h"
 #include "RoboPosTour.h"
+#include "RoboPosApprox.h"
 #include "RoboLearnMoves.h"
 
 using namespace Robo;
@@ -10,40 +11,55 @@ using namespace RoboPos;
 using namespace RoboMoves;
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
+
+//#define OLD_TOUR
+#ifdef OLD_TOUR
+#include "RoboPosTourNoRec.h"
+#endif
 //------------------------------------------------------------------------------
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
 {
     borders_t borders;
-    //std::shared_ptr<Tour> pTour{ new TourWorkSpace(_store, _robo, _target, borders) };
-    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, _target, borders) };
-
-    defineRobotBorders(_robo, 70U/*25U*/, borders);
+    defineRobotBorders(_robo, 70U /*25U*/, borders);
     /* mm :
     *    (target.max - target.min) = 300 mm
     *    1
     *    0.84 <--> 300 mm
     *    x    <-->   1 mm   ==> 0.0028
     */
+
+#ifdef OLD_TOUR
+    Approx approx(1,1);
+    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, borders, _target, approx) };
     pTour->run(/* _b_distance */  true, // Stage 1
                /* _b_target   */ false,
                /* _b_braking  */  true,
-               /* _b_predict  */  true,
+               /* _b_predict  */ false,
                /* _b_checking */  true,
                borders,
                0.07 /*0.1*/, 5 /*1*/);
                //0.1, 10);
                //0.03, 3); // non-recursive
+#else
+    std::shared_ptr<TourI> pTour{ new TourWorkSpace(_store, _robo, borders) };
+    pTour->setIncrement(0.07, 5);
+    pTour->run();
+#endif
 }
 /// Покрытие всей мишени не слишком плотно
 void  RoboPos::LearnMoves::STAGE_2()
 {
+    Approx approx(_store.size(), _robo.musclesCount());
+    approx.constructXY(_store);
+    
     borders_t borders;
-    //std::shared_ptr<Tour> pTour{ new TourWorkSpace(_store, _robo, _target, borders) };
-    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, _target, borders) };
-
     defineTargetBorders(_target, _store, /* side */ 0.05, borders);
 
+    TourTarget::TargetContain target_contain = [&target=_target](const Point &p) { return target.contain(p); };
+
+#ifdef OLD_TOUR
+    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, borders, _target, approx) };
     pTour->run(/* _b_distance */ false,
                /* _b_target   */ true, // Stage 2
                /* _b_braking  */ true,
@@ -52,6 +68,11 @@ void  RoboPos::LearnMoves::STAGE_2()
                borders,
                0.015 /*0.02*/, 2 /*3*/);
                //0.015, 2); // non-recursive
+#else
+    std::shared_ptr<TourI> pTour{ new TourTarget(_store, _robo, borders, approx, target_contain) };
+    pTour->setIncrement(0.025, 3);
+    pTour->run();
+#endif
 }
 /// Попадание в оставшиеся непокрытыми точки мишени
 void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
@@ -313,7 +334,19 @@ void  RoboPos::LearnMoves::testStage2()
                     predEnd += md.predict(muscle_i, last_i);
                     predEnd += md.predict(muscle_j, last_j);
 
-                    stats.fill(_robo, _target, controls, predEnd);
+                    //stats.fill(_robo, _target, controls, predEnd);
+                    {
+                        Trajectory  trajectory;
+                        _robo.reset();
+                        _robo.move(controls, trajectory);
+                        //++_complexity;
+                        bool model = _target.contain(predEnd);
+                        bool real = _target.contain(_robo.position());
+                        // ==================================================
+                        stats.fill(model, real, _robo.position(), predEnd);
+                        // ==================================================
+                        _robo.reset();
+                    }
 
                     /* типо на мишени */
                     if (_target.contain(predEnd))

@@ -1,7 +1,7 @@
 ﻿#include "StdAfx.h"
 #include "Robo.h"
 #include "RoboPos.h"
-#include "RoboPosTour.h"
+#include "RoboPosTourNoRec.h"
 
 using namespace Robo;
 using namespace RoboPos;
@@ -45,7 +45,10 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
         //------------------------------------------
         auto &board = _borders[muscle_i];
         if (board.min_lasts == 0 && board.min_lasts >= board.max_lasts)
-        {}
+        {
+            CWARN("Empty borders of muscle=" << muscle_i);
+            return false;
+        }
         {
             lasts_step = _lasts_step_increment;
             frames_t _lasts_i_max = _robo.muscleMaxLast(muscle_i);
@@ -207,13 +210,13 @@ bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point 
     //   return _target.contain (hand_position);
     // }
 
-    Point end = _base_pos;
+    Point pred_end = _base_pos;
     //----------------------------------------------
     Control controling = controls + _breakings_controls;
     //----------------------------------------------
     if (_b_target || _b_distance)
     {
-        end = pDP->predict(controls);
+        pred_end = pDP->predict(controls);
         //----------------------------------------------
         // if ( _b_distance && _b_target )
         // { end.x += predict_shift.x;
@@ -221,10 +224,20 @@ bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point 
         // }
         //----------------------------------------------
         if (_b_checking)
-        { _counters.fill(_robo, _target, controling, end); }
+        {
+            Trajectory trajectory;
+            _robo.reset();
+            _robo.move(controling, trajectory);
+            //++_complexity;
+            bool model = _target.contain(pred_end);
+            bool real = _target.contain(_robo.position());
+            _counters.fill(model, real, _robo.position(), pred_end);
+            _robo.reset();
+        }
     }
     //----------------------------------------------
-    if ((!_b_target || _target.contain(end)) && (!_b_distance || boost_distance(_target.center(), end) < _target_distance))
+    if ((!_b_target || _target.contain(pred_end)) && (!_b_distance ||
+        boost_distance(_target.center(), pred_end) < boost_distance(_target.max(), _target.min())))
     {
         /* ближе к мишени */
         Trajectory trajectory;
@@ -239,7 +252,7 @@ bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point 
         _store.insert(rec);
         //----------------------------------------------
     }
-    else if (!_b_target) { robo_pos = end; }
+    else if (!_b_target) { robo_pos = pred_end; }
     //----------------------------------------------
     boost::this_thread::interruption_point();
     //----------------------------------------------

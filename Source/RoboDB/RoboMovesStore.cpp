@@ -51,9 +51,9 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
 }
 
 // --------------------------------------------------------------
-void RoboMoves::Store::draw(HDC hdc, double radius, std::function<HPEN(size_t)> getPen) const
+void RoboMoves::Store::draw(HDC hdc, double radius, const std::function<HPEN(size_t)> &getPen) const
 {
-#ifdef MYWINDOW
+#ifdef MY_WINDOW
     try
     {
         unsigned i = 0;
@@ -80,14 +80,15 @@ void RoboMoves::Store::insert(const Record &rec)
 {
     try
     {
-        /* массив траекторий для каждой точки
-        *  Несколько вариантов одного и того же движения
-        *  Вверх класть более удачные, отн. кол-ва движение и точность попадания
+        /* Массив траекторий для каждой точки.
+        *  Несколько вариантов одного и того же движения.
+        *  Вверх класть более удачные движения, отн. кол-ва действий и точности попадания.
         */
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::mutex> lock(_store_mutex);
         // ==============================
         auto status = _store.insert(rec);
+        status.first->updateTraj(_trajectories_enumerate);
         // ==============================
         if (status.second)
             for (const auto &p : rec.trajectory)

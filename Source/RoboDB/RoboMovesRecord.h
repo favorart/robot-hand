@@ -1,8 +1,12 @@
 ﻿#pragma once
 #include "Robo.h"
 
+
+/// TODO: !!! UPDATE TIME & SIM_TIME when request the Record !!!
+
 namespace RoboMoves
 {
+using SimTime = uint64_t;
 
 typedef std::vector<Robo::frames_t>   frames_array;
 typedef std::vector<Robo::muscle_t>  muscles_array;
@@ -14,14 +18,31 @@ class Record
     Robo::Control    control_{};
     Robo::Trajectory visited_{};
 
-    //double _error_distance{};
-    //bool _outdated{};
+    mutable double _error_distance{0.};
+    
+    //bool _outdated{false};
+    mutable std::time_t _update_time{0}; ///< geographic time
+    mutable SimTime     _update_traj{0}; ///< time in used trajectories
 
     // ----------------------------------------
     friend class boost::serialization::access;
+    //template <class Archive>
+    //void serialize(Archive &ar, unsigned version)
+    //{ ar & aim_ & move_begin_ & move_final_ & control_ & visited_; }
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
     template <class Archive>
-    void serialize(Archive &ar, unsigned version)
-    { ar & aim_ & move_begin_ & move_final_ & control_ & visited_; }
+    void save(Archive &ar, unsigned version) const
+    {
+        ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
+        ar & (_update_time - std::time(NULL)) & _update_traj & _error_distance;
+    }
+    template <class Archive>
+    void load(Archive &ar, unsigned version)
+    {
+        ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
+        ar & _update_time & _update_traj & _error_distance;
+        _update_time += std::time(NULL);
+    }
 
 public:
     Record() = default;
@@ -74,7 +95,9 @@ public:
     const Robo::Trajectory& getVisited() const { return visited_; }
     size_t                  getNControls() const { return control_.size(); }
     const Robo::Control&    getControls() const { return control_; }
-    
+
+    void updateErrDistance(const Point &hit) { _error_distance = boost_distance(aim, hit); }
+    void updateTraj(SimTime sim_time) const { _update_traj = sim_time; }
     // ----------------------------------------
     void clear()
     {

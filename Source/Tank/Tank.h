@@ -1,4 +1,4 @@
-#pragma once
+п»ї#pragma once
 
 #include "Robo.h"
 #include "RoboEdges.h"
@@ -110,24 +110,24 @@ private:
     struct Status
     {
         //---current position---
-        std::array<Point, JointsMaxCount+1> curPos{}; /* текущая позиция сочленения */
-        std::array<double, MusclesMaxCount> shifts{}; /* смещения каждого сочления, чтобы двигать ими вместе */
+        std::array<Point, JointsMaxCount+1> curPos{}; /* С‚РµРєСѓС‰Р°СЏ РїРѕР·РёС†РёСЏ СЃРѕС‡Р»РµРЅРµРЅРёСЏ */
+        std::array<double, MusclesMaxCount> shifts{}; /* СЃРјРµС‰РµРЅРёСЏ РєР°Р¶РґРѕРіРѕ СЃРѕС‡Р»РµРЅРёСЏ, С‡С‚РѕР±С‹ РґРІРёРіР°С‚СЊ РёРјРё РІРјРµСЃС‚Рµ */
 
-        bool moveEnd = false; /* флаг окончания движения - полной остановки */
+        bool moveEnd = false; /* С„Р»Р°Рі РѕРєРѕРЅС‡Р°РЅРёСЏ РґРІРёР¶РµРЅРёСЏ - РїРѕР»РЅРѕР№ РѕСЃС‚Р°РЅРѕРІРєРё */
 
         //---parameters of hydraulic force---
-        std::array<frames_t, MusclesMaxCount> lastsMove{}; /* индекс в массиве движения */
-        std::array<frames_t, MusclesMaxCount> lastsStop{}; /* индекс в массиве остановки */
-        std::array<frames_t, MusclesMaxCount> lasts{};     /* заданная длительность работы мускула */
+        std::array<frames_t, MusclesMaxCount> lastsMove{}; /* РёРЅРґРµРєСЃ РІ РјР°СЃСЃРёРІРµ РґРІРёР¶РµРЅРёСЏ */
+        std::array<frames_t, MusclesMaxCount> lastsStop{}; /* РёРЅРґРµРєСЃ РІ РјР°СЃСЃРёРІРµ РѕСЃС‚Р°РЅРѕРІРєРё */
+        std::array<frames_t, MusclesMaxCount> lasts{};     /* Р·Р°РґР°РЅРЅР°СЏ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ СЂР°Р±РѕС‚С‹ РјСѓСЃРєСѓР»Р° */
 
-        std::array<frames_t, MusclesMaxCount> musclesMove{}; /* задействованные мускулы (хотя для принудительного торможения) */
-        std::array<double, MusclesMaxCount>     prevFrame{}; /* перемещение в предыдущий фрэйм */
+        std::array<frames_t, MusclesMaxCount> musclesMove{}; /* Р·Р°РґРµР№СЃС‚РІРѕРІР°РЅРЅС‹Рµ РјСѓСЃРєСѓР»С‹ (С…РѕС‚СЏ РґР»СЏ РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕРіРѕ С‚РѕСЂРјРѕР¶РµРЅРёСЏ) */
+        std::array<double, MusclesMaxCount>     prevFrame{}; /* РїРµСЂРµРјРµС‰РµРЅРёРµ РІ РїСЂРµРґС‹РґСѓС‰РёР№ С„СЂСЌР№Рј */
         //std::array<double, JointsMaxCount>     velosity{}; 
         //std::array<double, JointsMaxCount> acceleration{};
 
-        unsigned visitedRarity{};        /* число записей в траекторию */
-        bool windy{};                    /* случайное перемещение в первый такт движения мускулом */
-        std::shared_ptr<EnvEdges> edges; /* удары и биение на границах */
+        unsigned visitedRarity{};        /* С‡РёСЃР»Рѕ Р·Р°РїРёСЃРµР№ РІ С‚СЂР°РµРєС‚РѕСЂРёСЋ */
+        bool windy{};                    /* СЃР»СѓС‡Р°Р№РЅРѕРµ РїРµСЂРµРјРµС‰РµРЅРёРµ РІ РїРµСЂРІС‹Р№ С‚Р°РєС‚ РґРІРёР¶РµРЅРёСЏ РјСѓСЃРєСѓР»РѕРј */
+        std::shared_ptr<EnvEdges> edges; /* СѓРґР°СЂС‹ Рё Р±РёРµРЅРёРµ РЅР° РіСЂР°РЅРёС†Р°С… */
 
         Status(IN const std::list<Tank::JointInput> &jointInputs);
     };
@@ -143,9 +143,9 @@ private:
         std::array<Point, JointsMaxCount+1> jointsBases{};
         double maxMoveFrame{};
 
-        //---велична изменения угла в каждый кадр
-        std::array<std::vector<double>, JointsMaxCount> framesMove{}; // при движении
-        std::array<std::vector<double>, JointsMaxCount> framesStop{}; // при остановке
+        //---РІРµР»РёС‡РЅР° РёР·РјРµРЅРµРЅРёСЏ СѓРіР»Р° РІ РєР°Р¶РґС‹Р№ РєР°РґСЂ
+        std::array<std::vector<double>, JointsMaxCount> framesMove{}; // РїСЂРё РґРІРёР¶РµРЅРёРё
+        std::array<std::vector<double>, JointsMaxCount> framesStop{}; // РїСЂРё РѕСЃС‚Р°РЅРѕРІРєРµ
 
         Physics(IN const Point &baseCenter, IN const std::list<Tank::JointInput> &jointInputs);
     };

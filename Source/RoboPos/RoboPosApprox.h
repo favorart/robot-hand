@@ -49,7 +49,7 @@ class Approx
     void constructXY();
 public:
     /// Calibrating factor (greater is more precise)
-    static double sizing() { return 100.; }
+    static double sizing() { return 4.; }
     /// Шум - этот коэффициент сообщает, насколько можно доверять управлению с номером i
     static double noize(size_t i = 0) { return 0.00000001; }
 

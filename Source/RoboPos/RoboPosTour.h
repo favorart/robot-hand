@@ -3,40 +3,47 @@
 #include "Robo.h"
 #include "RoboPos.h"
 
-#include "Old\RoboPosMDirections.h"
-#include "Old\RoboPosMDirections_Old.h"
 
 namespace RoboPos {
 //------------------------------------------------------------------------------
-class Tour
+class Approx;
+
+class TourI
 {
+public:
+    using  JointsNumerator = std::function<Robo::joint_t(const Robo::joint_t njoints, Robo::joint_t joint, bool first)>;
+    static JointsNumerator forward, reverse;
+    static double divToMeters, divToMinutes;
+
 protected:
-    Robo::RoboI &_robo;
-    Point _base_pos;
+    JointsNumerator  &_next_joint; ///< порядок использования сочленений
+    borders_t        &_borders;
     RoboMoves::Store &_store;
-    RecTarget &_target;
-    borders_t &_borders;
-    RoboPos::MainDirections _md;
-    Counters _counters;
-    size_t _complexity = 0;
+    Robo::RoboI      &_robo;
+    Point             _base_pos{};
+    Counters          _counters{};
+    size_t            _complexity = 0;
 
-    // --- flags ---
-    bool _b_distance; ///<
-    bool _b_target;   ///< обход всей мишени целиком
-    bool _b_braking;  ///< использование торможения мускулом
-    bool _b_predict;  ///<
-    bool _b_checking; ///< проверка предсказаний основных направлений
+    bool _b_braking{ false };  ///< использование торможения мускулом
+    bool _b_checking{ false }; ///< подсчитывать число попаданий траекторий в мишень
 
-    // --- distance --- 
-    double _target_distance;
-    double _step_distance;
+    double _step_distance{0.};
+    Robo::frames_t _lasts_step_increment{0};
 
-    Robo::frames_t _lasts_step_increment;
     Robo::frames_t _lasts_step_increment_thick = 20;
-    Robo::frames_t _lasts_step_increment_init = 1;
+    Robo::frames_t _lasts_step_increment_init = 6;
 
     Robo::frames_t _lasts_step_braking_init = 10; // 30
     Robo::frames_t _lasts_step_braking_incr = 2;
+    
+    size_t _max_nested = 0;
+    size_t _breakings_controls_actives = 0;
+    std::vector<Robo::Actuator> _breakings_controls{};
+
+    void exactsBreakings(IN Robo::joint_t joint, IN const Robo::Control &controls);
+    void appendBreakings(IN Robo::joint_t joint, IN const Robo::Actuator &a);
+    void removeBreakings(IN Robo::joint_t joint);
+    void  cleanBreakings(IN Robo::joint_t joint);
         
     /// Descrete tour around all over the workspace
     /// \param[in]   joint          focus of moving on the next joint
@@ -49,39 +56,43 @@ protected:
     virtual bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos) = 0;
 
 public:
-    Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target, IN borders_t &borders /*, IN const tstring &config=_T("")*/) :
-        _store(store), _robo(robo), _target(target), _borders(borders),
-        _md(MainDirectionsFactory(robo)),
-        _target_distance(boost_distance(_target.min(), _target.max()) / 1.5)
-    {
-        _robo.reset();
-        _base_pos = _robo.position();
-    }
-    //------------------------------------------------------------------------------
-    virtual void run(bool distance, bool target, bool braking, bool predict, bool checking,
-                     borders_t &borders, double step_distance, Robo::frames_t lasts_step_increment)
-    {
-        _b_target = target;
-        _b_braking = braking;
-        _b_distance = distance;
-        _b_predict = predict;
-        _b_checking = checking;
+    //TourI(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const tstring &config) :
+    //    _store(store), _robo(robo), _borders(borders_t{})
+    //{}    
+    TourI(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN borders_t &borders,
+          IN TourI::JointsNumerator &next_joint = TourI::reverse) :
+        _store(store), _robo(robo), _borders(borders), _next_joint(next_joint),
+        _max_nested(_robo.jointsCount()),
+        _breakings_controls(_max_nested),
+        _breakings_controls_actives(0)
+    {}
 
-        _borders = borders;
-        // ----------------------------------------------------
+    size_t complexity() const { return _complexity; }
+
+    void setBorders(borders_t &borders)
+    { _borders = borders; }
+    void setIncrement(double step_distance, Robo::frames_t lasts_step_increment)
+    {
         _step_distance = step_distance;
         _lasts_step_increment = lasts_step_increment;
-        // ----------------------------------------------------
+    }
+
+    void run()
+    {
         _complexity = 0;
         _counters.clear();
+        _max_nested = _robo.jointsCount();
         // ----------------------------------------------------
         _robo.reset();
         _base_pos = _robo.position();
         // ----------------------------------------------------
         try
         {
+            if (_step_distance < DBL_EPSILON || _lasts_step_increment == 0)
+                throw std::runtime_error{"Increment Params aren't set"};
+
             Point useless;
-            runNestedForMuscle(0, Robo::Control{}, useless);
+            runNestedForMuscle(_next_joint(_robo.jointsCount(), 0, true), Robo::Control{}, useless);
         }
         catch (boost::thread_interrupted&)
         {
@@ -95,73 +106,53 @@ public:
         }
         // ----------------------------------------------------
         if (_b_checking) { _counters.print(); }
-        tcout << _T("\nStep: ") << (step_distance / 0.0028) << _T("mm.");
-        tcout << _T("\nComplexity: ") << _complexity;
-        tcout << _T("  minutes:") << double(_complexity) / 60. << std::endl;
+        tcout << _T("\nStep: ") << (_step_distance / TourI::divToMeters) << _T("mm.");
+        tcout << _T("\nComplexity: ") << complexity();
+        tcout << _T("  minutes:") << double(complexity()) / TourI::divToMinutes << std::endl;
     }
 };
 
 //------------------------------------------------------------------------------
-class TourWorkSpace : public Tour
+/// Первоначальный широкий обход всей доступной области
+class TourWorkSpace : public TourI
 {
-    size_t _max_nested = 0;
-    size_t _breakings_controls_actives = 0;
-    std::vector<Robo::Actuator> _breakings_controls = {}; ///< массив управлений-торможений для каждого сочленения
-
-    bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);
-    bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
-
-    void exactsBreakings(IN Robo::joint_t joint, IN const Robo::Control &controls);
-    void appendBreakings(IN Robo::joint_t joint, IN const Robo::Actuator &a);
-    void removeBreakings(IN Robo::joint_t joint);
-    void  cleanBreakings(IN Robo::joint_t joint);
-
 public:
-    TourWorkSpace(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target, IN borders_t &borders) :
-        Tour(store, robo, target, borders),
-        _max_nested(robo.jointsCount()),
-        _breakings_controls(_max_nested),
-        _breakings_controls_actives(0)
+    TourWorkSpace(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN borders_t &borders,
+                  IN TourI::JointsNumerator &next_joint = TourI::reverse) :
+        TourI(store, robo, borders, next_joint)
     {}
-    //------------------------------------------------------------------------------
-    void  run(bool distance, bool target, bool braking, bool predict, bool checking,
-              borders_t &borders, double step_distance, Robo::frames_t lasts_step_increment)
-    {
-        Tour::run(distance, target, braking, predict, checking, borders, step_distance, lasts_step_increment);
-    }
+    bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
+    bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);
 };
 
 //------------------------------------------------------------------------------
-class TourNoRecursion : public Tour
+/// Обход всей мишени целиком
+class TourTarget : public TourI
 {
-    size_t _max_nested = 0;
-    
-    /// !!!
-    std::vector<Robo::Actuator> _breakings_controls = {};
-    std::shared_ptr<RoboPos::DirectionPredictor> pDP;
-
-    bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);
-    bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
-
 public:
-    TourNoRecursion(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target, IN borders_t &borders) :
-        Tour(store, robo, target, borders),
-        _max_nested(_robo.jointsCount()),
-        _breakings_controls(_max_nested), /// ???
-        pDP{ std::make_shared<RoboPos::DirectionPredictor>(_robo) }
-    {
-        _lasts_step_increment_thick = 20;
-        _lasts_step_increment_init = 25;
-        _lasts_step_braking_incr = 5;
-        _lasts_step_braking_init = 5;
-    }
-    //------------------------------------------------------------------------------
-    void  run(bool distance, bool target, bool braking, bool predict, bool checking,
-              borders_t &borders, double step_distance, Robo::frames_t lasts_step_increment)
-    {
-        Tour::run(distance, target, braking, predict, checking, borders, step_distance, lasts_step_increment);
-    }
+    using TargetContain = std::function<bool(const Point&)>;
+
+    TourTarget(IN RoboMoves::Store &store,
+               IN Robo::RoboI &robo,
+               IN borders_t &borders,
+               IN Approx &approx,
+               IN TargetContain &target_contain,
+               IN TourI::JointsNumerator &next_joint = TourI::reverse) :
+        TourI(store, robo, borders, next_joint),
+        _target_contain(target_contain),
+        _approx(approx)
+    {}
+    bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
+    bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);
+    
+private:
+    TargetContain & _target_contain; ///< функция проверки принадлежности координат мишени
+    Approx        &_approx; ///< интерполяция функции (x,y)остановки по управлениям мускулов
+
+    bool _b_predict;  ///< использование интерполяции для предсказания места остановки
+    bool _b_checking; ///< проверка предсказаний основных направлений
 };
 
 }
 //------------------------------------------------------------------------------
+

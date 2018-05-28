@@ -43,7 +43,7 @@ struct Counters
         else if (!model && real)
             ++count_FN;
     }
-    void fill(Robo::RoboI &robo, RecTarget &target, Robo::Control &controls, const Point &pred);
+    void fill(bool contain_pred, bool contain_pos, const Point &pos, const Point &pred);
     void print()
     {
         tcout << std::endl;
