@@ -107,6 +107,7 @@
     <ResourceCompile Include="Resource\resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resource\config-tank.json" />
     <None Include="Resource\config.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

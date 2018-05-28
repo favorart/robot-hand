@@ -92,6 +92,12 @@ inline Point rotate (const Point &p, const Point &center, double angle)
     pt.rotate(center, angle);
     return pt;
 }
+inline Point rotate_radians(const Point &p, const Point &center, double angle)
+{
+    Point pt{ p };
+    pt.rotate_radians(center, angle);
+    return pt;
+}
 
 /// Angle = L ABC
 inline double angle_radians (const Point &A, const Point &B, const Point &C)

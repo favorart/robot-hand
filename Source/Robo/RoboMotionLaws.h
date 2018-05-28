@@ -118,7 +118,11 @@ public:
     {
         IterVecDoubles  iter = first;
         size_t  n = (frames_count - 1U);
-
+        if (frames_count <= 1)
+        {
+            *first = right_border * 3 / 2;
+            return;
+        }
         double a = left_border, b = right_border, v = max_velosity;
         //------------------------------------------------------
         double  norm_sum = 0.;

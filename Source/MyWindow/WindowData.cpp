@@ -504,6 +504,7 @@ void MyWindowData::read_config(IN const tstring &filename)
     catch (const std::exception &e)
     {
         CERROR(e.what());
+        std::exit(1);
     }
 }
 void MyWindowData::write_config(IN const tstring &filename) const

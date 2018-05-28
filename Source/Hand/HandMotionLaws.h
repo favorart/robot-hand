@@ -288,7 +288,7 @@ enum class HandMLaw : uint8_t
 };
 //------------------------------------------------------------------------------
 /* MotionLaw picker */
-inline JointMotionLaw getHandMLaw(IN HandMLaw type, IN boost::any param=nullptr)
+inline JointMotionLaw getHandMLaw(IN HandMLaw type, IN const tstring &param=_T(""))
 {
     switch (type)
     {
@@ -306,11 +306,13 @@ inline JointMotionLaw getHandMLaw(IN HandMLaw type, IN boost::any param=nullptr)
     }
     case HandMLaw::STAB:
     {
-        double accLong = boost::any_cast<double>(param);
+        double accLong = std::stod(param, NULL);
         accLong = accLong ? accLong : 0.25;
+        accLong = std::min(accLong, 0.01);
+        accLong = std::max(accLong, 0.90);
         return { new ContinuousAccelerationThenStabilization(accLong),
                  new ContinuousDeceleration(), _T("STAB"), 
-                 static_cast<uint8_t>(HandMLaw::STAB), _T("") /* std::to_string(accLong) */ };
+                 static_cast<uint8_t>(HandMLaw::STAB), param };
     }
     case HandMLaw::CONAC:
     {
@@ -320,15 +322,15 @@ inline JointMotionLaw getHandMLaw(IN HandMLaw type, IN boost::any param=nullptr)
     }
     case HandMLaw::MANGO:
     {
-        tstring joint = boost::any_cast<tstring>(param);
-        tstring mangoMove{ _T("Resource/Hand/") + joint + _T("MoveFrames.txt") };
-        tstring mangoStop{ _T("Resource/Hand/") + joint + _T("StopFrames.txt") };
+        tstring mangoMove = _T("Resource/Hand/") + param + _T("MoveFrames.txt");
+        tstring mangoStop = _T("Resource/Hand/") + param + _T("StopFrames.txt");
         return { new MangoAcceleration(mangoMove),
-                 new MangoDeceleration(mangoMove), _T("MANGO"), 
-                 static_cast<uint8_t>(HandMLaw::MANGO), joint };
+                 new MangoDeceleration(mangoStop), _T("MANGO"),
+                 static_cast<uint8_t>(HandMLaw::MANGO), param };
     }
+    default:
+        throw std::exception{ "Invalid Hand law" };
     }
-    throw std::exception{ "Invalid Hand law" };
 }
 //------------------------------------------------------------------------------
 }

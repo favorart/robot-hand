@@ -64,14 +64,18 @@ bool Tank::muscleFrame (Muscle muscle, bool atStop)
         Frame = Utils::random(Tank::minFrameMove, *boost::max_element(physics.framesMove[joint]));
     // -------------------------------------------
     status.shifts[muscle] = Frame;
+
+    if (std::isnan(status.shifts[muscle]) || std::isinf(status.shifts[muscle]))
+    {
+        CERROR("shift NAN");
+        getchar();
+        exit(1);
+    }
     // status.curPos !!! wait for realMove
     //------------------------------------------------
-#ifdef DEBUG_PRINT
-    tcout << "j=" << joint << ", m=" << muscle << " Frame=" << status.shifts[muscle]
-          << ((atStop) ? " stop " : " move ")
-          << ((atStop) ? status.lastsStop[muscle] : status.lastsMove[muscle])
-          << std::endl;
-#endif
+    //CDEBUG("j=" << joint << ", m=" << muscle << " Frame=" << status.shifts[muscle]
+    //       << ((atStop) ? " stop " : " move ")
+    //       << ((atStop) ? status.lastsStop[muscle] : status.lastsMove[muscle]));
     // -------------------------------------------
     return (fabs(Frame) >= Tank::minFrameMove);
 }
@@ -273,7 +277,16 @@ void Tank::realMove()
     const double shiftL = (status.shifts[Muscle::LTrackFrw] - status.shifts[Muscle::LTrackBck]);
     const double shiftR = (status.shifts[Muscle::RTrackFrw] - status.shifts[Muscle::RTrackBck]);
 
-    if (fabs(shiftL) < Tank::minFrameMove && fabs(shiftR) < Tank::minFrameMove)
+    if (std::isnan(shiftL) || std::isinf(shiftL) ||
+        std::isnan(shiftR) || std::isinf(shiftR))
+    {
+        CERROR("shift NAN");
+        std::getchar();
+        std::exit(1);
+    }
+
+    if (fabs(shiftL) < Tank::minFrameMove &&
+        fabs(shiftR) < Tank::minFrameMove)
     {
         for (auto &muscle : params.musclesUsed)
         {
@@ -281,25 +294,68 @@ void Tank::realMove()
             status.lastsStop[muscle] = 0;
             status.lasts[muscle] = 0;
             status.musclesMove[muscle] = 0;
+            status.shifts[muscle] = 0;
         }
         status.moveEnd = true;
         return;
     }
 
-    /// TODO: !!!!!!!!!!!! realMove BUG !!!!!!!!!!!!!!!!!!!!!!!
-    // ROTATE
-    Point center, normal;
-    double angle, radius;
-    if (fabs(shiftL) > fabs(shiftR))
+    Point center{}, normal{};
+    double tan_angle = 0., radius = 0.;
+
+    bool strait = false;
+    if (fabs(fabs(shiftL) - fabs(shiftR)) < Utils::EPSILONT)
     {
-        angle = (shiftL - shiftR) / between;
-        if (fabs(angle) > 0.)
+        if (boost::math::sign(shiftL) != boost::math::sign(shiftR))
         {
-            radius = (shiftR / angle);
+            const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
+            cpL.rotate_radians(bodyCenterOld, std::atan(shiftL / between));
+            cpR.rotate_radians(bodyCenterOld, std::atan(shiftR / between));
+        }
+        else
+        {
+            const auto shift = (shiftL + shiftR) / 2;
+            // нормаль
+            normal = cpR - cpL;
+            normal = { -normal.y, normal.x };
+            normal /= normal.norm2();
+            normal *= shift;
+            //CDEBUG(normal);
+            strait = true;
+        }
+    }
+    else if (fabs(shiftL) > fabs(shiftR))
+    {
+        tan_angle = (shiftL - shiftR) / between;
+        if (fabs(tan_angle) > 0.)
+        {
+            radius = fabs(shiftR / tan_angle);
             center = alongLineAtDistance(cpR, cpL, radius);
+    
+            r1_ = radius;
+            r2_ = (shiftL / tan_angle);
+            center_ = center;
+        }
+        else
+        {
+            // нормаль
+            normal = cpL - cpR;
+            normal = { -normal.y, normal.x };
+            normal /= normal.norm2();
+            assert(shiftL == shiftR);
+            normal *= shiftL;
+        }
+    }
+    else if (fabs(shiftL) < fabs(shiftR))
+    {
+        tan_angle = (shiftR - shiftL) / between;
+        if (fabs(tan_angle) > 0.)
+        {
+            radius = fabs(shiftL / tan_angle);
+            center = alongLineAtDistance(cpL, cpR, radius);
 
             r1_ = radius;
-            r2_ = (shiftL / angle);
+            r2_ = (shiftR / tan_angle);
             center_ = center;
         }
         else
@@ -314,63 +370,31 @@ void Tank::realMove()
     }
     else
     {
-        angle = (shiftR - shiftL) / between;
-        if (fabs(angle) > 0)
-        {
-            radius = (shiftL / angle);
-            center = alongLineAtDistance(cpL, cpR, radius);
-
-            r1_ = radius;
-            r2_ = (shiftR / angle);
-            center_ = center;
-        }
-        else
-        {
-            // нормаль
-            normal = cpL - cpR;
-            normal = { -normal.y, normal.x };
-            normal /= normal.norm2();
-            assert(shiftL == shiftR);
-            normal *= shiftL;
-        }
+        CERROR("Tank ELSE");
+        std::getchar();
+        std::exit(1);
     }
 
-    const Point bodyCenterOld{ (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
-    const Point bodyCenterNew = (fabs(angle) > 0. ? rotate(bodyCenterOld, center, angle) : bodyCenterOld + normal);
+    const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
+    const Point bodyCenterNew = ((fabs(tan_angle) > 0.) ? rotate_radians(bodyCenterOld, center, std::atan(tan_angle)) : (bodyCenterOld + normal));
     status.curPos[Joint::JCount] = bodyCenterNew;
-
-    if (bodyCenterOld.x > 1.1 || bodyCenterOld.y > 1.1 || bodyCenterNew.x > 1.1 || bodyCenterNew.y > 1.1)
-        tcout << "FF" << std::endl;
+    //if (strait)
+    //    CDEBUG(bodyCenterOld << ' ' << bodyCenterNew << ' ' << normal);
 
     Point bodyVelosity = bodyCenterNew - bodyCenterOld;
-    if (!status.edges->interaction(*this, bodyVelosity))
+    //if (!status.edges->interaction(*this, bodyVelosity)) /// TODO:
     {
-#ifdef DEBUG_PRINT
-        tcout << "------------------" << std::endl;
-        tcout << "shiftL=" << shiftL << " shiftR=" << shiftR << std::endl;
-        tcout << "L=" << cpL << " R=" << cpR << std::endl;
-        tcout << (fabs(angle) > 0 ? "C=" : "n=") << (fabs(angle) > 0 ? center : normal);
-        tcout << " a=" << angle << std::endl;
-#endif
+        //auto cpl = cpL, cpr = cpR;
+        //CDEBUG("------------------" << std::endl
+        //       << "shiftL=" << shiftL << " shiftR=" << shiftR << std::endl
+        //       << "L=" << cpL << " R=" << cpR << std::endl
+        //       << (fabs(angle) > 0 ? "C=" : "n=") << (fabs(angle) > 0 ? center : normal)
+        //       << " a=" << angle);
 
-        if (fabs(angle) > 0)
+        if (fabs(tan_angle) > 0)
         {
-            auto cl = cpL, cr = cpR;
-
-            cpL.rotate_radians(center, +angle);
-            cpR.rotate_radians(center, -angle);
-            
-            double a = angle_radians(cpL, center, cpR);
-
-            if (shiftL != a * radius && shiftR != a * radius)
-                tcout << shiftL << ' ' << a * radius << ' ' << shiftR << " a=" << a << std::endl;
-            //if (fabs(between - boost_distance(cpL, cpR)) < 10e-5)
-            //{
-            //    if (center != cpR)
-            //        cpR = alongLineAtDistance(center, cpR, between / 2);
-            //    if (center != cpL)
-            //        cpL = alongLineAtDistance(center, cpL, between / 2);
-            //}
+            cpL.rotate_radians(center, +std::atan(tan_angle));
+            cpR.rotate_radians(center, -std::atan(tan_angle));
         }
         else
         {
@@ -378,23 +402,22 @@ void Tank::realMove()
             cpR += normal;
         }
 
-#ifdef DEBUG_PRINT
-        tcout << "------------------" << std::endl;
-        tcout << "L=" << cpL << " R=" << cpR << std::endl;
-        tcout << "------------------" << std::endl;
-#endif
+        //CDEBUG("------------------" << std::endl << "L=" << cpL << " R=" << cpR << std::endl << "------------------");
+        //if (cpl == cpL && cpr == cpR)
+        //    CDEBUG("eq");
     }
 
     //Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
     //             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
     //Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
     //             std::max(cpL.y, cpR.y) + params.trackWidth / 2 };
-    //
+
     //const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
     //const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
-    //
-    // if (LEdge < LBorder || REdge > RBorder)
-    if (boost::algorithm::none_of(status.shifts, [](const auto &c) { return (fabs(c) >= Tank::minFrameMove); }))
+
+    if (boost::algorithm::none_of(status.shifts, [](const auto &c) {
+        return (fabs(c) >= Tank::minFrameMove);
+    }))
     {
         for (auto &muscle : params.musclesUsed)
         {
@@ -402,6 +425,7 @@ void Tank::realMove()
             status.lastsStop[muscle] = 0;
             status.lasts[muscle] = 0;
             status.musclesMove[muscle] = 0;
+            //status.shifts[muscle] = 0;
         }
         status.moveEnd = true;
     }
@@ -533,23 +557,28 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 void Tank::getWorkSpace(OUT Trajectory &workSpace)
 {
     reset();
-    /// TODO: drawWorkSpace BUG
+    // TODO: drawWorkSpace BUG
     //----------------
-    Control controls{ { Muscle::RTrackFrw, 0, 5 } };
-    controls.append({Muscle::LTrackBck,0,5});
-    move(controls, workSpace);  // 90 degrees
-    //----------------
-    controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (-1.0, +1.0) on begin Tracks
-    controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
-    controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (-1.0, -1.0) on begin Tracks
-    controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
-    controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (+1.0, -1.0) on begin Tracks
-    controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
-    controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (+1.0, +1.0) on begin Tracks
-    controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
-    controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (start, start) on center
-    controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
+    //Control controls{ { Muscle::RTrackFrw, 0, 5 } };
+    //controls.append({Muscle::LTrackBck,0,5});
+    //move(controls, workSpace);  // 90 degrees
+    ////----------------
+    //controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (-1.0, +1.0) on begin Tracks
+    //controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
+    //controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (-1.0, -1.0) on begin Tracks
+    //controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
+    //controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (+1.0, -1.0) on begin Tracks
+    //controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
+    //controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (+1.0, +1.0) on begin Tracks
+    //controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
+    //controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (start, start) on center
+    //controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
     // end!
+    workSpace.push_back({ +0.97, +0.97 });
+    workSpace.push_back({ -0.97, +0.97 });
+    workSpace.push_back({ -0.97, -0.97 });
+    workSpace.push_back({ +0.97, -0.97 });
+    workSpace.push_back({ +0.97, +0.97 });
 }
 //--------------------------------------------------------------------------------
 void Tank::reset()
