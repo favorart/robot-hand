@@ -131,7 +131,8 @@ private:
         std::array<frames_t, MusclesMaxCount> musclesMove{}; // задействованные в движениии двители
         std::array<double,   MusclesMaxCount>   prevFrame{}; // величина смещения сочленения в предыдущий такт для данного мускула
         //std::array<double, JointsMaxCount>     velosity{}; // скорость сочленения в данный такт
-        //std::array<double, JointsMaxCount> acceleration{}; // ускорение сочленения в данный такт        
+        //std::array<double, JointsMaxCount> acceleration{}; // ускорение сочленения в данный такт
+
         unsigned visitedRarity = 10;
         bool windy = false;
 

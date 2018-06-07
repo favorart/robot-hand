@@ -253,12 +253,7 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
         drawTrajectory(hdc, wd.canvas.workingSpaceTraj, wd.canvas.hPen_orng);
     // ----- Отрисовка точек БД -------------------------------------
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
-    {   
-        frames_t robo_max_last = 0;
-        for (muscle_t m : boost::irange<muscle_t>(0, wd.pRobo->musclesCount()))
-            if (robo_max_last < wd.pRobo->muscleMaxLast(m))
-                robo_max_last = wd.pRobo->muscleMaxLast(m);
-        // --------------------------------------------------------------
+    {
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
                             [hdc](Store &store, frames_t robo_max_last,
                                   Trajectory uncoveredPoints, HPEN uncoveredPen) {
@@ -268,7 +263,7 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 
             for (auto &pt : uncoveredPoints)
                 drawCircle(hdc, pt, (MyWindowData::zoom) ? 0.005 : 0., uncoveredPen);
-        }, std::ref(*wd.pStore), robo_max_last,
+        }, std::ref(*wd.pStore), musclesMaxLasts(*wd.pRobo),
            wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{},
            wd.canvas.hPen_red);
         
@@ -376,17 +371,19 @@ bool  repeatRoboMove(MyWindowData &wd)
 {
     const Point &aim = wd.mouse.aim;
     // -------------------------------------------------
-    const Record &rec = wd.pStore->ClothestPoint(aim, wd.search.side);
+    auto p = wd.pStore->getClosestPoint(aim, wd.search.side);
+    if (!p.first)
+        throw std::runtime_error{ "repeatRoboMove: Empty adjacency" };
     // -------------------------------------------------
-    if (boost_distance(rec.hit, aim) <= wd.pTarget->precision())
+    if (boost_distance(p.second.hit, aim) <= wd.pTarget->precision())
     {
         /* Repeat Hand Movement */
         wd.pRobo->reset();
-        wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{rec.controls});
+        wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{p.second.controls});
         // -------------------------------------------------
         if (!wd.trajFrames.animation)
         {
-            if (!boost::equal(wd.trajFrames.trajectory, rec.trajectory))
+            if (!boost::equal(wd.trajFrames.trajectory, p.second.trajectory))
             { throw std::exception("Incorrect Repeat Robo Move"); }
         }
         // -------------------------------------------------
@@ -394,7 +391,7 @@ bool  repeatRoboMove(MyWindowData &wd)
 
         tstringstream ss;
         ss << text << _T("\r");
-        for (const Control &c : rec.controls)
+        for (const Control &c : p.second.controls)
         { ss << c << _T("  "); } // \r
 
         SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL, (LPARAM)ss.str().c_str());

@@ -17,6 +17,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
+		Tank|Any CPU = Tank|Any CPU
+		Tank|x64 = Tank|x64
+		Tank|x86 = Tank|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -25,6 +28,9 @@ Global
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Release|x64.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Release|x86.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Tank|Any CPU.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Tank|x64.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Tank|x86.ActiveCfg = Release|Any CPU
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Debug|x64.ActiveCfg = Debug|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Debug|x64.Build.0 = Debug|x64
@@ -35,6 +41,11 @@ Global
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Release|x64.Build.0 = Release|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Release|x86.ActiveCfg = Release|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Release|x86.Build.0 = Release|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|Any CPU.ActiveCfg = Tank|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x64.ActiveCfg = Tank|x64
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x64.Build.0 = Tank|x64
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x86.ActiveCfg = Tank|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x86.Build.0 = Tank|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Debug|x64.ActiveCfg = Debug|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Debug|x64.Build.0 = Debug|x64
@@ -45,6 +56,11 @@ Global
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Release|x64.Build.0 = Release|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Release|x86.ActiveCfg = Release|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Release|x86.Build.0 = Release|Win32
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|Any CPU.ActiveCfg = Tank|Win32
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x64.ActiveCfg = Tank|x64
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x64.Build.0 = Tank|x64
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x86.ActiveCfg = Tank|Win32
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x86.Build.0 = Tank|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

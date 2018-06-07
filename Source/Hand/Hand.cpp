@@ -6,7 +6,6 @@
 #include "RoboEdges.h"
 #include "Hand.h"
 
-
 using namespace Robo;
 using namespace NewHand;
 //--------------------------------------------------------------------------------

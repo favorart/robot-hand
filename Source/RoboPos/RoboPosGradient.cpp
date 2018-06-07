@@ -171,8 +171,10 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
                 {
                     gradient_complexity += gradientMethod(aim);
 
-                    auto &rec = _store.ClothestPoint(aim, _stage3_params.side);
-                    pos = rec.hit;
+                    auto p = _store.getClosestPoint(aim, _stage3_params.side);
+                    if (!p.first)
+                        throw std::runtime_error{ "gradientMethod_admixture: Empty adjacency" };
+                    pos = p.second.hit;
 
                     d = boost_distance(pos, aim);
                     if (_precision > d)

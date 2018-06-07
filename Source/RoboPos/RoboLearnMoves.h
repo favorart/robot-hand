@@ -30,6 +30,8 @@ void  testCover  (IN OUT RoboMoves::Store &store, IN Robo::RoboI &robo, IN size_
 */
 class LearnMoves
 {
+    static int tries;
+
     RoboMoves::Store &_store;
     Robo::RoboI &_robo;
     std::shared_ptr<Robo::RoboI> _p_robo_copy;

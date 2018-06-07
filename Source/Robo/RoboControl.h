@@ -113,10 +113,11 @@ public:
 
     //----------------------------------------------------
     void fillRandom(muscle_t muscles_count,
-                   const std::function<frames_t(muscle_t)> &muscleMaxLasts,
-                   frames_t lasts_min = 50,
-                   unsigned moves_count_min = 1,
-                   unsigned moves_count_max = 3);
+                    const std::function<frames_t(muscle_t)> &muscleMaxLasts,
+                    frames_t lasts_min = 50,
+                    unsigned moves_count_min = 1,
+                    unsigned moves_count_max = 3,
+                    bool simul = true);
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);

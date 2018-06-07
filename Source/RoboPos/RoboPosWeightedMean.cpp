@@ -49,10 +49,12 @@ size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit)
     size_t w_means_complexity = 0U;
     double side_ = _stage3_params.side;
     // -----------------------------------------------
-    const Record &rec = _store.ClothestPoint(aim, _stage3_params.side);
+    auto p = _store.getClosestPoint(aim, _stage3_params.side);
+    if (!p.first)
+        throw std::runtime_error{ "weightedMean: Empty adjacency" };
     // -----------------------------------------------
     // HandMoves::controling_t  controls{ rec.controls };
-    Point pos = rec.hit;
+    Point pos = p.second.hit;
     // -----------------------------------------------
     double distance = boost_distance(aim, pos),
       next_distance = distance;

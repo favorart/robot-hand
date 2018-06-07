@@ -11,13 +11,13 @@
 
 namespace RoboMoves
 {
-  struct ByP {};
-  struct ByR {};
-  struct ByA {};
-  struct ByX {};
-  struct ByY {};
-  struct ByD {};
-  struct ByC {};
+  struct ByX {}; ///< by x of hit
+  struct ByY {}; ///< by y of hit
+  struct ByP {}; ///< by x and y of hit
+  struct ByA {}; ///< by x and y of aim
+  struct ByC {}; ///< by controls
+  struct ByL {}; ///< by trajectory length
+  //struct ByD {}; ///< by distance
 
   using distance_t = double;
 
@@ -109,7 +109,7 @@ namespace RoboMoves
                                       >,
                    ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x > >,
                    ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y > >,
-                   ordered_non_unique < tag<ByD>, const_mem_fun<Record, double, &Record::distanceCovered > >
+                   ordered_non_unique < tag<ByL>, const_mem_fun<Record, double, &Record::distanceCovered > >
                    // , random_access      < > // доступ, как у вектору
                  >
     >;
@@ -160,17 +160,18 @@ namespace RoboMoves
     Store(const Store&) = delete;
     Store(const tstring &database) : Store() { pick_up(database); }
     //------------------------------------------------------------------------------
-    const Record& ClothestPoint(IN const Point &aim, IN double side) const
+    /// \return the closest hit in a square adjacency of the aim point
+    std::pair<bool, Record> getClosestPoint(IN const Point &aim, IN double side) const
     {
       boost::lock_guard<boost::mutex> lock(_store_mutex);
       // -----------------------------------------------
-      const MultiIndexMoves::index<ByP>::type &index = _store.get<ByP>();
+      const auto &indexP = _store.get<ByP>();
       // -----------------------------------------------
-      auto iterLower = index.lower_bound(boost::tuple<double, double> (aim.x - side, aim.y - side));
-      auto iterUpper = index.upper_bound(boost::tuple<double, double> (aim.x + side, aim.y + side));
+      auto itPL = indexP.lower_bound(boost::tuple<double, double>(aim.x - side, aim.y - side));
+      auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim.x + side, aim.y + side));
       // -----------------------------------------------
       ClosestPredicate cp(aim);
-      return *std::min_element(iterLower, iterUpper, cp);
+      return std::make_pair(itPL != itPU, *std::min_element(itPL, itPU, cp));
     }
     //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */
@@ -370,20 +371,33 @@ namespace RoboMoves
     /// Construct Inverse Index of all passed points
     bool near_passed_build_index();
     //------------------------------------------------------------------------------
+    //using MultiIndexMovesIxDcIter = MultiIndexMoves::index<ByD>::type::const_iterator;
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
-    using MultiIndexMovesPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;
+    using MultiIndexMovesSqPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;
+    //using MultiIndexMovesRnPassing = std::pair<MultiIndexMovesIxDcIter, MultiIndexMovesIxDcIter>;
 
-    /// for (auto it=ret.first; it!=ret.second; ++it) {}
-    MultiIndexMovesPassing aim_adjacency(IN const Point &aim, IN double radius) const
+    // for (auto it=ret.first; it!=ret.second; ++it) {}
+    /// \return all points in a square adjacency for the aim point
+    MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN double side) const
     {
+        //boost::lock_guard<boost::mutex> lock(_store_mutex);
         const auto &indexP = _store.get<ByP>();
         // -----------------------------------------------
-        auto itFirstLower = indexP.lower_bound(boost::make_tuple(aim.x - radius, aim.y - radius));
-        auto itFirstUpper = indexP.upper_bound(boost::make_tuple(aim.x + radius, aim.y + radius));
+        auto itPL = indexP.lower_bound(boost::make_tuple(aim.x - side, aim.y - side));
+        auto itPU = indexP.upper_bound(boost::make_tuple(aim.x + side, aim.y + side));
         // -----------------------------------------------
-        CINFO(" aim " << aim << " r " << radius << " adjacency");
-        return std::make_pair(itFirstLower, itFirstUpper);
+        CINFO(" aim " << aim << " side " << side << " adjacency");
+        return std::make_pair(itPL, itPU);
     }
+    /// get all points in round adjacency for the aim point
+    //MultiIndexMovesRnPassing aim_rn_adjacency(IN const Point &aim, IN double radius) const
+    //{
+    //    //boost::lock_guard<boost::mutex> lock(_store_mutex);
+    //    //MultiIndexMoves::index<ByD>::type
+    //    const auto &indexD = _store.get<ByD>();
+    //    CINFO(" aim " << aim << " r " << radius << " adjacency");
+    //    return std::make_pair(indexD.lower_bound(0), indexD.upper_bound(radius));
+    //}
     //------------------------------------------------------------------------------
     void  insert(const Record &rec);
     //------------------------------------------------------------------------------

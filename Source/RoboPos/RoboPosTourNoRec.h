@@ -14,7 +14,10 @@ class Approx;
 class Tour
 {
 protected:
-    borders_t & _borders;
+    struct BorderLasts { Robo::frames_t min_lasts, max_lasts; };
+    using Borders = std::vector<BorderLasts>;
+    Borders &_borders;
+
     RoboMoves::Store &_store;
     Robo::RoboI      &_robo;
     Point             _base_pos{};
@@ -33,11 +36,11 @@ protected:
     bool _b_distance{}, _b_target{}, _b_braking{}, _b_predict{}, _b_checking{};
 
 public:
-    Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN borders_t &borders) :
-        _store(store), _robo(robo), _borders(borders)
+    Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo) :
+        _store(store), _robo(robo)
     {}
     void  run(bool distance, bool target, bool braking, bool predict, bool checking,
-              borders_t &borders, double step_distance, Robo::frames_t lasts_step_increment)
+              double step_distance, Robo::frames_t lasts_step_increment)
     {
         _b_distance = distance;
         _b_target = target;
@@ -98,8 +101,7 @@ class TourNoRecursion : public Tour
     bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
 
 public:
-    TourNoRecursion(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN borders_t &borders,
-                    IN RecTarget &target, Approx &approx) :
+    TourNoRecursion(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target, Approx &approx) :
         Tour(store, robo, borders), _target(target),
         _max_nested(_robo.jointsCount()),
         _breakings_controls(_max_nested), /// ???

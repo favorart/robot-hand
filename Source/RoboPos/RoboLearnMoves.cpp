@@ -12,16 +12,16 @@ using namespace RoboMoves;
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 
-//#define OLD_TOUR
-#ifdef OLD_TOUR
+//#define TOUR_OLD
+#if defined TOUR_OLD
 #include "RoboPosTourNoRec.h"
+#elif defined TOUR_EVO
+#include "RoboPosTourEvo.h"
 #endif
 //------------------------------------------------------------------------------
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
 {
-    borders_t borders;
-    defineRobotBorders(_robo, 70U /*25U*/, borders);
     /* mm :
     *    (target.max - target.min) = 300 mm
     *    1
@@ -29,7 +29,9 @@ void  RoboPos::LearnMoves::STAGE_1()
     *    x    <-->   1 mm   ==> 0.0028
     */
 
-#ifdef OLD_TOUR
+#if defined TOUR_OLD
+    borders_t borders;
+    defineRobotBorders(_robo, 70U /*25U*/, borders);
     Approx approx(1,1);
     std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, borders, _target, approx) };
     pTour->run(/* _b_distance */  true, // Stage 1
@@ -41,8 +43,11 @@ void  RoboPos::LearnMoves::STAGE_1()
                0.07 /*0.1*/, 5 /*1*/);
                //0.1, 10);
                //0.03, 3); // non-recursive
+
+#elif defined TOUR_EVO
+    std::shared_ptr<TourI> pTour{ new TourEvo(_store, _robo, _target) };
 #else
-    std::shared_ptr<TourI> pTour{ new TourWorkSpace(_store, _robo, borders) };
+    std::shared_ptr<TourI> pTour{ new TourWorkSpace(_store, _robo) };
     pTour->setIncrement(0.07, 5);
     pTour->run();
 #endif
@@ -51,14 +56,12 @@ void  RoboPos::LearnMoves::STAGE_1()
 void  RoboPos::LearnMoves::STAGE_2()
 {
     Approx approx(_store.size(), _robo.musclesCount());
-    approx.constructXY(_store);
-    
-    borders_t borders;
-    defineTargetBorders(_target, _store, /* side */ 0.05, borders);
-
+    //approx.constructXY(_store);
     TourTarget::TargetContain target_contain = [&target=_target](const Point &p) { return target.contain(p); };
 
-#ifdef OLD_TOUR
+#if defined TOUR_OLD
+    borders_t borders;
+    defineTargetBorders(_target, _store, /* side */ 0.05, borders);
     std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, borders, _target, approx) };
     pTour->run(/* _b_distance */ false,
                /* _b_target   */ true, // Stage 2
@@ -69,58 +72,59 @@ void  RoboPos::LearnMoves::STAGE_2()
                0.015 /*0.02*/, 2 /*3*/);
                //0.015, 2); // non-recursive
 #else
-    std::shared_ptr<TourI> pTour{ new TourTarget(_store, _robo, borders, approx, target_contain) };
+    std::shared_ptr<TourTarget> pTour{ new TourTarget(_store, _robo, approx, target/*_contain*/) };
     pTour->setIncrement(0.025, 3);
+    //pTour->setPredict(true);
     pTour->run();
 #endif
 }
+
+int RoboPos::LearnMoves::tries = 33;
+
 /// Попадание в оставшиеся непокрытыми точки мишени
 void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 {
-    size_t count = 0U;
+    size_t count = 0;
     uncovered.clear();
     // -----------------------------------------------------
-    for (const auto &pt : _target.coords())
+    auto itp = _target.it_coords();
+    for (auto it = itp.first; it != itp.second; ++it)
     {
         ++count;
         // ---------------------------------------------------
         CINFO(_T("current: ") << count << _T(" / ") << _target.coords().size());
         // ---------------------------------------------------
-        int tries = 32;
-        Point p{ pt };
-        // ---------------------------------------------------
-        auto rec = std::ref(_store.ClothestPoint(pt, _stage3_params.side));
-        while (tries >= 0 && boost_distance(rec.get().hit, pt) > _target.precision())
+        auto prec = _target.precision();
+        auto p = _store.getClosestPoint(*it, _stage3_params.side);
+        for (auto tries = 0; (tries <= LearnMoves::tries /*33%3*/) && (!p.first || boost_distance(p.second.hit, *it) > prec); ++tries)
         {
-            _complexity += gradientMethod_admixture(p);
+            Point pt;
             // -------------------------------------------------
-            rec = std::ref(_store.ClothestPoint(pt, _stage3_params.side));
-            // -------------------------------------------------
-            double  rx = 0., ry = 0.;
-            if ((tries % 3))
+            if (!(tries % 3)) pt = *it;
+            else
             {
-                double min = _target.precision() * _target.precision();
-                double max = _target.precision() * 2.;
+                double min = prec * prec;
+                double max = prec * 2.;
 
-                rx = Utils::random(min, max);
-                ry = Utils::random(min, max);
+                double rx = Utils::random(min, max);
+                double ry = Utils::random(min, max);
 
                 rx = Utils::random(2) ? -rx : rx;
                 ry = Utils::random(2) ? -ry : ry;
+                // -------------------------------------------------
+                pt = { it->x + rx, it->y + ry };
             }
             // -------------------------------------------------
-            p = Point{ pt.x + rx, pt.y + ry };
+            _complexity += gradientMethod_admixture(pt); /* !!! СЛОМАНО !!! */
             // -------------------------------------------------
-            --tries;
+            p = _store.getClosestPoint(*it, _stage3_params.side);
+            // -------------------------------------------------
+            boost::this_thread::interruption_point();
         }
         // ---------------------------------------------------
-        {
-            const Record &rec = _store.ClothestPoint(pt, _stage3_params.side);
-            if (boost_distance(rec.hit, pt) > _target.precision())
-            { uncovered.push_back(pt); }
-        }
-    } // end for
-    
+        if (!p.first || boost_distance(p.second.hit, *it) > prec)
+            uncovered.push_back(*it);
+    }
     // -----------------------------------------------------
     tcout << _T("TOTAL Complexity: ") << complexity()
           << _T(" ") << double(complexity()) / 60. << _T(" minutes.") << std::endl;
@@ -132,12 +136,12 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 void  RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 {
     uncovered.clear();
-    for (const auto &pt : _target.coords())
+    auto itp = _target.it_coords();
+    for (auto it = itp.first; it != itp.second; ++it)
     {
-        const Record &rec = _store.ClothestPoint(pt, _stage3_params.side);
-        // -------------------------------------------------------
-        if (boost_distance(rec.hit, pt) > _target.precision())
-        { uncovered.push_back(pt); }
+        auto p = _store.getClosestPoint(*it, _stage3_params.side);
+        if (p.first && boost_distance(p.second.hit, *it) > _target.precision())
+        { uncovered.push_back(*it); }
     }
 }
 

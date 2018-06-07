@@ -565,8 +565,8 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         // wd.trajFrames_muscle = wd.pRobo->selectControl ();
         // wd.trajFrames_lasts = random (1U, wd.pRobo->muscleMaxLast (wd.trajFrames_muscle));
         Control controls;
-        controls.fillRandom(wd.pRobo->musclesCount(),
-                            [&robo=*wd.pRobo](muscle_t m) { return (robo.muscleMaxLast(m) / 2); }); /// Tank: 500, 2
+        controls.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return robo.muscleMaxLast(m); }, 70, 2, 4, true);
+        CDEBUG(controls);
 
         wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{controls});
         wd.canvas.hDynamicBitmapChanged = true;

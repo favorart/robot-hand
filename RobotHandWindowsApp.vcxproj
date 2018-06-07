@@ -17,6 +17,14 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Tank|Win32">
+      <Configuration>Tank</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Tank|x64">
+      <Configuration>Tank</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\EigenSerializePlugin.h" />
@@ -30,6 +38,7 @@
     <ClInclude Include="Source\Hand\Hand.h" />
     <ClInclude Include="Source\Hand\HandMotionLaws.h" />
     <ClInclude Include="Source\RoboPos\RoboPosApprox.h" />
+    <ClInclude Include="Source\RoboPos\RoboPosTourEvo.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourNoRec.h" />
     <ClInclude Include="Source\Robo\RoboMuscles.h" />
     <ClInclude Include="libs\Combinations.h" />
@@ -67,6 +76,7 @@
     <ClCompile Include="Source\Hand\Hand.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosApprox.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosRundown.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboPosTourEvo.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosWeightedMean.cpp" />
     <ClCompile Include="Source\Robo\RoboMuscles.cpp" />
     <ClCompile Include="libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.cpp" />
@@ -89,9 +99,11 @@
     <ClCompile Include="Source\RoboPos\RoboEdges.cpp" />
     <ClCompile Include="Source\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Tank|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Tank\Tank.cpp" />
     <ClCompile Include="Source\Utilities\ConfigJSON.cpp" />
@@ -130,6 +142,13 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tank|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -137,6 +156,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tank|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
@@ -154,10 +180,16 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Tank|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Tank|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -182,7 +214,21 @@
     <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\libs\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(VC_SourcePath)</SourcePath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tank|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\lp_solve\include\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\libs\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(VC_SourcePath)</SourcePath>
+    <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(VC_SourcePath)</SourcePath>
+    <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(FxCopDir);$(PATH);</ExecutablePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Position\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\HandMoves\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)Source\libs\lp_solve\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\libs\lp_solve\lib\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
@@ -260,7 +306,59 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Tank|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;MY_WINDOW;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\blaslapack\CBLAS\include;D:\blaslapack\LAPACKE\include;C:\b11\boost_1_66_0;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ShowIncludes>false</ShowIncludes>
+      <PrecompiledHeaderFile>StdAfx.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>D:\blaslapack\!LIB;$(ProjectDir)libs\lp_solve\lib32;C:\b11\boost_1_66_0\libs;C:\b11\boost_1_66_0\lib32-msvc-14.1;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;C:\Program Files (x86)\Common Files\Intel\Shared Files\fortran\Lib\ia32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>liblpsolve55.lib;liblpsolve55d.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNING;_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;MY_WINDOW;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ShowIncludes>false</ShowIncludes>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Users\MainUser\Documents\Visual Studio 2015\boost_1\stage64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>liblpsolve55.lib;lpsolve55.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>Use</PrecompiledHeader>

@@ -104,4 +104,13 @@ std::list<JInput> JInputs(const std::list<std::shared_ptr<Robo::JointInput>> &jo
     return inputs;
 }
 //-------------------------------------------------------------------------------
+inline Robo::frames_t musclesMaxLasts(const Robo::RoboI &robo)
+{
+    frames_t l = 0;
+    for (muscle_t m = 0; m < robo.musclesCount(); ++m)
+        if (l < robo.muscleMaxLast(m))
+            l = robo.muscleMaxLast(m);
+    return l;
+}
+//-------------------------------------------------------------------------------
 }

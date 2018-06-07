@@ -15,11 +15,6 @@
 namespace RoboPos {
 //------------------------------------------------------------------------------
 using distance_t = double;
-struct lasts_border_t { Robo::frames_t min_lasts, max_lasts; };
-using borders_t = std::unordered_map<Robo::muscle_t, lasts_border_t>;
-//------------------------------------------------------------------------------
-void defineRobotBorders(const Robo::RoboI&, Robo::frames_t, borders_t&);
-void defineTargetBorders(const RecTarget&, const RoboMoves::Store&, distance_t, borders_t&);
 //------------------------------------------------------------------------------
 struct Counters
 {

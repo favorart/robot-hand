@@ -65,11 +65,10 @@ bool Robo::Control::validateMusclesTimes() const
 
 //---------------------------------------------------------
 void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const std::function<Robo::frames_t(Robo::muscle_t)> &muscleMaxLasts,
-                               Robo::frames_t lasts_min, unsigned moves_count_min, unsigned moves_count_max)
+                               Robo::frames_t lasts_min, unsigned moves_count_min, unsigned moves_count_max, bool simul)
 {
-    clear();
-
     unsigned moves_count = Utils::random(moves_count_min, moves_count_max);
+    clear();
 
     Robo::Actuator a{ MInvalid /* muscle - empty move */, 0 /* start */ , 0 /* last */ };
     for (unsigned mv = 0; mv < moves_count; ++mv)
@@ -79,23 +78,15 @@ void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const std::function
         { a.lasts = Utils::random(lasts_min, muscleMaxLasts(a.muscle)); }
         else
         { a.lasts = Utils::random(lasts_min, a.lasts); }
+        ///*if*/ while (!a.last)
+        //{ a.last = random(lasts_min, muscleMaxLasts(a.muscle)); } /* Tank */
     
         append(a);
-        a.start += (a.lasts + 1);
+        if (!simul)
+            a.start += (a.lasts + 1u);
+        else
+            a.start = Utils::random(0u, a.lasts + 1u);
     }
-
-    /* Tank */
-    //for (unsigned mv = 0; mv < moves_count; ++mv)
-    //{
-    //    a.muscle = random(muscles_count);
-    //    /*if*/ while (!a.last)
-    //    { a.last = random(lasts_min, muscleMaxLasts(a.muscle)); }
-    //    //else
-    //    //{ a.last = random(lasts_min, a.last); }
-    //
-    //    append(a);
-    //    //a.start += (a.last + 1);
-    //}
 }
 
 

@@ -120,19 +120,21 @@ size_t LearnMoves::rundownMDir(IN const Point &aim, OUT Point &robo_position)
 {
     size_t rundown_complexity = 0U;
     // -----------------------------------------------
-    const Record &rec = _store.ClothestPoint(aim, _stage3_params.side);
-    Point robo_pos = rec.hit;
+    auto p = _store.getClosestPoint(aim, _stage3_params.side);
+    if (!p.first)
+        throw std::runtime_error{"rundownMDir: Empty adjacency"};
+    Point robo_pos = p.second.hit;
     // -----------------------------------------------
-    Control  controls{ rec.controls };
+    Control controls{ p.second.controls };
     rundownControls(controls);
     // -----------------------------------------------
-    double  distance = boost_distance(robo_pos, aim),
-        start_distance = distance;
+    double distance = boost_distance(robo_pos, aim);
+    double start_distance = distance;
     // -----------------------------------------------
-    frames_t  velosity = frames_t(floor(distance / _precision + 0.5));
-    frames_t  velosity_prev = 0U;
+    frames_t velosity = frames_t(floor(distance / _precision + 0.5));
+    frames_t velosity_prev = 0;
     // -----------------------------------------------
-    size_t  controls_curr = 0U;
+    size_t  controls_curr = 0;
     // -----------------------------------------------
     _robo.reset();
     while (!rundownNextControl(controls, controls_curr,
@@ -293,7 +295,7 @@ bool LearnMoves::rundownNextControl(IN OUT Control    &controls,
     bool result = true;
     // ---------------------------------
     if (controls.size() != lasts_changes.size())
-        throw std::exception("rundownNextControl: not equal sizes controls and lasts_changes");
+        throw std::runtime_error{"rundownNextControl: not equal sizes controls and lasts_changes"};
     // ---------------------------------
     auto it = controls.begin();
     for (auto last_change : lasts_changes)
@@ -360,18 +362,20 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position)
 {
     size_t  rundown_complexity = 0U;
     // -----------------------------------------------
-    const Record &rec = _store.ClothestPoint(aim, _stage3_params.side);
-    Point robo_pos = rec.hit;
+    auto p = _store.getClosestPoint(aim, _stage3_params.side);
+    if (!p.first)
+        throw std::runtime_error{ "rundownFull: Empty adjacency" };
+    Point robo_pos = p.second.hit;
     // -----------------------------------------------
     double distance = boost_distance(robo_pos, aim),
         next_distance = distance,
         start_distance = distance;
     // -----------------------------------------------
-    Control  controls{ rec.controls };
+    Control  controls{ p.second.controls };
     rundownControls(controls);
     // -----------------------------------------------
-    frames_t  velosity = 0U;
-    frames_t  velosity_prev = 0U;
+    frames_t velosity = 0;
+    frames_t velosity_prev = 0;
     // -----------------------------------------------
     std::vector<int>  lasts_changes(_robo.musclesCount());
     // -----------------------------------------------
@@ -453,15 +457,11 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position)
         // if ( distance < start_distance )
         // { break; }
         // -----------------------------------------------
-#ifdef _DEBUG_PRINT
-        tcout << _T("prec: ") << best_distance << std::endl;
-#endif // _DEBUG_PRINT
-
+        //CDEBUG("prec: " << best_distance);
     } // end while
 
     // -----------------------------------------------
-    tcout << _T("rundown complexity: ") << rundown_complexity
-          << std::endl << std::endl;
+    CINFO("rundown complexity: " << rundown_complexity << std::endl);
     // -----------------------------------------------
     return rundown_complexity;
 }

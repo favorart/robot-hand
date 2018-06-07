@@ -1,13 +1,10 @@
-﻿
-#ifdef MY_WINDOW
+﻿#ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowDraw.h"
 #endif // MY_WINDOW
 #include "RoboMuscles.h"
 #include "RoboEdges.h"
 #include "Tank.h"
-
-#define DEBUG_PRINT
 
 using namespace Robo;
 using namespace Mobile;
@@ -266,8 +263,10 @@ Tank::Physics::Physics(IN const Point &baseCenter, IN const std::list<Tank::Join
 //--------------------------------------------------------------------------------
 void Tank::realMove()
 {
+#ifdef TANK_DEBUG
     r1_ = r2_ = 0;
     center_ = { 0.,0. };
+#endif // TANK_DEBUG
 
     Point &cpL{ status.curPos[Joint::LTrack] };
     Point &cpR{ status.curPos[Joint::RTrack] };
@@ -300,17 +299,17 @@ void Tank::realMove()
         return;
     }
 
+    const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
     Point center{}, normal{};
     double tan_angle = 0., radius = 0.;
 
     bool strait = false;
-    if (fabs(fabs(shiftL) - fabs(shiftR)) < Utils::EPSILONT)
+    if (fabs(fabs(shiftL) - fabs(shiftR)) < Tank::minFrameMove)
     {
         if (boost::math::sign(shiftL) != boost::math::sign(shiftR))
         {
-            const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
             cpL.rotate_radians(bodyCenterOld, std::atan(shiftL / between));
-            cpR.rotate_radians(bodyCenterOld, std::atan(shiftR / between));
+            cpR.rotate_radians(bodyCenterOld, std::atan(shiftL / between));
         }
         else
         {
@@ -331,15 +330,17 @@ void Tank::realMove()
         {
             radius = fabs(shiftR / tan_angle);
             center = alongLineAtDistance(cpR, cpL, radius);
-    
+
+#ifdef TANK_DEBUG
             r1_ = radius;
             r2_ = (shiftL / tan_angle);
             center_ = center;
+#endif // TANK_DEBUG
         }
         else
         {
             // нормаль
-            normal = cpL - cpR;
+            normal = cpR - cpL;
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
             assert(shiftL == shiftR);
@@ -354,14 +355,16 @@ void Tank::realMove()
             radius = fabs(shiftL / tan_angle);
             center = alongLineAtDistance(cpL, cpR, radius);
 
+#ifdef TANK_DEBUG
             r1_ = radius;
             r2_ = (shiftR / tan_angle);
             center_ = center;
+#endif // TANK_DEBUG
         }
         else
         {
             // нормаль
-            normal = cpR - cpL;
+            normal = cpL - cpR;
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
             assert(shiftL == shiftR);
@@ -374,39 +377,27 @@ void Tank::realMove()
         std::getchar();
         std::exit(1);
     }
-
-    const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
-    const Point bodyCenterNew = ((fabs(tan_angle) > 0.) ? rotate_radians(bodyCenterOld, center, std::atan(tan_angle)) : (bodyCenterOld + normal));
-    status.curPos[Joint::JCount] = bodyCenterNew;
-    //if (strait)
-    //    CDEBUG(bodyCenterOld << ' ' << bodyCenterNew << ' ' << normal);
-
-    Point bodyVelosity = bodyCenterNew - bodyCenterOld;
-    //if (!status.edges->interaction(*this, bodyVelosity)) /// TODO:
+    
+    CINFO("cpL=" << cpL << " cpR=" << cpR);
+    if (fabs(tan_angle) > 0)
     {
-        //auto cpl = cpL, cpr = cpR;
-        //CDEBUG("------------------" << std::endl
-        //       << "shiftL=" << shiftL << " shiftR=" << shiftR << std::endl
-        //       << "L=" << cpL << " R=" << cpR << std::endl
-        //       << (fabs(angle) > 0 ? "C=" : "n=") << (fabs(angle) > 0 ? center : normal)
-        //       << " a=" << angle);
-
-        if (fabs(tan_angle) > 0)
-        {
-            cpL.rotate_radians(center, +std::atan(tan_angle));
-            cpR.rotate_radians(center, -std::atan(tan_angle));
-        }
-        else
-        {
-            cpL += normal;
-            cpR += normal;
-        }
-
-        //CDEBUG("------------------" << std::endl << "L=" << cpL << " R=" << cpR << std::endl << "------------------");
-        //if (cpl == cpL && cpr == cpR)
-        //    CDEBUG("eq");
+        cpL.rotate_radians(center, +std::atan(tan_angle));
+        cpR.rotate_radians(center, -std::atan(tan_angle));
     }
+    else
+    {
+        cpL += normal;
+        cpR += normal;
+    }
+    status.curPos[Joint::JCount] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
+    CINFO("cpL=" << cpL << " cpR=" << cpR);
+    CINFO("curPosBase=" << status.curPos[Joint::JCount] << " old=" << bodyCenterOld);
 
+    Point bodyVelosity = status.curPos[Joint::JCount] - bodyCenterOld;
+    if (!status.edges->interaction(*this, bodyVelosity))
+    {
+        /// TODO:
+    }
     //Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
     //             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
     //Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
@@ -605,6 +596,7 @@ void Tank::reset()
         /* make it at resetJoint(): status[ curPo angles ] */
         resetJoint(joint);
     }
+    //status.curPos[Joint::JCount] = physics.jointsBases[Joint::JCount]; // base Center;
 }
 //--------------------------------------------------------------------------------
 void Tank::resetJoint(IN joint_t joint)
@@ -621,7 +613,8 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
         /* =2.8 ~distance from up-left to down-right canvas-corner */
         status.shifts[joint] = (2.8 * jr.second / 100.);
     }
-    realMove();
+    status.curPos[Joint::JCount] = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2;
+    //realMove();
 }
 //--------------------------------------------------------------------------------
 void Tank::controlsValidate(const Control&) const
@@ -630,71 +623,3 @@ void Tank::controlsValidate(const Control&) const
 }
 //--------------------------------------------------------------------------------
 
-
-//void Tank::realMove()
-//{
-//    Point &cpL{ status.curPos[Joint::LTrack] };
-//    Point &cpR{ status.curPos[Joint::RTrack] };
-//    //========================================================
-//    Point L{ Lp.x, Lp.y + status.shifts[Joint::LTrack] };
-//    Point R{ Rp.x, Rp.y + status.shifts[Joint::RTrack] };
-//    
-//    Point i = intersection_point(Lp, Rp, L, R);
-//    
-//    double phy = angle(boost_distance(L,i), boost_distance(L,Lp));
-//    status.curPos[Joint::LTrack] = rotate(L, i, phy);
-//    status.curPos[Joint::RTrack] = rotate(R, i, phy);
-//    //========================================================
-//    double shiftL = status.shifts[Muscle::LTrackFrw] - status.shifts[Muscle::LTrackBck];
-//    double shiftR = status.shifts[Muscle::RTrackFrw] - status.shifts[Muscle::RTrackBck];
-//
-//    if (fabs(shiftL) < Tank::minFrameMove && fabs(shiftR) < Tank::minFrameMove)
-//        return;
-//
-//    const double between = boost_distance(cpL, cpR);
-//    Point C;
-//    double angle;
-//    //========================================================
-//    double A = (Lp.y - Rp.y);
-//    double B = (Rp.x - Lp.x);
-//    double C = (Lp.x * Rp.y - Rp.x * Lp.y);
-//    A * C.x + B * C.y + C == 0;
-//    boost_distance(Lp, C) == radius;
-//    
-//    //========================================================
-//    auto n = Point{ -cpL.y - cpR.y, cpL.x - cpR.x } / between;
-//    
-//    if (shiftL > 0 && shiftR > 0)
-//    {
-//        // move forward
-//        cpL += n * std::min(shiftL, shiftR);
-//        cpR += n * std::min(shiftL, shiftR);
-//    
-//        shiftL -= std::min(shiftL, shiftR);
-//        shiftR -= std::min(shiftL, shiftR);
-//    }
-//    else if (shiftL < 0 && shiftR < 0)
-//    {
-//        // move backward
-//        cpL += n * std::max(shiftL, shiftR);
-//        cpR += n * std::max(shiftL, shiftR);
-//    
-//        shiftL -= std::max(shiftL, shiftR);
-//        shiftR -= std::max(shiftL, shiftR);
-//    }
-//    else
-//    {
-//        // turning
-//        double turn = std::min(fabs(shiftL), fabs(shiftR));
-//        turn = (shiftL > 0) ? +turn : -turn;
-//    
-//        Point C{ cpL + cpR / 2. };
-//        double phy = turn / (between / 2);
-//    
-//        cpL.rotate(C, +phy);
-//        cpR.rotate(C, -phy);
-//    
-//        shiftL -= turn;
-//        shiftR += turn;
-//    }
-//}
