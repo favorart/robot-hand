@@ -1,4 +1,4 @@
-#include "RoboPosTourEvo.h"
+п»ї#include "RoboPosTourEvo.h"
 
 using namespace RoboPos;
 
@@ -105,6 +105,9 @@ public:
 };
 }
 
+using namespace Robo;
+using namespace RoboPos;
+
 bool RoboPos::TourEvo::runNestedForMuscle(Robo::joint_t, Robo::Control&, Point&)
 {
     _robo.reset();
@@ -201,23 +204,95 @@ bool RoboPos::TourEvo::runNestedForMuscle(Robo::joint_t, Robo::Control&, Point&)
 }
 
 
+
+bool RoboPos::TourEvo::runNestedForMuscleSteps(joint_t, Control&, Point&)
+{
+    const frames_t episode = 1000;
+
+    _robo.reset();
+    Point pos = _robo.position(), prev_pos = pos;
+
+    Goal goal(_t);
+    double dist = boost_distance(goal.biggest(), pos), prev_dist = dist;
+    CDEBUG("init=" << dist << ' ' << pos << ' ' << goal.biggest());
+    
+    bool done = false;
+    Control result;
+
+    while (goal.next_stage(_store, side))
+    {
+        CINFO("Evo: next_stage goal");
+        for (frames_t frame = 0; frame < episode && !done; ++frame)
+        {
+            Learn::Act act(_robo.musclesCount());
+            frames_t start = 0;
+
+            /// Max РёР· РІСЃРµС… РґРµР№СЃС‚РІРёР№ РёР»Рё РїРµСЂРІРѕРµ РїРѕРїР°РІС€РµРµСЃСЏ РїРѕРґС…РѕРґСЏС‰РµРµ РґРµР№СЃС‚РІРёРµ?
+
+            for (muscle_t m = 0; m < _robo.musclesCount() && !done; ++m)
+            {
+                act.setActs(m);
+                double d = 0.;
+                while (1)
+                {
+                    _robo.step(frame, act);
+
+                    d = boost_distance(goal.biggest(), pos);
+                    //CDEBUG(d << ' ' << pos << ' ' << goal.biggest() << controls + as);
+                    if (d >= reached_less(dist))
+                    {
+                        if (frame - start > 0)
+                            result.append({ m, start, frame - start });
+                        /* LESS */
+                        break;
+                    }
+
+                    if (d < _reached_dist)
+                    {
+                        /* DONE */
+                        done = true;
+                    }
+                } // while (1)
+            }
+
+            if (_t.contain(pos))
+            {
+                CINFO("Evo: recalc goal");
+                goal.recalc(_store, side);
+            }
+            if (dist >= prev_dist)
+            {
+                /* FAIL */
+                // none of increasing do not gives closing to goal
+                CINFO("Evo: FAIL");
+                return false;
+            }
+
+        } // end for episode
+    } // end while goals
+    CINFO("Evo: DONE");
+    return true;
+}
+
+
+
 //namespace Robo
 //{
 //bool runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &robo_pos_high)
 //{
 //    CDEBUG("runNested " << joint/* << " last_i " << last_i*/);
 //    --_max_nested;
-//    // стартруем разными сочленениями последовательно
+//    // СЃС‚Р°СЂС‚СЂСѓРµРј СЂР°Р·РЅС‹РјРё СЃРѕС‡Р»РµРЅРµРЅРёСЏРјРё РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕ
 //    //const frames_t start_i = controls.size() ? (controls[-1].lasts + controls[-1].start) : 0;
-//    // стартруем разными сочленениями одновременно
+//    // СЃС‚Р°СЂС‚СЂСѓРµРј СЂР°Р·РЅС‹РјРё СЃРѕС‡Р»РµРЅРµРЅРёСЏРјРё РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ
 //    const frames_t start_i = 0;
 //    //------------------------------------------
 //    Point curr_pos = _base_pos, prev_pos = _base_pos;
 //    //------------------------------------------
-//    // заметание пространства проходит рядами,
-//    // сдвигаясь всё дальше от начальной точки
-//    int high = 0; // число положений захвата робота в вышестоящем ряду
-//    Point max_robo_pos_high{ 0., 0. }; // сумма положений робота в вышестоящем ряду
+//    // Р·Р°РјРµС‚Р°РЅРёРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР° РїСЂРѕС…РѕРґРёС‚ СЂСЏРґР°РјРё,
+//    // СЃРґРІРёРіР°СЏСЃСЊ РІСЃС‘ РґР°Р»СЊС€Рµ РѕС‚ РЅР°С‡Р°Р»СЊРЅРѕР№ С‚РѕС‡РєРё
+//    int high = 0; // С‡РёСЃР»Рѕ РїРѕР»РѕР¶РµРЅРёР№ Р·Р°С…РІР°С‚Р° СЂРѕР±РѕС‚Р° РІ РІС‹С€РµСЃС‚РѕСЏС‰РµРј СЂСЏРґСѓ
+//    Point max_robo_pos_high{ 0., 0. }; // СЃСѓРјРјР° РїРѕР»РѕР¶РµРЅРёР№ СЂРѕР±РѕС‚Р° РІ РІС‹С€РµСЃС‚РѕСЏС‰РµРј СЂСЏРґСѓ
 //
 //    Actuator control_i;
 //    //------------------------------------------
@@ -235,7 +310,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(Robo::joint_t, Robo::Control&, Point&)
 //
 //
 //        //------------------------------------------
-//        // адаптивный шаг длительности
+//        // Р°РґР°РїС‚РёРІРЅС‹Р№ С€Р°Рі РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё
 //        frames_t lasts_step = _lasts_step_increment_init;
 //        //frames_t lasts_i_max = _robo.muscleMaxLast(muscle_i);
 //        //------------------------------------------
@@ -265,15 +340,15 @@ bool RoboPos::TourEvo::runNestedForMuscle(Robo::joint_t, Robo::Control&, Point&)
 //                //------------------------------------------
 //                if (d > _step_distance)
 //                {
-//                    // адаптивный шаг изменения длительности
+//                    // Р°РґР°РїС‚РёРІРЅС‹Р№ С€Р°Рі РёР·РјРµРЅРµРЅРёСЏ РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё
 //                    if (lasts_step > _lasts_step_increment)
 //                        lasts_step -= _lasts_step_increment;
 //                    else if (_lasts_step_increment > 1 && lasts_step > _lasts_step_increment / 2)
 //                        lasts_step -= _lasts_step_increment / 2;
 //                    else if (_b_braking) // ?? && _lasts_step_increment == 1)
 //                    {
-//                        // если нельзя сохранить одинаковый промежуток уменьшением длительности
-//                        // подключаем торможения противоположным двигателем
+//                        // РµСЃР»Рё РЅРµР»СЊР·СЏ СЃРѕС…СЂР°РЅРёС‚СЊ РѕРґРёРЅР°РєРѕРІС‹Р№ РїСЂРѕРјРµР¶СѓС‚РѕРє СѓРјРµРЅСЊС€РµРЅРёРµРј РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё
+//                        // РїРѕРґРєР»СЋС‡Р°РµРј С‚РѕСЂРјРѕР¶РµРЅРёСЏ РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅС‹Рј РґРІРёРіР°С‚РµР»РµРј
 //                        appendBreakings(joint, control_i);
 //                    }
 //                }
@@ -282,21 +357,21 @@ bool RoboPos::TourEvo::runNestedForMuscle(Robo::joint_t, Robo::Control&, Point&)
 //                    if (_b_braking && _breakings_controls_actives > 0 &&
 //                        _breakings_controls[joint].lasts > 0 /* !!! */)
 //                    {
-//                        // сначала по возможности отключаем торможения
+//                        // СЃРЅР°С‡Р°Р»Р° РїРѕ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё РѕС‚РєР»СЋС‡Р°РµРј С‚РѕСЂРјРѕР¶РµРЅРёСЏ
 //                        removeBreakings(joint);
 //                    }
 //                    else
 //                    {
-//                        // затем увеличиваем длительность
+//                        // Р·Р°С‚РµРј СѓРІРµР»РёС‡РёРІР°РµРј РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ
 //                        lasts_step += _lasts_step_increment;
 //                    }
 //                }
 //            }
 //            //------------------------------------------
 //            {
-//                // сохраняем полученное положение робота
-//                // в сумму для получения среднего, которым пользуется
-//                // функция выше по реккурсии
+//                // СЃРѕС…СЂР°РЅСЏРµРј РїРѕР»СѓС‡РµРЅРЅРѕРµ РїРѕР»РѕР¶РµРЅРёРµ СЂРѕР±РѕС‚Р°
+//                // РІ СЃСѓРјРјСѓ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ СЃСЂРµРґРЅРµРіРѕ, РєРѕС‚РѕСЂС‹Рј РїРѕР»СЊР·СѓРµС‚СЃСЏ
+//                // С„СѓРЅРєС†РёСЏ РІС‹С€Рµ РїРѕ СЂРµРєРєСѓСЂСЃРёРё
 //                max_robo_pos_high.x += curr_pos.x;
 //                max_robo_pos_high.y += curr_pos.y;
 //                ++high;

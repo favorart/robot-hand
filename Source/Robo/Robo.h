@@ -5,10 +5,48 @@
 
 namespace Robo
 {
+
+namespace Learn
+{
+class Act
+{
+    //static unsigned maxActorsNumber = 32;
+    unsigned actors;
+    unsigned b_acts;
+public:
+    Act(int actors) : actors(actors), b_acts(0) {}
+    int64_t nActions() const { return static_cast<int64_t>(std::pow(2, actors)); }
+    bool setActs(unsigned acts) { b_acts = acts; }
+    bool getAct(unsigned i) const
+    {
+        i = ((i >= actors) ? (actors - 1) : i);
+        return ((b_acts & (1 << i)) != 0);
+    }
+};
+
+//template <int N>
+struct State : public Point // !!! REMOVE Temporary
+{
+    struct SState
+    {
+        Point pos{};
+        Point velosity{};
+        Point accel{}; //acceleration
+    };
+    SState joints[4] = {};
+    Act act{4};
+
+    State() {}
+    State(const Point& p) : Point(p) {}
+    //State(const Point& pos, const Point& velosity, const Point& accel) : Point(p) {}
+};
+}
+
+
 //-------------------------------------------------------------------------------
 //struct TStringSerializableI { virtual operator tstring() const = 0; };
 //-------------------------------------------------------------------------------
-using Trajectory = std::list<Point>;
+using Trajectory = std::list<Learn::State>;
 using Trajectories = std::list<Trajectory>;
 using joint_t = uint8_t;
 const joint_t JInvalid = 0xFF;
@@ -17,10 +55,17 @@ struct JointInput
 {
     MotionLaws::JointMotionLaw frames{ nullptr, nullptr };
     bool show = true;
+    Point  base{};
+    size_t nMoveFrames{};
+    double maxMoveFrame{};
+    joint_t type{};
 
     JointInput() = default;
-    JointInput(const MotionLaws::JointMotionLaw &frames, bool show) :
-        frames(frames), show(show) {}
+    JointInput(joint_t type, const MotionLaws::JointMotionLaw &frames, bool show,
+               const Point &base, size_t nMoveFrames, double maxMoveFrame) :
+        type(type), frames(frames), show(show), base(base),
+        nMoveFrames(nMoveFrames), maxMoveFrame(maxMoveFrame)
+    {}
     virtual ~JointInput() {}
 };
 //-------------------------------------------------------------------------------
@@ -28,11 +73,17 @@ struct JointInput
 class RoboI
 {
 protected:
-    static const double minFrameMove;
+    static const double   minFrameMove;
+    static const muscle_t musclesPerJoint = 2;
+    static const muscle_t musclesMaxCount = 32;
+    static const muscle_t jointsMaxCount = musclesMaxCount / musclesPerJoint;
+
+    virtual void realMove() = 0;
+
+    bool musclesValidUnion(muscle_t m1, muscle_t m2)
+    { return (m1 < musclesCount() && m2 < musclesCount() && (m1 / 2) != (m2 / 2)); }
 
 public:
-    static const muscle_t musclesMaxCount = 32;
-
     static muscle_t muscleOpposite(IN muscle_t muscle)
     {
         //if (muscle >= musclesCount())
@@ -45,11 +96,10 @@ public:
     { return (muscle / 2); }
 
     //----------------------------------------------------
-    RoboI() {}
+    RoboI() = default;
     RoboI(RoboI&&) = delete;
     RoboI(const RoboI&) = delete;
-    RoboI(const Point&, const std::list<Robo::JointInput>&) {}
-    RoboI(const Point&, const std::list<std::shared_ptr<Robo::JointInput>>&) {}
+    //RoboI(const Point&, const JointsPInputs&) {}
 
     //----------------------------------------------------
     virtual joint_t  jointsCount() const = 0;
@@ -60,21 +110,18 @@ public:
 
     //----------------------------------------------------
     virtual frames_t move(IN const Control&, OUT Trajectory&) = 0;
-    virtual void     step(IN frames_t frame, IN muscle_t muscle = MInvalid, IN frames_t last = 0) = 0;
 
-    virtual void     draw(IN HDC, IN HPEN, IN HBRUSH) const = 0;
+    virtual void step(frames_t frame, muscle_t muscle = MInvalid, frames_t last = 0) = 0;
+    virtual void step(frames_t frame, const Learn::Act &act) = 0;
 
-    virtual void     getWorkSpace(OUT Trajectory&) = 0;
+    virtual void draw(IN HDC, IN HPEN, IN HBRUSH) const = 0;
+    virtual void getWorkSpace(OUT Trajectory&) = 0;
 
     //----------------------------------------------------
-    using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;
-    virtual void setJoints(IN const JointsOpenPercent&) = 0;
-    virtual void resetJoint(IN joint_t) = 0;
     virtual void reset() = 0;
+    virtual void resetJoint(IN joint_t) = 0;
 
     virtual Point jointPos(IN joint_t) const = 0;
-    //----------------------------------------------------
-    virtual void controlsValidate(const Control&) const = 0;
     //----------------------------------------------------
     virtual bool moveEnd() const = 0;
     virtual const Point& position() const = 0;

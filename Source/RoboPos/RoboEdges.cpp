@@ -8,6 +8,7 @@
 
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
+
 bool Robo::EnvEdgesTank::interaction(RoboI &robo, const Point &vecBodyVelocity)
 {
     auto &tank = dynamic_cast<Tank&>(robo);
@@ -40,7 +41,7 @@ bool Robo::EnvEdgesTank::interaction(RoboI &robo, const Point &vecBodyVelocity)
 
             tcout << cpL << ' ' << cpR << std::endl;
 
-            if (oscillate.norm2() < Tank::minFrameMove)
+            if (oscillate.norm2() < RoboI::minFrameMove)
             {
                 state = false;
                 oscillate = { 0., 0. };
@@ -66,32 +67,30 @@ bool Robo::EnvEdgesHand::interaction(RoboI &robo, const Point &vecBodyVelocity)
     if (state || vecBodyVelocity.norm2() >= Hand::minFrameMove)
     {
         //Point LEdge, REdge;
-        std::array<bool, Hand::JointsMaxCount> inters;
+        std::array<bool, Hand::JCount> inters;
         //Hand::Joint min_inter = Hand::Joint::JInvalid;
         joint_t min_inter = Robo::JInvalid;
 
-        joint_t j = Robo::JInvalid;
-        for (auto joint : hand.params.jointsUsed)
+        for (joint_t joint = 0; joint < hand.jointsCount(); ++joint)
         {
             if ((hand.status.curPos[joint].x - hand.params.jointRadius) > RBorder.x) inters[joint] = true;
             if ((hand.status.curPos[joint].y - hand.params.jointRadius) > RBorder.y) inters[joint] = true;
             if ((hand.status.curPos[joint].x + hand.params.jointRadius) < LBorder.x) inters[joint] = true;
             if ((hand.status.curPos[joint].y + hand.params.jointRadius) < LBorder.y) inters[joint] = true;
 
-            if (hand.status.angles[joint] == 0 || hand.status.angles[joint] == hand.physics.jointsMaxAngles[joint])
+            if (hand.angles[joint] == 0 || hand.angles[joint] == hand.params.maxAngles[joint])
                 inters[joint] = true;
 
             if (inters[joint])
             {
                 state = true;
-                if (min_inter > j)
-                    min_inter = j;
+                if (min_inter > joint)
+                    min_inter = joint;
             }
-            ++j;
         }
 
-        j = min_inter;
-        if (min_inter != Hand::Joint::JInvalid || state)
+        joint_t joint = min_inter;
+        if (min_inter != Robo::JInvalid || state)
         {
             const Point oscillate = vecBodyVelocity / 2.;
             for (auto joint : hand.params.jointsUsed)
@@ -101,12 +100,12 @@ bool Robo::EnvEdgesHand::interaction(RoboI &robo, const Point &vecBodyVelocity)
                 // (2. * j); if (j > 1) --j;
             }
 
-            if (oscillate.norm2() >= Tank::minFrameMove)
+            if (oscillate.norm2() >= RoboI::minFrameMove)
                 return true;
 
             state = false;
-            for (auto &muscle : hand.params.musclesUsed)
-                hand.status.angles[muscle] = 0.;
+            for (muscle_t muscle = 0; muscle < hand.musclesCount(); ++muscle)
+                hand.angles[muscle] = 0.;
         }
     }
     return false;

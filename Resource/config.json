@@ -5,12 +5,13 @@
     "joints": [
       {
         "name": "Wrist",
+        "joint": 0,
+        "defPoseRatio": 0.0,
         "type": 0,
         "show": false,
         "base": [ -0.75, 1.05 ],
-        "maxAngle": 100,
-        "maxMoveFrames": 350,
-        "defPoseRatio": 0.0,
+        "maxMoveFrame": 1.7453292519943295769236907684886, "#maxAngle": "radians = 100 degrees",
+        "nMoveFrames": 350,
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -20,12 +21,13 @@
       },
       {
         "name": "Elbow",
+        "joint": 1,
+        "defPoseRatio": 70.0,
         "type": 1,
         "show": true,
         "base": [ -0.70, 1.00 ],
-        "maxAngle": 135,
-        "maxMoveFrames": 550,
-        "defPoseRatio": 70.0,
+        "nMoveFrames": 550,
+        "maxMoveFrame": 2.3561944901923449288469825374596, "#maxAngle": "radians = 135 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -35,12 +37,13 @@
       },
       {
         "name": "Shldr",
+        "joint": 2,
+        "defPoseRatio": 0.0,
         "type": 2,
         "show": true,
         "base": [ 0.10, 0.85 ],
-        "maxAngle": 105,
-        "maxMoveFrames": 700,
-        "defPoseRatio": 0.0,
+        "nMoveFrames": 700,
+        "maxMoveFrame": 1.832595714594046055769875306913, "#maxAngle": "radians = 105 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -50,12 +53,13 @@
       },
       {
         "name": "Clvcl",
+        "joint": 3,
+        "defPoseRatio": 0.0,
         "type": 3,
         "show": false,
         "base": [ 0.75, 0.25 ],
-        "maxAngle": 40,
-        "maxMoveFrames": 600,
-        "defPoseRatio": 0.0,
+        "nMoveFrames": 600,
+        "maxMoveFrame": 0.69813170079773183076947630739545, "#maxAngle": "radians = 40 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -63,8 +67,7 @@
           "param": ""
         }
       }
-    ],
-    "drawNexus": [ true, true, true, true ]
+    ]
   },
   "env": {
     "skip_show_steps": 15,

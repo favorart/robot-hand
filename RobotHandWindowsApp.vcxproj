@@ -40,6 +40,7 @@
     <ClInclude Include="Source\RoboPos\RoboPosApprox.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourEvo.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourNoRec.h" />
+    <ClInclude Include="Source\Robo\RoboInputs.h" />
     <ClInclude Include="Source\Robo\RoboMuscles.h" />
     <ClInclude Include="libs\Combinations.h" />
     <ClInclude Include="libs\J.Burkardt (FSU)\lagrange\lagrange_interp_1d.hpp" />
@@ -58,6 +59,7 @@
     <ClInclude Include="Source\Robo\RoboControl.h" />
     <ClInclude Include="Source\RoboPos\RoboEdges.h" />
     <ClInclude Include="Source\Robo\RoboMotionLaws.h" />
+    <ClInclude Include="Source\Robo\RoboPhysics.h" />
     <ClInclude Include="Source\StdAfx.h" />
     <ClInclude Include="Source\Tank\Tank.h" />
     <ClInclude Include="Source\Utilities\ConfigJSON.h" />
@@ -84,6 +86,7 @@
     <ClCompile Include="libs\J.Burkardt (FSU)\qr_solve\qr_solve.cpp" />
     <ClCompile Include="libs\J.Burkardt (FSU)\r8lib\r8lib.cpp" />
     <ClCompile Include="libs\J.Burkardt (FSU)\test_ls\test_ls.cpp" />
+    <ClCompile Include="Source\Robo\RoboPhysics.cpp" />
     <ClCompile Include="Source\Utilities\Console.cpp" />
     <ClCompile Include="Source\MyWindow\WindowDraw.cpp" />
     <ClCompile Include="Source\MyWindow\WindowDrawLetters.cpp" />

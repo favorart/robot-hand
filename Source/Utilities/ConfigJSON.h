@@ -11,8 +11,8 @@ namespace ConfigJSON
 {
 // http://zenol.fr/blog/boost-property-tree/en.html
 //--------------------------------------------------------------------------------
-void save(tptree &node, const Point& pt);
-void load(tptree &node, Point& pt);
+void save(tptree&, const Point&);
+void load(tptree&, Point&);
 //--------------------------------------------------------------------------------
 struct StageInput1
 {
@@ -20,8 +20,6 @@ struct StageInput1
     unsigned lasts_init_value;
     unsigned lasts_incr_value;
 };
-//void save(tptree &node, const StageInput1& stage1);
-//void load(tptree &node, StageInput1& stage1);
 //--------------------------------------------------------------------------------
 using StageInput2 = StageInput1;
 //--------------------------------------------------------------------------------
@@ -35,11 +33,9 @@ struct StageInput3
     double side_decrease_step;
     bool   use_weighted_mean;
 };
-//void save(tptree &node, const StageInput3& pt);
-//void load(tptree &node, StageInput3& stage3);
 //--------------------------------------------------------------------------------
-void save(tptree &root, const StageInput1& stage1, const StageInput2& stage2, const StageInput3& stage3);
-void load(tptree &root, StageInput1& stage1, StageInput2& stage2, StageInput3& stage3);
+void save(tptree&, const StageInput1&, const StageInput2&, const StageInput3&);
+void load(tptree&, StageInput1&, StageInput2&, StageInput3&);
 //--------------------------------------------------------------------------------
 struct TourInput
 {
@@ -49,8 +45,8 @@ struct TourInput
     unsigned lasts_step_braking;
     Point pd_shift;
 };
-void save(tptree &root, const TourInput &tour);
-void load(tptree &root, TourInput &tour);
+void save(tptree&, const TourInput&);
+void load(tptree&, TourInput&);
 //--------------------------------------------------------------------------------
 struct TargetInput
 {
@@ -59,17 +55,20 @@ struct TargetInput
     double left, right;
     double top, bottom;
 };
-void save(tptree &root, const TargetInput &target);
-void load(tptree &root, TargetInput &target);
+void save(tptree&, const TargetInput&);
+void load(tptree&, TargetInput&);
 //--------------------------------------------------------------------------------
-void save(tptree &root, const Robo::MotionLaws::JointMotionLaw& ml);
-void load(tptree &root, Robo::MotionLaws::JointMotionLaw& ml);
+void save(tptree&, const Robo::MotionLaws::JointMotionLaw&);
+void load(tptree&, Robo::MotionLaws::JointMotionLaw&);
 //--------------------------------------------------------------------------------
-void save(tptree &root, const Robo::NewHand::Hand::JointInput&);
-void load(tptree &root, Robo::NewHand::Hand::JointInput&);
+void save(tptree&, const Robo::JointInput&);
+void load(tptree&, Robo::JointInput&);
 //--------------------------------------------------------------------------------
-void save(tptree &root, const Robo::Mobile::Tank::JointInput &input);
-void load(tptree &root, Robo::Mobile::Tank::JointInput &input);
+void save(tptree&, const Robo::NewHand::Hand::JointInput&);
+void load(tptree&, Robo::NewHand::Hand::JointInput&);
+//--------------------------------------------------------------------------------
+void save(tptree&, const Robo::Mobile::Tank::JointInput&);
+void load(tptree&, Robo::Mobile::Tank::JointInput&);
 //--------------------------------------------------------------------------------
 void save(tptree &root, const tstring &robo_name, const Point& robo_base,
           const std::list<std::shared_ptr<Robo::JointInput>> &robo_joints);
