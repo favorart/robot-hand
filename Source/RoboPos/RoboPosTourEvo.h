@@ -14,16 +14,23 @@ class TourEvo : public RoboPos::TourI
     const double side = 0.001;
 
     const TargetI &_t;
-    double _reached_dist;
+    double _reached_dist = 0.01;
+    double _oppo_penalty = 1.;
 
     double reached_less(double dist) const { return (dist - _reached_dist / 2); }
 
 public:
-    TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, RoboPos::borders_t borders,
-            const TargetI &target, double reached_dist = 0.01, double oppo_penalty = 1.) :
-        TourI(store, robo, borders), _t(target), _reached_dist(reached_dist)
+    TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target) :
+        TourI(store, robo), _t(target)
     {}
 
+    void setParams(double reached_dist, double oppo_penalty)
+    {
+        _reached_dist = reached_dist;
+        _oppo_penalty = oppo_penalty;
+    }
+
     bool runNestedForMuscle(Robo::joint_t, Robo::Control&, Point&);
+    bool runNestedForMuscleSteps(Robo::joint_t, Robo::Control&, Point&);
 };
 }

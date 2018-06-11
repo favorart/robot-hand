@@ -14,10 +14,6 @@ class Approx;
 class Tour
 {
 protected:
-    struct BorderLasts { Robo::frames_t min_lasts, max_lasts; };
-    using Borders = std::vector<BorderLasts>;
-    Borders &_borders;
-
     RoboMoves::Store &_store;
     Robo::RoboI      &_robo;
     Point             _base_pos{};
@@ -39,6 +35,7 @@ public:
     Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo) :
         _store(store), _robo(robo)
     {}
+
     void  run(bool distance, bool target, bool braking, bool predict, bool checking,
               double step_distance, Robo::frames_t lasts_step_increment)
     {
@@ -50,7 +47,6 @@ public:
         // ----------------------------------------------------
         _step_distance = step_distance;
         _lasts_step_increment = lasts_step_increment;
-        _borders = borders;
         // ----------------------------------------------------
         _complexity = 0;
         _counters.clear();
@@ -89,6 +85,10 @@ public:
 
 class TourNoRecursion : public Tour
 {
+    struct BorderLasts { Robo::frames_t min_lasts, max_lasts; };
+    using Borders = std::vector<BorderLasts>;
+    Borders _borders;
+
     RecTarget &_target;
     size_t  _max_nested = 0;
     Approx &_approx;
@@ -102,7 +102,7 @@ class TourNoRecursion : public Tour
 
 public:
     TourNoRecursion(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target, Approx &approx) :
-        Tour(store, robo, borders), _target(target),
+        Tour(store, robo), _target(target),
         _max_nested(_robo.jointsCount()),
         _breakings_controls(_max_nested), /// ???
         pDP{ std::make_shared<RoboPos::DirectionPredictor>(_robo) },
@@ -112,7 +112,11 @@ public:
         _lasts_step_increment_init = 25;
         _lasts_step_braking_incr = 5;
         _lasts_step_braking_init = 5;
+        defineTargetBorders(0.05);
     }
+
+    void specifyBordersByRecord(const RoboMoves::Record &rec);
+    void defineTargetBorders(distance_t side);
 };
 
 }

@@ -99,8 +99,8 @@ public:
     TourTarget(IN RoboMoves::Store &store,
                IN Robo::RoboI &robo,
                IN Approx &approx,
-               IN TargetI &target,
-               //IN TargetContain &target_contain,
+               IN TargetI &target, // !! RM
+               IN TargetContain &target_contain,
                IN TourI::JointsNumerator &next_joint = TourI::reverse);
 
     bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);

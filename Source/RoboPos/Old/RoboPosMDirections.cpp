@@ -1,7 +1,7 @@
 ﻿#include "StdAfx.h"
 #include "RoboPos.h"
 
-
+#ifdef MDIR_OLD
 //------------------------------------------
 RoboPos::MainDirections RoboPos::MainDirectionsFactory(IN Robo::RoboI &robo)
 {
@@ -203,4 +203,4 @@ Robo::Control  RoboPos::MainDirections::measure(const Point &aim)
     return controls;
 }
 //------------------------------------------
-
+#endif // MDIR_OLD

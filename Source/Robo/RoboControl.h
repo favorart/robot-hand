@@ -110,6 +110,10 @@ public:
     //----------------------------------------------------
     void removeStartPause();
     bool validateMusclesTimes() const;
+    bool validate(Robo::muscle_t n_muscles) /*nothrow*/ const;
+    void validated(Robo::muscle_t n_muscles) const;
+    
+    muscle_t select(muscle_t muscle) const;
 
     //----------------------------------------------------
     void fillRandom(muscle_t muscles_count,

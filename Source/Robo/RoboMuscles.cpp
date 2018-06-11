@@ -12,7 +12,7 @@ tstring Robo::NewHand::muscleHelp(Hand::Muscle muscle)
         _T("сомкнуть плечо"), _T("раскрыть плечо"),
         _T("двинуть ключицей вправо"), _T("двинуть ключицей влево")
     };
-    if (muscle > Hand::MusclesMaxCount)
+    if (muscle > Hand::MCount)
         throw std::runtime_error("Help of INVALID Hand::Muscle");
     return HHelps[muscle];
 }
@@ -51,7 +51,7 @@ tstring Robo::Mobile::muscleHelp(Tank::Muscle muscle)
         _T("левая гусеница вперёд"), _T("левая гусеница назад"),
         _T("правая гусеница вперёд"), _T("правая гусеница назад")
     };
-    if (muscle > Tank::MusclesMaxCount)
+    if (muscle > Tank::MCount)
         throw std::runtime_error("Help of INVALID Tank::Muscle");
     return THelps[muscle];
 }
@@ -77,69 +77,3 @@ tstring Robo::Mobile::jointName(Tank::Joint joint)
 }
 
 //--------------------------------------------------------------------------------
-
-//bool Hand::musclesValidUnion(Muscle muscle)
-//{
-//  if ( !muscle
-//      || ((Muscle::ClvclOpn & muscle) && (Muscle::ClvclCls & muscle))
-//      || ((Muscle::ShldrOpn & muscle) && (Muscle::ShldrCls & muscle))
-//      || ((Muscle::ElbowOpn & muscle) && (Muscle::ElbowCls & muscle))
-//      || ((Muscle::WristOpn & muscle) && (Muscle::WristCls & muscle))
-//     )
-//  { return false; }
-//  return true;
-//}
-////--------------------------------------------------------------------------------
-//Hand::JointsEnum   NewHand::operator| (Hand::JointsEnum  j, Hand::JointsEnum  k)
-//{ return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) | static_cast<uchar_t> (k)); }
-//Hand::JointsEnum   NewHand::operator& (Hand::JointsEnum  j, Hand::JointsEnum  k)
-//{ return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) & static_cast<uchar_t> (k)); }
-//Hand::JointsEnum   NewHand::operator^ (Hand::JointsEnum  j, Hand::JointsEnum  k)
-//{ return static_cast<Hand::JointsEnum> (static_cast<uchar_t> (j) ^ static_cast<uchar_t> (k)); }
-//Hand::MusclesEnum  NewHand::operator| (Hand::MusclesEnum m, Hand::MusclesEnum k)
-//{ return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) | static_cast<uchar_t> (k)); }
-//Hand::MusclesEnum  NewHand::operator& (Hand::MusclesEnum m, Hand::MusclesEnum k)
-//{ return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) & static_cast<uchar_t> (k)); }
-//Hand::MusclesEnum  NewHand::operator^ (Hand::MusclesEnum m, Hand::MusclesEnum k)
-//{ return static_cast<Hand::MusclesEnum> (static_cast<uchar_t> (m) ^ static_cast<uchar_t> (k)); }
-//tostream&  NewHand::operator<< (tostream &out, Hand::MusclesEnum muscle)
-//{
-//  if ( !muscle )  return  out << _T(" EmptyMov"); // Hand::
-//
-//  for ( auto m : muscles )
-//  {
-//    if ( m & muscle )
-//      switch ( m )
-//      {
-//        // case Hand::EmptyMov: out << _T(" EmptyMov"); break; // Hand::
-//        case Hand::ClvclOpn: out << _T(" ClvclOpn"); break; // Hand::
-//        case Hand::ClvclCls: out << _T(" ClvclCls"); break; // Hand::
-//        case Hand::ShldrOpn: out << _T(" ShldrOpn"); break; // Hand::
-//        case Hand::ShldrCls: out << _T(" ShldrCls"); break; // Hand::
-//        case Hand::ElbowOpn: out << _T(" ElbowOpn"); break; // Hand::
-//        case Hand::ElbowCls: out << _T(" ElbowCls"); break; // Hand::
-//        case Hand::WristOpn: out << _T(" WristOpn"); break; // Hand::
-//        case Hand::WristCls: out << _T(" WristCls"); break; // Hand::
-//      }
-//  }
-//  return out;
-//}
-//tostream&  NewHand::operator<< (tostream &out, Hand::JointsEnum   joint)
-//{
-//  if ( !joint )  return  out << _T(" Empty"); // Hand::
-//
-//  for ( auto j : joints )
-//  {
-//    if ( j & joint )
-//      switch ( j )
-//      {
-//        // case Hand::Empty: out << _T(" Empty"); break; // Hand::
-//        case Hand::Clvcl: out << _T(" Clvcl"); break; // Hand::
-//        case Hand::Shldr: out << _T(" Shldr"); break; // Hand::
-//        case Hand::Elbow: out << _T(" Elbow"); break; // Hand::
-//        case Hand::Wrist: out << _T(" Wrist"); break; // Hand::
-//      }
-//  
-//  }
-//  return out;
-//}

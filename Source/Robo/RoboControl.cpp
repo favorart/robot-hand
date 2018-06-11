@@ -1,4 +1,4 @@
-#include "Robo.h"
+﻿#include "Robo.h"
 #include "RoboControl.h"
 
 
@@ -53,11 +53,11 @@ bool Robo::Control::validateMusclesTimes() const
     //for (auto iti = this->begin(); iti != this->end(); ++iti)
     //    for (auto itj = std::next(iti); itj != this->end(); ++itj)
     //        if (itj->start >= (iti->start + iti->last))
-    //            break; // �.�. ������������� �� ����������� start
+    //            break; // т.к. отсортированы по возрастанию start
     //        else if (!musclesValidUnion(iti->muscle, itj->muscle))
     //        {
-    //            // ���� ���� ���������� �� ������� � ����
-    //            // ���������� ������������ ��������������� �����
+    //            // Если есть перекрытие по времени и есть
+    //            // работающие одновременно противоположные мышцы
     //            return false;
     //        }
     return true;
@@ -89,8 +89,52 @@ void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const std::function
     }
 }
 
+//---------------------------------------------------------
+Robo::muscle_t Robo::Control::select(Robo::muscle_t muscle) const
+{
+    if (!muscle)
+    { return actuators[Utils::random(size())].muscle; }
+    else
+    {
+        for (auto &a : actuators)
+            if (a.muscle != muscle && (a.muscle / 2) != (muscle / 2))
+                return a.muscle;
+        //auto m = actuators[random(size())].muscle;
+        //while (m == muscle || (m / 2) == (muscle / 2))
+        //  m = actuators[random(size())];
+    }
+    return MInvalid;
+}
+
+//---------------------------------------------------------
+void Robo::Control::validated(Robo::muscle_t n_muscles) const
+{
+    /* Что-то должно двигаться, иначе беск.цикл */
+    if (!actuals)
+        throw std::logic_error("Controls are empty!");
+    /* Управление должно быть отсортировано по времени запуска двигателя */
+    if (actuators[0].start != 0 || !br::is_sorted(actuators))
+        throw std::logic_error("Controls are not sorted!");
+    /* Исключить незадействованные двигатели */
+    if (ba::any_of(actuators, [n_muscles](const Actuator &a) { return (!a.lasts) || (a.muscle >= n_muscles); }))
+        throw std::logic_error("Controls have UNUSED or INVALID muscles!");
+}
+
+//---------------------------------------------------------
+bool Robo::Control::validate(Robo::muscle_t n_muscles) const
+{
+    auto is_invalid = [n_muscles](const Actuator &a) {
+        return (!a.lasts) || (a.muscle >= n_muscles);
+    };
+
+    return !actuals ||
+        actuators[0].start != 0 || 
+        !br::is_sorted(actuators) ||
+        ba::any_of(actuators, is_invalid);
+}
 
 
+//---------------------------------------------------------
 //void  Hand::recursiveControlsAppend(muscle_t muscles, joint_t joints,
 //                                    size_t cur_deep, size_t max_deep)
 //{

@@ -300,17 +300,17 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
 TourTarget::TourTarget(IN RoboMoves::Store &store,
                        IN Robo::RoboI &robo,
                        IN Approx &approx,
-                       IN TargetI &target,
-                       //IN TargetContain &target_contain,
+                       IN TargetI &target, // !! RM
+                       IN TargetContain &target_contain,
                        IN TourI::JointsNumerator &next_joint) :
     TourI(store, robo, next_joint),
-    //_target_contain(target_contain),
+    _target(target), // !! RM
+    _target_contain(target_contain),
     _approx(approx),
     _b_predict(false),
     _b_checking(false)
 {
     defineTargetBorders(0.05);
-    _target_contain = [&target=_target](const Point &p) { return target.contain(p); };
 }
 
 //------------------------------------------------------------------------------

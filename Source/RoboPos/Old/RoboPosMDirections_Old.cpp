@@ -4,6 +4,7 @@
 #include "Robo.h"
 #include "RoboPos.h"
 
+#ifdef MDIR_OLD
 using namespace RoboPos;
 using namespace RoboMoves;
 
@@ -63,3 +64,4 @@ Point RoboPos::DirectionPredictor::predict(IN Robo::Control controls)
     }
     return pred_end;
 }
+#endif // MDIR_OLD

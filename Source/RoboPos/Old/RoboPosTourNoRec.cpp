@@ -20,6 +20,48 @@ using namespace Robo::NewHand;
 //frames_t   _lasts_step_braking = 5U;
 
 //------------------------------------------------------------------------------
+void TourNoRecursion::specifyBordersByRecord(const RoboMoves::Record &rec)
+{
+    for (const auto &c : rec.controls)
+    {
+        if (c.lasts < _borders[c.muscle].min_lasts)
+            _borders[c.muscle].min_lasts = c.lasts;
+        if (c.lasts > _borders[c.muscle].max_lasts)
+            _borders[c.muscle].max_lasts = c.lasts;
+    }
+}
+
+//------------------------------------------------------------------------------
+/// Статистичеки найти приблизительную границу мишени по длительности работы мускулов
+void TourNoRecursion::defineTargetBorders(distance_t side)
+{
+    _borders.resize(_robo.musclesCount());
+    for (const auto &rec : _store)
+        if (_target.contain(rec.hit))
+            specifyBordersByRecord(rec);
+
+    adjacency_ptrs_t range;
+    _store.adjacencyPoints(range, _target.min(), side);
+    for (auto p_rec : range)
+        specifyBordersByRecord(*p_rec);
+
+    range.clear();
+    _store.adjacencyPoints(range, Point(_target.min().x, _target.max().y), side);
+    for (auto p_rec : range)
+        specifyBordersByRecord(*p_rec);
+
+    range.clear();
+    _store.adjacencyPoints(range, Point(_target.max().x, _target.min().y), side);
+    for (auto p_rec : range)
+        specifyBordersByRecord(*p_rec);
+
+    range.clear();
+    _store.adjacencyPoints(range, _target.max(), side);
+    for (auto p_rec : range)
+        specifyBordersByRecord(*p_rec);
+}
+
+//------------------------------------------------------------------------------
 bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high)
 {
     bool  target_contain = true;
@@ -200,7 +242,7 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
     return true;
 }
 
-
+//------------------------------------------------------------------------------
 bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos)
 {
     // const Record &rec = _store.ClothestPoint (hand_position, 0.1);

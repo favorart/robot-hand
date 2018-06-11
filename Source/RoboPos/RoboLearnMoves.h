@@ -141,7 +141,7 @@ public:
     /* Покрытие всей мишени не слишком плотно */
     void  testStage2();
     /* Попадание в оставшиеся непокрытыми точки мишени */
-    void  testStage3(OUT std::list<Point> &uncovered);
+    void  testStage3(OUT Robo::Trajectory &uncovered);
     //------------------------------------------------------------------------------
     void  Mean(IN const Point &aim,
                OUT Robo::Trajectory   *trajectory = NULL,

@@ -40,7 +40,7 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
         } // end for-for
     // ----------------------------------------------
     /* controls check for correctness: opposite muscles work time */
-    _robo.controlsValidate(controls);
+    controls.validated(_robo.musclesCount());
     // ----------------------------------------------
 }
 //------------------------------------------------------------------------------

@@ -72,7 +72,7 @@ void  RoboPos::LearnMoves::STAGE_2()
                0.015 /*0.02*/, 2 /*3*/);
                //0.015, 2); // non-recursive
 #else
-    std::shared_ptr<TourTarget> pTour{ new TourTarget(_store, _robo, approx, target/*_contain*/) };
+    std::shared_ptr<TourTarget> pTour{ new TourTarget(_store, _robo, approx, _target, target_contain) };
     pTour->setIncrement(0.025, 3);
     //pTour->setPredict(true);
     pTour->run();
@@ -177,7 +177,6 @@ bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &cont
 }
 
 
-
 //------------------------------------------------------------------------------
 void  draftDistance(IN  Point  &robo_pos_prev,
                     IN  Point  &robo_pos,
@@ -280,6 +279,7 @@ void  RoboPos::LearnMoves::testStage1()
 
 void  RoboPos::LearnMoves::testStage2()
 {
+#ifdef STAGE_OLD
     /*         ~ - - - - *
     *       /
     *      /  +----------------+
@@ -398,9 +398,10 @@ void  RoboPos::LearnMoves::testStage2()
     tcout << _T("\nStage 2 Complexity ") << complexity() << std::endl;
     // ----------------------------------------------------
     _robo.reset();
+#endif // STAGE_OLD
 }
 
-void  RoboPos::LearnMoves::testStage3(OUT std::list<Point> &uncovered)
+void  RoboPos::LearnMoves::testStage3(OUT Robo::Trajectory &uncovered)
 {
     // std::list<Point> uncovered;
     // _store.uncoveredTargetPoints (_target, uncovered);

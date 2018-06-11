@@ -14,6 +14,7 @@ namespace RoboPos
 {
 class DirectionPredictor
 {
+#ifdef MDIR_OLD
     struct MainDirection
     {
         Robo::muscle_t muscle;
@@ -40,7 +41,12 @@ class DirectionPredictor
 public:
     DirectionPredictor(IN Robo::RoboI &robo);
     Point predict(IN Robo::Control controls);
+#endif // MDIR_OLD
+public:
+    DirectionPredictor(IN Robo::RoboI &robo) {}
+    Point predict(IN Robo::Control controls) { return {}; }
 };
 };
 //------------------------------------------------------------------------------
+
 #endif // _DIR_P_H_
