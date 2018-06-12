@@ -11,12 +11,15 @@ class Approx;
 class TourI
 {
 public:
-    using  JointsNumerator = std::function<Robo::joint_t(const Robo::joint_t njoints, Robo::joint_t joint, bool first)>;
-    static JointsNumerator forward, reverse;
-    static double divToMeters, divToMinutes;
+    using JointsNumerator = std::function<Robo::joint_t(Robo::joint_t n_joints,
+                                                        Robo::joint_t cur_joint,
+                                                        bool first)>;
+    static const JointsNumerator forward, reverse;
+    static const distance_t divToMeters;
+    static const double divToMinutes;
 
     //TourI(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const tstring &config);
-    TourI(RoboMoves::Store &store, Robo::RoboI &robo, TourI::JointsNumerator &next_joint = TourI::reverse);
+    TourI(RoboMoves::Store &store, Robo::RoboI &robo, const TourI::JointsNumerator &next_joint = TourI::reverse);
     size_t complexity() const { return _complexity; }
     void run();
     void setPrecision(distance_t step_distance, Robo::frames_t lasts_step_increment)
@@ -28,7 +31,9 @@ public:
     void setSimulMoves(bool simul) { _b_simul = simul; }
 
 protected:
-    JointsNumerator  &_next_joint;      ///< порядок использования сочленений
+    const static Robo::frames_t too_long = 10000;
+    const JointsNumerator &_next_joint; ///< порядок использования сочленений
+
     RoboMoves::Store &_store;           ///< БД движений
     Robo::RoboI      &_robo;            ///< Модель робота
     Counters          _counters{};      ///< счётчики попаданий в цель
@@ -36,6 +41,7 @@ protected:
 
     bool _b_braking{ true };            ///< использование торможения мускулом
     bool _b_simul{ true };              ///< использование мускулов одновременно
+    bool _b_starts{ true };             ///< варьировать начальные моменты
 
     distance_t _step_distance = 0.;                     ///< желаемая дистанция между попаданиями робота в всех направлениях
     Robo::frames_t _lasts_step_increment = 0;           ///< шаг изменения длительности работы одного мускула в течении одной непрерывной операции
@@ -51,8 +57,9 @@ protected:
     void appendBreakings(IN Robo::joint_t joint, IN const Robo::Actuator &a);
     void removeBreakings(IN Robo::joint_t joint);
     void  cleanBreakings(IN Robo::joint_t joint);
-    /// Адаптивное (в отношении к желамой величине шага попаданий) изменение длительности работы мускула
-    /// и задание торможений противоположным мускулом сочленения
+    /// Адаптивное (в отношении к желамой величине шага попаданий)
+    /// изменение длительности работы мускула и задание торможений
+    /// противоположным мускулом сочленения
     void adaptiveLasts(IN const Point &prev_pos, IN const Point &curr_pos,
                        IN const Robo::Actuator &control_i, OUT Robo::frames_t &lasts_step,
                        IN bool target_contain = true, IN bool was_on_target = true);
@@ -73,7 +80,7 @@ protected:
 class TourWorkSpace : public TourI
 {
 public:
-    TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, TourI::JointsNumerator &next_joint=TourI::reverse) :
+    TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, const TourI::JointsNumerator &next_joint = TourI::reverse) :
         TourI(store, robo, next_joint)
     {}
     bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &avg_pos);
@@ -84,16 +91,16 @@ public:
 class TourTarget : public TourI
 {
 public:
-    using TargetContain = std::function<bool(const Point&)>;
-    struct BorderLasts { Robo::frames_t min_lasts, max_lasts; };
-    using Borders = std::vector<BorderLasts>;
+    using  TargetContain = std::function<bool(const Point&)>;
+    struct TargetBorderLasts { Robo::frames_t min_lasts, max_lasts; };
+    using  TargetBorders = std::vector<TargetBorderLasts>;
 
     TourTarget(IN RoboMoves::Store &store,
                IN Robo::RoboI &robo,
                IN Approx &approx,
-               IN TargetI &target, // !! RM
-               IN TargetContain &target_contain,
-               IN TourI::JointsNumerator &next_joint = TourI::reverse);
+               IN const TargetI &target, // !! RM
+               IN const TargetContain &target_contain,
+               IN const TourI::JointsNumerator &next_joint = TourI::reverse);
 
     bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);
     bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
@@ -101,13 +108,13 @@ public:
     void setPredict(bool pred) { _b_predict = pred; }
     void setChecking(bool check) { _b_checking = check; }
 
-private:
-    TargetContain &_target_contain; ///< функция проверки принадлежности координат мишени
-    Approx &_approx;                ///< интерполяция функции (x,y)остановки по управлениям мускулов
-    bool _b_predict{};              ///< использование интерполяции для предсказания места остановки
-    bool _b_checking{};             ///< проверка предсказаний основных направлений
-    Borders _borders{};
-    TargetI &_target; /// !!! RM
+protected:
+    const TargetContain &_target_contain; ///< функция проверки принадлежности координат мишени
+    Approx &_approx;                      ///< интерполяция функции(x,y) остановки по управлениям мускулов
+    bool _b_predict{};                    ///< использование интерполяции для предсказания места остановки
+    bool _b_checking{};                   ///< проверка предсказаний основных направлений
+    TargetBorders _target_borders{};      ///< границы длительности мускуов, в которые помещается мишень
+    const TargetI &_target; /// !!! RM
 
     void specifyBordersByRecord(const RoboMoves::Record &rec);
     void defineTargetBorders(distance_t side);

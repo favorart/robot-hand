@@ -54,7 +54,7 @@
         "show": false,
         "base": [ 0.75, 0.25 ],
         "maxAngle": 40,
-        "maxMoveFrames": 600,
+        "maxMoveFrames": 1000,
         "defPoseRatio": 0.0,
         "motionLaw": {
           "name": "CONAC",
@@ -63,8 +63,7 @@
           "param": ""
         }
       }
-    ],
-    "drawNexus": [ true, true, true, true ]
+    ]
   },
   "env": {
     "skip_show_steps": 15,

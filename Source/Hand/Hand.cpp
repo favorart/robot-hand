@@ -30,41 +30,7 @@ frames_t  Hand::muscleMaxLast(muscle_t muscle) const
 //--------------------------------------------------------------------------------
 void    Hand::jointMove   (joint_t joint_move, double offset)
 {
-    //Joint joint = J(joint_move);
-    //switch (joint)
-    //{
-    //case Joint::Clvcl:
-    //{
-    //    status.curPos[Joint::Clvcl].x -= offset; // curPosShldr_
-    //    status.curPos[Joint::Shldr].x -= offset; // curPosArm_
-    //    status.curPos[Joint::Elbow].x -= offset; // curPosHand_
-    //    status.curPos[Joint::Wrist].x -= offset; // curPosPalm_
-    //    status.angles[Joint::Clvcl] += offset;
-    //    break;
-    //}
-    //case Joint::Shldr:
-    //{
-    //    status.curPos[Joint::Shldr].rotate(status.curPos[Joint::Clvcl], offset);
-    //    status.curPos[Joint::Elbow].rotate(status.curPos[Joint::Clvcl], offset);
-    //    status.curPos[Joint::Wrist].rotate(status.curPos[Joint::Clvcl], offset);
-    //    status.angles[Joint::Shldr] += offset;
-    //    break;
-    //}
-    //case Joint::Elbow:
-    //{
-    //    status.curPos[Joint::Elbow].rotate(status.curPos[Joint::Shldr], offset);
-    //    status.curPos[Joint::Wrist].rotate(status.curPos[Joint::Shldr], offset);
-    //    status.angles[Joint::Elbow] += offset;
-    //    break;
-    //}
-    //case Joint::Wrist:
-    //{
-    //    status.curPos[Joint::Wrist].rotate(status.curPos[Joint::Elbow], offset);
-    //    status.angles[Joint::Wrist] += offset;
-    //    break;
-    //}
-    //}
-
+    if (!offset) return;
     const Point &base = physics.jointsOpenCoords[Joint::JCount];
     const Point &prev = (joint_move + 1 == jointsCount()) ? base : status.curPos[J(joint_move + 1)];
     for (joint_t j = joint_move + 1; j > 0; --j)
@@ -109,44 +75,24 @@ bool    Hand::muscleFrame (muscle_t m)
         } while (status.prevFrame[muscle] < Frame && ++last < frames.size());
     }
     else throw std::logic_error("!lastsMove & !lastsStop");
-    // /* next frame with stop speed smooth */
-    //do
-    //{
-    //    // TODO: удлинить массив доступных фрэймов движения? - незачем, т.к. 
-    //    //       до конца прохода по массиву произойдёт удар по ограничению
-    //    if (status.lastsStop[muscle] < physics.minStopFrames[joint])
-    //    {
-    //        Frame = 0.;
-    //        break;
-    //    }
-    //    Frame = ((atStop) ? (physics.framesStop[joint][status.lastsStop[muscle]++]) :
-    //        (physics.framesMove[joint][status.lastsMove[muscle]++]));
-    //
-    //} while (atStop && status.prevFrame[muscle] < Frame);
     //------------------------------------------------
     status.prevFrame[muscle] = Frame;
     // ??? status.velosity  -- momentum velosity
-
-    // --- WIND ---
     if (status.windy && status.lastsMove[muscle] == 1)
         Frame = Utils::random(Hand::minFrameMove * 180. / M_PI, *boost::max_element(physics.framesMove[joint]));
     // -------------------------------------------
-    // maxOffset
-    double mOf = (joint == Joint::Clvcl) ?
-        (static_cast<double>(physics.jointsMaxAngles[Joint::Clvcl]) / 100.) :
-                             physics.jointsMaxAngles[joint];
-
+    double mOf/*fset*/ = static_cast<double>(physics.jointsMaxAngles[joint]) / ((joint == Joint::Clvcl) ? 100. : 1.);
     double offset = 0.;
     switch (muscle)
     {
-    case Muscle::ClvclOpn: offset = (status.angles[Joint::Clvcl] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Clvcl])*/ : +Frame; break;
-    case Muscle::ClvclCls: offset = (status.angles[Joint::Clvcl] - Frame < 0.0) ? 0. /*(0.0 - status.angles[Joint::Clvcl])*/ : -Frame; break;
-    case Muscle::ShldrOpn: offset = (status.angles[Joint::Shldr] - Frame < 1.0) ? 0. /*(1.0 - status.angles[Joint::Shldr])*/ : -Frame; break;
-    case Muscle::ShldrCls: offset = (status.angles[Joint::Shldr] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Shldr])*/ : +Frame; break;
-    case Muscle::ElbowOpn: offset = (status.angles[Joint::Elbow] - Frame < 1.0) ? 0. /*(1.0 - status.angles[Joint::Elbow])*/ : -Frame; break;
-    case Muscle::ElbowCls: offset = (status.angles[Joint::Elbow] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Elbow])*/ : +Frame; break;
-    case Muscle::WristOpn: offset = (status.angles[Joint::Wrist] - Frame < 1.0) ? 0. /*(1.0 - status.angles[Joint::Wrist])*/ : -Frame; break;
-    case Muscle::WristCls: offset = (status.angles[Joint::Wrist] + Frame > mOf) ? 0. /*(mOf - status.angles[Joint::Wrist])*/ : +Frame; break;
+    case Muscle::ClvclOpn: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
+    case Muscle::ClvclCls: offset = (status.angles[joint] - Frame < 0.0) ? 0. : -Frame; break;
+    case Muscle::ShldrOpn: offset = (status.angles[joint] - Frame < 1.0) ? 0. : -Frame; break;
+    case Muscle::ShldrCls: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
+    case Muscle::ElbowOpn: offset = (status.angles[joint] - Frame < 1.0) ? 0. : -Frame; break;
+    case Muscle::ElbowCls: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
+    case Muscle::WristOpn: offset = (status.angles[joint] - Frame < 1.0) ? 0. : -Frame; break;
+    case Muscle::WristCls: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
     }
 
     jointMove(jointByMuscle(m), offset);
@@ -246,7 +192,8 @@ Hand::Hand(IN const Point &baseClavicle, IN const std::list<JointInput> &joints)
 }
 
 Hand::Hand(IN const Point &baseClavicle, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints) :
-    Hand(baseClavicle, JInputs<Hand::JointInput>(joints)) {}
+    Hand(baseClavicle, JInputs<Hand::JointInput>(joints))
+{}
 
 Hand::Params::Params(IN const std::list<JointInput> &joints) :
     musclesUsedCount(0),
@@ -328,23 +275,6 @@ void      Hand::step(IN frames_t frame, IN muscle_t muscle, IN frames_t last)
     /* Исключить незадействованные двигатели */
     if (muscle < musclesCount() && last > 0)
     {
-        ///if (muscle != Robo::MInvalid)
-        ///{
-        ///    Control control;
-        ///    for (muscle_t m = 0; m < musclesCount(); ++m)
-        ///        if (status.musclesMove[M(m)] > 0)
-        ///        {
-        ///            Hand::Muscle m_ = M(m);
-        ///            frames_t start = (frame - (status.lastsMove[m_] + status.lastsStop[m_]));
-        ///            control.append({ m, start, status.lasts[m_] });
-        ///        }
-        ///        else if (m == muscle) control.append({ m, frame, last });
-        ///
-        ///    
-        ///    controlValidate(control);
-        ///    ///if (timeValidToStartOppositeMuscle(muscle))
-        ///}
-
         if (status.musclesMove[M(muscle)] <= frame)
             muscleMove(frame, muscle, last);
     }
@@ -469,10 +399,7 @@ void  Hand::setJoints(IN const JointsOpenPercent &percents)
         if (ratio > 1. || ratio < 0.)
             throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
 
-        double maxAngle = (joint == Joint::Clvcl) ?
-            static_cast<double>(physics.jointsMaxAngles[Joint::Clvcl]) / 100. :
-                                physics.jointsMaxAngles[joint];
-
+        double maxAngle = static_cast<double>(physics.jointsMaxAngles[joint]) / ((joint == Joint::Clvcl) ? 100. : 1.);
         double angle = ratio * maxAngle;
         if (status.angles[joint] != angle)
         {
@@ -487,99 +414,6 @@ void  Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 #ifdef MY_WINDOW
     HPEN   hPen_old = (HPEN)SelectObject(hdc, hPen);
     HBRUSH hBrush_old = (HBRUSH)SelectObject(hdc, hBrush);
-    //-----------------------------------------------------------------
-
-    // // c-clavicle, s-shoulder, a-arm, h-hand, p-palm
-    //Point c(physics.jointsOpenCoords[Joint::Clvcl + 1]),
-    //      s(status.curPos[Joint::Clvcl]), a(status.curPos[Joint::Shldr]),
-    //      h(status.curPos[Joint::Elbow]), p(status.curPos[Joint::Wrist]);
-    //
-    // // u-up, d-down // звенья - верхняя и нижняя палки
-    //Point su(physics.jointsOpenCoords[Joint::Clvcl].x + params.sectionWidth - status.angles[Joint::Clvcl],
-    //         physics.jointsOpenCoords[Joint::Clvcl].y + params.sectionWidth),
-    //      sd(physics.jointsOpenCoords[Joint::Clvcl].x - params.sectionWidth - status.angles[Joint::Clvcl],
-    //         physics.jointsOpenCoords[Joint::Clvcl].y - params.sectionWidth),
-    //      au(physics.jointsOpenCoords[Joint::Shldr].x + params.sectionWidth - status.angles[Joint::Clvcl],
-    //         physics.jointsOpenCoords[Joint::Shldr].y + params.sectionWidth),
-    //      ad(physics.jointsOpenCoords[Joint::Shldr].x - params.sectionWidth - status.angles[Joint::Clvcl],
-    //         physics.jointsOpenCoords[Joint::Shldr].y - params.sectionWidth),
-    //      hu(physics.jointsOpenCoords[Joint::Elbow].x + params.sectionWidth - status.angles[Joint::Clvcl],
-    //         physics.jointsOpenCoords[Joint::Elbow].y + params.sectionWidth),
-    //      hd(physics.jointsOpenCoords[Joint::Elbow].x - params.sectionWidth - status.angles[Joint::Clvcl],
-    //         physics.jointsOpenCoords[Joint::Elbow].y - params.sectionWidth);
-    //
-    //Point wu, wd;
-    //if (params.drawPalm)
-    //{
-    //    wu = Point(physics.jointsOpenCoords[Joint::Wrist].x + params.sectionWidth - status.angles[Joint::Clvcl],
-    //               physics.jointsOpenCoords[Joint::Wrist].y + params.sectionWidth);
-    //    wd = Point(physics.jointsOpenCoords[Joint::Wrist].x - params.sectionWidth - status.angles[Joint::Clvcl],
-    //               physics.jointsOpenCoords[Joint::Wrist].y - params.sectionWidth);
-    //}
-    // //-----------------------------------------------------------------
-    //su.rotate(s, status.angles[Joint::Shldr]);
-    //sd.rotate(s, status.angles[Joint::Shldr]);
-    //
-    //au.rotate(s, status.angles[Joint::Shldr]);
-    //ad.rotate(s, status.angles[Joint::Shldr]);
-    //
-    //hu.rotate(s, status.angles[Joint::Shldr]);
-    //hd.rotate(s, status.angles[Joint::Shldr]);
-    //hu.rotate(a, status.angles[Joint::Elbow]);
-    //hd.rotate(a, status.angles[Joint::Elbow]);
-    //
-    //if (params.drawPalm)
-    //{
-    //    wu.rotate(s, status.angles[Joint::Shldr]);
-    //    wd.rotate(s, status.angles[Joint::Shldr]);
-    //    wu.rotate(a, status.angles[Joint::Elbow]);
-    //    wd.rotate(a, status.angles[Joint::Elbow]);
-    //    wu.rotate(h, status.angles[Joint::Wrist]);
-    //    wd.rotate(h, status.angles[Joint::Wrist]);
-    //}
-    // //-----------------------------------------------------------------
-    //MoveToEx (hdc, Tx(1.00), Ty(su.y), NULL);
-    //LineTo   (hdc, Tx(su.x), Ty(su.y));
-    //LineTo   (hdc, Tx(au.x), Ty(au.y));
-    //
-    //MoveToEx (hdc, Tx(1.00), Ty(sd.y), NULL);
-    //LineTo   (hdc, Tx(sd.x), Ty(sd.y));
-    //LineTo   (hdc, Tx(ad.x), Ty(ad.y));
-    //
-    //au.rotate(a, status.angles[Joint::Elbow]);
-    //ad.rotate(a, status.angles[Joint::Elbow]);
-    //
-    //MoveToEx (hdc, Tx(au.x), Ty(au.y), NULL);
-    //LineTo   (hdc, Tx(hu.x), Ty(hu.y));
-    //
-    //MoveToEx (hdc, Tx(ad.x), Ty(ad.y), NULL);
-    //LineTo   (hdc, Tx(hd.x), Ty(hd.y));
-    //
-    //if (params.drawPalm)
-    //{
-    //    //---palm-------------------- --------------------------------------
-    //    DrawCircle(hdc, p, params.palmRadius);
-    //
-    //    //------------------------------------------------------------------
-    //    hu.rotate(h, status.angles[Wrist]);
-    //    hd.rotate(h, status.angles[Wrist]);
-    //
-    //    LineTo   (hdc, Tx(wd.x), Ty(wd.y));
-    //    MoveToEx (hdc, Tx(hu.x), Ty(hu.y), NULL);
-    //    LineTo   (hdc, Tx(wu.x), Ty(wu.y));
-    //}
-    // //---clavicle-------------------------------------------------------
-    //DrawCircle(hdc, c, params.jointRadius);
-    //
-    // //---shoulder-------------------------------------------------------
-    //DrawCircle(hdc, s, params.jointRadius);
-    //
-    // //---arm--------------------- --------------------------------------
-    //DrawCircle(hdc, a, params.jointRadius);
-    //
-    // //---hand-------------------- --------------------------------------
-    //DrawCircle(hdc, h, params.jointRadius);
-
     //------------------------------------------------------------------
     Point base = physics.jointsOpenCoords[Joint::Clvcl + 1];
 

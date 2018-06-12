@@ -207,13 +207,20 @@ Tank::Params::Params(IN const std::list<Tank::JointInput> &jointInputs):
 }
 //--------------------------------------------------------------------------------
 Tank::Status::Status(IN const std::list<Tank::JointInput> &jointInputs) :
-    visitedRarity{ 1 },
+    visitedRarity{ 10 },
     windy{ false },
     edges{ std::make_shared<EnvEdgesTank>() }
 {
     for (auto &input : jointInputs)
         if (input.show)
             curPos[input.type] = input.base;
+}
+//--------------------------------------------------------------------------------
+const Point& Tank::position() const
+{
+    //Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
+    //return center;
+    return status.curPos[Joint::JCount];
 }
 //--------------------------------------------------------------------------------
 Tank::Physics::Physics(IN const Point &baseCenter, IN const std::list<Tank::JointInput> &jointInputs)
@@ -284,20 +291,20 @@ void Tank::realMove()
         std::exit(1);
     }
 
-    if (fabs(shiftL) < Tank::minFrameMove &&
-        fabs(shiftR) < Tank::minFrameMove)
-    {
-        for (auto &muscle : params.musclesUsed)
-        {
-            status.lastsMove[muscle] = 0;
-            status.lastsStop[muscle] = 0;
-            status.lasts[muscle] = 0;
-            status.musclesMove[muscle] = 0;
-            status.shifts[muscle] = 0;
-        }
-        status.moveEnd = true;
-        return;
-    }
+    //if (fabs(shiftL) < Tank::minFrameMove &&
+    //    fabs(shiftR) < Tank::minFrameMove)
+    //{
+    //    for (auto &muscle : params.musclesUsed)
+    //    {
+    //        status.lastsMove[muscle] = 0;
+    //        status.lastsStop[muscle] = 0;
+    //        status.lasts[muscle] = 0;
+    //        status.musclesMove[muscle] = 0;
+    //        status.shifts[muscle] = 0;
+    //    }
+    //    status.moveEnd = true;
+    //    return;
+    //}
 
     const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
     Point center{}, normal{};
@@ -378,7 +385,7 @@ void Tank::realMove()
         std::exit(1);
     }
     
-    CINFO("cpL=" << cpL << " cpR=" << cpR);
+    //CINFO("cpL=" << cpL << " cpR=" << cpR);
     if (fabs(tan_angle) > 0)
     {
         cpL.rotate_radians(center, +std::atan(tan_angle));
@@ -390,36 +397,36 @@ void Tank::realMove()
         cpR += normal;
     }
     status.curPos[Joint::JCount] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
-    CINFO("cpL=" << cpL << " cpR=" << cpR);
-    CINFO("curPosBase=" << status.curPos[Joint::JCount] << " old=" << bodyCenterOld);
+    //CINFO("cpL=" << cpL << " cpR=" << cpR);
+    //CINFO("curPosBase=" << status.curPos[Joint::JCount] << " old=" << bodyCenterOld);
+    //
+    //Point bodyVelosity = status.curPos[Joint::JCount] - bodyCenterOld;
+    //if (!status.edges->interaction(*this, bodyVelosity))
+    //{
+    //    /// TODO:
+    //}
+    ////Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
+    ////             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
+    ////Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
+    ////             std::max(cpL.y, cpR.y) + params.trackWidth / 2 };
+    //
+    ////const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
+    ////const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
 
-    Point bodyVelosity = status.curPos[Joint::JCount] - bodyCenterOld;
-    if (!status.edges->interaction(*this, bodyVelosity))
-    {
-        /// TODO:
-    }
-    //Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
-    //             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
-    //Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
-    //             std::max(cpL.y, cpR.y) + params.trackWidth / 2 };
-
-    //const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
-    //const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
-
-    if (boost::algorithm::none_of(status.shifts, [](const auto &c) {
-        return (fabs(c) >= Tank::minFrameMove);
-    }))
-    {
-        for (auto &muscle : params.musclesUsed)
-        {
-            status.lastsMove[muscle] = 0;
-            status.lastsStop[muscle] = 0;
-            status.lasts[muscle] = 0;
-            status.musclesMove[muscle] = 0;
-            //status.shifts[muscle] = 0;
-        }
-        status.moveEnd = true;
-    }
+    //if (ba::none_of(status.shifts, [](const auto &c) {
+    //    return (fabs(c) >= Tank::minFrameMove);
+    //}))
+    //{
+    //    for (auto &muscle : params.musclesUsed)
+    //    {
+    //        status.lastsMove[muscle] = 0;
+    //        status.lastsStop[muscle] = 0;
+    //        status.lasts[muscle] = 0;
+    //        status.musclesMove[muscle] = 0;
+    //        //status.shifts[muscle] = 0;
+    //    }
+    //    status.moveEnd = true;
+    //}
 
     for (auto &muscle : params.musclesUsed)
         status.shifts[muscle] = 0.;
@@ -430,7 +437,6 @@ void Tank::step(IN frames_t frame, muscle_t muscle, IN frames_t last)
     /* Исключить незадействованные двигатели */
     if (muscle < musclesCount() && last > 0)
     {
-        /// TODO: Controls check !!!
         if (status.musclesMove[M(muscle)] <= frame)
             muscleMove(frame, M(muscle), last);
     }
@@ -439,9 +445,7 @@ void Tank::step(IN frames_t frame, muscle_t muscle, IN frames_t last)
         for (muscle_t m = 0; m < musclesCount(); ++m)
             while (status.musclesMove[M(m)] > 0 && status.musclesMove[M(m)] <= frame)
                 muscleMove(frame, M(m), last);
-
-        // step() needs !!! FOR REAL MOVE !!! 
-        realMove();
+        realMove(); // step() needs !!! FOR REAL MOVE !!! 
     }
     else throw std::exception("Controls invalid!");
 }
@@ -482,6 +486,8 @@ frames_t Tank::move(muscle_t muscle, IN frames_t last, OUT Trajectory &visited)
 //--------------------------------------------------------------------------------
 frames_t Tank::move(IN const Control &controls, OUT Trajectory &visited)
 {
+    controls.validated(musclesCount());
+
     frames_t frame = 0U;
     if (controls.size())
     {

@@ -10,7 +10,7 @@ class EnvEdgesTank;
 namespace Mobile {
 
 #define TANK_VER 1
-#define TANK_DEBUG
+//#define TANK_DEBUG
 
 //------------------------------------------------------------------------------
 class Tank : public RoboI
@@ -124,7 +124,7 @@ protected:
         //std::array<double, JointsMaxCount>     velosity{}; 
         //std::array<double, JointsMaxCount> acceleration{};
 
-        unsigned visitedRarity{};        /* число записей в траекторию */
+        unsigned visitedRarity{100};        /* число записей в траекторию */
         bool windy{};                    /* случайное перемещение в первый такт движения мускулом */
         std::shared_ptr<EnvEdges> edges; /* удары и биение на границах */
 
@@ -167,12 +167,7 @@ public:
     void  setJoints(IN const JointsOpenPercent&);
     
     bool           moveEnd() const { return status.moveEnd; }
-    const Point&  position() const
-    { 
-        //Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
-        //return center;
-        return status.curPos[Joint::JCount];
-    }
+    const Point&  position() const;
     Point jointPos(joint_t joint) const { return status.curPos[J(joint)]; }
 
     unsigned getVisitedRarity() const { return status.visitedRarity; }

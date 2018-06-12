@@ -362,6 +362,7 @@ void  onWindowTimer(MyWindowData &wd)
     {
         wd.pRobo->step(wd.frames);
         ++wd.frames;
+        wd.canvas.hDynamicBitmapChanged = true;
 
         if (wd.pRobo->moveEnd())
         {
