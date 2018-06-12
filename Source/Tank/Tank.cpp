@@ -617,9 +617,4 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
     //realMove();
 }
 //--------------------------------------------------------------------------------
-void Tank::controlsValidate(const Control&) const
-{
-    /// TODO: controlsValidate
-}
-//--------------------------------------------------------------------------------
 

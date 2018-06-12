@@ -35,8 +35,8 @@ void TourI::appendBreakings(IN joint_t joint, IN const Actuator &a)
         }
         else
         {
-            //CDEBUG("add breaks on last_step=" << glob_lasts_step << 
-            //       " incr=" << _lasts_step_increment << " for joint=" << joint);
+            CDEBUG("add breaks" // on last_step=" << glob_lasts_step << 
+                   " incr=" << _lasts_step_increment << " for joint=" << joint);
             // добавляем торможения
             auto opposite_muscle = RoboI::muscleOpposite(a.muscle);
             _breakings_controls[joint] = { opposite_muscle,
@@ -98,6 +98,8 @@ void TourI::removeBreakings(IN joint_t joint)
 //------------------------------------------------------------------------------
 void TourI::cleanBreakings(IN joint_t joint)
 {
+    if (_breakings_controls[joint].muscle != MInvalid)
+        CDEBUG("clean breaks for joint=" << joint);
     // удалить торможения, задействованные в данной вложенной процедуре
     _breakings_controls[joint] = { MInvalid, 0, 0 };
     //for (size_t ji = 0; ji <= joint; ++ji)
@@ -106,10 +108,11 @@ void TourI::cleanBreakings(IN joint_t joint)
 }
 
 //------------------------------------------------------------------------------
-void TourI::exactsBreakings(IN joint_t joint, IN const Control &controls)
+void TourI::exactBreakings(IN joint_t joint, IN const Control &controls)
 {
     if (_b_braking && _breakings_controls_actives > 0)
     {
+        CDEBUG("exact breaks " << _breakings_controls_actives);
         auto it = controls.begin();
         for (joint_t ji = 0; ji <= joint; ++ji, ++it)
         {
@@ -226,7 +229,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
             }
             else
             {
-                exactsBreakings(joint, controls + control_i);
+                exactBreakings(joint, controls + control_i);
                 //===============================================================
                 runNestedMove(controls + control_i, curr_pos);
                 //===============================================================
@@ -361,9 +364,9 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     --_max_nested;
     auto next_joint = _next_joint(_robo.jointsCount(), joint, false);
     // стартруем разными сочленениями последовательно
-    const frames_t start_i = controls.size() ? (controls[-1].lasts + controls[-1].start) : 0;
+    //const frames_t start_i = controls.size() ? (controls[-1].lasts + controls[-1].start) : 0;
     // стартруем разными сочленениями одновременно
-    //const frames_t start_i = 0;
+    const frames_t start_i = 0;
     //------------------------------------------
     Point curr_pos = _base_pos, prev_pos = _base_pos;
     //------------------------------------------
@@ -372,11 +375,10 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     int high = 0; // число положений захвата робота в вышестоящем ряду
     Point max_robo_pos_high{ 0., 0. }; // сумма положений робота в вышестоящем ряду
 
-    /// TODO:
-    /* В ОСНОВНОМ РАБОТАЕТ
-     * 1. УСТАНОВИТЬ КОРРЕКТНЫЙ НАЧАЛЬНЫЙ LAST
-     * 2. НЕ ВСЕГДА ОСТАНАВЛИВАЕТСЯ ПРИ ПОКИДАНИИ МИШЕНИ (А ИМЕННО ПРОБЛЕМА ВПРАВО)
-     */
+    /// TODO: НЕ ВСЕГДА ОСТАНАВЛИВАЕТСЯ ПРИ ПОКИДАНИИ МИШЕНИ (А ИМЕННО ПРОБЛЕМА ВНИЗ)
+
+    bool was_on_target = false; // положение захвата ещё не достигло мишени в этом ряду
+    bool target_contain = false; // положение захвата достигло мишени и остаётся на ней
 
     Actuator control_i;
     //------------------------------------------
@@ -385,28 +387,24 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     {
         control_i.muscle = muscle_i;
         //------------------------------------------
-        bool was_on_target = false; // положение захвата ещё не достигло мишени в этом ряду
-        bool target_contain = true; // положение захвата достигло мишени и остаётся на ней
+        was_on_target = false; 
+        target_contain = false; 
 
         //------------------------------------------
-        auto &board = _borders[muscle_i];
-        if (board.min_lasts == 0 && board.min_lasts >= board.max_lasts)
+        auto &border = _borders[muscle_i];
+        if (border.min_lasts == 0 && border.min_lasts >= border.max_lasts)
         {
             CWARN("Empty borders of muscle=" << muscle_i);
-            //return true; // false;
+            border.max_lasts = _robo.muscleMaxLast(muscle_i);
         }
 
         //------------------------------------------
         frames_t lasts_step = _lasts_step_increment_init; // адаптивный шаг длительности
-        frames_t lasts_i_max = _robo.muscleMaxLast(muscle_i);
-        //------------------------------------------
-        frames_t last_i = 0;
-        for (last_i = board.min_lasts; last_i < lasts_i_max && (target_contain || !was_on_target); last_i += lasts_step)
+        frames_t target_start = 0, target_end = 0;
+        /*musclesMaxLasts(_robo) /* _robo.muscleMaxLast(muscle_i)/*border.max_lasts*/
+        for (frames_t last_i = (border.min_lasts + lasts_step); (last_i <= border.max_lasts) || (target_contain); last_i += lasts_step)
         {
             control_i.lasts = last_i;
-            //------------------------------------------
-            if (last_i > board.max_lasts && !target_contain) // (prev_pos.x > _target.max().x) || (prev_pos.y < _target.min().y)
-                break;
             //------------------------------------------
             if (_max_nested)
             {
@@ -416,7 +414,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
             }
             else
             {
-                exactsBreakings(joint, controls + control_i);
+                exactBreakings(joint, controls + control_i);
                 //===============================================================
                 target_contain = runNestedMove(controls + control_i, curr_pos);
                 //===============================================================
@@ -424,18 +422,29 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
             //------------------------------------------
             if (target_contain && !was_on_target)
             {
-                board.min_lasts = last_i;
+                target_start = last_i; // <<< for next FOR
                 was_on_target = true;
             }
+            if (!target_contain && was_on_target)
+            {
+                target_end = last_i; // <<< for next FOR
+                break;
+            }
             //------------------------------------------
-            if (high)
+            if (high) // is not first move
             {
                 double d = boost_distance(prev_pos, curr_pos);
                 //------------------------------------------
-                if (d > _step_distance)
+                if (d > _step_distance && target_contain)
                 {
                     // адаптивный шаг изменения длительности
-                    if (lasts_step > _lasts_step_increment)
+                    if ((d / _step_distance) > 2. && (lasts_step / _lasts_step_increment) > 2)
+                    {
+                        frames_t n_steps = (lasts_step / _lasts_step_increment);
+                        frames_t n_dists = static_cast<frames_t>(d / _step_distance);
+                        lasts_step -= std::min(n_steps, n_dists) * _lasts_step_increment;
+                    }
+                    else if (lasts_step > _lasts_step_increment)
                         lasts_step -= _lasts_step_increment;
                     else if (_lasts_step_increment > 1 && lasts_step > _lasts_step_increment / 2)
                         lasts_step -= _lasts_step_increment / 2;
@@ -448,7 +457,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                         appendBreakings(joint, control_i);
                     }
                 }
-                else if (d < _step_distance)
+                else if (d < _step_distance || !was_on_target)
                 {
                     if (_b_braking && _breakings_controls_actives > 0 &&
                         _breakings_controls[joint].lasts > 0 /* !!! */)
@@ -480,17 +489,19 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
         //-----------------------------
         cleanBreakings(joint);
         //-----------------------------
+        if (target_contain)
         {
-            //target_contain = true;
-            board.max_lasts = last_i;
-            //------------------------------------------
+            target_end = border.max_lasts; // = _robo.muscleMaxLast(muscle_i);
+        }
+        //-----------------------------
+        // tour on Target
+        { 
             lasts_step = _lasts_step_increment_thick; // lasts_step_initiate;
-
-            for (last_i = board.min_lasts; (last_i - lasts_step) < lasts_i_max && (target_contain); last_i -= lasts_step)
+            for (frames_t last_i = target_start; (last_i <= target_end) && target_contain; last_i -= lasts_step)
             {
                 control_i.lasts = last_i;
                 //------------------------------------------
-                if (0U <= joint && (joint + 1U) < _max_nested)
+                if (_max_nested)
                 {
                     //===============================================================
                     target_contain = runNestedForMuscle(next_joint, controls + control_i, curr_pos);
@@ -503,15 +514,29 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                     //===============================================================
                 }
                 //------------------------------------------
-                double d = boost_distance(prev_pos, curr_pos);
-                //------------------------------------------
-                if (d > _step_distance)
+                if (high)
                 {
-                    if (lasts_step > _lasts_step_increment_thick)
-                        lasts_step -= _lasts_step_increment_thick;
+                    double d = boost_distance(prev_pos, curr_pos);
+                    //------------------------------------------
+                    if (d > _step_distance)
+                    {
+                        if (lasts_step > _lasts_step_increment_thick)
+                            lasts_step -= _lasts_step_increment_thick;
+                    }
+                    else if (d < _step_distance)
+                    {
+                        lasts_step += _lasts_step_increment_thick;
+                    }
                 }
-                else if (d < _step_distance)
-                { lasts_step += _lasts_step_increment_thick; }
+                //-----------------------------
+                {
+                    // сохраняем полученное положение робота
+                    // в сумму для получения среднего, которым пользуется
+                    // функция выше по реккурсии
+                    max_robo_pos_high.x += curr_pos.x;
+                    max_robo_pos_high.y += curr_pos.y;
+                    ++high;
+                }
                 //-----------------------------
                 prev_pos = curr_pos;
             } // end for (_b_target lasts)
@@ -526,7 +551,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     }
     //------------------------------------------
     ++_max_nested;
-    return true;
+    return was_on_target;
 }
 
 //------------------------------------------------------------------------------

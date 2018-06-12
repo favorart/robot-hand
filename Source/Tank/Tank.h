@@ -74,9 +74,8 @@ public:
     //----------------------------------------------------
     Tank(IN const Point &baseCenter, IN const std::list<JointInput> &joints);
     Tank(IN const Point &baseCenter, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints);
-    //----------------------------------------------------
 
-private:
+protected:
     //----------------------------------------------------
     bool    muscleFrame (Muscle muscle, bool atStop);
     void    muscleMove  (frames_t frame, Muscle muscle, frames_t last);
@@ -167,19 +166,14 @@ public:
     void  resetJoint(IN joint_t);
     void  setJoints(IN const JointsOpenPercent&);
     
-    Point jointPos(joint_t joint) const { return status.curPos[J(joint)]; }
-    //----------------------------------------------------
-    void controlsValidate(const Control&) const;
-    
     bool           moveEnd() const { return status.moveEnd; }
     const Point&  position() const
     { 
-        //static Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
+        //Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
         //return center;
-
-        /* return status.curPos[Joint::JCount]; */
         return status.curPos[Joint::JCount];
     }
+    Point jointPos(joint_t joint) const { return status.curPos[J(joint)]; }
 
     unsigned getVisitedRarity() const { return status.visitedRarity; }
     void     setVisitedRarity(unsigned rarity) { status.visitedRarity = rarity; }

@@ -30,17 +30,17 @@ protected:
     double _step_distance{0.};
     Robo::frames_t _lasts_step_increment{0};
 
-    Robo::frames_t _lasts_step_increment_thick = 20;
+    Robo::frames_t _lasts_step_increment_thick = 2;
     Robo::frames_t _lasts_step_increment_init = 6;
 
-    Robo::frames_t _lasts_step_braking_init = 10; // 30
+    Robo::frames_t _lasts_step_braking_init = 3; // 30
     Robo::frames_t _lasts_step_braking_incr = 2;
     
     size_t _max_nested = 0;
     size_t _breakings_controls_actives = 0;
     std::vector<Robo::Actuator> _breakings_controls{};
 
-    void exactsBreakings(IN Robo::joint_t joint, IN const Robo::Control &controls);
+    void  exactBreakings(IN Robo::joint_t joint, IN const Robo::Control &controls);
     void appendBreakings(IN Robo::joint_t joint, IN const Robo::Actuator &a);
     void removeBreakings(IN Robo::joint_t joint);
     void  cleanBreakings(IN Robo::joint_t joint);

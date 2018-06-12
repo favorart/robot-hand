@@ -392,7 +392,7 @@ frames_t  Hand::move(IN Muscle muscle, IN frames_t last, OUT Trajectory &visited
 //--------------------------------------------------------------------------------
 frames_t  Hand::move(IN const Control& controls, OUT Trajectory& visited)
 {
-    controlsValidate(controls);
+    controls.validated(musclesCount());
 
     frames_t frame = 0;
     /* Запускаем двигатели */
@@ -643,40 +643,4 @@ void  Hand::getWorkSpace(OUT Trajectory &workSpace)
     reset();
 }
 //--------------------------------------------------------------------------------
-void  Hand::controlsValidate(const Control &controls) const
-{
-    /* Что-то должно двигаться, иначе беск.цикл */
-    if (!controls.size())
-        throw std::logic_error("Controls are empty!");
-    /* Управление должно быть отсортировано по времени запуска двигателя */
-    if (controls[0].start != 0 || !br::is_sorted(controls))
-        throw std::logic_error("Controls are not sorted!");
-    /* Исключить незадействованные двигатели */
-    auto ctrlInvalid = [muscles = musclesCount()](const auto &a) {
-        //CINFO(a);
-        return (a.lasts == 0) || (a.muscle >= muscles);
-    };
-    if (ba::any_of(controls, ctrlInvalid))
-        throw std::logic_error("Controls have UNUSED or INVALID muscles!");
 
-    /// TODO: Opposite simultaneosly
-    /* Совместимо ли новое с тем, что уже сейчас движется? */
-}
-
-//--------------------------------------------------------------------------------
-//Hand::Muscle Hand::selectControl(IN Muscle muscle) const
-//{
-//    if (!muscle)
-//    { return controls[random(controls.size())]; }
-//    else
-//    {
-//        for (auto m : controls)
-//            if (!(m & muscle) && musclesValidUnion(m | muscle))
-//                return m;
-//        // auto m = controls[random (controls.size ())];
-//        // while ( (m & muscle) || !musclesValidUnion (m | muscle) )
-//        //   m = controls[random (controls.size ())];
-//    }
-//    return  EmptyMov;
-//}
-//--------------------------------------------------------------------------------

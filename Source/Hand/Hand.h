@@ -87,9 +87,8 @@ public:
     //----------------------------------------------------
     Hand(IN const Point &baseClavicle, IN const std::list<JointInput> &joints);
     Hand(IN const Point &baseClavicle, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints);
-    //----------------------------------------------------
 
-private:
+protected:
     //----------------------------------------------------
     struct Params
     {
@@ -182,8 +181,6 @@ public:
     void      draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
     void      step(IN frames_t frame, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
     frames_t  move(IN const Control &control, OUT Trajectory &visited);
-    //----------------------------------------------------
-    void controlsValidate(const Control&) const;
     
     //----------------------------------------------------
     /*  jointsOpenPercent={ j={ Clvcl, Shldr, Elbow, Wrist }, val <= 100.0% } */
@@ -191,16 +188,16 @@ public:
     void  resetJoint(IN joint_t);
     void  reset();
     
+    //----------------------------------------------------    
+    bool          moveEnd() const { return status.moveEnd; }
+    const Point& position() const { return status.curPos[(params.drawPalm ? Joint::Wrist : Joint::Elbow)]; }
     Point jointPos(IN joint_t joint) const
     {
         if (joint >= JCount)
             throw std::exception("Inorrect joint");
         return status.curPos[J(joint)];
     }
-    //----------------------------------------------------    
-    bool          moveEnd() const { return status.moveEnd; }
-    const Point& position() const { return status.curPos[(params.drawPalm ? Joint::Wrist : Joint::Elbow)]; }
-
+    //----------------------------------------------------   
     unsigned getVisitedRarity() const { return status.visitedRarity; }
     void     setVisitedRarity(unsigned rarity) { status.visitedRarity = rarity; }
 

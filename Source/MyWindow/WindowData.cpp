@@ -351,13 +351,15 @@ void  onWindowTimer(MyWindowData &wd)
     wd.trajFrames.step(*wd.pStore, *wd.pRobo);
     // =============================
     if (wd.trajFrames.show)
+    {
+        wd.canvas.hDynamicBitmapChanged = true;
         return;
-
+    }
+    // =============================
     for (size_t i = 0; (wd.frames > 0) && (i < wd.pRobo->getVisitedRarity()); ++i)
     {
         wd.pRobo->step(wd.frames);
         ++wd.frames;
-        wd.canvas.hDynamicBitmapChanged = true;
 
         if (wd.pRobo->moveEnd())
         {

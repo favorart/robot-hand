@@ -69,15 +69,14 @@ public:
     //----------------------------------------------------
     using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;
     virtual void setJoints(IN const JointsOpenPercent&) = 0;
+
     virtual void resetJoint(IN joint_t) = 0;
     virtual void reset() = 0;
-
-    virtual Point jointPos(IN joint_t) const = 0;
-    //----------------------------------------------------
-    virtual void controlsValidate(const Control&) const = 0;
+    
     //----------------------------------------------------
     virtual bool moveEnd() const = 0;
     virtual const Point& position() const = 0;
+    virtual Point jointPos(IN joint_t) const = 0;
     //----------------------------------------------------
 
     virtual unsigned getVisitedRarity() const = 0;

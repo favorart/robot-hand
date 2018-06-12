@@ -113,10 +113,10 @@ void Robo::Control::validated(Robo::muscle_t n_muscles) const
     if (!actuals)
         throw std::logic_error("Controls are empty!");
     /* Управление должно быть отсортировано по времени запуска двигателя */
-    if (actuators[0].start != 0 || !br::is_sorted(actuators))
+    if (actuators[0].start != 0 || !br::is_sorted(*this))
         throw std::logic_error("Controls are not sorted!");
     /* Исключить незадействованные двигатели */
-    if (ba::any_of(actuators, [n_muscles](const Actuator &a) { return (!a.lasts) || (a.muscle >= n_muscles); }))
+    if (ba::any_of(*this, [n_muscles](const Actuator &a) { return (!a.lasts) || (a.muscle >= n_muscles); }))
         throw std::logic_error("Controls have UNUSED or INVALID muscles!");
 }
 
@@ -126,11 +126,10 @@ bool Robo::Control::validate(Robo::muscle_t n_muscles) const
     auto is_invalid = [n_muscles](const Actuator &a) {
         return (!a.lasts) || (a.muscle >= n_muscles);
     };
-
     return !actuals ||
         actuators[0].start != 0 || 
-        !br::is_sorted(actuators) ||
-        ba::any_of(actuators, is_invalid);
+        !br::is_sorted(*this) ||
+        ba::any_of(*this, is_invalid);
 }
 
 

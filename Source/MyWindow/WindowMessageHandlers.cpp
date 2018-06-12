@@ -435,7 +435,7 @@ void onWindowTimer(HWND hWnd, MyWindowData &wd, WPARAM wParam)
         if (wd.testing)
         { WorkerThreadTryJoin(wd); }
         //=======================
-        InvalidateRect(hWnd, &wd.canvas.myRect, TRUE); // FALSE
+        InvalidateRect(hWnd, &wd.canvas.myRect, TRUE);
         break;
     }
     }
@@ -469,7 +469,8 @@ void onWindowMouse(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lParam)
         SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL,
                     reinterpret_cast<WPARAM>(s.c_str()));
         // -------------------------------------------------
-        /// TODO: (onWindowMouse): if (!wd.testing) { makeRoboMove(wd); }
+        if (!wd.testing)
+            makeRoboMove(wd);
     }
     //=======================
     InvalidateRect(hWnd, &wd.canvas.myRect, TRUE);
