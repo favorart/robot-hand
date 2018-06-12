@@ -45,18 +45,8 @@ class GradPens : public std::function<HPEN(size_t)>
     color_gradient_t gradient;
     std::vector<HPEN> gradientPens;
 public:
-    GradPens(Robo::frames_t robo_max_last) : robo_max_last(robo_max_last)
-    {
-        makeGradient(colors, colorGradations, gradient);
-
-        gradientPens.resize(gradient.size());
-        for (auto i = 0U; i < gradient.size(); ++i)
-            gradientPens[i] = CreatePen(PS_SOLID, 1, gradient[i]);
-    }
-    HPEN operator()(size_t longs) /*const*/
-    {
-        return gradientPens[Utils::interval_map(longs, { 0u, robo_max_last }, { 0u, gradientPens.size() })];
-    }
+    GradPens(Robo::frames_t robo_max_last);
+    HPEN operator()(Robo::frames_t longs) const;
     ~GradPens()
     {
         for (auto pen : gradientPens)

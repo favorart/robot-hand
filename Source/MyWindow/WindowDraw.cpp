@@ -99,7 +99,7 @@ void  drawCircle(HDC hdc, const Point &center, double radius, HPEN hPen)
             // pinf: .lopnColor .lopnWidth .lopnStyle
             SetPixel(hdc, Tx(center.x), Ty(center.y), pinf.lopnColor);
         }
-        else CWARN("");
+        else throw std::runtime_error("Can't get color");
     }
 }
 
@@ -248,3 +248,32 @@ HPEN genStoreGradientPen(size_t longs)
     // for (auto hPen : hPens) { DeleteObject(hPen); }
     return hpen;
 }
+
+//------------------------------------------------------------------------------
+GradPens::GradPens(Robo::frames_t robo_max_last) : robo_max_last(robo_max_last)
+{
+    makeGradient(colors, colorGradations, gradient);
+
+    gradientPens.resize(gradient.size());
+    for (auto i = 0U; i < gradient.size(); ++i)
+        gradientPens[i] = CreatePen(PS_SOLID, 1, gradient[i]);
+}
+
+//------------------------------------------------------------------------------
+HPEN GradPens::operator()(Robo::frames_t longs) const
+{
+    // (sz=15-1 - 0) * (input - 0) / (last=700 - 0) + 0; }
+    int i = 0;
+    if (longs > robo_max_last)
+    {
+        //throw std::runtime_error("");
+        i = gradientPens.size() - 1;
+    }
+    else
+    {
+        i = Utils::interval_map(longs, { 0u, robo_max_last }, { 0u, gradientPens.size() - 1 });
+    }
+    return gradientPens[i];
+}
+
+//------------------------------------------------------------------------------

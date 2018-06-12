@@ -7,8 +7,6 @@
 using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
-using namespace Robo::Mobile;
-using namespace Robo::NewHand;
 
 //------------------------------------------------------------------------------
 TourI::JointsNumerator TourI::forward = [](joint_t njoints, joint_t joint, bool first = false) {
@@ -35,38 +33,15 @@ void TourI::appendBreakings(IN joint_t joint, IN const Actuator &a)
         }
         else
         {
-            CDEBUG("add breaks" // on last_step=" << glob_lasts_step << 
-                   " incr=" << _lasts_step_increment << " for joint=" << joint);
+            //CDEBUG("add breaks on last_step=" << glob_lasts_step << 
+            //       " incr=" << _lasts_step_increment << " for joint=" << joint);
             // добавляем торможения
             auto opposite_muscle = RoboI::muscleOpposite(a.muscle);
             _breakings_controls[joint] = { opposite_muscle,
-                                          /*start=*/(a.start + a.lasts + 1),
+                                           (_b_simul) ? a.start : (a.start + a.lasts + 1),
                                           _lasts_step_braking_init };
             _breakings_controls_actives++;
         }
-        //auto it = controls.begin();
-        //for (joint_t ji = 0; ji <= joint; ++ji, ++it)
-        //{
-        //    if (_brakings_controls[ji].muscle != it->muscle)
-        //        CWARN("_brakings_controls[ji].muscle=" <<
-        //              _brakings_controls[ji].muscle << " != " <<
-        //              "Opposite(controls[ji].muscle)=" <<
-        //              RoboI::muscleOpposite(it->muscle));
-        //
-        //    if (_brakings_controls[ji].muscle != MInvalid && _brakings_controls[ji].last > 0)
-        //    {
-        //        // увеличиваем длительность
-        //        _brakings_controls[ji].last += _lasts_step_braking;
-        //    }
-        //    else
-        //    {
-        //        CDEBUG("add breaks " << _lasts_step_increment);
-        //        // добавляем торможения
-        //        auto opposite_muscle = RoboI::muscleOpposite(it->muscle);
-        //        _brakings_controls[ji] = { opposite_muscle, /*start=*/it->last + 1, _lasts_step_braking_init };
-        //        _brakings_controls_actives++;
-        //    }
-        //}
     }
 }
 
@@ -82,37 +57,25 @@ void TourI::removeBreakings(IN joint_t joint)
             _breakings_controls[joint] = { MInvalid, 0, 0 };
             _breakings_controls_actives--;
         }
-        //for (joint_t ji = 0; ji <= joint; ++ji)
-        //    if (_brakings_controls[ji].last > _lasts_step_braking_incr)
-        //    {
-        //        _brakings_controls[ji].last -= _lasts_step_braking_incr;
-        //    }
-        //    else
-        //    {
-        //        _brakings_controls[ji] = { MInvalid, 0, 0 };
-        //        _brakings_controls_actives--;
-        //    }
     }
 }
 
 //------------------------------------------------------------------------------
 void TourI::cleanBreakings(IN joint_t joint)
 {
-    if (_breakings_controls[joint].muscle != MInvalid)
-        CDEBUG("clean breaks for joint=" << joint);
-    // удалить торможения, задействованные в данной вложенной процедуре
+    //if (_breakings_controls[joint].muscle != MInvalid)
+    //    CDEBUG("clean breaks for joint=" << joint);
+    /* удалить торможения, задействованные в данной вложенной процедуре */
     _breakings_controls[joint] = { MInvalid, 0, 0 };
     //for (size_t ji = 0; ji <= joint; ++ji)
     //    _breakings_controls[ji].last = 0;
-    //------------------------------------------
 }
 
 //------------------------------------------------------------------------------
 void TourI::exactBreakings(IN joint_t joint, IN const Control &controls)
 {
-    if (_b_braking && _breakings_controls_actives > 0)
+    if (!_b_simul && _b_braking && _breakings_controls_actives > 0)
     {
-        CDEBUG("exact breaks " << _breakings_controls_actives);
         auto it = controls.begin();
         for (joint_t ji = 0; ji <= joint; ++ji, ++it)
         {
@@ -124,10 +87,74 @@ void TourI::exactBreakings(IN joint_t joint, IN const Control &controls)
                       RoboI::muscleOpposite(it->muscle));
             // просто уточняем начало торможений, если что-то изменилось
             if (_breakings_controls[ji].muscle != MInvalid && _breakings_controls[ji].lasts > 0)
+            {
+                CDEBUG("exact breaks " << ji << "/" << _breakings_controls_actives);
                 _breakings_controls[ji].start = (it->start + it->lasts + 1);
+            }
         }
     }
 }
+
+//frames_t glob_lasts_step; /// !!! RM
+//------------------------------------------------------------------------------
+void TourI::adaptiveLasts(IN const Point &prev_pos, IN const Point &curr_pos,
+                          IN const Actuator &control_i, OUT frames_t &lasts_step,
+                          IN bool target_contain, IN bool was_on_target)
+{
+    double d = boost_distance(prev_pos, curr_pos);
+    //------------------------------------------
+    /* адаптивный шаг изменения длительности */
+    if (d > _step_distance && target_contain)
+    {
+        if ((lasts_step / _lasts_step_increment) > 3 && (d / _step_distance) >= (_lasts_step_increment * 3))
+        {
+            frames_t n_steps = (lasts_step / _lasts_step_increment - 1);
+            lasts_step -= n_steps * _lasts_step_increment;
+        }
+        else if (lasts_step > _lasts_step_increment)
+            lasts_step -= _lasts_step_increment;
+        else if (lasts_step > (_lasts_step_increment / 2) && _lasts_step_increment > 1)
+            lasts_step -= (_lasts_step_increment / 2);
+        else if (lasts_step > 1)
+            lasts_step -= 1;
+        else if (_b_braking)
+        {
+            //glob_lasts_step = lasts_step; /// REMOVE
+            joint_t joint = RoboI::jointByMuscle(control_i.muscle);
+            /* если нельзя сохранить одинаковый промежуток
+             * уменьшением длительность основного,
+             * подключаем торможение противоположным
+             */
+            appendBreakings(joint, control_i);
+        }
+    }
+    else if (d < _step_distance || !was_on_target)
+    {
+        if (_b_braking && _breakings_controls_actives > 0)
+        {
+            joint_t joint = RoboI::jointByMuscle(control_i.muscle);
+            /* сначала по возможности отключаем торможения */
+            removeBreakings(joint);
+        }
+        else
+        {
+            /* затем увеличиваем длительность */
+            lasts_step += _lasts_step_increment;
+        }
+    }
+    if (lasts_step == 0)
+        CERROR("lasts_step == 0");
+}
+
+//------------------------------------------------------------------------------
+TourI::TourI(RoboMoves::Store &store, Robo::RoboI &robo, TourI::JointsNumerator &next_joint) :
+    _store(store), _robo(robo), _next_joint(next_joint),
+    _max_nested(_robo.jointsCount()),
+    _breakings_controls(_max_nested),
+    _breakings_controls_actives(0),
+    _b_braking(false),
+    _b_simul(true)
+{}
 
 //------------------------------------------------------------------------------
 void TourI::run()
@@ -135,9 +162,6 @@ void TourI::run()
     _complexity = 0;
     _counters.clear();
     _max_nested = _robo.jointsCount();
-    // ----------------------------------------------------
-    _robo.reset();
-    _base_pos = _robo.position();
     // ----------------------------------------------------
     try
     {
@@ -158,26 +182,28 @@ void TourI::run()
         //return;
     }
     // ----------------------------------------------------
-    if (_b_checking) { _counters.print(); }
+    if (_counters.count) _counters.print();
     tcout << _T("\nStep: ") << (_step_distance / TourI::divToMeters) << _T("mm.");
     tcout << _T("\nComplexity: ") << complexity();
     tcout << _T("  minutes:") << double(complexity()) / TourI::divToMinutes << std::endl;
+    _robo.reset();
 }
 
 //------------------------------------------------------------------------------
-bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_pos)
+bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 {
     Trajectory trajectory;
     Control controling = controls + _breakings_controls;
     //----------------------------------------------
+    _robo.reset();
+    auto &base_pos = _robo.position();
+
     _robo.move(controling, trajectory);
     ++_complexity;
-    robo_pos = _robo.position();
+    robo_hit = _robo.position();
 
-    Record rec(robo_pos, _base_pos, robo_pos, controling, trajectory);
+    Record rec(robo_hit, base_pos, robo_hit, controling, trajectory);
     _store.insert(rec);
-
-    _robo.reset();
     //----------------------------------------------
     boost::this_thread::interruption_point();
     //----------------------------------------------
@@ -185,24 +211,19 @@ bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_pos)
 }
 
 
-
-frames_t glob_lasts_step;
 //------------------------------------------------------------------------------
-bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &robo_pos_high)
+bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &avg_pos)
 {
-    CDEBUG("runNested " << joint/* << " last_i " << last_i*/);
     --_max_nested;
-    // стартруем разными сочленениями последовательно
-    //const frames_t start_i = controls.size() ? (controls[-1].lasts + controls[-1].start) : 0;
-    // стартруем разными сочленениями одновременно
-    const frames_t start_i = 0;
+    //CDEBUG("runNested " << joint/* << " last_i " << last_i*/);
+    /* стартруем разными сочленениями (одновременно) или последовательно */
+    const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
     //------------------------------------------
-    Point curr_pos = _base_pos, prev_pos = _base_pos;
+    Point curr_pos = {}, prev_pos = {};
     //------------------------------------------
-    // заметание пространства проходит рядами,
-    // сдвигаясь всё дальше от начальной точки
-    int high = 0; // число положений захвата робота в вышестоящем ряду
-    Point max_robo_pos_high{ 0., 0. }; // сумма положений робота в вышестоящем ряду
+    /* заметание пространства проходит рядами, сдвигаясь всё дальше от начальной точки */
+    int n_poses_high = 0; /* число положений захвата робота в вышестоящем ряду */
+    Point all_poses_high{ 0., 0. }; /* сумма положений робота в вышестоящем ряду */
 
     Actuator control_i;
     //------------------------------------------
@@ -211,7 +232,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
     {
         control_i.muscle = muscle_i;
         //------------------------------------------
-        // адаптивный шаг длительности
+        /* адаптивный шаг длительности */
         frames_t lasts_step = _lasts_step_increment_init;
         frames_t lasts_i_max = _robo.muscleMaxLast(muscle_i);
         //------------------------------------------
@@ -221,10 +242,9 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
             //------------------------------------------
             if (_max_nested)
             {
-                auto nj = _next_joint(_robo.jointsCount(), joint, false);
+                auto next_joint = _next_joint(_robo.jointsCount(), joint, false);
                 //===============================================================
-                if (!runNestedForMuscle(nj, controls + control_i, curr_pos))
-                    return false;
+                runNestedForMuscle(next_joint, controls + control_i, curr_pos);
                 //===============================================================
             }
             else
@@ -235,63 +255,28 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
                 //===============================================================
             }
             //------------------------------------------
-            if (high)
+            if (n_poses_high)
             {
-                double d = boost_distance(prev_pos, curr_pos);
-                //------------------------------------------
-                if (d > _step_distance)
-                {
-                    // адаптивный шаг изменения длительности
-                    if (lasts_step > _lasts_step_increment)
-                        lasts_step -= _lasts_step_increment;
-                    else if (_lasts_step_increment > 1 && lasts_step > _lasts_step_increment / 2)
-                        lasts_step -= _lasts_step_increment / 2;
-                    else if (_b_braking) // ?? && _lasts_step_increment == 1)
-                    {
-                        // если нельзя сохранить одинаковый промежуток уменьшением длительности
-                        // подключаем торможения противоположным двигателем
-                        appendBreakings(joint, control_i);
-                    }
-                }
-                else if (d < _step_distance)
-                {
-                    if (_b_braking && _breakings_controls_actives > 0 &&
-                        _breakings_controls[joint].lasts > 0 /* !!! */)
-                    {
-                        // сначала по возможности отключаем торможения
-                        removeBreakings(joint);
-                    }
-                    else
-                    {
-                        // затем увеличиваем длительность
-                        lasts_step += _lasts_step_increment;
-                    }
-                }
+                adaptiveLasts(prev_pos, curr_pos, control_i, lasts_step);
             }
             //------------------------------------------
-            {
-                // сохраняем полученное положение робота
-                // в сумму для получения среднего, которым пользуется
-                // функция выше по реккурсии
-                max_robo_pos_high.x += curr_pos.x;
-                max_robo_pos_high.y += curr_pos.y;
-                ++high;
-                //CDEBUG("curr_pos " << curr_pos);
-            }
+            /* сохраняем полученное положение робота
+             * в сумму для получения среднего, которым пользуется
+             * функция выше по реккурсии
+             */
+            all_poses_high += curr_pos;
+            ++n_poses_high;
+            //CDEBUG("curr_pos " << curr_pos);
             //------------------------------------------
             prev_pos = curr_pos;
             //------------------------------------------
-        } // end for (lasts)
-
-        //-----------------------------
+        }
         cleanBreakings(joint);
-        //-----------------------------
-    } // end for (muscle)
+    }
     //------------------------------------------
-    if (high)
+    if (n_poses_high > 0)
     {
-        robo_pos_high = Point{ max_robo_pos_high.x / high,
-                               max_robo_pos_high.y / high };
+        avg_pos = all_poses_high / n_poses_high;
     }
     //------------------------------------------
     ++_max_nested;
@@ -359,26 +344,22 @@ void TourTarget::defineTargetBorders(distance_t side)
 }
 
 //------------------------------------------------------------------------------
-bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &robo_pos_high)
+bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT Point &avg_pos)
 {
     --_max_nested;
     auto next_joint = _next_joint(_robo.jointsCount(), joint, false);
-    // стартруем разными сочленениями последовательно
-    //const frames_t start_i = controls.size() ? (controls[-1].lasts + controls[-1].start) : 0;
-    // стартруем разными сочленениями одновременно
-    const frames_t start_i = 0;
+    /* стартруем разными сочленениями (одновременно) или последовательно */
+    const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
     //------------------------------------------
-    Point curr_pos = _base_pos, prev_pos = _base_pos;
+    Point curr_pos = {}, prev_pos = {};
     //------------------------------------------
-    // заметание пространства проходит рядами,
-    // сдвигаясь всё дальше от начальной точки
-    int high = 0; // число положений захвата робота в вышестоящем ряду
-    Point max_robo_pos_high{ 0., 0. }; // сумма положений робота в вышестоящем ряду
+    /* заметание пространства проходит рядами, сдвигаясь всё дальше от начальной точки */
+    int n_poses_high = 0; /* число положений захвата робота в вышестоящем ряду */
+    Point all_poses_high{ 0., 0. }; /* сумма положений робота в вышестоящем ряду */
 
-    /// TODO: НЕ ВСЕГДА ОСТАНАВЛИВАЕТСЯ ПРИ ПОКИДАНИИ МИШЕНИ (А ИМЕННО ПРОБЛЕМА ВНИЗ)
-
-    bool was_on_target = false; // положение захвата ещё не достигло мишени в этом ряду
-    bool target_contain = false; // положение захвата достигло мишени и остаётся на ней
+    bool once_on_target = false;
+    bool was_on_target = false; /* положение захвата ещё не достигло мишени в этом ряду */
+    bool target_contain = false; /* положение захвата достигло мишени и остаётся на ней */
 
     Actuator control_i;
     //------------------------------------------
@@ -387,9 +368,8 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     {
         control_i.muscle = muscle_i;
         //------------------------------------------
-        was_on_target = false; 
-        target_contain = false; 
-
+        was_on_target = false;
+        target_contain = false;
         //------------------------------------------
         auto &border = _borders[muscle_i];
         if (border.min_lasts == 0 && border.min_lasts >= border.max_lasts)
@@ -397,14 +377,18 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
             CWARN("Empty borders of muscle=" << muscle_i);
             border.max_lasts = _robo.muscleMaxLast(muscle_i);
         }
-
         //------------------------------------------
-        frames_t lasts_step = _lasts_step_increment_init; // адаптивный шаг длительности
-        frames_t target_start = 0, target_end = 0;
-        /*musclesMaxLasts(_robo) /* _robo.muscleMaxLast(muscle_i)/*border.max_lasts*/
+        /* адаптивный шаг длительности */
+        frames_t lasts_step = _lasts_step_increment_init;
         for (frames_t last_i = (border.min_lasts + lasts_step); (last_i <= border.max_lasts) || (target_contain); last_i += lasts_step)
         {
             control_i.lasts = last_i;
+            //------------------------------------------
+            if (last_i >= _robo.muscleMaxLast(muscle_i))
+            {
+                CWARN("last_i=" << last_i << " > " << _robo.muscleMaxLast(muscle_i));
+                break;
+            }
             //------------------------------------------
             if (_max_nested)
             {
@@ -422,141 +406,44 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
             //------------------------------------------
             if (target_contain && !was_on_target)
             {
-                target_start = last_i; // <<< for next FOR
                 was_on_target = true;
+                once_on_target = true;
             }
+            //------------------------------------------
             if (!target_contain && was_on_target)
-            {
-                target_end = last_i; // <<< for next FOR
                 break;
+            //------------------------------------------
+            if (n_poses_high) // is not first move
+            {
+                adaptiveLasts(prev_pos, curr_pos, control_i, lasts_step,
+                              target_contain, was_on_target);
             }
             //------------------------------------------
-            if (high) // is not first move
-            {
-                double d = boost_distance(prev_pos, curr_pos);
-                //------------------------------------------
-                if (d > _step_distance && target_contain)
-                {
-                    // адаптивный шаг изменения длительности
-                    if ((d / _step_distance) > 2. && (lasts_step / _lasts_step_increment) > 2)
-                    {
-                        frames_t n_steps = (lasts_step / _lasts_step_increment);
-                        frames_t n_dists = static_cast<frames_t>(d / _step_distance);
-                        lasts_step -= std::min(n_steps, n_dists) * _lasts_step_increment;
-                    }
-                    else if (lasts_step > _lasts_step_increment)
-                        lasts_step -= _lasts_step_increment;
-                    else if (_lasts_step_increment > 1 && lasts_step > _lasts_step_increment / 2)
-                        lasts_step -= _lasts_step_increment / 2;
-                    else if (_b_braking) // ?? && _lasts_step_increment == 1)
-                    {
-                        glob_lasts_step = lasts_step; /// DELETE
-
-                        // если нельзя сохранить одинаковый промежуток уменьшением длительности
-                        // подключаем торможения противоположным двигателем
-                        appendBreakings(joint, control_i);
-                    }
-                }
-                else if (d < _step_distance || !was_on_target)
-                {
-                    if (_b_braking && _breakings_controls_actives > 0 &&
-                        _breakings_controls[joint].lasts > 0 /* !!! */)
-                    {
-                        // сначала по возможности отключаем торможения
-                        removeBreakings(joint);
-                    }
-                    else
-                    {
-                        // затем увеличиваем длительность
-                        lasts_step += _lasts_step_increment;
-                    }
-                }
-            }
-            //------------------------------------------
-            {
-                // сохраняем полученное положение робота
-                // в сумму для получения среднего, которым пользуется
-                // функция выше по реккурсии
-                max_robo_pos_high.x += curr_pos.x;
-                max_robo_pos_high.y += curr_pos.y;
-                ++high;
-            }
+            /* сохраняем полученное положение робота
+             * в сумму для получения среднего, которым пользуется
+             * функция выше по реккурсии
+             */
+            all_poses_high.x += curr_pos.x;
+            all_poses_high.y += curr_pos.y;
+            ++n_poses_high;
             //------------------------------------------
             prev_pos = curr_pos;
             //------------------------------------------
-        } // end for (lasts)
-
-        //-----------------------------
-        cleanBreakings(joint);
-        //-----------------------------
-        if (target_contain)
-        {
-            target_end = border.max_lasts; // = _robo.muscleMaxLast(muscle_i);
         }
-        //-----------------------------
-        // tour on Target
-        { 
-            lasts_step = _lasts_step_increment_thick; // lasts_step_initiate;
-            for (frames_t last_i = target_start; (last_i <= target_end) && target_contain; last_i -= lasts_step)
-            {
-                control_i.lasts = last_i;
-                //------------------------------------------
-                if (_max_nested)
-                {
-                    //===============================================================
-                    target_contain = runNestedForMuscle(next_joint, controls + control_i, curr_pos);
-                    //===============================================================
-                }
-                else
-                {
-                    //===============================================================
-                    target_contain = runNestedMove(controls + control_i, curr_pos);
-                    //===============================================================
-                }
-                //------------------------------------------
-                if (high)
-                {
-                    double d = boost_distance(prev_pos, curr_pos);
-                    //------------------------------------------
-                    if (d > _step_distance)
-                    {
-                        if (lasts_step > _lasts_step_increment_thick)
-                            lasts_step -= _lasts_step_increment_thick;
-                    }
-                    else if (d < _step_distance)
-                    {
-                        lasts_step += _lasts_step_increment_thick;
-                    }
-                }
-                //-----------------------------
-                {
-                    // сохраняем полученное положение робота
-                    // в сумму для получения среднего, которым пользуется
-                    // функция выше по реккурсии
-                    max_robo_pos_high.x += curr_pos.x;
-                    max_robo_pos_high.y += curr_pos.y;
-                    ++high;
-                }
-                //-----------------------------
-                prev_pos = curr_pos;
-            } // end for (_b_target lasts)
-        } // end if (_b_target)
-    } // end for (muscle)
-
+        cleanBreakings(joint);
+    }
     //------------------------------------------
-    if (high)
+    if (n_poses_high > 0)
     {
-        robo_pos_high = Point{ max_robo_pos_high.x / high,
-                               max_robo_pos_high.y / high };
+        avg_pos = all_poses_high / n_poses_high;
     }
     //------------------------------------------
     ++_max_nested;
-    return was_on_target;
+    return once_on_target;
 }
 
 //------------------------------------------------------------------------------
-#include "WindowData.h"
-//class MyWindowData;
+#include "WindowData.h" /// !!! RM
 std::list<Point> MyWindowData::predicts = {};
 std::list<Point> MyWindowData::reals = {};
 
@@ -564,20 +451,26 @@ void Counters::fill(bool model, bool real, const Point &pos, const Point &pred)
 {
     //------------------------------------------
     incr(model, real);
-    avg_miss += boost_distance(pred, pos);
-
-    if (model != real)
+    auto d = boost_distance(pred, pos);
+    avg_miss += d;
+    if (d > 0.05)
     {
-        MyWindowData::predicts.push_back(pred);
-        MyWindowData::reals.push_back(pos);
+        MyWindowData::predicts.push_back(pred); // orange
+        MyWindowData::reals.push_back(pos); // red
     }
+    if (d > 1.)
+        CDEBUG("pos=" << pos << " pred=" << pred << " dist=" << boost_distance(pred, pos));
+    // TOO::MUCH !!!
 }
 
 //------------------------------------------------------------------------------
-bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_pos)
+bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 {
     Trajectory trajectory;
     Control controling = controls + _breakings_controls;
+    //----------------------------------------------
+    _robo.reset();
+    auto &base_pos = _robo.position();
     //----------------------------------------------
     if (_b_predict)
     {
@@ -585,37 +478,32 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_pos)
 
         if (_b_checking)
         {
-            _robo.reset();
             _robo.move(controling, trajectory);
             // ++_complexity;
-            //------------------------------------------
+            //--------------------------------------------
             bool model = _target_contain(pred_end);
             bool real = _target_contain(_robo.position());
-
+            //--------------------------------------------
             _counters.fill(model, real, _robo.position(), pred_end);
-            //------------------------------------------
-            trajectory.clear();
-            _robo.reset();
         }
 
         if (!_target_contain(pred_end))
         {
-            robo_pos = pred_end;
+            robo_hit = pred_end;
             return false;
         }
+        trajectory.clear();
     }
     //----------------------------------------------
     _robo.move(controling, trajectory);
     ++_complexity;
-    robo_pos = _robo.position();
+    robo_hit = _robo.position();
 
-    Record rec(robo_pos, _base_pos, robo_pos, controling, trajectory);
+    Record rec(robo_hit, base_pos, robo_hit, controling, trajectory);
     _store.insert(rec);
-
-    _robo.reset();
     //----------------------------------------------
     boost::this_thread::interruption_point();
     //----------------------------------------------
-    return _target_contain(robo_pos);
+    return _target_contain(robo_hit);
 }
 

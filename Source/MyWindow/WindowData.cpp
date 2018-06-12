@@ -22,7 +22,7 @@ void  MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const boos
     if (controls.is_initialized())
     {
         show_ = true;
-        if (animation)
+        if (animation_)
         {
             robo.reset();
             base_pos_ = robo.position();
@@ -240,13 +240,13 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
     {
         /// TODO : REMOVE
-        //const double CircleRadius = 0.01;
-        //
-        //for (auto &pred : MyWindowData::predicts)
-        //    drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_orng);
-        //
-        //for (auto &pred : MyWindowData::reals)
-        //    drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_red);
+        const double CircleRadius = 0.01;
+        
+        for (auto &pred : MyWindowData::predicts)
+            drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_orng);
+        
+        for (auto &pred : MyWindowData::reals)
+            drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_red);
     }
     // --------------------------------------------------------------
     if (wd.canvas.workingSpaceShow)
@@ -254,6 +254,9 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
     // ----- Отрисовка точек БД -------------------------------------
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
     {
+        frames_t robot_max_lasts = musclesMaxLasts(*wd.pRobo);
+        robot_max_lasts = (LastInfinity == robot_max_lasts) ? LastInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
+
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
                             [hdc](Store &store, frames_t robo_max_last,
                                   Trajectory uncoveredPoints, HPEN uncoveredPen) {
@@ -263,10 +266,9 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 
             for (auto &pt : uncoveredPoints)
                 drawCircle(hdc, pt, (MyWindowData::zoom) ? 0.005 : 0., uncoveredPen);
-        }, std::ref(*wd.pStore), musclesMaxLasts(*wd.pRobo),
+        }, std::ref(*wd.pStore), robot_max_lasts,
            wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{},
            wd.canvas.hPen_red);
-        
     } // end if
 }
 void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
@@ -446,6 +448,7 @@ bool  makeRoboMove(MyWindowData &wd)
     return true;
 }
 //-------------------------------------------------------------------------------
+
 //-------------------------------------------------------------------------------
 #include <ConfigJSON.h>
 void MyWindowData::read_config(IN const tstring &filename)

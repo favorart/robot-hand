@@ -48,17 +48,42 @@ void  RoboPos::LearnMoves::STAGE_1()
     std::shared_ptr<TourI> pTour{ new TourEvo(_store, _robo, _target) };
 #else
     std::shared_ptr<TourI> pTour{ new TourWorkSpace(_store, _robo) };
-    pTour->setIncrement(0.07, 5);
+    pTour->setPrecision(0.1, 7);
+    pTour->setBrakings(false);
     pTour->run();
 #endif
 }
 /// Покрытие всей мишени не слишком плотно
 void  RoboPos::LearnMoves::STAGE_2()
 {
-    Approx approx(_store.size(), _robo.musclesCount());
-    //approx.constructXY(_store);
-    TourTarget::TargetContain target_contain = [&target=_target](const Point &p) { return target.contain(p); };
+    /*         ~ - - - - *
+     *       /
+     *      /  +----------------+
+     *    x \  |                |
+     *   x   \ |                |
+     * x       -                |
+     *         | \              |
+     *         |  *             |
+     *         |                |
+     *         +----------------+
+     */
 
+    auto noize = [](size_t) { return 0.00000000001; };
+    auto sizing = []() { return 1.01; };
+
+    bool predict = false;
+
+    Approx approx(_store.size(), _robo.musclesCount(), noize, sizing);
+    if (predict) // !!!
+        approx.constructXY(_store);
+
+    TourTarget::TargetContain target_contain = [&target=_target](const Point &p) {
+        //return target.contain(p);
+        double corr = 0.01;
+        return (p.x >= (target.min().x - corr) && p.x <= (target.max().x + corr) &&
+                p.y >= (target.min().y - corr) && p.y <= (target.max().y + corr));
+    };
+    
 #if defined TOUR_OLD
     borders_t borders;
     defineTargetBorders(_target, _store, /* side */ 0.05, borders);
@@ -73,8 +98,9 @@ void  RoboPos::LearnMoves::STAGE_2()
                //0.015, 2); // non-recursive
 #else
     std::shared_ptr<TourTarget> pTour{ new TourTarget(_store, _robo, approx, _target, target_contain) };
-    pTour->setIncrement(0.025, 3);
-    //pTour->setPredict(true);
+    pTour->setPrecision(0.011, 3);
+    pTour->setChecking(predict);
+    pTour->setPredict(predict);
     pTour->run();
 #endif
 }
@@ -280,17 +306,6 @@ void  RoboPos::LearnMoves::testStage1()
 void  RoboPos::LearnMoves::testStage2()
 {
 #ifdef STAGE_OLD
-    /*         ~ - - - - *
-    *       /
-    *      /  +----------------+
-    *    x \  |                |
-    *   x   \ |                |
-    * x       -                |
-    *         | \              |
-    *         |  *             |
-    *         |                |
-    *         +----------------+
-    */
     _complexity = 0;
 
     borders_t borders;
