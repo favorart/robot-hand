@@ -13,6 +13,7 @@ using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 
 //#define TOUR_OLD
+#define TOUR_EVO
 #if defined TOUR_OLD
 #include "RoboPosTourNoRec.h"
 #elif defined TOUR_EVO
@@ -48,10 +49,10 @@ void  RoboPos::LearnMoves::STAGE_1()
     std::shared_ptr<TourI> pTour{ new TourEvo(_store, _robo, _target) };
 #else
     std::shared_ptr<TourI> pTour{ new TourWorkSpace(_store, _robo) };
+#endif
     pTour->setPrecision(0.1, 7);
     pTour->setBrakings(false);
     pTour->run();
-#endif
 }
 /// Покрытие всей мишени не слишком плотно
 void  RoboPos::LearnMoves::STAGE_2()
@@ -189,13 +190,12 @@ bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &cont
     }
     else
     {
-        Trajectory trajectory;
         _robo.reset();
-        _robo.move(controls, trajectory);
+        _robo.move(controls);
         hit = _robo.position();
         //_robo.reset();
         // -----------------------------------------------
-        Record rec(aim, _base_pos, hit, controls, trajectory);
+        Record rec(aim, _base_pos, hit, controls, _robo.trajectory());
         _store.insert(rec);
         res = true;
     }
@@ -256,8 +256,8 @@ void  RoboPos::LearnMoves::testStage1()
             /* Нужен уменьшающийся шаг в зависимости от пройдённой дистанции */
             frames_t  lasts_step = _stage1_params.lasts_incr_value;
 
-            auto last_i_max = _robo.muscleMaxLast(muscle_i),
-                 last_j_max = _robo.muscleMaxLast(muscle_j);
+            auto last_i_max = _robo.muscleMaxLasts(muscle_i),
+                 last_j_max = _robo.muscleMaxLasts(muscle_j);
             /* Попробуем его варьировать по длительности */
             for (frames_t last_i = _stage1_params.lasts_init_value; last_i < last_i_max; last_i += lasts_step)
             {
@@ -267,15 +267,14 @@ void  RoboPos::LearnMoves::testStage1()
                     control.append({ muscle_i, 0U, last_i });
                     control.append({ muscle_j, 0U /* start_j */, last_j });
 
-                    Trajectory trajectory;
                     _robo.reset();
-                    _robo.move(control, trajectory);
+                    _robo.move(control);
 
                     Point robo_pos_j = _robo.position();
                     if (last_j == _stage1_params.lasts_init_value)
                         robo_pos_i = robo_pos_j;
 
-                    Record rec(robo_pos_j, robo_pos_base, robo_pos_j, control, trajectory);
+                    Record rec{ robo_pos_j, robo_pos_base, robo_pos_j, control, _robo.trajectory() };
                     _store.insert(rec);
 
                     draftDistance(robo_pos_prev_j, robo_pos_j, lasts_step, last_j, last_j_max,
@@ -458,19 +457,19 @@ void  RoboPos::LearnMoves::testCoverTarget(IN Store &_store, IN RoboI &_robo, IN
         /* Возьмём первый мускул наугад */
         for (muscle_t muscle_i = 0; muscle_i < _robo.musclesCount(); ++muscle_i)
         {
-            CDEBUG(muscle_i << _T("  ") << (int)_robo.muscleMaxLast(muscle_i));
+            CDEBUG(muscle_i << _T("  ") << (int)_robo.muscleMaxLasts(muscle_i));
             for (muscle_t muscle_j = 0; muscle_j < _robo.musclesCount(); ++muscle_j)
             {
                 if ((muscle_i != muscle_j) /*&& !musclesValidUnion(muscle_i, muscle_j)*/)
                     continue;
 
-                CDEBUG(muscle_j << _T("  ") << (int)_robo.muscleMaxLast(muscle_j));
+                CDEBUG(muscle_j << _T("  ") << (int)_robo.muscleMaxLasts(muscle_j));
                 /* Попробуем его варьировать по длительности */
-                for (frames_t last_i : boost::irange<frames_t>(5U, _robo.muscleMaxLast(muscle_i) /*,2*/))
+                for (frames_t last_i : boost::irange<frames_t>(5U, _robo.muscleMaxLasts(muscle_i) /*,2*/))
                 {
                     Control control;
                     control.append({ muscle_i, 0U, last_i });
-                    for (frames_t last_j : boost::irange<frames_t>(3U, _robo.muscleMaxLast(muscle_j) /*,2*/))
+                    for (frames_t last_j : boost::irange<frames_t>(3U, _robo.muscleMaxLasts(muscle_j) /*,2*/))
                     {
                         for (frames_t start_j : boost::irange<frames_t>(5U, last_i))
                         {
@@ -480,7 +479,7 @@ void  RoboPos::LearnMoves::testCoverTarget(IN Store &_store, IN RoboI &_robo, IN
                             control.append({ muscle_j, start_j, last_j });
 
                             _robo.reset();
-                            _robo.move(control, trajectory);
+                            _robo.move(control);
 
                             // if ( _robo.position().x > x_leftBorder && _robo.position().x < x_rightBorder
                             //   && _robo.position().y < y_topBorder  && _robo.position().y > y_bottomBorder )
@@ -490,7 +489,7 @@ void  RoboPos::LearnMoves::testCoverTarget(IN Store &_store, IN RoboI &_robo, IN
                             {
                                 _store.insert(Record(robo_pos, robo_base, robo_pos,
                                                     { muscle_i, muscle_j }, { 0, start_j }, { last_i, last_j }, 2U,
-                                                    trajectory));
+                                                    _robo.trajectory()));
                                 // trajectories.push_back (make_shared<Trajectory> (trajectory));
 
                                 if (_store.size() == 200000)

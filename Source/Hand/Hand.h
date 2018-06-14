@@ -41,8 +41,8 @@ public:
     static const size_t MusclesMaxCount = (size_t)(Hand::Muscle::MCount);
     static const size_t JointsMaxCount = (size_t)(Hand::Joint::JCount);
     //----------------------------------------------------
-    frames_t muscleMaxLast(IN muscle_t) const;
-    frames_t muscleMaxLast(IN const Control&) const;
+    frames_t muscleMaxLasts(IN muscle_t) const;
+    frames_t muscleMaxLasts(IN const Control&) const;
     //----------------------------------------------------
     static Muscle MofJ(Joint joint, bool open) { return Muscle(size_t(joint) * 2 + !open); }
     static Joint  JofM(Muscle muscle) { return Joint(size_t(muscle) / 2); }
@@ -87,7 +87,7 @@ public:
     //----------------------------------------------------
     Hand(IN const Point &baseClavicle, IN const std::list<JointInput> &joints);
     Hand(IN const Point &baseClavicle, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints);
-
+    
 protected:
     //----------------------------------------------------
     struct Params
@@ -167,20 +167,20 @@ protected:
         
     //----------------------------------------------------
     bool muscleFrame (muscle_t);
-    void muscleMove  (frames_t frame, muscle_t m, frames_t last);
+    void muscleMove  (frames_t frame, muscle_t m, frames_t lasts);
     //----------------------------------------------------
     void  jointMove  (joint_t joint, double offset);
-    //----------------------------------------------------
-    frames_t  Hand::move(IN Muscle muscle, IN frames_t last);
-    frames_t  Hand::move(IN Muscle muscle, IN frames_t last, OUT Trajectory &visited);
-        
+
+    void realMove() {}
+    frames_t muscleStatus(muscle_t m) const
+    { return status.musclesMove[M(m)]; }
+
+    bool somethingMoving();
+            
 public:
     //----------------------------------------------------
     void      getWorkSpace(OUT Trajectory&);
-
     void      draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
-    void      step(IN frames_t frame, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
-    frames_t  move(IN const Control &control, OUT Trajectory &visited);
     
     //----------------------------------------------------
     /*  jointsOpenPercent={ j={ Clvcl, Shldr, Elbow, Wrist }, val <= 100.0% } */

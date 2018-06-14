@@ -64,6 +64,17 @@ public:
     { actuators[actuals++] = a; }
     Control(const Actuator *a, size_t sz);
 
+    template<size_t N>
+    Control(const std::bitset<N> &muscles, frames_t start, frames_t lasts)
+    {
+        if (!lasts || !muscles.any())
+            throw std::runtime_error("Invalid control");
+
+        for (muscle_t m = 0; m < N; ++m)
+            if (muscles[m])
+                append({ m, start, lasts });
+    }
+
     Control(Control&&) = default;
     Control(const Control&) = default;
     Control& operator=(const Control &c) = default;
@@ -92,20 +103,23 @@ public:
     { return actuators[(i < actuals) ? i : (actuals - 1)]; };
 
     //----------------------------------------------------
-    bool  operator== (const Control &c) const
-    {
-        if (this != &c)
-            for (size_t i = 0; i < actuals; ++i)
-                if (actuators[i] != c.actuators[i])
-                    return false;
-        return true;
-    }
+    bool  operator== (const Control &c) const;
     bool  operator!= (const Control &c) const
     { return !(*this == c); }
     bool  operator== (const muscle_t m) const
     { return  (actuals == 1 && actuators[0].muscle == m); }
     bool  operator!= (const muscle_t m) const
     { return  !(*this == m); }
+
+    const Control& operator+=(const Control &c)
+    {
+        for (const auto &a : c)
+            if (a.muscle != MInvalid && a.lasts != 0)
+                append(a);
+            else
+                CWARN("muscle==MInvalid or last==0");
+        return *this;
+    }
 
     //----------------------------------------------------
     void removeStartPause();

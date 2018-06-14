@@ -24,6 +24,7 @@
 #include <list>
 #include <limits>
 #include <string>
+#include <bitset>
 #include <vector>
 #include <memory>
 #include <numeric>

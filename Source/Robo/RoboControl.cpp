@@ -36,6 +36,19 @@ void Robo::Control::append(const Robo::Actuator &a)
 }
 
 //---------------------------------------------------------
+bool Robo::Control::operator==(const Robo::Control &c) const
+{
+    if (this == &c)
+        return true;
+    if (actuals != c.actuals)
+        return false;
+    for (size_t i = 0; i < actuals; ++i)
+        if (actuators[i] != c.actuators[i])
+            return false;
+    return true;
+}
+
+//---------------------------------------------------------
 void Robo::Control::removeStartPause()
 {
     Robo::frames_t start_time = actuators[0].start;

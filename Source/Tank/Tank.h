@@ -36,8 +36,8 @@ public:
     static const size_t MusclesMaxCount = (size_t)(Tank::Muscle::MCount);
     static const size_t JointsMaxCount = (size_t)(Tank::Joint::JCount);
     //----------------------------------------------------
-    frames_t muscleMaxLast(muscle_t muscle) const;
-    frames_t muscleMaxLast(const Control &control) const;
+    frames_t muscleMaxLasts(muscle_t muscle) const;
+    frames_t muscleMaxLasts(const Control &control) const;
     //----------------------------------------------------
     static Muscle MofJ(Joint joint, bool open) { return Muscle(size_t(joint) * 2 + !open); }
     static Joint  JofM(Muscle muscle) { return Joint(size_t(muscle) / 2); }
@@ -74,17 +74,8 @@ public:
     //----------------------------------------------------
     Tank(IN const Point &baseCenter, IN const std::list<JointInput> &joints);
     Tank(IN const Point &baseCenter, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints);
-
+    
 protected:
-    //----------------------------------------------------
-    bool    muscleFrame (Muscle muscle, bool atStop);
-    void    muscleMove  (frames_t frame, Muscle muscle, frames_t last);
-
-    void    realMove();
-
-    frames_t  Tank::move(muscle_t muscle, IN frames_t last, OUT Trajectory &visited);
-    frames_t  Tank::move(muscle_t muscle, IN frames_t last);
-    //----------------------------------------------------
     struct Params
     {
         Muscle musclesUsed[MusclesMaxCount];
@@ -153,14 +144,19 @@ protected:
     const Params params;
     const Physics physics;
     
+    void realMove();
+
+    bool muscleFrame(muscle_t muscle);
+    void muscleMove(frames_t frame, muscle_t muscle, frames_t last);
+
+    frames_t muscleStatus(muscle_t m) const
+    { return status.musclesMove[M(m)]; }
+    bool somethingMoving();
+    
 public:
 
     void      getWorkSpace(OUT Trajectory &workSpace);
-
     void      draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
-
-    void      step(IN frames_t frames, IN muscle_t muscle = Robo::MInvalid, IN frames_t last = 0);
-    frames_t  move(IN const Control &control, OUT Trajectory &visited);
 
     void  reset();
     void  resetJoint(IN joint_t);

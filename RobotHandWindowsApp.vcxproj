@@ -84,6 +84,7 @@
     <ClCompile Include="libs\J.Burkardt (FSU)\qr_solve\qr_solve.cpp" />
     <ClCompile Include="libs\J.Burkardt (FSU)\r8lib\r8lib.cpp" />
     <ClCompile Include="libs\J.Burkardt (FSU)\test_ls\test_ls.cpp" />
+    <ClCompile Include="Source\Robo\RoboPhysics.cpp" />
     <ClCompile Include="Source\Utilities\Console.cpp" />
     <ClCompile Include="Source\MyWindow\WindowDraw.cpp" />
     <ClCompile Include="Source\MyWindow\WindowDrawLetters.cpp" />

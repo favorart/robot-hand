@@ -81,13 +81,14 @@ struct MyWindowData
         // ---------------------------------
         // ---------------------------------
         /* Microsoft specific: C++ properties */
-        __declspec(property(get = _get_traj, put = _put_traj)) const Robo::Trajectory &trajectory;
-        const Robo::Trajectory&   _get_traj() const { return trajectory_; }
-        void _put_traj(const Robo::Trajectory& traj) { show_ = true; trajectory_ = traj; }
+
+        //__declspec(property(get = _get_traj, put = _put_traj)) const Robo::Trajectory &trajectory;
+        //const Robo::Trajectory&   _get_traj() const { return trajectory_; }
+        //void _put_traj(const Robo::Trajectory& traj) { show_ = true; trajectory_ = traj; }
 
         __declspec(property(get = _get_anim, put = _put_anim))  bool animation;
         bool _get_anim() const { return animation_; }
-        void _put_traj(bool anim) { animation_ = anim; }
+        void _put_anim(bool anim) { animation_ = anim; }
 
         __declspec(property(get = _get_show))  bool show;
         bool _get_show() const { return show_; }
@@ -99,7 +100,7 @@ struct MyWindowData
                    const boost::optional<Robo::Control> controls = boost::none);
     };
     TrajectoryFrames trajFrames;
-    Robo::frames_t frames = 0; ///< Global App Time (to show animation)
+    //Robo::frames_t frames = 0; ///< Global App Time (to show animation)
     // ---------------------------------
     bool testing = false;
     std::shared_ptr<boost::thread> pWorkerThread;

@@ -194,17 +194,16 @@ void TourI::run()
 //------------------------------------------------------------------------------
 bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 {
-    Trajectory trajectory;
     Control controling = controls + _breakings_controls;
     //----------------------------------------------
     _robo.reset();
     Point base_pos = _robo.position();
 
-    _robo.move(controling, trajectory);
+    _robo.move(controling);
     ++_complexity;
     robo_hit = _robo.position();
 
-    Record rec(robo_hit, base_pos, robo_hit, controling, trajectory);
+    Record rec(robo_hit, base_pos, robo_hit, controling, _robo.trajectory());
     _store.insert(rec);
     //----------------------------------------------
     boost::this_thread::interruption_point();
@@ -237,7 +236,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
         //------------------------------------------
         /* адаптивный шаг длительности */
         frames_t lasts_step = _lasts_step_increment_init;
-        frames_t lasts_i_max = _robo.muscleMaxLast(muscle_i);
+        frames_t lasts_i_max = _robo.muscleMaxLasts(muscle_i);
         lasts_i_max = (lasts_i_max > TourI::too_long) ? TourI::too_long : lasts_i_max;
         //------------------------------------------
         for (frames_t last_i = lasts_step; last_i < lasts_i_max; last_i += lasts_step)
@@ -392,7 +391,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
         if (border.min_lasts == 0 && border.min_lasts >= border.max_lasts)
         {
             CWARN("Empty borders of muscle=" << muscle_i);
-            border.max_lasts = _robo.muscleMaxLast(muscle_i);
+            border.max_lasts = _robo.muscleMaxLasts(muscle_i);
             border.max_lasts = (border.max_lasts > TourI::too_long) ? TourI::too_long : border.max_lasts;
         }
         //------------------------------------------
@@ -402,9 +401,9 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
         {
             control_i.lasts = last_i;
             //------------------------------------------
-            if (last_i >= _robo.muscleMaxLast(muscle_i))
+            if (last_i >= _robo.muscleMaxLasts(muscle_i))
             {
-                CWARN("last_i=" << last_i << " > " << _robo.muscleMaxLast(muscle_i));
+                CWARN("last_i=" << last_i << " > " << _robo.muscleMaxLasts(muscle_i));
                 break;
             }
             //------------------------------------------
@@ -494,7 +493,6 @@ void Counters::fill(bool model, bool real, const Point &pos, const Point &pred)
 //------------------------------------------------------------------------------
 bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 {
-    Trajectory trajectory;
     Control controling = controls + _breakings_controls;
     //----------------------------------------------
     _robo.reset();
@@ -505,7 +503,7 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
         Point pred_end = _approx.predict(controling);
         if (_b_checking)
         {
-            _robo.move(controling, trajectory);
+            _robo.move(controling);
             // ++_complexity;
             //--------------------------------------------
             bool model = _target_contain(pred_end);
@@ -519,14 +517,13 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
             robo_hit = pred_end;
             return false;
         }
-        trajectory.clear();
     }
     //----------------------------------------------
-    _robo.move(controling, trajectory);
+    _robo.move(controling);
     ++_complexity;
     robo_hit = _robo.position();
 
-    Record rec(robo_hit, base_pos, robo_hit, controling, trajectory);
+    Record rec(robo_hit, base_pos, robo_hit, controling, _robo.trajectory());
     _store.insert(rec);
     //----------------------------------------------
     boost::this_thread::interruption_point();

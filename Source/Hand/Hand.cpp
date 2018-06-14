@@ -9,7 +9,12 @@
 using namespace Robo;
 using namespace NewHand;
 //--------------------------------------------------------------------------------
-frames_t  Hand::muscleMaxLast(const Control &control) const
+bool Hand::somethingMoving()
+{
+    return ba::any_of(status.musclesMove, [](const auto &m) { return (m > 0); });
+}
+//--------------------------------------------------------------------------------
+frames_t Hand::muscleMaxLasts(const Control &control) const
 {
     frames_t last = 0;
     for (const auto &c : control)
@@ -21,21 +26,21 @@ frames_t  Hand::muscleMaxLast(const Control &control) const
     }
     return last;
 }
-frames_t  Hand::muscleMaxLast(muscle_t muscle) const
+frames_t Hand::muscleMaxLasts(muscle_t muscle) const
 { 
     if (muscle >= musclesCount())
         throw std::logic_error("Invalid control");
     return physics.maxMoveFrames[JofM(M(muscle))];
 }
 //--------------------------------------------------------------------------------
-void    Hand::jointMove   (joint_t joint_move, double offset)
+void Hand::jointMove(joint_t joint_move, double offset)
 {
     if (!offset) return;
     const Point &base = physics.jointsOpenCoords[Joint::JCount];
     const Point &prev = (joint_move + 1 == jointsCount()) ? base : status.curPos[J(joint_move + 1)];
     for (joint_t j = joint_move + 1; j > 0; --j)
     {
-        Joint joint = J(j-1);
+        Joint joint = J(j - 1);
         if (joint == Joint::Clvcl)
             status.curPos[joint].x -= offset;
         else
@@ -44,7 +49,7 @@ void    Hand::jointMove   (joint_t joint_move, double offset)
     status.angles[J(joint_move)] += offset;
 }
 //--------------------------------------------------------------------------------
-bool    Hand::muscleFrame (muscle_t m)
+bool Hand::muscleFrame(muscle_t m)
 {
     Muscle muscle = M(m);
     Joint joint = JofM(muscle);
@@ -99,23 +104,23 @@ bool    Hand::muscleFrame (muscle_t m)
     return (fabs(offset) >= Hand::minFrameMove);
 }
 //--------------------------------------------------------------------------------
-void    Hand::muscleMove  (frames_t frame, muscle_t m, frames_t last)
+void Hand::muscleMove(frames_t frame, muscle_t m, frames_t lasts)
 {
     Muscle muscle = M(m);
     /* если не производится никакого движения и нет сигнала о начале нового */
-    if (!last && !status.lastsMove[muscle] && !status.lastsStop[muscle])
+    if (!lasts && !status.lastsMove[muscle] && !status.lastsStop[muscle])
         return;
     //-------------------------------------------------------
     status.moveEnd = false;
     //-------------------------------------------------------
-    if (last)
+    if (lasts)
     {
         if (status.lastsMove[muscle] == 0)
         {
             /* движение не было - начало нового движения */
             status.lastsStop[muscle] = 0;
             status.lastsMove[muscle] = 1;
-            status.lasts[muscle] = last;
+            status.lasts[muscle] = lasts;
 
             if (!status.lastsStop[muscle])
                 status.musclesMove[muscle] = frame;
@@ -270,94 +275,9 @@ Hand::Physics::Physics(IN const Point &baseClavicle, IN const std::list<JointInp
     }
 }
 //--------------------------------------------------------------------------------
-void      Hand::step(IN frames_t frame, IN muscle_t muscle, IN frames_t last)
-{
-    /* Исключить незадействованные двигатели */
-    if (muscle < musclesCount() && last > 0)
-    {
-        if (status.musclesMove[M(muscle)] <= frame)
-            muscleMove(frame, muscle, last);
-    }
-    else if (muscle == Robo::MInvalid && last == 0)
-    {
-        for (muscle_t m = 0; m < musclesCount(); ++m)
-            while (status.musclesMove[M(m)] > 0 && status.musclesMove[M(m)] <= frame)
-                muscleMove(frame, m, last);
-    }
-    else throw std::exception("Controls invalid!");
-}
-//--------------------------------------------------------------------------------
-frames_t  Hand::move(IN Muscle muscle, IN frames_t last)
-{
-    frames_t frame = 0;
-    if (muscle < musclesCount() && last > 0)
-    {
-        step(frame, muscle, last);
-        /* Что-то должно двигаться, иначе беск.цикл */
-        while (!moveEnd())
-            step(frame++);
-    }
-    return frame;
-}
-frames_t  Hand::move(IN Muscle muscle, IN frames_t last, OUT Trajectory &visited)
-{
-    frames_t frame = 0;
-    if (muscle < musclesCount() && last > 0)
-    {
-        /* start movement */
-        step(frame, muscle, last);
-
-        while (!moveEnd())
-        {
-            /* just moving */
-            step(frame);
-            if ( !(frame % getVisitedRarity()) )
-                visited.push_back(position());
-            ++frame;
-        }
-        visited.push_back(position());
-    }
-    return frame;
-}
-//--------------------------------------------------------------------------------
-frames_t  Hand::move(IN const Control& controls, OUT Trajectory& visited)
-{
-    controls.validated(musclesCount());
-
-    frames_t frame = 0;
-    /* Запускаем двигатели */
-    for (const auto &c : controls)
-    {
-        if (frame < c.start)
-        {
-            step(frame);
-            if (!(frame % getVisitedRarity()))
-                visited.push_back(position());
-            ++frame;
-        }
-        else if (frame == c.start)
-        {
-            step(frame, c.muscle, c.lasts);
-            /* (no ++frame) могут стартовать одновременно
-             * несколько мускулов, разной продолжительности
-             */
-        }
-    } // end for
-
-    while (!moveEnd())
-    {
-        step(frame);
-        if (!(frame % getVisitedRarity()))
-            visited.push_back(position());
-        ++frame;
-    }
-    /* final position */
-    visited.push_back(position());
-    return frame;
-}
-//--------------------------------------------------------------------------------
 void  Hand::reset()
 {
+    _reset();
     /* drop status */
     for (muscle_t m = 0; m < musclesCount(); ++m)
     {
@@ -469,9 +389,10 @@ void  Hand::getWorkSpace(OUT Trajectory &workSpace)
         if (it != used.end())
         {
             muscle_t m = (it - used.begin());
-            Control control{ { m, 0, muscleMaxLast(m) } };
+            Control control{ { m, 0, muscleMaxLasts(m) } };
             //CINFO(control);
-            move(control, workSpace);
+            move(control);
+            workSpace = trajectory();
         }
     }
     reset();

@@ -171,7 +171,8 @@ namespace RoboMoves
       auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim.x + side, aim.y + side));
       // -----------------------------------------------
       ClosestPredicate cp(aim);
-      return std::make_pair(itPL != itPU, *std::min_element(itPL, itPU, cp));
+      bool exist = (itPL != itPU && itPL != indexP.end());
+      return (exist) ? std::make_pair(true, *std::min_element(itPL, itPU, cp)) : std::make_pair(false, Record{});
     }
     //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */

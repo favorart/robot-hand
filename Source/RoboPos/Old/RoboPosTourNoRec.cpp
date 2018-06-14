@@ -93,7 +93,7 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
         }
         {
             lasts_step = _lasts_step_increment;
-            frames_t _lasts_i_max = _robo.muscleMaxLast(muscle_i);
+            frames_t _lasts_i_max = _robo.muscleMaxLasts(muscle_i);
             //------------------------------------------
             start_i = 0U;
             target_contain = true;
@@ -267,9 +267,8 @@ bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point 
         //----------------------------------------------
         if (_b_checking)
         {
-            Trajectory trajectory;
             _robo.reset();
-            _robo.move(controling, trajectory);
+            _robo.move(controling);
             //++_complexity;
             bool model = _target.contain(pred_end);
             bool real = _target.contain(_robo.position());
@@ -281,16 +280,13 @@ bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point 
     if ((!_b_target || _target.contain(pred_end)) && (!_b_distance ||
         boost_distance(_target.center(), pred_end) < boost_distance(_target.max(), _target.min())))
     {
-        /* ближе к мишени */
-        Trajectory trajectory;
-        //----------------------------------------------
         _robo.reset();
-        /* двигаем рукой */
-        _robo.move(controling, trajectory);
+        /* двигаем рукой ближе к мишени */
+        _robo.move(controling);
         ++_complexity;
         robo_pos = _robo.position();
         //----------------------------------------------
-        Record  rec(robo_pos, _base_pos, robo_pos, controling, trajectory);
+        Record rec{ robo_pos, _base_pos, robo_pos, controling, _robo.trajectory() };
         _store.insert(rec);
         //----------------------------------------------
     }

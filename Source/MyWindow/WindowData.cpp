@@ -22,32 +22,32 @@ void  MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const boos
     if (controls.is_initialized())
     {
         show_ = true;
+        robo.reset();
+        base_pos_ = robo.position();
+        // -------------------------------
         if (animation_)
         {
-            robo.reset();
-            base_pos_ = robo.position();
             controls_ = *controls;
-
-            for (size_t i = 0; i < controls_.size() && controls_[i].start == frames_; ++i)
+            for (size_t i = 0; (i < controls_.size()) && (controls_[i].start == frames_); ++i)
             {
-                robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
+                //robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
+                robo.step({ controls_[i] });
                 control_cur_ = i;
             }
             ++frames_;
+            //robo.step(/*frames_++, */controls_, robo.trajectory());
         }
         else
         {
-            robo.reset();
-            Point robo_base = robo.position();
-            // -------------------------------------------
-            robo.move(*controls, trajectory_);
-            // -------------------------------------------
-            store.insert(Record{ robo.position(), robo_base, robo.position(), *controls, trajectory });
-            // -------------------------------------------
+            // -------------------------------
+            robo.move(*controls);
+            // -------------------------------
+            store.insert(Record{ robo.position(), base_pos_, robo.position(), *controls, robo.trajectory() });
+            // -------------------------------
             controls_.clear();
             control_cur_ = 0;
             base_pos_ = {};
-            frames_ = 0;
+            //frames_ = 0;
         }
     }
     // ============
@@ -59,31 +59,27 @@ void  MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const boos
             // ============
             for (size_t i = control_cur_; (i < controls_.size()) && (controls_[i].start == frames_); ++i)
             {
-                robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
+                //robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
+                robo.step({controls_[i]});
                 control_cur_ = i;
             }
             // ============
-            robo.step(frames_);
+            robo.step(/*frames_, trajectory_*/);
+            frames_++;
+            // ============
+            trajectory_ = robo.trajectory();
             // ============
             if (robo.moveEnd())
             {
-                const Point &robo_pos = robo.position();
-                trajectory_.push_back(robo_pos);
                 // -------------------------------------------
-                store.insert(Record{ robo_pos, base_pos_, robo_pos, controls_, trajectory_ });
+                store.insert(Record{ robo.position(), base_pos_, robo.position(), controls_, robo.trajectory() });
                 // -------------------------------------------
                 controls_.clear();
                 control_cur_ = 0;
                 base_pos_ = {};
                 frames_ = 0;
-                // -------------------------------------------
                 break;
             }
-            else if (!(frames_ % robo.getVisitedRarity()))
-            { trajectory_.push_back(robo.position()); }
-            // ============
-            ++frames_;
-            // ============
         }
     }
 }
@@ -98,7 +94,7 @@ void  MyWindowData::TrajectoryFrames::clear()
     frames_ = 0;
 }
 void  MyWindowData::TrajectoryFrames::draw(HDC hdc, HPEN hPen) const
-{ if (show_) { drawTrajectory(hdc, trajectory, hPen); } }
+{ if (show_) { drawTrajectory(hdc, trajectory_, hPen); } }
 //-------------------------------------------------------------------------------
 bool MyWindowData::zoom = false;
 //-------------------------------------------------------------------------------
@@ -354,19 +350,20 @@ void  onWindowTimer(MyWindowData &wd)
     // =============================
     if (wd.trajFrames.show)
     {
+        // анимация тестовой траектории
         wd.canvas.hDynamicBitmapChanged = true;
         return;
     }
     // =============================
-    for (size_t i = 0; (wd.frames > 0) && (i < wd.pRobo->getVisitedRarity()); ++i)
+    // ручное управление
+    for (size_t i = 0; (/*wd.frames*/ wd.pRobo->frame() > 0) && (i < wd.pRobo->getVisitedRarity()); ++i)
     {
-        wd.pRobo->step(wd.frames);
-        ++wd.frames;
+        wd.pRobo->step(/*wd.frames++*/);
         wd.canvas.hDynamicBitmapChanged = true;
 
         if (wd.pRobo->moveEnd())
         {
-            wd.frames = 0;
+            //wd.frames = 0;
             break;
         }
     }
@@ -388,7 +385,7 @@ bool  repeatRoboMove(MyWindowData &wd)
         // -------------------------------------------------
         if (!wd.trajFrames.animation)
         {
-            if (!boost::equal(wd.trajFrames.trajectory, p.second.trajectory))
+            if (!boost::equal(wd.pRobo->trajectory(), p.second.trajectory))
             { throw std::exception("Incorrect Repeat Robo Move"); }
         }
         // -------------------------------------------------

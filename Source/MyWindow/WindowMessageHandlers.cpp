@@ -536,11 +536,10 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
                     for (auto i = 0; i < 1000; ++i)
                     {
                         Control c;
-                        c.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return (robo.muscleMaxLast(m) / 2); });
+                        c.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return robo.muscleMaxLasts(m); });
 
-                        Trajectory traj;
                         robo.reset();
-                        robo.move(c, traj);
+                        robo.move(c);
 
                         Point pred = approx.predict(c);
                         double err = boost_distance(robo.position(), pred);
@@ -566,7 +565,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         // wd.trajFrames_muscle = wd.pRobo->selectControl ();
         // wd.trajFrames_lasts = random (1U, wd.pRobo->muscleMaxLast (wd.trajFrames_muscle));
         Control controls;
-        controls.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return robo.muscleMaxLast(m); }, 70, 2, 4, true);
+        controls.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return robo.muscleMaxLasts(m); }, 70, 2, 4, true);
         CDEBUG(controls);
 
         wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{controls});
@@ -751,22 +750,22 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     }
     //========================================
     /* Wrist */ /* LTrack */
-    case 'z': wd.pRobo->step(wd.frames, 0, wd.pRobo->muscleMaxLast(0)); ++wd.frames; break; /* двинуть ключицей влево */
-    case 'a': wd.pRobo->step(wd.frames, 1, wd.pRobo->muscleMaxLast(1)); ++wd.frames; break; /* двинуть ключицей вправо */
-    /* Elbow */ /* RTrack */                                                        
-    case 'x': wd.pRobo->step(wd.frames, 2, wd.pRobo->muscleMaxLast(2)); ++wd.frames; break;
-    case 's': wd.pRobo->step(wd.frames, 3, wd.pRobo->muscleMaxLast(3)); ++wd.frames; break;
-    /* Sholder */                                                                   
-    case 'c': wd.pRobo->step(wd.frames, 4, wd.pRobo->muscleMaxLast(4)); ++wd.frames; break;
-    case 'd': wd.pRobo->step(wd.frames, 5, wd.pRobo->muscleMaxLast(5)); ++wd.frames; break;
-    /* Clavicle */                                                                  
-    case 'v': wd.pRobo->step(wd.frames, 6, wd.pRobo->muscleMaxLast(6)); ++wd.frames; break;
-    case 'f': wd.pRobo->step(wd.frames, 7, wd.pRobo->muscleMaxLast(7)); ++wd.frames; break;
+    case 'z': wd.pRobo->step(bitset_t{1}, wd.pRobo->muscleMaxLasts(0)); break; /* двинуть ключицей влево */
+    case 'a': wd.pRobo->step(bitset_t{2}, wd.pRobo->muscleMaxLasts(1)); break; /* двинуть ключицей вправо */
+    /* Elbow */ /* RTrack */                          
+    case 'x': wd.pRobo->step(bitset_t{4}, wd.pRobo->muscleMaxLasts(2)); break;
+    case 's': wd.pRobo->step(bitset_t{8}, wd.pRobo->muscleMaxLasts(3)); break;
+    /* Sholder */
+    case 'c': wd.pRobo->step(bitset_t{16}, wd.pRobo->muscleMaxLasts(4)); break;
+    case 'd': wd.pRobo->step(bitset_t{32}, wd.pRobo->muscleMaxLasts(5)); break;
+    /* Clavicle */
+    case 'v': wd.pRobo->step(bitset_t{64}, wd.pRobo->muscleMaxLasts(6)); break;
+    case 'f': wd.pRobo->step(bitset_t{128}, wd.pRobo->muscleMaxLasts(7)); break;
     /* Reset */
     case 'r':
     {
         //========================================
-        wd.frames = 0;
+        //wd.frames = 0;
         wd.pRobo->reset();
 
         wd.mouse.click = false;

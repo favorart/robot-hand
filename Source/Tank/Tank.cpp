@@ -8,8 +8,13 @@
 
 using namespace Robo;
 using namespace Mobile;
+
+bool Tank::somethingMoving()
+{
+    return ba::any_of(status.musclesMove, [](const auto &m) { return (m > 0); });
+}
 //--------------------------------------------------------------------------------
-frames_t Tank::muscleMaxLast(const Control &control) const
+frames_t Tank::muscleMaxLasts(const Control &control) const
 {
     //frames_t last = 0U;
     //for (auto &c : control)
@@ -21,18 +26,19 @@ frames_t Tank::muscleMaxLast(const Control &control) const
     //return last;
     return Robo::LastInfinity;
 }
-frames_t Tank::muscleMaxLast(muscle_t muscle) const
+frames_t Tank::muscleMaxLasts(muscle_t muscle) const
 {
     //return (physics.framesMove[jointByMuscle(muscle)].size() - 1);
     return Robo::LastInfinity;
 }
 //--------------------------------------------------------------------------------
-bool Tank::muscleFrame (Muscle muscle, bool atStop)
+bool Tank::muscleFrame (muscle_t m)
 {
+    Muscle muscle = M(m);
     Joint joint = JofM(muscle);
     double Frame = 0.;
     //------------------------------------------------
-    if (!atStop)
+    if (status.lastsMove[muscle] > 0)
     {
         auto last = status.lastsMove[muscle] - 1;
         const auto &frames = physics.framesMove[joint];
@@ -42,7 +48,7 @@ bool Tank::muscleFrame (Muscle muscle, bool atStop)
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
         } while (status.prevFrame[muscle] >= Frame && ++last < frames.size());
     }
-    else
+    else if (status.lastsStop[muscle] > 0)
     {
         auto last = status.lastsStop[muscle] - 1;
         const auto &frames = physics.framesStop[joint];
@@ -52,9 +58,10 @@ bool Tank::muscleFrame (Muscle muscle, bool atStop)
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
         } while (status.prevFrame[muscle] < Frame && ++last < frames.size());
     }
+    else throw std::logic_error("!lastsMove & !lastsStop");
     //------------------------------------------------
     status.prevFrame[muscle] = Frame;
-    // ??? hs.velosity_;
+    // ??? status.velosity  -- momentum velosity
     
     // --- WIND ----------------------------------
     if (status.windy && status.lastsMove[muscle] == 1)
@@ -76,15 +83,16 @@ bool Tank::muscleFrame (Muscle muscle, bool atStop)
     // -------------------------------------------
     return (fabs(Frame) >= Tank::minFrameMove);
 }
-void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
+void Tank::muscleMove  (frames_t frame, muscle_t m, frames_t lasts)
 {
+    Muscle muscle = M(m);
     /* если не производится никакого движения и нет сигнала о начале нового */
-    if (!last && !status.lastsMove[muscle] && !status.lastsStop[muscle])
+    if (!lasts && !status.lastsMove[muscle] && !status.lastsStop[muscle])
         return;
     //-------------------------------------------------------
     status.moveEnd = false;
     //-------------------------------------------------------
-    if (last > 0)
+    if (lasts > 0)
     {
         /* control given */
         if (!status.lastsMove[muscle])
@@ -92,7 +100,7 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
             /* начало нового движения */
             status.lastsStop[muscle] = 0;
             status.lastsMove[muscle] = 1;
-            status.lasts[muscle] = last;
+            status.lasts[muscle] = lasts;
 
             if (!status.lastsStop[muscle])
                 status.musclesMove[muscle] = frame;
@@ -112,7 +120,7 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
         if (/* по истечении заданной длительности */
             status.lasts[muscle] < status.lastsMove[muscle]
             /* продолжение основного движения - остался на месте - блокировка противоположным мускулом */
-            || !muscleFrame(muscle, false))
+            || !muscleFrame(muscle))
         {
             /* остановка основного движения */
             status.lastsStop[muscle] = 1;
@@ -130,7 +138,7 @@ void Tank::muscleMove  (frames_t frame, Muscle muscle, frames_t last)
     if (status.lastsStop[muscle])
     {
         /* движение по инерции */
-        if (!muscleFrame(muscle, true))
+        if (!muscleFrame(muscle))
         {
             /* полная остановка */
             status.lastsMove[muscle] = 0;
@@ -291,8 +299,7 @@ void Tank::realMove()
         std::exit(1);
     }
 
-    //if (fabs(shiftL) < Tank::minFrameMove &&
-    //    fabs(shiftR) < Tank::minFrameMove)
+    //if (fabs(shiftL) == 0 /*< Tank::minFrameMove*/ && fabs(shiftR) == 0)
     //{
     //    for (auto &muscle : params.musclesUsed)
     //    {
@@ -322,7 +329,7 @@ void Tank::realMove()
         {
             const auto shift = (shiftL + shiftR) / 2;
             // нормаль
-            normal = cpR - cpL;
+            normal = cpL - cpR;
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
             normal *= shift;
@@ -347,7 +354,7 @@ void Tank::realMove()
         else
         {
             // нормаль
-            normal = cpR - cpL;
+            normal = cpL - cpR;
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
             assert(shiftL == shiftR);
@@ -413,9 +420,7 @@ void Tank::realMove()
     ////const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
     ////const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
 
-    //if (ba::none_of(status.shifts, [](const auto &c) {
-    //    return (fabs(c) >= Tank::minFrameMove);
-    //}))
+    //if (ba::all_of(status.shifts, [](const auto &c) { return (fabs(c) == 0.); }))
     //{
     //    for (auto &muscle : params.musclesUsed)
     //    {
@@ -430,91 +435,6 @@ void Tank::realMove()
 
     for (auto &muscle : params.musclesUsed)
         status.shifts[muscle] = 0.;
-}
-//--------------------------------------------------------------------------------
-void Tank::step(IN frames_t frame, muscle_t muscle, IN frames_t last)
-{
-    /* Исключить незадействованные двигатели */
-    if (muscle < musclesCount() && last > 0)
-    {
-        if (status.musclesMove[M(muscle)] <= frame)
-            muscleMove(frame, M(muscle), last);
-    }
-    else if (muscle == Robo::MInvalid && last == 0)
-    {
-        for (muscle_t m = 0; m < musclesCount(); ++m)
-            while (status.musclesMove[M(m)] > 0 && status.musclesMove[M(m)] <= frame)
-                muscleMove(frame, M(m), last);
-        realMove(); // step() needs !!! FOR REAL MOVE !!! 
-    }
-    else throw std::exception("Controls invalid!");
-}
-//--------------------------------------------------------------------------------
-frames_t Tank::move(muscle_t muscle, IN frames_t last)
-{
-    frames_t frame = 0;
-    if (muscle < musclesCount() && last > 0)
-    {
-        /* Что-то должно двигаться, иначе беск.цикл */
-        step(frame, muscle, last);
-
-        while (!moveEnd())
-            step(frame++);
-    }
-    return frame;
-}
-frames_t Tank::move(muscle_t muscle, IN frames_t last, OUT Trajectory &visited)
-{
-    frames_t frame = 0;
-    if (muscle < musclesCount() && last > 0)
-    {
-        /* start movement */
-        step(frame, muscle, last);
-
-        while (!moveEnd())
-        {
-            /* just moving */
-            step(frame);
-            if ( !(frame % getVisitedRarity()) )
-                visited.push_back(position());
-            ++frame;
-        }
-        visited.push_back(position());
-    }
-    return frame;
-}
-//--------------------------------------------------------------------------------
-frames_t Tank::move(IN const Control &controls, OUT Trajectory &visited)
-{
-    controls.validated(musclesCount());
-
-    frames_t frame = 0U;
-    if (controls.size())
-    {
-        for (auto &c : controls)
-        {
-            while (c.start > frame)
-            {
-                step(frame);
-                if ( !(frame % getVisitedRarity()) )
-                    visited.push_back(position());
-                ++frame;
-            }
-            /* start movement */
-            step(frame, c.muscle, c.lasts);
-        }
-
-        while (!moveEnd())
-        {
-            /* just moving */
-            step(frame);
-            if (!(frame % getVisitedRarity()))
-                visited.push_back(position());
-            ++frame;
-        }
-        visited.push_back(position());
-    }
-    return frame;
 }
 //--------------------------------------------------------------------------------
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
@@ -580,6 +500,7 @@ void Tank::getWorkSpace(OUT Trajectory &workSpace)
 //--------------------------------------------------------------------------------
 void Tank::reset()
 {
+    _reset();
     /* drop status */
     for (muscle_t m = 0; m < musclesCount(); ++m)
     {
