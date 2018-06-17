@@ -40,11 +40,32 @@ struct Actuator
     template<class Archive>
     void serialize(Archive &ar, unsigned version)
     { ar & muscle & start & lasts; }
+    //----------------------------------------------------
+    tstring tstr() const
+    {
+        tstringstream ss;
+        ss << *this;
+        return ss.str();
+    }
+
+protected:
+    std::ostream& stream(std::ostream &s) const
+    {
+        return s << "{ " << uint32_t{ muscle } << " " << start << " " << lasts << " }";
+    }
+    std::string str() const
+    {
+        std::stringstream ss;
+        stream(ss);
+        return ss.str();
+    }
+    friend class Control;
 };
 //-------------------------------------------------------------------------------
 class  Control
 {
-    static const unsigned MAX_ACTUATORS = 8;         ///< number of brakes
+protected:
+    static const unsigned MAX_ACTUATORS = 128;       ///< number of brakes
     std::array<Actuator, MAX_ACTUATORS> actuators{}; ///< sorted by start
     size_t actuals = 0;
 
@@ -57,6 +78,16 @@ class  Control
         for (auto &a : actuators)
             ar & a;
     }
+
+    // ----------------------------------------
+    std::string str() const
+    {
+        std::stringstream ss;
+        stream(ss);
+        return ss.str();
+    }
+    //----------------------------------------------------
+    std::ostream& stream(std::ostream&) const;
 
 public:
     Control() = default;
@@ -83,18 +114,30 @@ public:
     using iterator = std::array<Actuator, MAX_ACTUATORS>::iterator;
     using const_iterator = std::array<Actuator, MAX_ACTUATORS>::const_iterator;
 
-    auto begin()       -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
-    auto begin() const -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
-    auto   end()       -> decltype(boost::end(actuators)) { return boost::begin(actuators) + actuals; } // ?? std::advance()
-    auto   end() const -> decltype(boost::end(actuators)) { return boost::begin(actuators) + actuals; } // ?? std::advance()
+    auto begin()       -> decltype(boost::begin(actuators));
+    auto begin() const -> decltype(boost::begin(actuators));
+    auto   end()       -> decltype(boost::end(actuators));
+    auto   end() const -> decltype(boost::end(actuators));
 
     //----------------------------------------------------
     size_t size() const { return (actuals); }
+
     void append(const Actuator& a); // sorted
     void push_back(const Actuator& a) { append(a); }
 
+    void pop_back();
+    void pop(size_t i) { remove(i); }
+    void remove(size_t i);
+
     void clear()
     { actuals = 0; actuators.fill({}); }
+
+    tstring tstr() const
+    {
+        tstringstream ss;
+        ss << *this;
+        return ss.str();
+    }
 
     //----------------------------------------------------
     Actuator& operator[](size_t i)
@@ -139,6 +182,8 @@ public:
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);
+    //----------------------------------------------------
+    //friend struct Actuator;
 };
 //-------------------------------------------------------------------------------
 inline Control EmptyMov() { return {}; }

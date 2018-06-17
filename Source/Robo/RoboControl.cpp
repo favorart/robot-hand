@@ -2,12 +2,12 @@
 #include "RoboControl.h"
 
 
-const double Robo::RoboI::minFrameMove = (Utils::EPSILONT * M_PI / 180.);
+const double Robo::RoboI::minFrameMove = Utils::EPSILONT;
 //---------------------------------------------------------
 Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 {
     if (sz > MAX_ACTUATORS)
-        throw std::logic_error("too much muscles for control");
+        throw std::logic_error("Control: Too much actuators for Control!");
 
     for (actuals = 0; actuals < sz; ++actuals)
         actuators[actuals] = a[actuals];
@@ -17,7 +17,7 @@ Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 void Robo::Control::append(const Robo::Actuator &a)
 {
     if (actuals >= MAX_ACTUATORS)
-        throw std::logic_error("too much muscles for control");
+        throw std::logic_error("append: Too much actuators for Control!");
     // actuals is INDEX TO INSERT and LENGTH
     if (actuals == 0 || actuators[actuals - 1].start <= a.start)
     {
@@ -33,6 +33,27 @@ void Robo::Control::append(const Robo::Actuator &a)
             ++actuals;
             return;
         }
+}
+
+//---------------------------------------------------------
+void Robo::Control::remove(size_t i)
+{
+    if (!actuals)
+        throw std::logic_error("remove: Controls are empty!");
+
+    actuals--;
+    for (size_t j = i; j < actuals; ++j)
+        actuators[j] = actuators[j + 1];
+    actuators[actuals] = { MInvalid, 0, 0 };
+}
+
+//---------------------------------------------------------
+void Robo::Control::pop_back()
+{
+    if (!actuals)
+        throw std::logic_error("pop_back: Controls are empty!");
+    actuals--;
+    actuators[actuals] = { MInvalid, 0, 0 };
 }
 
 //---------------------------------------------------------
@@ -62,7 +83,9 @@ bool Robo::Control::validateMusclesTimes() const
 {
     if (actuals <= 1)
         return true;
-    
+
+    throw std::logic_error("validateMusclesTimes: Not implemented!");
+
     //for (auto iti = this->begin(); iti != this->end(); ++iti)
     //    for (auto itj = std::next(iti); itj != this->end(); ++itj)
     //        if (itj->start >= (iti->start + iti->last))
@@ -120,17 +143,23 @@ Robo::muscle_t Robo::Control::select(Robo::muscle_t muscle) const
 }
 
 //---------------------------------------------------------
+auto Robo::Control::begin()       -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
+auto Robo::Control::begin() const -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
+auto Robo::Control::end()         -> decltype(boost::end(actuators))   { return boost::begin(actuators) + actuals; } // ?? std::advance()
+auto Robo::Control::end()   const -> decltype(boost::end(actuators))   { return boost::begin(actuators) + actuals; } // ?? std::advance()
+
+//---------------------------------------------------------
 void Robo::Control::validated(Robo::muscle_t n_muscles) const
 {
     /* Что-то должно двигаться, иначе беск.цикл */
     if (!actuals)
-        throw std::logic_error("Controls are empty!");
+        throw std::logic_error("validated: Controls are empty!\r\n" + this->str());
     /* Управление должно быть отсортировано по времени запуска двигателя */
     if (actuators[0].start != 0 || !br::is_sorted(*this))
-        throw std::logic_error("Controls are not sorted!");
+        throw std::logic_error("validated: Controls are not sorted!\r\n" + this->str());
     /* Исключить незадействованные двигатели */
     if (ba::any_of(*this, [n_muscles](const Actuator &a) { return (!a.lasts) || (a.muscle >= n_muscles); }))
-        throw std::logic_error("Controls have UNUSED or INVALID muscles!");
+        throw std::logic_error("validated: Controls have UNUSED or INVALID muscles!\r\n" + this->str());
 }
 
 //---------------------------------------------------------
@@ -183,10 +212,10 @@ bool Robo::Control::validate(Robo::muscle_t n_muscles) const
 //---------------------------------------------------------
 tostream& Robo::operator<<(tostream &s, const Robo::Actuator &a)
 {
-    return s << _T("{ ") << uint32_t(a.muscle)
-             << _T(" ") << a.start
-             << _T(" ") << a.lasts
-             << _T(" }");
+    return s << _T("{") << uint32_t(a.muscle)
+             << _T(",") << a.start
+             << _T(",") << a.lasts
+             << _T("}");
 }
 
 //---------------------------------------------------------
@@ -194,8 +223,8 @@ tistream& Robo::operator>>(tistream &s, Robo::Actuator &a)
 { 
     uint32_t m;
     s >> ConfirmInput(_T("{")) >> m
-      >> /*ConfirmInput(_T(" ")) >>*/ a.start
-      >> /*ConfirmInput(_T(" ")) >>*/ a.lasts
+      >> ConfirmInput(_T(",")) >> a.start
+      >> ConfirmInput(_T(",")) >> a.lasts
       >> ConfirmInput(_T("}"));
     a.muscle = m;
     return s;
@@ -204,24 +233,36 @@ tistream& Robo::operator>>(tistream &s, Robo::Actuator &a)
 //---------------------------------------------------------
 tostream& Robo::operator<<(tostream &s, const Robo::Control &controls)
 {
-    s << _T("ctrl[ ");
+    s << _T("c[");
     for (const Robo::Actuator &a : controls)
-        s << a << (((&a - &controls.actuators[0]) == (controls.actuals - 1)) ? _T(" ]") : _T(", "));
+        s << a << (((&a - &controls.actuators[0]) == (controls.actuals - 1)) ? _T("") : _T(","));
+    s << _T("]");
     return s;
 }
-
 //---------------------------------------------------------
 tistream& Robo::operator>>(tistream &s, Robo::Control &controls)
 {
-    s >> ConfirmInput(_T("ctrl[ "));
+    s >> ConfirmInput(_T("c["));
     {
         Robo::Actuator a;
-        s >> a >> ConfirmInput(_T(", "));
+        s >> a >> ConfirmInput(_T(","));
         controls.append(a);
     } while (s.fail());
-    //---------------------------
+
     s.setstate(std::ios::goodbit);
-    s >> ConfirmInput(_T(" ]"));
+    s >> ConfirmInput(_T("]"));
+    return s;
+}
+//---------------------------------------------------------
+std::ostream& Robo::Control::stream(std::ostream &s) const
+{
+    s << "c[";
+    for (const auto &a : *this)
+    {
+        a.stream(s);
+        s << (((&a - &actuators[0]) == (actuals - 1)) ? "" : ",");
+    }
+    s << "]";
     return s;
 }
 //---------------------------------------------------------

@@ -19,8 +19,8 @@ RoboMoves::Record::Record(IN const Point         &aim,
     for (auto i = 0U; i < controls_count; ++i)
         control_.append({ muscles[i], starts[i], lasts[i] });
 
-    if (!control_.validateMusclesTimes())
-        throw std::logic_error("Invalid muscles constructor Record parameter");
+    //if (!control_.validateMusclesTimes())
+    //    throw std::logic_error("Invalid muscles constructor Record parameter");
     updateErrDistance(move_final);
 }
 
@@ -36,8 +36,8 @@ RoboMoves::Record::Record(IN const Point         &aim,
     if (!visited_.size())
         throw std::logic_error("Incorrect trajectory in constructor Record");
 
-    if (!control_.validateMusclesTimes())
-        throw std::logic_error("Invalid muscles constructor Record parameter");
+    //if (!control_.validateMusclesTimes())
+    //    throw std::logic_error("Invalid muscles constructor Record parameter");
     updateErrDistance(move_final);
 }
 //---------------------------------------------------------
