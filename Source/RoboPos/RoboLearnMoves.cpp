@@ -13,12 +13,53 @@ using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 
 //#define TOUR_OLD
-#define TOUR_EVO
+//#define TOUR_EVO
 #if defined TOUR_OLD
 #include "RoboPosTourNoRec.h"
-#elif defined TOUR_EVO
-#include "RoboPosTourEvo.h"
 #endif
+//#elif defined TOUR_EVO
+#include "RoboPosTourEvo.h"
+//#endif
+
+//------------------------------------------------------------------------------
+RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target) :
+    _store(store), _robo(robo), _target(target), _precision(target.precision())
+{
+    _robo.reset();
+    _base_pos = _robo.position();
+
+    tptree root;
+    tfstream fin("LearnMoves.txt", std::ios::in);
+    if (!fin.is_open())
+        return;
+    pt::read_ini(fin, root);
+
+    auto s = root.get<tstring>(_T("Tour1"));
+    tcout << s << std::endl;
+    Tour1_type = (s == _T("evo")) ? 1 : 2;
+    Tour2_type = (root.get<tstring>(_T("Tour2")) == _T("target")) ? 1 : 0;
+}
+//------------------------------------------------------------------------------
+RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target,
+           IN double precision,
+           IN const ConfigJSON::StageInput1 &stage1,
+           IN const ConfigJSON::StageInput2 &stage2,
+           IN const ConfigJSON::StageInput3 &stage3) :
+    _store(store), _robo(robo), _target(target), _precision(precision),
+    _stage1_params(stage1), _stage2_params(stage2), _stage3_params(stage3)
+{
+    _robo.reset();
+    _base_pos = _robo.position();
+
+    tptree root;
+    tfstream fin("LearnMoves.txt", std::ios::in);
+    if (!fin.is_open())
+        return;
+    pt::read_ini(fin, root);
+
+    Tour1_type = root.get<tstring>(_T("Tour1"));
+    Tour2_type = root.get<tstring>(_T("Tour2"));
+}
 //------------------------------------------------------------------------------
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
@@ -44,15 +85,19 @@ void  RoboPos::LearnMoves::STAGE_1()
                0.07 /*0.1*/, 5 /*1*/);
                //0.1, 10);
                //0.03, 3); // non-recursive
-
-#elif defined TOUR_EVO
-    std::shared_ptr<TourI> pTour{ new TourEvo(_store, _robo, _target) };
 #else
-    std::shared_ptr<TourI> pTour{ new TourWorkSpace(_store, _robo) };
-#endif
-    pTour->setPrecision(0.1, 7);
-    pTour->setBrakings(false);
+//#elif defined TOUR_EVO
+    std::shared_ptr<TourI> pTour;
+    if (Tour1_type == _T("evo"))
+        pTour = std::make_shared<TourEvo>(_store, _robo, _target);
+    else if (Tour1_type == _T("evoS"))
+        pTour = std::make_shared<TourEvoSteps>(_store, _robo, _target);
+    else
+        pTour = std::make_shared<TourWorkSpace>(_store, _robo);
+    //pTour->setPrecision(0.1, 7);
+    //pTour->setBrakings(false);
     pTour->run();
+#endif
 }
 /// Покрытие всей мишени не слишком плотно
 void  RoboPos::LearnMoves::STAGE_2()
@@ -98,10 +143,11 @@ void  RoboPos::LearnMoves::STAGE_2()
                0.015 /*0.02*/, 2 /*3*/);
                //0.015, 2); // non-recursive
 #else
-    std::shared_ptr<TourTarget> pTour{ new TourTarget(_store, _robo, approx, _target, target_contain) };
-    pTour->setPrecision(0.011, 3);
-    pTour->setChecking(predict);
-    pTour->setPredict(predict);
+    // _T("target")
+    std::shared_ptr<TourTarget> pTour = std::make_shared<TourTarget>(_store, _robo, approx, _target, target_contain);
+    //pTour->setPrecision(0.011, 3);
+    //pTour->setChecking(predict);
+    //pTour->setPredict(predict);
     pTour->run();
 #endif
 }
@@ -163,13 +209,19 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 void  RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 {
     uncovered.clear();
+    //auto vec = _target.coords(); int i = 0;
     auto itp = _target.it_coords();
+    //Point c = {}; int n = 0;
     for (auto it = itp.first; it != itp.second; ++it)
     {
+        //tcout << n << ' ' << *it << ' ' << vec[n] << std::endl;
+        //c += *it;
+        //n++;
         auto p = _store.getClosestPoint(*it, _stage3_params.side);
         if (p.first && boost_distance(p.second.hit, *it) > _target.precision())
-        { uncovered.push_back(*it); }
+            uncovered.push_back(*it);
     }
+    //tcout << "sum =" << c / n << std::endl;
 }
 
 //------------------------------------------------------------------------------
@@ -193,8 +245,6 @@ bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &cont
         _robo.reset();
         _robo.move(controls);
         hit = _robo.position();
-        //_robo.reset();
-        // -----------------------------------------------
         Record rec(aim, _base_pos, hit, controls, _robo.trajectory());
         _store.insert(rec);
         res = true;

@@ -10,7 +10,7 @@ tstring Robo::NewHand::muscleHelp(Hand::Muscle muscle)
         _T("сомкнуть запястье"), _T("раскрыть запястье"),
         _T("сомкнуть локоть"), _T("раскрыть локоть"),
         _T("сомкнуть плечо"), _T("раскрыть плечо"),
-        _T("двинуть ключицей вправо"), _T("двинуть ключицей влево")
+        _T("двинуть ключицей влево"), _T("двинуть ключицей вправо")
     };
     if (muscle > Hand::MCount)
         throw std::runtime_error("Help of INVALID Hand::Muscle");

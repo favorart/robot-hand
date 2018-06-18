@@ -45,10 +45,9 @@ protected:
 
     virtual void step(IN muscle_t muscle /*= Robo::MInvalid*/, IN frames_t lasts /*= 0*/);
 
-    virtual bool muscleFrame(muscle_t muscle) = 0;
-    virtual void muscleMove(frames_t frame, muscle_t muscle, frames_t last) = 0;
-
-    virtual frames_t muscleStatus(muscle_t m) const = 0;
+    virtual void muscleDriveStop(muscle_t) = 0;
+    virtual bool muscleDriveFrame(muscle_t) = 0;
+    virtual void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last) = 0;
 
     virtual bool somethingMoving() = 0;
 
@@ -89,11 +88,19 @@ public:
     virtual frames_t move(IN const Control &controls, IN frames_t max_frames);
     virtual frames_t move(IN const std::bitset<musclesMaxCount> &muscles, IN frames_t lasts);
     virtual frames_t move(IN const std::bitset<musclesMaxCount> &muscles, IN frames_t lasts, IN frames_t max_frames);
-    virtual frames_t move(IN frames_t max_frames = LastInfinity);
+    virtual frames_t move(IN frames_t max_frames = LastsInfinity);
 
     virtual void      step();
     virtual void      step(IN const Robo::Control &control);
+    virtual void      step(IN const Control &control, OUT size_t &control_curr);
     virtual void      step(IN const std::bitset<musclesMaxCount> &muscles, IN frames_t lasts);
+
+    using bitwise = std::bitset<musclesMaxCount + 1>;
+    virtual void step(const bitwise &muscles);
+
+    virtual frames_t muscleStatus(muscle_t m) const = 0;
+    virtual TCHAR    lastsStatusT(muscle_t m) const = 0;
+    virtual frames_t lastsStatus(muscle_t m) const = 0;
 
     //----------------------------------------------------
     using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;

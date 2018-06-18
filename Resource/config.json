@@ -24,7 +24,7 @@
         "show": true,
         "base": [ -0.70, 1.00 ],
         "maxAngle": 135,
-        "maxMoveFrames": 550,
+        "maxMoveFrames": 1250,
         "defPoseRatio": 70.0,
         "motionLaw": {
           "name": "CONAC",
@@ -39,7 +39,7 @@
         "show": true,
         "base": [ 0.10, 0.85 ],
         "maxAngle": 105,
-        "maxMoveFrames": 700,
+        "maxMoveFrames": 1370,
         "defPoseRatio": 0.0,
         "motionLaw": {
           "name": "CONAC",
@@ -51,11 +51,11 @@
       {
         "name": "Clvcl",
         "type": 3,
-        "show": false,
+        "show": true,
         "base": [ 0.75, 0.25 ],
         "maxAngle": 40,
-        "maxMoveFrames": 1000,
-        "defPoseRatio": 0.0,
+        "maxMoveFrames": 2000,
+        "defPoseRatio": 50.0,
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -72,8 +72,8 @@
   "target": {
     "type": "Rect",
 
-    "hn_aims": 18,
-    "vn_aims": 18,
+    "hn_aims": 20,
+    "vn_aims": 20,
     "#hn_aims": 200,
     "#vn_aims": 200,
 
@@ -90,7 +90,6 @@
       "lasts_step_increment_thick": 20,
       "lasts_step_initiate": 25,
       "lasts_step_braking": 5,
-      "pd_shift": [ 0.15, -0.05 ],
 
       "#STAGEs": {
         "b_distance": false,

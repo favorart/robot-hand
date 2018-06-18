@@ -568,7 +568,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         controls.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return robo.muscleMaxLasts(m); }, 70, 2, 4, true);
         CDEBUG(controls);
 
-        wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{controls});
+        wd.trajFrames.step(*wd.pStore, *wd.pRobo, controls);
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, TRUE);
@@ -577,7 +577,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
 
     case 'o':
     { //========================================
-        const size_t  tries = 1000U;
+        const size_t tries = 1000;
         WorkerThreadRunTask(wd, _T("\n *** random test ***  "), testRandom,
                             std::ref(*wd.pStore), std::ref(*wd.pRobo), tries);
         if (WorkerThreadTryJoin(wd))
@@ -589,9 +589,8 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     case 'p':
     {
         //========================================
-        const size_t nested = 2U;
         WorkerThreadRunTask(wd, _T("\n *** cover test ***  "), testCover,
-                            std::ref(*wd.pStore), std::ref(*wd.pRobo), nested);
+                            std::ref(*wd.pStore), std::ref(*wd.pRobo));
         if (WorkerThreadTryJoin(wd))
             InvalidateRect(hWnd, &myRect, TRUE);
         //========================================

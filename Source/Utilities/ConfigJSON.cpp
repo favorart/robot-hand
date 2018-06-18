@@ -129,10 +129,6 @@ void ConfigJSON::save(tptree &root, const TourInput &tour)
     node.put(_T("lasts_step_increment_thick"), tour.lasts_step_increment_thick);
     node.put(_T("lasts_step_initiate"), tour.lasts_step_initiate);
     node.put(_T("lasts_step_braking"), tour.lasts_step_braking);
-
-    tptree pt;
-    ConfigJSON::save(pt, tour.pd_shift);
-    node.add_child(_T("pd_shift"), pt);
     root.add_child(_T("tour"), node);
 }
 void ConfigJSON::load(tptree &root, TourInput &tour)
@@ -143,7 +139,6 @@ void ConfigJSON::load(tptree &root, TourInput &tour)
     tour.lasts_step_increment_thick = node.get<unsigned>(_T("lasts_step_increment_thick"));
     tour.lasts_step_initiate = node.get<unsigned>(_T("lasts_step_initiate"));
     tour.lasts_step_braking = node.get<unsigned>(_T("lasts_step_braking"));
-    ConfigJSON::load(node.get_child(_T("pd_shift")), tour.pd_shift);
 }
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &root, const Robo::MotionLaws::JointMotionLaw& ml)

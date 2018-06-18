@@ -91,7 +91,6 @@
       "lasts_step_increment_thick": 20,
       "lasts_step_initiate": 25,
       "lasts_step_braking": 5,
-      "pd_shift": [ 0.15, -0.05 ],
 
       "#STAGEs": {
         "b_distance": false,

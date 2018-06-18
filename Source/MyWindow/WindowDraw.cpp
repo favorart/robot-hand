@@ -80,6 +80,20 @@ void  drawLine(HDC hdc, const Point &s, const Point &e, HPEN hPen)
 }
 
 //------------------------------------------------------------------------------
+void  drawCross(HDC hdc, const Point &center, double radius, HPEN hPen)
+{
+    HPEN hPen_old = (HPEN)SelectObject(hdc, hPen);
+    //-----------------------------------
+    MoveToEx(hdc, Tx(center.x - radius), Ty(center.y - radius), NULL);
+    LineTo  (hdc, Tx(center.x + radius), Ty(center.y + radius));
+
+    MoveToEx(hdc, Tx(center.x - radius), Ty(center.y + radius), NULL);
+    LineTo  (hdc, Tx(center.x + radius), Ty(center.y - radius));
+    //-----------------------------------
+    SelectObject(hdc, hPen_old);
+}
+
+//------------------------------------------------------------------------------
 void  drawCircle(HDC hdc, const Point &center, double radius, HPEN hPen)
 {
     if (radius > Utils::EPSILONT)

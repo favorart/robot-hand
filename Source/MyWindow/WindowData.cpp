@@ -11,96 +11,77 @@
 
 using namespace Robo;
 using namespace RoboMoves;
-using namespace NewHand;
-using namespace Mobile;
 //-------------------------------------------------------------------------------
 bool repeatRoboMove(MyWindowData &wd);
 bool   makeRoboMove(MyWindowData &wd);
 //-------------------------------------------------------------------------------
-void  MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const boost::optional<Control> controls)
+void MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const Control &controls)
 {
-    if (controls.is_initialized())
+    show_ = true;
+    // ------------
+    robo.reset();
+    base_pos_ = robo.position();
+    // ------------
+    if (animation_)
     {
-        show_ = true;
-        robo.reset();
-        base_pos_ = robo.position();
-        // -------------------------------
-        if (animation_)
-        {
-            controls_ = *controls;
-            for (size_t i = 0; (i < controls_.size()) && (controls_[i].start == frames_); ++i)
-            {
-                //robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
-                robo.step({ controls_[i] });
-                control_cur_ = i;
-            }
-            ++frames_;
-            //robo.step(/*frames_++, */controls_, robo.trajectory());
-        }
-        else
-        {
-            // -------------------------------
-            robo.move(*controls);
-            // -------------------------------
-            store.insert(Record{ robo.position(), base_pos_, robo.position(), *controls, robo.trajectory() });
-            // -------------------------------
-            controls_.clear();
-            control_cur_ = 0;
-            base_pos_ = {};
-            //frames_ = 0;
-        }
+        controls_curr_ = 0;
+        controls_ = controls;
+        // ============
+        robo.step(controls_, controls_curr_);
+        // ============
     }
-    // ============
+    else
+    {
+        // ============
+        robo.move(controls);
+        // ============
+        store.insert(Record{ robo.position(), base_pos_, robo.position(), controls, robo.trajectory() });
+        // ------------
+        controls_.clear();
+        controls_curr_ = 0;
+        base_pos_ = {};
+    }
+    // ------------
+    step(store, robo);
+}
+void MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo)
+{
     /* Auto-drawing trajectory animation */
-    if (show_ && animation_ && frames_)
+    if (show_ && animation_ && controls_curr_ && controls_.size())
     {
         for (size_t i = 0; i < skip_show_steps; ++i)
         {
             // ============
-            for (size_t i = control_cur_; (i < controls_.size()) && (controls_[i].start == frames_); ++i)
-            {
-                //robo.step(frames_, controls_[i].muscle, controls_[i].lasts);
-                robo.step({controls_[i]});
-                control_cur_ = i;
-            }
-            // ============
-            robo.step(/*frames_, trajectory_*/);
-            frames_++;
-            // ============
-            trajectory_ = robo.trajectory();
+            robo.step(controls_, controls_curr_);
             // ============
             if (robo.moveEnd())
             {
-                // -------------------------------------------
+                // ------------
                 store.insert(Record{ robo.position(), base_pos_, robo.position(), controls_, robo.trajectory() });
-                // -------------------------------------------
+                // ------------
                 controls_.clear();
-                control_cur_ = 0;
+                controls_curr_ = 0;
                 base_pos_ = {};
-                frames_ = 0;
+                // ------------
                 break;
             }
         }
     }
 }
-void  MyWindowData::TrajectoryFrames::clear()
+void MyWindowData::TrajectoryFrames::clear()
 {
     show_ = false;
-    trajectory_.clear();
-    // -------------------------------------------
+    // ------------
     controls_.clear();
-    control_cur_ = 0;
+    controls_curr_ = 0;
     base_pos_ = {};
-    frames_ = 0;
 }
-void  MyWindowData::TrajectoryFrames::draw(HDC hdc, HPEN hPen) const
-{ if (show_) { drawTrajectory(hdc, trajectory_, hPen); } }
 //-------------------------------------------------------------------------------
 bool MyWindowData::zoom = false;
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
     pWorkerThread{ nullptr },
-    pTarget{ nullptr }, //{ std::make_shared<RecTarget>( /* 200U, 200U, */ 18U, 18U, -0.41, 0.43, -0.03, -0.85) },
+    pTarget{ nullptr },
     pStore{ std::make_shared<RoboMoves::Store>() }
 {
     read_config(config);
@@ -110,65 +91,6 @@ MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
         currFileName = database;
     else
         currFileName = getCurrFileName();
-    
-    //Hand::JointInput wrist{ Hand::Joint::Wrist,
-    //                        Point{ -0.75, 1.05 },
-    //                        100U,
-    //                        350U,
-    //                        0.,
-    //                        MotionLaws::getHandMLaw(MotionLaws::HandMLaw::CONAC),
-    //                        true
-    //                      };
-    //Hand::JointInput elbow{ Hand::Joint::Elbow,
-    //                        Point{ -0.70, 1.00 },
-    //                        135U,
-    //                        550U,
-    //                        70.,
-    //                        MotionLaws::getHandMLaw(MotionLaws::HandMLaw::CONAC),
-    //                        true
-    //                      };
-    //
-    //Hand::JointInput shoulder{ Hand::Joint::Shldr,
-    //                           Point{ 0.10, 0.85 },
-    //                           105U,
-    //                           700U,
-    //                           0.,
-    //                           MotionLaws::getHandMLaw(MotionLaws::HandMLaw::CONAC),
-    //                           true
-    //                         };
-    //Hand::JointInput clavicle{ Hand::Joint::Clvcl,
-    //                           Point{ 0.75, 0.25 },
-    //                           40U,
-    //                           600U,
-    //                           0.,
-    //                           MotionLaws::getHandMLaw(MotionLaws::HandMLaw::CONAC),
-    //                           true
-    //                         };
-    //  
-    //elbow.frames.stopDistanceRatio = 0.2;
-    //shoulder.frames.stopDistanceRatio = 0.2;
-    //std::list<Hand::JointInput> inputs = { /*wrist ,*/ elbow, shoulder /*, clavicle*/ };    
-    //robo = std::make_shared<Hand>(Point{ 0.75, 0.25 } /* baseClavicle */, inputs);
-
-    //Tank::JointInput l{
-    //    Tank::Joint::LTrack,
-    //    Point{ 0.45, 0.95 },
-    //    25U,
-    //    15.,
-    //    MotionLaws::getHandMLaw(MotionLaws::HandMLaw::CONAC),
-    //    true
-    //};
-    //Tank::JointInput r{
-    //    Tank::Joint::RTrack,
-    //    Point{ 0.55, 0.95 },
-    //    25U,
-    //    15.,
-    //    MotionLaws::getHandMLaw(MotionLaws::HandMLaw::CONAC),
-    //    true
-    //};
-    //l.frames.stopDistanceRatio = 0.1;
-    //r.frames.stopDistanceRatio = 0.1;
-    //robo = std::make_shared<Tank>(Point{ 0.5, 0.95 } /* baseCenter */, std::list<Tank::JointInput>{ l, r });
 
     /* создаем ручки */
     canvas.hPen_grn  = CreatePen(PS_SOLID, 1, RGB(100, 180, 050));
@@ -183,6 +105,15 @@ MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
     canvas.hBrush_back = CreateSolidBrush(RGB(235, 235, 255));
     /* background color = RGB (255,204,238) */
     canvas.pLetters = std::make_shared<CanvasScaleLetters>(pTarget->min(), pTarget->max());
+
+    {
+        /// !! RM
+        std::freopen("out.txt", "w", stdout);
+
+        //WorkerThreadRunTask(*this, _T(" *** STAGE 1 ***  "),
+        //                    [](RoboPos::LearnMoves &lm) { lm.STAGE_1(); },
+        //                    std::ref(*pLM));
+    }
 }
 MyWindowData::~MyWindowData()
 {
@@ -236,7 +167,10 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
     {
         /// TODO : REMOVE
-        const double CircleRadius = 0.01;
+        const double CircleRadius = 0.004;
+
+        for (auto &pred : MyWindowData::goals)
+            drawCross(hdc, pred, CircleRadius, wd.canvas.hPen_grn);        
         
         for (auto &pred : MyWindowData::predicts)
             drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_orng);
@@ -251,14 +185,14 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
     {
         frames_t robot_max_lasts = musclesMaxLasts(*wd.pRobo);
-        robot_max_lasts = (LastInfinity == robot_max_lasts) ? LastInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
+        robot_max_lasts = (LastsInfinity == robot_max_lasts) ? LastsInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
 
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
                             [hdc](Store &store, frames_t robo_max_last,
                                   Trajectory uncoveredPoints, HPEN uncoveredPen) {
             GradPens gradPens(robo_max_last);
             auto getPen = [&gradPens](size_t longs) { return gradPens(longs); };
-            store.draw(hdc, (MyWindowData::zoom) ? 0.0005 : 0., getPen);
+            store.draw(hdc, (MyWindowData::zoom) ? 0.003 : 0., getPen);
 
             for (auto &pt : uncoveredPoints)
                 drawCircle(hdc, pt, (MyWindowData::zoom) ? 0.005 : 0., uncoveredPen);
@@ -278,7 +212,8 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
         // ----- Отрисовка фигуры ---------------------------------------
         wd.pRobo->draw(hdc, wd.canvas.hPen_red, wd.canvas.hBrush_white);
 
-        wd.trajFrames.draw(hdc, wd.canvas.hPen_orng);
+        if (wd.trajFrames.show())
+            drawTrajectory(hdc, wd.pRobo->trajectory(), wd.canvas.hPen_orng);
         // --------------------------------------------------------------
         if (wd.canvas.testingTrajsShow && !wd.canvas.testingTrajsList.empty())
         {
@@ -345,63 +280,51 @@ void  onWindowTimer(MyWindowData &wd)
 {
     if (wd.testing)
         return;
-
+    // =============================
     wd.trajFrames.step(*wd.pStore, *wd.pRobo);
     // =============================
-    if (wd.trajFrames.show)
+    if (wd.trajFrames.show())
     {
         // анимация тестовой траектории
         wd.canvas.hDynamicBitmapChanged = true;
         return;
     }
     // =============================
-    // ручное управление
-    for (size_t i = 0; (/*wd.frames*/ wd.pRobo->frame() > 0) && (i < wd.pRobo->getVisitedRarity()); ++i)
+    if (wd.pRobo->frame() > 0)
     {
-        wd.pRobo->step(/*wd.frames++*/);
-        wd.canvas.hDynamicBitmapChanged = true;
-
-        if (wd.pRobo->moveEnd())
-        {
-            //wd.frames = 0;
-            break;
-        }
+        // анимация ручного управления
+        if (!wd.pRobo->moveEnd())
+            wd.canvas.hDynamicBitmapChanged = true;
+        wd.pRobo->step();
     }
 }
 //-------------------------------------------------------------------------------
 bool  repeatRoboMove(MyWindowData &wd)
 {
-    const Point &aim = wd.mouse.aim;
-    // -------------------------------------------------
-    auto p = wd.pStore->getClosestPoint(aim, wd.search.side);
+    auto p = wd.pStore->getClosestPoint(wd.mouse.aim, wd.search.side);
     if (!p.first)
-        throw std::runtime_error{ "repeatRoboMove: Empty adjacency" };
+        throw std::runtime_error("repeatRoboMove: Empty adjacency");
     // -------------------------------------------------
-    if (boost_distance(p.second.hit, aim) <= wd.pTarget->precision())
+    if (boost_distance(p.second.hit, wd.mouse.aim) <= wd.pTarget->precision())
+        return false;
+    // -------------------------------------------------
+    /* Repeat Hand Movement */
+    wd.pRobo->reset();
+    wd.trajFrames.step(*wd.pStore, *wd.pRobo, p.second.controls);
+    // -------------------------------------------------
+    if (!wd.trajFrames.animation())
     {
-        /* Repeat Hand Movement */
-        wd.pRobo->reset();
-        wd.trajFrames.step(*wd.pStore, *wd.pRobo, boost::optional<Control>{p.second.controls});
-        // -------------------------------------------------
-        if (!wd.trajFrames.animation)
-        {
-            if (!boost::equal(wd.pRobo->trajectory(), p.second.trajectory))
-            { throw std::exception("Incorrect Repeat Robo Move"); }
-        }
-        // -------------------------------------------------
-        tstring text = getWindowTitleString(wd.canvas.hLabMAim);
-
-        tstringstream ss;
-        ss << text << _T("\r");
-        for (const Control &c : p.second.controls)
-        { ss << c << _T("  "); } // \r
-
-        SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL, (LPARAM)ss.str().c_str());
-        // -------------------------------------------------
-        return true;
+        if (!boost::equal(wd.pRobo->trajectory(), p.second.trajectory))
+            throw std::runtime_error("repeatRoboMove: Restore another trajectory");
     }
     // -------------------------------------------------
-    return false;
+    tstringstream ss;
+    tstring text = getWindowTitleString(wd.canvas.hLabMAim);
+    ss << text << _T("\r");
+    ss << p.second.controls << _T("\r");
+    SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL, (LPARAM)(ss.str().c_str()));
+    // -------------------------------------------------
+    return true;
 }
 bool  makeRoboMove(MyWindowData &wd)
 {
@@ -449,6 +372,8 @@ bool  makeRoboMove(MyWindowData &wd)
 
 //-------------------------------------------------------------------------------
 #include <ConfigJSON.h>
+using namespace NewHand;
+using namespace Mobile;
 void MyWindowData::read_config(IN const tstring &filename)
 {
     try

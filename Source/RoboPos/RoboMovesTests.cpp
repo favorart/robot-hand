@@ -38,7 +38,7 @@ void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
 }
 
 //------------------------------------------------------------------------------
-void RoboPos::testCover(Store &store, RoboI &robo, size_t nesting)
+void RoboPos::testCover(Store &store, RoboI &robo)
 {
     const frames_t lasts_min = 50U;
     const frames_t lasts_step = 10U;
@@ -58,7 +58,8 @@ void RoboPos::testCover(Store &store, RoboI &robo, size_t nesting)
                                     { muscle_i }, { 0 }, { last_i }, 1U, robo.trajectory()));
 
                 //=================================================
-                if (nesting < 2U) { continue; }
+                if (robo.jointsCount() < 2U)
+                    continue;
                 //=================================================
                 for (muscle_t muscle_j = 0; muscle_j < robo.musclesCount(); ++muscle_j)
                 {
@@ -76,7 +77,8 @@ void RoboPos::testCover(Store &store, RoboI &robo, size_t nesting)
 
                         ++tail_j;
                         //=================================================
-                        if (nesting < 3U) { continue; }
+                        if (robo.jointsCount() < 3U)
+                            continue;
                         //=================================================
                         for (muscle_t muscle_k = 1; muscle_k < robo.musclesCount(); ++muscle_k)
                         {

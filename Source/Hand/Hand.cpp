@@ -41,7 +41,7 @@ void Hand::jointMove(joint_t joint_move, double offset)
     for (joint_t j = joint_move + 1; j > 0; --j)
     {
         Joint joint = J(j - 1);
-        if (joint == Joint::Clvcl)
+        if (J(joint_move) == Joint::Clvcl)
             status.curPos[joint].x -= offset;
         else
             status.curPos[joint].rotate(prev, offset);
@@ -49,7 +49,57 @@ void Hand::jointMove(joint_t joint_move, double offset)
     status.angles[J(joint_move)] += offset;
 }
 //--------------------------------------------------------------------------------
-bool Hand::muscleFrame(muscle_t m)
+void Hand::realMove()
+{
+    bool move = false;
+    // =================
+    for (joint_t j = 0; j < jointsCount(); ++j)
+    {
+        const auto mo = muscleByJoint(j, true);
+        const auto mc = muscleByJoint(j, false);
+        // =================
+        const double Frame = (status.shifts[M(mc)] - status.shifts[M(mo)]) * 180. / M_PI;
+        if (!Frame) continue;
+        // =================
+        const Joint joint = J(j);
+        const double mOf = maxJointOffset(joint);
+        // =================
+        double offset = -Frame;
+        offset = (0.0 > (status.angles[joint] + offset)) ? (0.0 - status.angles[joint]) : offset;
+        offset = (mOf < (status.angles[joint] + offset)) ? (mOf - status.angles[joint]) : offset;
+        // =================
+        jointMove(j, offset);
+        // =================
+        if (!offset && status.shifts[M(mc)] && status.shifts[M(mo)])
+        {
+            // ??? turn off mutual BLOCKing
+        }
+        if (offset) move = true;
+    }
+    // =================
+    if (!move)
+    {
+        for (muscle_t m = 0; m < musclesCount(); ++m)
+            muscleDriveStop(m);
+        status.moveEnd = true;
+    }
+    // =================
+    status.shifts.fill(0);
+}
+//--------------------------------------------------------------------------------
+void Hand::muscleDriveStop(muscle_t m)
+{
+    Muscle muscle = M(m);
+
+    status.musclesMove[muscle] = 0;
+    status.prevFrame[muscle] = 0;
+    status.shifts[muscle] = 0;
+
+    status.lastsMove[muscle] = 0;
+    status.lastsStop[muscle] = 0;
+    status.lasts[muscle] = 0;
+}
+bool Hand::muscleDriveFrame(muscle_t m)
 {
     Muscle muscle = M(m);
     Joint joint = JofM(muscle);
@@ -57,8 +107,6 @@ bool Hand::muscleFrame(muscle_t m)
     //------------------------------------------------
     if (status.lastsMove[muscle] > 0)
     {
-        assert(status.lastsStop[muscle] == 0);
-
         auto last = status.lastsMove[muscle] - 1;
         const auto &frames = physics.framesMove[joint];
 
@@ -69,8 +117,6 @@ bool Hand::muscleFrame(muscle_t m)
     }
     else if (status.lastsStop[muscle] > 0)
     {
-        assert(status.lastsMove[muscle] == 0);
-
         auto last = status.lastsStop[muscle] - 1;
         const auto &frames = physics.framesStop[joint];
 
@@ -81,30 +127,21 @@ bool Hand::muscleFrame(muscle_t m)
     }
     else throw std::logic_error("!lastsMove & !lastsStop");
     //------------------------------------------------
-    status.prevFrame[muscle] = Frame;
+    status.shifts[muscle] = status.prevFrame[muscle] = Frame;
     // ??? status.velosity  -- momentum velosity
     if (status.windy && status.lastsMove[muscle] == 1)
-        Frame = Utils::random(Hand::minFrameMove * 180. / M_PI, *boost::max_element(physics.framesMove[joint]));
+        Frame = Utils::random(RoboI::minFrameMove, *boost::max_element(physics.framesMove[joint]));
     // -------------------------------------------
-    double mOf/*fset*/ = static_cast<double>(physics.jointsMaxAngles[joint]) / ((joint == Joint::Clvcl) ? 100. : 1.);
-    double offset = 0.;
-    switch (muscle)
+    if (std::isnan(status.shifts[muscle]) || std::isinf(status.shifts[muscle]))
     {
-    case Muscle::ClvclOpn: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
-    case Muscle::ClvclCls: offset = (status.angles[joint] - Frame < 0.0) ? 0. : -Frame; break;
-    case Muscle::ShldrOpn: offset = (status.angles[joint] - Frame < 1.0) ? 0. : -Frame; break;
-    case Muscle::ShldrCls: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
-    case Muscle::ElbowOpn: offset = (status.angles[joint] - Frame < 1.0) ? 0. : -Frame; break;
-    case Muscle::ElbowCls: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
-    case Muscle::WristOpn: offset = (status.angles[joint] - Frame < 1.0) ? 0. : -Frame; break;
-    case Muscle::WristCls: offset = (status.angles[joint] + Frame > mOf) ? 0. : +Frame; break;
+        CERROR("shift NAN");
+        getchar();
+        exit(1);
     }
-
-    jointMove(jointByMuscle(m), offset);
-    return (fabs(offset) >= Hand::minFrameMove);
+    // -------------------------------------------
+    return (fabs(Frame) > 0.);// RoboI::minFrameMove);
 }
-//--------------------------------------------------------------------------------
-void Hand::muscleMove(frames_t frame, muscle_t m, frames_t lasts)
+void Hand::muscleDriveMove(frames_t frame, muscle_t m, frames_t lasts)
 {
     Muscle muscle = M(m);
     /* если не производится никакого движения и нет сигнала о начале нового */
@@ -136,12 +173,10 @@ void Hand::muscleMove(frames_t frame, muscle_t m, frames_t lasts)
     //-------------------------------------------------------
     if (status.lastsMove[muscle] > 0)
     {
-        if (/* остановка движения - по истечении доступных фреймов */
-            //status.lasts[muscle] >= physics.maxMoveFrames[joint]
-            /* остановка по истечении заявленной длительности */
-            status.lasts[muscle] <= status.lastsMove[muscle]
+        if (/* остановка по истечении заявленной длительности */
+            status.lasts[muscle] < status.lastsMove[muscle]
             /* продолжение движения, если остался на месте (блокировка противоположным мускулом) */
-            || !muscleFrame(m))
+            || !muscleDriveFrame(m))
         {
             /* остановка основного движения - по истечении заданной длительности */
             status.lastsStop[muscle] = 1;
@@ -156,26 +191,15 @@ void Hand::muscleMove(frames_t frame, muscle_t m, frames_t lasts)
         }
     }
     //-------------------------------------------------------
-    if (status.lastsStop[muscle] > 0)
+    else if (status.lastsStop[muscle] > 0)
     {
         /* Движение по инерции */
-        if (!muscleFrame(m))
+        if (!muscleDriveFrame(m))
         {
-            /* если движения нет и торможение трением завершилось */
-            assert(status.lastsMove[muscle] == 0);
-            //-------------------------------------------------------
-            status.lastsMove[muscle] = 0;
-            status.lastsStop[muscle] = 0;
-            status.lasts[muscle] = 0;
-            //-------------------------------------------------------
-            /* исключаем остановленный двигатель */
-            status.musclesMove[muscle] = 0;
-            /* проверяем, что остальные двигатели уже остановились */
+            muscleDriveStop(m);
+            /* проверяем, что остальные двигатели уже остановились - полная остановка */
             if (ba::none_of(status.musclesMove, [](const auto &v) { return (v != 0); }))
-            {
-                /* Полная остановка руки */
                 status.moveEnd = true;
-            }
         }
         else
         {
@@ -261,13 +285,13 @@ Hand::Physics::Physics(IN const Point &baseClavicle, IN const std::list<JointInp
 
         law.moveLaw->generate(framesMove[joint].begin(),
                               maxMoveFrames[joint],
-                              Hand::minFrameMove * 180. / M_PI,
+                              Hand::minFrameMove,
                               jointsMaxAngles[joint]);
 
         double  maxVelosity = *boost::max_element(framesMove[joint]);
         law.stopLaw->generate(framesStop[joint].begin(),
                               minStopFrames[joint] - 1,
-                              Hand::minFrameMove * 180. / M_PI,
+                              Hand::minFrameMove,
                               jointsMaxAngles[joint] * law.stopDistanceRatio,
                               maxVelosity);
         /* last frame must be 0 to deadend */
@@ -319,13 +343,9 @@ void  Hand::setJoints(IN const JointsOpenPercent &percents)
         if (ratio > 1. || ratio < 0.)
             throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
 
-        double maxAngle = static_cast<double>(physics.jointsMaxAngles[joint]) / ((joint == Joint::Clvcl) ? 100. : 1.);
-        double angle = ratio * maxAngle;
+        double angle = ratio * maxJointOffset(joint);
         if (status.angles[joint] != angle)
-        {
-            /* status[ curPos, angles ] */
             jointMove(jr.first, (angle - status.angles[joint]));
-        }
     }
 }
 //--------------------------------------------------------------------------------

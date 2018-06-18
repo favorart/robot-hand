@@ -20,6 +20,11 @@ inline void drawLine(HDC hdc, const Point &s, const Point &e)
 { drawLine(hdc, s, e, (HPEN)GetStockObject(BLACK_PEN)); }
 
 //------------------------------------------------------------------------------
+void  drawCross(HDC hdc, const Point &center, double radius, HPEN hPen);
+inline void drawLine(HDC hdc, const Point &center, double radius)
+{ drawCross(hdc, center, radius, (HPEN)GetStockObject(BLACK_PEN)); }
+
+//------------------------------------------------------------------------------
 void drawCircle(HDC hdc, const Point &center, double radius, HPEN hPen);
 inline void drawCircle(HDC hdc, const Point &center, double radius)
 { drawCircle(hdc, center, radius, (HPEN)GetStockObject(BLACK_PEN)); }

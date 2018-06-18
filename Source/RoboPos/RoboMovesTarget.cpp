@@ -11,10 +11,11 @@ void  RecTarget::generate ()
 
   thickness_ = Point(r_step, c_step);
 
-  for (auto i = 0U; i < c_rows; ++i)
-    for (auto j = 0U; j < c_cols; ++j)
-      coords_.push_back (Point (/* left   */ min_.x + j * c_step,
-                                /* bottom */ min_.y + i * r_step));
+  int k = 0;
+  for (auto i = 0u; i < c_rows; ++i)
+    for (auto j = 0u; j < c_cols; ++j)
+      coords_[k++] = (Point (/* left   */ min_.x + j * c_step,
+                             /* bottom */ min_.y + i * r_step));
 
   min_.x -= Utils::EPSILONT; min_.y -= Utils::EPSILONT;
   max_.x += Utils::EPSILONT; max_.y += Utils::EPSILONT;

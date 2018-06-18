@@ -8,7 +8,7 @@ using muscle_t = uint8_t;  ///< muscle index (no holes)
 //-------------------------------------------------------------------------------
 class RoboI;
 const muscle_t MInvalid = 0xFF;
-const frames_t LastInfinity = -1;
+const frames_t LastsInfinity = -1;
 //-------------------------------------------------------------------------------
 struct Actuator
 {

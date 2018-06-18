@@ -13,7 +13,7 @@ class Hand : public RoboI
 {
 public:
     //----------------------------------------------------
-    enum Muscle : uint8_t
+    enum class Muscle : uint8_t
     {   /* Opn - open, Cls - close */
         WristOpn  = 0,
         WristCls  = 1,
@@ -28,7 +28,7 @@ public:
     };
 
     //----------------------------------------------------
-    enum Joint : uint8_t
+    enum class Joint : uint8_t
     {
         Wrist     = 0, // запястье:  wrist (carpus)
         Elbow     = 1, // локоть:    elbow
@@ -118,6 +118,7 @@ protected:
         // ---current position---
         std::array<Point, JointsMaxCount>  curPos{};  // curPos_Palm, curPos_Hand, curPos_Arm, curPos_Shldr (curPosClvcl fixed)
         std::array<double, JointsMaxCount> angles{};  // angle_Wrist, angle_Elbow, angle_Shldr, shift_Clvcl
+        std::array<double, MusclesMaxCount> shifts{};
 
         bool moveEnd = false; // флаг окончания движения - полной остановки
 
@@ -166,17 +167,28 @@ protected:
     const Physics physics;
         
     //----------------------------------------------------
-    bool muscleFrame (muscle_t);
-    void muscleMove  (frames_t frame, muscle_t m, frames_t lasts);
+    void muscleDriveStop(muscle_t);
+    bool muscleDriveFrame(muscle_t);
+    void muscleDriveMove(frames_t frame, muscle_t m, frames_t lasts);
     //----------------------------------------------------
     void  jointMove  (joint_t joint, double offset);
-
-    void realMove() {}
+    //----------------------------------------------------
+    double maxJointOffset(Joint joint) const
+    {
+        return static_cast<double>(physics.jointsMaxAngles[joint]) / ((joint == Joint::Clvcl) ? 100. : 1.);
+    }
+    void realMove();
     frames_t muscleStatus(muscle_t m) const
     { return status.musclesMove[M(m)]; }
 
     bool somethingMoving();
             
+    frames_t lastsStatus(muscle_t m) const
+    { return std::max(status.lastsMove[M(m)], status.lastsStop[M(m)]); }
+    TCHAR lastsStatusT(muscle_t m) const
+    { return (status.lastsMove[M(m)] > status.lastsStop[M(m)]) ? (
+        (status.lastsMove[M(m)] > 0) ? 'm' : '0') : 's'; }
+
 public:
     //----------------------------------------------------
     void      getWorkSpace(OUT Trajectory&);

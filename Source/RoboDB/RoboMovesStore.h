@@ -293,9 +293,9 @@ namespace RoboMoves
     //------------------------------------------------------------------------------
     const Record* exactRecordByControl(IN const Robo::Control &controls) const
     {
-        boost::lock_guard<boost::mutex>  lock(_store_mutex);
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
         // -----------------------------------------------
-        const MultiIndexMoves::index<ByC>::type  &index = _store.get<ByC>();
+        const auto &index = _store.get<ByC>();
         // -----------------------------------------------
         auto equal = index.find(controls);
         return  (equal != index.end()) ? (&(*equal)) : (nullptr);

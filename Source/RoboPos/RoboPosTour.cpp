@@ -155,7 +155,31 @@ TourI::TourI(RoboMoves::Store &store, Robo::RoboI &robo, const TourI::JointsNume
     _breakings_controls_actives(0),
     _b_braking(false),
     _b_simul(true)
-{}
+{
+    tptree root;
+    tfstream fin("Tour.txt", std::ios::in);
+    if (!fin.is_open())
+        return;
+    pt::read_ini(fin, root);
+
+    _b_braking = root.get<bool>(_T("braking"));
+    _b_simul = root.get<bool>(_T("simul"));
+    _b_starts = root.get<bool>(_T("starts"));
+
+    _step_distance = root.get<double>(_T("step_distance"));
+    _lasts_step_increment = root.get<frames_t>(_T("lasts_step_increment"));
+
+    _lasts_step_increment_init = root.get<frames_t>(_T("lasts_step_increment_init"));
+    _lasts_step_braking_init = root.get<frames_t>(_T("lasts_step_braking_init"));
+    _lasts_step_braking_incr = root.get<frames_t>(_T("lasts_step_braking_init"));
+    
+    //if (root.get<tstring>(_T("next_joint")) == _T("reverse"))
+    //    _next_joint = reverse;
+    //if (root.get<tstring>(_T("next_joint")) == _T("forward"))
+    //    _next_joint = forward;    
+    //if (root.get<tstring>(_T("next_joint")) == _T("custom"))
+    //    _next_joint = []() { return; };
+}
 
 //------------------------------------------------------------------------------
 void TourI::run()
@@ -195,6 +219,13 @@ void TourI::run()
 bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 {
     Control controling = controls + _breakings_controls;
+    //----------------------------------------------
+    const Record *pRec = _store.exactRecordByControl(controling);
+    if (pRec)
+    {
+        robo_hit = pRec->hit;
+        return true;
+    }
     //----------------------------------------------
     _robo.reset();
     Point base_pos = _robo.position();
@@ -314,6 +345,17 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     _b_checking(false)
 {
     defineTargetBorders(0.05);
+
+    tptree root;
+    tfstream fin("TourTarget.txt", std::ios::in);
+    if (!fin.is_open())
+        return;
+    pt::read_ini(fin, root);
+
+    _b_predict = root.get<bool>(_T("predict"));
+    _b_checking = root.get<bool>(_T("checking"));
+    _step_distance = root.get<double>(_T("step_distance"));
+    _lasts_step_increment = root.get<frames_t>(_T("lasts_step_increment"));
 }
 
 //------------------------------------------------------------------------------
@@ -494,6 +536,13 @@ void Counters::fill(bool model, bool real, const Point &pos, const Point &pred)
 bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 {
     Control controling = controls + _breakings_controls;
+    //----------------------------------------------
+    const Record *pRec = _store.exactRecordByControl(controling);
+    if (pRec)
+    {
+        robo_hit = pRec->hit;
+        return _target_contain(robo_hit);
+    }
     //----------------------------------------------
     _robo.reset();
     Point base_pos = _robo.position();

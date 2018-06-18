@@ -66,38 +66,20 @@ struct MyWindowData
     class TrajectoryFrames
     {
         const size_t skip_show_steps = 15U;
-        // ---------------------------------
         bool show_ = false;
         bool animation_ = true;
-        Robo::Trajectory trajectory_ = {};
-        // ---------------------------------
-        size_t     control_cur_ = 0;
+        size_t   controls_curr_ = 0;
         Robo::Control controls_ = {};
-        Robo::frames_t  frames_ = 0;
         Point         base_pos_ = {};
-        // ---------------------------------
 
     public:
-        // ---------------------------------
-        // ---------------------------------
-        /* Microsoft specific: C++ properties */
-
-        //__declspec(property(get = _get_traj, put = _put_traj)) const Robo::Trajectory &trajectory;
-        //const Robo::Trajectory&   _get_traj() const { return trajectory_; }
-        //void _put_traj(const Robo::Trajectory& traj) { show_ = true; trajectory_ = traj; }
-
-        __declspec(property(get = _get_anim, put = _put_anim))  bool animation;
-        bool _get_anim() const { return animation_; }
-        void _put_anim(bool anim) { animation_ = anim; }
-
-        __declspec(property(get = _get_show))  bool show;
-        bool _get_show() const { return show_; }
-        // ---------------------------------
-
+        bool animation() const { return animation_; }
+        //void setAnim(bool animation) { animation_ = animation; }
+        bool show() const { return show_; }
+        //bool setShow(bool show) const { show_ = show; }
         void  clear();
-        void  draw(HDC hdc, HPEN hPen) const;
-        void  step(RoboMoves::Store &store, Robo::RoboI &robo,
-                   const boost::optional<Robo::Control> controls = boost::none);
+        void  step(RoboMoves::Store &store, Robo::RoboI &robo, const Robo::Control &controls);
+        void  step(RoboMoves::Store &store, Robo::RoboI &robo);
     };
     TrajectoryFrames trajFrames;
     //Robo::frames_t frames = 0; ///< Global App Time (to show animation)
@@ -128,9 +110,10 @@ struct MyWindowData
         return ss.str();
     }
     // ---------------------------------
-    void MyWindowData::save(const tstring &fn_db) const;
-    void MyWindowData::load(const tstring &fn_db);
+    void save(const tstring &fn_db) const;
+    void load(const tstring &fn_db);
 
+    static std::list<Point> goals;
     static std::list<Point> predicts;
     static std::list<Point> reals;
     // ---------------------------------

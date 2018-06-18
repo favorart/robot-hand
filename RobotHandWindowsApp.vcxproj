@@ -113,8 +113,12 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="configHand-j2.json" />
+    <Text Include="LearnMoves.txt" />
     <Text Include="Resource\configHand-j4.json" />
     <Text Include="Resource\configTank.json" />
+    <Text Include="Tour.txt" />
+    <Text Include="TourEvo.txt" />
+    <Text Include="TourTarget.txt" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource\resource.rc" />

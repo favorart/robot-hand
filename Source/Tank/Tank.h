@@ -17,7 +17,7 @@ class Tank : public RoboI
 {
 public:
     //----------------------------------------------------
-    enum Muscle : uint8_t
+    enum class Muscle : uint8_t
     { /* Frw - forward,
        * Bck - backward
        */
@@ -30,7 +30,7 @@ public:
     };
 
     //----------------------------------------------------
-    enum Joint : uint8_t
+    enum class Joint : uint8_t
     { LTrack = 0, RTrack = 1, JCount = 2, JInvalid = 3 };
 
     static const size_t MusclesMaxCount = (size_t)(Tank::Muscle::MCount);
@@ -146,12 +146,21 @@ protected:
     
     void realMove();
 
-    bool muscleFrame(muscle_t muscle);
-    void muscleMove(frames_t frame, muscle_t muscle, frames_t last);
+    void muscleDriveStop(muscle_t);
+    bool muscleDriveFrame(muscle_t muscle);
+    void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last);
+
+    bool somethingMoving();
 
     frames_t muscleStatus(muscle_t m) const
     { return status.musclesMove[M(m)]; }
-    bool somethingMoving();
+    frames_t lastsStatus(muscle_t m) const
+    { return std::max(status.lastsMove[M(m)], status.lastsStop[M(m)]); }
+    TCHAR lastsStatusT(muscle_t m) const
+    {
+        return (status.lastsMove[M(m)] > status.lastsStop[M(m)]) ? (
+            (status.lastsMove[M(m)] > 0) ? 'm' : '0') : 's';
+    }
     
 public:
 
