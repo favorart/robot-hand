@@ -43,7 +43,7 @@ protected:
     bool containStore(const Robo::Control &controls, Robo::joint_t muscles,
                       Robo::frames_t frame, Robo::frames_t lasts);
 
-    bool stepBack(Robo::Control &controls, Robo::Control &controls_prev, distance_t curr_best_dist);
+    bool stepBack(Robo::Control &controls, Robo::Control &controls_prev, Robo::distance_t curr_best_dist);
 
 public:
     TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target);

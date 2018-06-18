@@ -3,6 +3,7 @@
 #include "RoboMuscles.h"
 #include "HandMotionLaws.h"
 
+#include "RoboInputs.h"
 
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &node, const Point& pt)
@@ -154,71 +155,66 @@ void ConfigJSON::load(tptree &root, Robo::MotionLaws::JointMotionLaw& ml)
     auto type = static_cast<Robo::MotionLaws::HandMLaw>(root.get<uint8_t>(_T("type")));
     auto param = root.get<tstring>(_T("param"));
     //typeName = root.get<tstring>(_T("name"));
-
     ml = Robo::MotionLaws::getHandMLaw(type, param);
     ml.stopDistanceRatio = root.get<double>(_T("stopD"));
 }
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &root, const Robo::NewHand::Hand::JointInput &input)
 {
-    root.put(_T("name"), Robo::NewHand::jointName(input.type));
-    root.put<uint8_t>(_T("type"), input.type);
-    root.put<bool>(_T("show"), input.show);
-    
-    tptree open;
-    ConfigJSON::save(open, input.openCoords);
-    root.add_child(_T("base"), open);
-    
-    root.put(_T("maxAngle"), input.maxAngle);
-    root.put(_T("maxMoveFrames"), input.maxMoveFrames);
+    root.put(_T("name"), Robo::NewHand::jointName(input.joint));
+    root.put<uint8_t>(_T("joint"), static_cast<uint8_t>(input.joint));
     root.put(_T("defPoseRatio"), input.defaultPose);
-    
-    tptree ml;
-    ConfigJSON::save(ml, input.frames);
-    root.add_child(_T("motionLaw"), ml);
+    ConfigJSON::save(root, dynamic_cast<const Robo::JointInput&>(input));
 }
 void ConfigJSON::load(tptree &root, Robo::NewHand::Hand::JointInput &input)
 {
-    assert(root.size() == 8);
-    input.type = static_cast<Robo::NewHand::Hand::Joint>(root.get<uint8_t>(_T("type")));
-    input.show = root.get<bool>(_T("show"));
-
-    ConfigJSON::load(root.get_child(_T("base")), input.openCoords);
-    
-    input.maxAngle      = root.get<size_t>(_T("maxAngle"));
-    input.maxMoveFrames = root.get<size_t>(_T("maxMoveFrames"));
-    input.defaultPose   = root.get<double>(_T("defPoseRatio"));
-    
-    ConfigJSON::load(root.get_child(_T("motionLaw")), input.frames);
+    assert(root.size() == 9);
+    //input.name
+    input.joint = static_cast<Robo::NewHand::Hand::Joint>(root.get<uint8_t>(_T("joint")));
+    input.defaultPose = root.get<double>(_T("defPoseRatio"));
+    ConfigJSON::load(root, dynamic_cast<Robo::JointInput&>(input));
 }
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &root, const Robo::Mobile::Tank::JointInput &input)
 {
-    root.put(_T("name"), Robo::Mobile::jointName(input.type));
-    root.put<uint8_t>(_T("type"), input.type);
-    root.put<bool>(_T("show"), input.show);
+    root.put(_T("name"), Robo::Mobile::jointName(input.joint));
+    root.put<uint8_t>(_T("joint"), static_cast<uint8_t>(input.joint));
+    ConfigJSON::save(root, dynamic_cast<const Robo::JointInput&>(input));
+}
+void ConfigJSON::load(tptree &root, Robo::Mobile::Tank::JointInput &input)
+{
+    //assert(root.size() == 7);
+    //input.name
+    input.joint = static_cast<Robo::Mobile::Tank::Joint>(root.get<uint8_t>(_T("joint")));
+    ConfigJSON::load(root, dynamic_cast<Robo::JointInput&>(input));
+}
+//--------------------------------------------------------------------------------
+void ConfigJSON::save(tptree &root, const Robo::JointInput &input)
+{
+    root.put(_T("type"), input.type);
+    root.put(_T("show"), input.show);
 
     tptree base;
     ConfigJSON::save(base, input.base);
     root.add_child(_T("base"), base);
 
-    root.put<unsigned>(_T("nMoveFrames"), input.nMoveFrames);
-    root.put<double>(_T("maxMoveFrame"), input.maxMoveFrame);
+    root.put(_T("nMoveFrames"), input.nMoveFrames);
+    root.put(_T("maxMoveFrame"), input.maxMoveFrame);
 
     tptree ml;
     ConfigJSON::save(ml, input.frames);
     root.add_child(_T("motionLaw"), ml);
 }
-void ConfigJSON::load(tptree &root, Robo::Mobile::Tank::JointInput &input)
+void ConfigJSON::load(tptree &root, Robo::JointInput &input)
 {
-    //assert(root.size() == 7);
-    input.type = static_cast<Robo::Mobile::Tank::Joint>(root.get<uint8_t>(_T("type")));
+    input.type = root.get<Robo::joint_t>(_T("type"));
     input.show = root.get<bool>(_T("show"));
 
-    input.nMoveFrames = root.get<unsigned>(_T("nMoveFrames"));
+    ConfigJSON::load(root.get_child(_T("base")), input.base);
+
+    input.nMoveFrames = root.get<size_t>(_T("nMoveFrames"));
     input.maxMoveFrame = root.get<double>(_T("maxMoveFrame"));
 
-    ConfigJSON::load(root.get_child(_T("base")), input.base);
     ConfigJSON::load(root.get_child(_T("motionLaw")), input.frames);
 }
 //--------------------------------------------------------------------------------

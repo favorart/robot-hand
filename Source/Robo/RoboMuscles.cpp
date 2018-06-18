@@ -12,9 +12,9 @@ tstring Robo::NewHand::muscleHelp(Hand::Muscle muscle)
         _T("сомкнуть плечо"), _T("раскрыть плечо"),
         _T("двинуть ключицей влево"), _T("двинуть ключицей вправо")
     };
-    if (muscle > Hand::MCount)
+    if (muscle >= Hand::Muscle::MCount)
         throw std::runtime_error("Help of INVALID Hand::Muscle");
-    return HHelps[muscle];
+    return HHelps[int(muscle)];
 }
 tstring Robo::NewHand::muscleName(Hand::Muscle muscle)
 {
@@ -51,9 +51,9 @@ tstring Robo::Mobile::muscleHelp(Tank::Muscle muscle)
         _T("левая гусеница вперёд"), _T("левая гусеница назад"),
         _T("правая гусеница вперёд"), _T("правая гусеница назад")
     };
-    if (muscle > Tank::MCount)
+    if (muscle >= Tank::Muscle::MCount)
         throw std::runtime_error("Help of INVALID Tank::Muscle");
-    return THelps[muscle];
+    return THelps[int(muscle)];
 }
 tstring Robo::Mobile::muscleName(Tank::Muscle muscle)
 {

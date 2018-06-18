@@ -116,7 +116,7 @@ public:
     }
 
     void specifyBordersByRecord(const RoboMoves::Record &rec);
-    void defineTargetBorders(distance_t side);
+    void defineTargetBorders(Robo::distance_t side);
 };
 
 }

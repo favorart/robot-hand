@@ -136,7 +136,7 @@ public:
 };
 }
 
-Robo::frames_t RoboPos::TourEvo::minLasts()
+frames_t RoboPos::TourEvo::minLasts()
 {
     frames_t ll = 0;
     Point pos = _robo.position(), prev_pos = pos;

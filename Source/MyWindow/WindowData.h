@@ -57,8 +57,9 @@ struct MyWindowData
         Robo::Trajectories testingTrajsList{};
         bool               testingTrajsShow{ false };
         // ---------------------------------
-        std::list<Point> uncoveredPointsList{};
-        bool             uncoveredPointsShow{ true };
+        //std::list<Point>?? REMOVE
+        std::list<Robo::Learn::State> uncoveredPointsList{};
+        bool uncoveredPointsShow{ true };
         // --------------------------------
     } canvas;
 

@@ -3,6 +3,7 @@
 #include "WindowDraw.h"
 #endif // MY_WINDOW
 #include "RoboMuscles.h"
+#include "RoboInputs.h"
 #include "RoboEdges.h"
 #include "Tank.h"
 
@@ -27,116 +28,61 @@ frames_t Tank::muscleMaxLasts(muscle_t muscle) const
     return Robo::LastsInfinity;
 }
 //--------------------------------------------------------------------------------
-Tank::Tank(IN const Point &baseCenter, IN const std::list<JointInput> &joints) :
-    params(joints),
-    physics(baseCenter, joints),
-    status(joints)
+const Point& Tank::position() const
 {
-    if (!joints.size() || joints.size() > JointsMaxCount)
-        throw std::exception("Incorrect joints count");
+    //Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
+    //return center;
+    return status.curPos[jointsCount()];
+}
+//--------------------------------------------------------------------------------
+Tank::Tank(const Point &base, const JointsPInputs &joints) :
+    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>()),
+    params(joints, *this)
+{
+    if (!joints.size() || joints.size() > jointsCount())
+        throw std::logic_error("Incorrect joints count");
     reset();
 }
 //--------------------------------------------------------------------------------
-Tank::Tank(IN const Point &baseCenter, IN const std::list<std::shared_ptr<Robo::JointInput>> &joints) :
-    Tank(baseCenter, JInputs<Tank::JointInput>(joints)) {}
-//--------------------------------------------------------------------------------
-Tank::Params::Params(IN const std::list<Tank::JointInput> &jointInputs):
-    musclesUsedCount(0),
-    jointsUsedCount(0),
-    dynamics(false),
-    oppHandle(false),
+Tank::Params::Params(const JointsPInputs &joint_inputs, const Tank &tank) :
     trackWidth(0.015),
     trackHeight(0.035),
     bodyHeight(0.025),
     centerRadius(0.005)
 {
+    const auto &front = *joint_inputs.front();
+    auto maxMoveFrame = front.maxMoveFrame;
+    assert(maxMoveFrame > RoboI::minFrameMove);
+
+    frames_t nMoveFrames = front.nMoveFrames;
+    assert(nMoveFrames > 0);
+
+    frames_t nStopFrames = static_cast<frames_t>(nMoveFrames * front.frames.stopDistanceRatio + 2);
+    assert(nStopFrames > 0);
+
     muscle_t m = 0;
     joint_t j = 0;
-    for (auto& jInput : jointInputs)
+    for (const auto &j_in : joint_inputs)
     {
-        if (!jInput.show)
+        if (!j_in->show)
             continue;
 
-        musclesUsedCount += 2;
-        jointsUsedCount++;
-        Joint joint = jInput.type;
+        //assert(jointsBases[joint] < Point(1., 1.));
+        assert(maxMoveFrame == j_in->maxMoveFrame);
+        assert(nMoveFrames == j_in->nMoveFrames);
+        assert(nStopFrames == static_cast<frames_t>(nMoveFrames * j_in->frames.stopDistanceRatio) + 2);
 
-        //defOpen[joint] = jInput.defaultPose;
-        jointsUsed[j++] = joint;
+        auto pTJIn = dynamic_cast<const Tank::JointInput*>(j_in.get());
 
-        musclesUsed[m++] = MofJ(joint, true);
-        musclesUsed[m++] = MofJ(joint, false);
+        jointsUsed[j++] = pTJIn->joint;
+
+        musclesUsed[m++] = tank.MofJ(pTJIn->joint, true);
+        musclesUsed[m++] = tank.MofJ(pTJIn->joint, false);
     }
-
-    for (; m < MusclesMaxCount; ++m)
-        musclesUsed[m] = MInvalid;
-    for (; j < JointsMaxCount; ++j)
-        jointsUsed[j] = JInvalid;
-
-    std::sort(std::begin(musclesUsed), std::end(musclesUsed));
-    std::sort(std::begin(jointsUsed), std::end(jointsUsed));
-}
-//--------------------------------------------------------------------------------
-Tank::Status::Status(IN const std::list<Tank::JointInput> &jointInputs) :
-    visitedRarity{ 10 },
-    windy{ false },
-    edges{ std::make_shared<EnvEdgesTank>() }
-{
-    for (auto &input : jointInputs)
-        if (input.show)
-            curPos[input.type] = input.base;
-}
-//--------------------------------------------------------------------------------
-const Point& Tank::position() const
-{
-    //Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
-    //return center;
-    return status.curPos[Joint::JCount];
-}
-//--------------------------------------------------------------------------------
-Tank::Physics::Physics(IN const Point &baseCenter, IN const std::list<Tank::JointInput> &jointInputs)
-{
-    assert(jointInputs.size());
-    maxMoveFrame = jointInputs.front().maxMoveFrame;
-    assert(maxMoveFrame > 0.);
-
-    frames_t nMoveFrames = jointInputs.front().nMoveFrames;
-    assert(nMoveFrames > 0);
-    frames_t nStopFrames = static_cast<frames_t>(nMoveFrames * jointInputs.front().frames.stopDistanceRatio + 2);
-    assert(nStopFrames > 0.);
-
-    jointsBases[Joint::JCount] = baseCenter;
-    for (const auto &jInput : jointInputs)
-    {
-        if (!jInput.show)
-            continue;
-
-        Joint joint = jInput.type;
-        auto law = jInput.frames;
-
-        jointsBases[joint] = jInput.base;
-        assert(jointsBases[joint] < Point(1.,1.));
-        assert(maxMoveFrame == jInput.maxMoveFrame);
-        assert(nMoveFrames == jInput.nMoveFrames);
-        assert(nStopFrames == static_cast<frames_t>(nMoveFrames * law.stopDistanceRatio) + 2);
-
-        framesMove[joint].resize(nMoveFrames);
-        framesStop[joint].resize(nStopFrames);
-
-        law.moveLaw->generate(framesMove[joint].begin(), nMoveFrames,
-                              Tank::minFrameMove, maxMoveFrame);
-
-        double maxVelosity = *boost::max_element(framesMove[joint]);
-        law.stopLaw->generate(framesStop[joint].begin(), nStopFrames-1,
-                              Tank::minFrameMove, maxMoveFrame * law.stopDistanceRatio,
-                              maxVelosity);
-        /* last frame must be 0 to deadend */
-        framesStop[joint][nStopFrames - 1] = 0.;
-    }
-
-    //double angle = maxMoveFrame_ * M_PI / 180.;
-    //double radius = boost_distance(jointsBases[Joint::LTrack], jointsBases[Joint::RTrack]) / 2.;
-    //maxMoveFrame = angle * radius;
+    for (; m < Tank::muscles; ++m)
+        musclesUsed[m] = Tank::Muscle::MInvalid;
+    for (; j < Tank::joints; ++j)
+        jointsUsed[j] = Tank::Joint::JInvalid;
 }
 //--------------------------------------------------------------------------------
 void Tank::realMove()
@@ -146,13 +92,21 @@ void Tank::realMove()
     center_ = { 0.,0. };
 #endif // TANK_DEBUG
 
-    Point &cpL{ status.curPos[Joint::LTrack] };
-    Point &cpR{ status.curPos[Joint::RTrack] };
+    const joint_t jcenter = jointsCount();
+    const joint_t l_track = (params.jointsUsed[0] == Joint::LTrack) ? 0 : 1;
+    const joint_t r_track = (params.jointsUsed[0] == Joint::RTrack) ? 0 : 1;
 
+    const muscle_t mlf = muscleByJoint(l_track, true);
+    const muscle_t mlb = muscleByJoint(l_track, false);
+    const muscle_t mrf = muscleByJoint(r_track, true);
+    const muscle_t mrb = muscleByJoint(r_track, false);
+
+    const double shiftL = (status.shifts[mlf] - status.shifts[mlb]);
+    const double shiftR = (status.shifts[mrf] - status.shifts[mrb]);
+
+    Point &cpL{ status.curPos[l_track] };
+    Point &cpR{ status.curPos[r_track] };
     const double between = boost_distance(cpL, cpR);
-
-    const double shiftL = (status.shifts[Muscle::LTrackFrw] - status.shifts[Muscle::LTrackBck]);
-    const double shiftR = (status.shifts[Muscle::RTrackFrw] - status.shifts[Muscle::RTrackBck]);
 
     if (std::isnan(shiftL) || std::isinf(shiftL) ||
         std::isnan(shiftR) || std::isinf(shiftR))
@@ -175,8 +129,7 @@ void Tank::realMove()
     Point center{}, normal{};
     double tan_angle = 0., radius = 0.;
 
-    bool strait = false;
-    if (fabs(fabs(shiftL) - fabs(shiftR)) < Tank::minFrameMove)
+    if (fabs(fabs(shiftL) - fabs(shiftR)) < RoboI::minFrameMove)
     {
         if (boost::math::sign(shiftL) != boost::math::sign(shiftR))
         {
@@ -192,7 +145,6 @@ void Tank::realMove()
             normal /= normal.norm2();
             normal *= shift;
             //CDEBUG(normal);
-            strait = true;
         }
     }
     else if (fabs(shiftL) > fabs(shiftR))
@@ -249,7 +201,7 @@ void Tank::realMove()
         std::getchar();
         std::exit(1);
     }
-    
+
     //CINFO("cpL=" << cpL << " cpR=" << cpR);
     if (fabs(tan_angle) > 0)
     {
@@ -261,40 +213,42 @@ void Tank::realMove()
         cpL += normal;
         cpR += normal;
     }
-    status.curPos[Joint::JCount] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
+
+    status.curPos[jcenter] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
     //CINFO("cpL=" << cpL << " cpR=" << cpR);
     //CINFO("curPosBase=" << status.curPos[Joint::JCount] << " old=" << bodyCenterOld);
-    //
-    //Point bodyVelosity = status.curPos[Joint::JCount] - bodyCenterOld;
-    //if (!status.edges->interaction(*this, bodyVelosity))
-    //{
-    //    /// TODO:
-    //}
-    ////Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
-    ////             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
-    ////Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
-    ////             std::max(cpL.y, cpR.y) + params.trackWidth / 2 };
-    //
-    ////const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
-    ////const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
 
-    if (ba::all_of(status.shifts, [](const auto &c) { return (fabs(c) == 0.); }))
+    Point bodyVelosity = status.curPos[jcenter] - bodyCenterOld;
+    if (!env.edges->interaction(*this, bodyVelosity))
+    {
+        /// TODO:
+    }
+
+    //Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
+    //             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
+    //Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
+    //             std::max(cpL.y, cpR.y) + params.trackWidth / 2 };
+
+    //const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
+    //const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
+
+    if (ba::all_of_equal(status.shifts, 0.))
     {
         for (muscle_t m = 0; m < musclesCount(); ++m)
             muscleDriveStop(m);
         status.moveEnd = true;
     }
 
-    for (auto &muscle : params.musclesUsed)
+    for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle)
         status.shifts[muscle] = 0.;
 }
 //--------------------------------------------------------------------------------
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 {
 #ifdef MY_WINDOW
-    const Point &L = status.curPos[Joint::LTrack];
-    const Point &R = status.curPos[Joint::RTrack];
-    
+    const Point &L = status.curPos[0];
+    const Point &R = status.curPos[1];
+
     Point centerBody{ (L.x + R.x) / 2, (L.y + R.y) / 2 };
     double phy = L.angle(R);
 
@@ -304,8 +258,7 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     //------------------------------------------------------------------
     for (joint_t j = 0; j < jointsCount(); ++j)
     {
-        Joint joint = J(j);
-        const Point& pos = status.curPos[joint];
+        const Point& pos = status.curPos[j];
         // draw Track
         drawMyFigure(hdc, pos, params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
     }
@@ -343,11 +296,11 @@ void Tank::getWorkSpace(OUT Trajectory &workSpace)
     //controls[1].muscle = Muscle::RTrackFrw;     move(controls, workSpace);  // (start, start) on center
     //controls[1].muscle = Muscle::RTrackBck;     move(controls, workSpace);  // 90 degrees
     // end!
-    workSpace.push_back({ +0.97, +0.97 });
-    workSpace.push_back({ -0.97, +0.97 });
-    workSpace.push_back({ -0.97, -0.97 });
-    workSpace.push_back({ +0.97, -0.97 });
-    workSpace.push_back({ +0.97, +0.97 });
+    workSpace.push_back({ Point{ +0.97, +0.97 } });
+    workSpace.push_back({ Point{ -0.97, +0.97 } });
+    workSpace.push_back({ Point{ -0.97, -0.97 } });
+    workSpace.push_back({ Point{ +0.97, -0.97 } });
+    workSpace.push_back({ Point{ +0.97, +0.97 } });
 }
 //--------------------------------------------------------------------------------
 void Tank::reset()
@@ -356,26 +309,15 @@ void Tank::reset()
     /* drop status */
     for (muscle_t m = 0; m < musclesCount(); ++m)
     {
-        Muscle muscle = M(m);
-
-        status.lastsMove[muscle] = 0;
-        status.lastsStop[muscle] = 0;
-        status.lasts[muscle] = 0;
-
-        status.musclesMove[muscle] = 0;
-        status.prevFrame[muscle] = 0;
-        //status.acceleration[muscle] = 0.;
-        //status.velosity[muscle] = 0.;
+        muscleDriveStop(m);
+        //status.acceleration[m] = 0.;
+        //status.velosity[m] = 0.;
     }
     //-----------------------------------------------------
     status.moveEnd = false;
     //-----------------------------------------------------
-    for (joint_t joint = 0; joint < jointsCount(); ++joint)
-    {
-        /* make it at resetJoint(): status[ curPo angles ] */
-        resetJoint(joint);
-    }
-    //status.curPos[Joint::JCount] = physics.jointsBases[Joint::JCount]; // base Center;
+    for (joint_t j = 0; j < jointsCount(); ++j)
+        resetJoint(j);
 }
 //--------------------------------------------------------------------------------
 void Tank::resetJoint(IN joint_t joint)
@@ -387,12 +329,12 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
 {
     for (const auto &jr : percents)
     {
-        Joint joint = J(jr.first);
+        joint_t joint = jr.first;
         status.curPos[joint] = physics.jointsBases[joint];
         /* =2.8 ~distance from up-left to down-right canvas-corner */
         status.shifts[joint] = (2.8 * jr.second / 100.);
     }
-    status.curPos[Joint::JCount] = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2;
+    status.curPos[jointsCount()] = (status.curPos[0] + status.curPos[1]) / 2;
     //realMove();
 }
 //--------------------------------------------------------------------------------

@@ -15,14 +15,14 @@ public:
                                                         Robo::joint_t cur_joint,
                                                         bool first)>;
     static const JointsNumerator forward, reverse;
-    static const distance_t divToMeters;
+    static const Robo::distance_t divToMeters;
     static const double divToMinutes;
 
     //TourI(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const tstring &config);
     TourI(RoboMoves::Store &store, Robo::RoboI &robo, const TourI::JointsNumerator &next_joint = TourI::reverse);
     size_t complexity() const { return _complexity; }
     void run();
-    void setPrecision(distance_t step_distance, Robo::frames_t lasts_step_increment)
+    void setPrecision(Robo::distance_t step_distance, Robo::frames_t lasts_step_increment)
     {
         _step_distance = step_distance;
         _lasts_step_increment = lasts_step_increment;
@@ -43,7 +43,7 @@ protected:
     bool _b_simul{ true };              ///< использование мускулов одновременно
     bool _b_starts{ true };             ///< варьировать начальные моменты
 
-    distance_t _step_distance = 0.;                     ///< желаемая дистанция между попаданиями робота в всех направлениях
+    Robo::distance_t _step_distance = 0.;               ///< желаемая дистанция между попаданиями робота в всех направлениях
     Robo::frames_t _lasts_step_increment = 0;           ///< шаг изменения длительности работы одного мускула в течении одной непрерывной операции
     Robo::frames_t _lasts_step_increment_init = 9;      ///< начальное значение длительности работы мускула (основного)
     Robo::frames_t _lasts_step_braking_init = 5;        ///< начальное значение длительности работы мускула торможения
@@ -117,7 +117,7 @@ protected:
     const TargetI &_target; /// !!! RM
 
     void specifyBordersByRecord(const RoboMoves::Record &rec);
-    void defineTargetBorders(distance_t side);
+    void defineTargetBorders(Robo::distance_t side);
 };
 }
 

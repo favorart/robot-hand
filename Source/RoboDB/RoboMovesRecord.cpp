@@ -123,20 +123,21 @@ Robo::frames_t RoboMoves::Record::longestMusclesControl() const
 double RoboMoves::Record::ratioUsedMusclesCount() const
 {
     /* Количество задействованных мышц */
-    double muscles_count = 0.;
-    for (muscle_t m = 0; m < RoboI::musclesMaxCount; ++m)
-        if (br::find(control_, m) != control_.end())
-            ++muscles_count;
-    return  (1. / muscles_count);
+    ///double muscles_count = 0.;
+    ///for (muscle_t m = 0; m < RoboI::musclesMaxCount; ++m)
+    ///    if (br::find(control_, m) != control_.end())
+    ///        ++muscles_count;
+    ///return  (1. / muscles_count);
+    return 0.;
 }
 double RoboMoves::Record::ratioTrajectoryBrakes() const
 {
-    // TODO: ПЕРEЛОМЫ = остановки
+    /// TODO: ПЕРEЛОМЫ = остановки
 
-    // for ( auto m : mus )
-    // if ( Opn and Cls in controls )
-    // or start > start + last
-    // (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
+    /// for ( auto m : mus )
+    /// if ( Opn and Cls in controls )
+    /// or start > start + last
+    /// (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
     return 0.;
 }
 
