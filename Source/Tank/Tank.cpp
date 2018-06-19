@@ -35,7 +35,7 @@ const Point& Tank::position() const
     return status.curPos[jointsCount()];
 }
 //--------------------------------------------------------------------------------
-Tank::Tank(const Point &base, const JointsPInputs &joints) :
+Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
     RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>()),
     params(joints, *this)
 {
@@ -44,10 +44,10 @@ Tank::Tank(const Point &base, const JointsPInputs &joints) :
     reset();
 }
 //--------------------------------------------------------------------------------
-Tank::Params::Params(const JointsPInputs &joint_inputs, const Tank &tank) :
-    trackWidth(0.015),
-    trackHeight(0.035),
-    bodyHeight(0.025),
+Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
+    trackWidth(0.02),
+    trackHeight(0.05),
+    bodyHeight(0.04),
     centerRadius(0.005)
 {
     const auto &front = *joint_inputs.front();
@@ -73,16 +73,12 @@ Tank::Params::Params(const JointsPInputs &joint_inputs, const Tank &tank) :
         assert(nStopFrames == static_cast<frames_t>(nMoveFrames * j_in->frames.stopDistanceRatio) + 2);
 
         auto pTJIn = dynamic_cast<const Tank::JointInput*>(j_in.get());
+        Tank::Joint joint = pTJIn->Joint();
 
-        jointsUsed[j++] = pTJIn->joint;
-
-        musclesUsed[m++] = tank.MofJ(pTJIn->joint, true);
-        musclesUsed[m++] = tank.MofJ(pTJIn->joint, false);
+        jointsUsed[j++] = joint;
+        musclesUsed[m++] = tank.MofJ(joint, true);
+        musclesUsed[m++] = tank.MofJ(joint, false);
     }
-    for (; m < Tank::muscles; ++m)
-        musclesUsed[m] = Tank::Muscle::MInvalid;
-    for (; j < Tank::joints; ++j)
-        jointsUsed[j] = Tank::Joint::JInvalid;
 }
 //--------------------------------------------------------------------------------
 void Tank::realMove()
@@ -248,24 +244,20 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 #ifdef MY_WINDOW
     const Point &L = status.curPos[0];
     const Point &R = status.curPos[1];
-
-    Point centerBody{ (L.x + R.x) / 2, (L.y + R.y) / 2 };
+    Point centerBody = status.curPos[2];
+    //------------------------------------------------------------------
     double phy = L.angle(R);
-
     // draw Body
-    double bodyWidth = boost_distance(centerBody, L) + params.trackWidth;
+    double bodyWidth = (boost_distance(R, L) - params.trackWidth);
     drawMyFigure(hdc, centerBody, bodyWidth, params.bodyHeight, phy, MyFigure::Rectangle, hPen);
-    //------------------------------------------------------------------
+    // draw Tracks
     for (joint_t j = 0; j < jointsCount(); ++j)
-    {
-        const Point& pos = status.curPos[j];
-        // draw Track
-        drawMyFigure(hdc, pos, params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
-    }
-    //------------------------------------------------------------------
-    // draw center
+        drawMyFigure(hdc, status.curPos[j], params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
+    // draw Center
     drawCircle(hdc, centerBody, params.centerRadius);
-
+    // draw Front
+    drawMyFigure(hdc, centerBody, bodyWidth, params.bodyHeight, phy, MyFigure::Triangle, hPen);
+    //------------------------------------------------------------------
 #ifdef TANK_DEBUG
     if (r1_ || r2_)
     {
@@ -303,26 +295,10 @@ void Tank::getWorkSpace(OUT Trajectory &workSpace)
     workSpace.push_back({ Point{ +0.97, +0.97 } });
 }
 //--------------------------------------------------------------------------------
-void Tank::reset()
-{
-    _reset();
-    /* drop status */
-    for (muscle_t m = 0; m < musclesCount(); ++m)
-    {
-        muscleDriveStop(m);
-        //status.acceleration[m] = 0.;
-        //status.velosity[m] = 0.;
-    }
-    //-----------------------------------------------------
-    status.moveEnd = false;
-    //-----------------------------------------------------
-    for (joint_t j = 0; j < jointsCount(); ++j)
-        resetJoint(j);
-}
-//--------------------------------------------------------------------------------
 void Tank::resetJoint(IN joint_t joint)
 {
-    /* reset joint to default */
+    muscleDriveStop(muscleByJoint(joint, true));
+    muscleDriveStop(muscleByJoint(joint, false));
     setJoints({ { joint, 0. } });
 }
 void Tank::setJoints(IN const JointsOpenPercent &percents)

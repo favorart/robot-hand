@@ -2,7 +2,6 @@
 
 #include "RoboPhysics.h"
 
-
 namespace Robo {
 class EnvEdgesHand;
 namespace NewHand {
@@ -66,34 +65,33 @@ protected:
 
     struct Params
     {
-        std::array<Hand::Muscle, muscles> musclesUsed;
-        std::array<Hand::Joint, joints>  jointsUsed;
-
-        std::array<distance_t, joints> defOpen;
+        std::array<Hand::Muscle, muscles> musclesUsed{ Hand::Muscle::MInvalid };
+        std::array<Hand::Joint, joints>  jointsUsed{ Hand::Joint::JInvalid };
+        std::array<distance_t, joints> defOpen{};
 
         std::array<distance_t, joints> maxAngles{}; // maxWristAngle, maxElbowAngle, maxShldrAngle, maxClvclShift
         std::array<frames_t, joints> nMoveFrames{}; // число кадров от полного раскрытия сустава до полного закрытия
         std::array<frames_t, joints> nStopFrames{}; // число кадров для остановки сустава при полном ускорении
 
         //--- draw constants ---
-        bool drawPalm;
+        bool drawPalm{};
                 
-        double   palmRadius;
-        double  jointRadius;
-        double sectionWidth;
+        double   palmRadius{};
+        double  jointRadius{};
+        double sectionWidth{};
 
-        Params(const JointsPInputs &jointInputs, const Hand &hand);
+        Params(const JointsInputsPtrs &jointInputs, const Hand &hand);
     };
     const Params params;
     
-    distance_t maxJointOffset(joint_t joint) const
-    { return static_cast<distance_t>(params.maxAngles[joint]) / ((J(joint) == Joint::Clvcl) ? 100. : 1.); }
+    distance_t maxJointAngle(joint_t joint) const
+    { return params.maxAngles[joint]; }
     
     void realMove();
     void jointMove(joint_t, double offset);
         
 public:
-    Hand(const Point &base, const JointsPInputs &joints);
+    Hand(const Point &base, const JointsInputsPtrs &joints);
 
     frames_t muscleMaxLasts(muscle_t) const;
     frames_t muscleMaxLasts(const Control&) const;
@@ -101,7 +99,6 @@ public:
     void getWorkSpace(OUT Trajectory&);
     void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
     
-    void reset();
     void resetJoint(IN joint_t);
     void setJoints(IN const Robo::JointsOpenPercent&);
     //const Point& position() const { return status.curPos[(params.drawPalm ? Joint::Wrist : Joint::Elbow)]; }

@@ -2,15 +2,13 @@
   "robo": {
     "name": "Tank-v1",
     "base": [ 0.10, 0.10 ],
-    "joints": [
-      {
-        "name": "LTrack",
-        "joint": 0,
-        "type": 0,
+    "joints": [ {
+        "name": "RTrack",
+        "joint": 1,
         "show": true,
-        "base": [ 0.15, 0.10 ],
+        "base": [ 0.05, 0.10 ],
         "nMoveFrames": 160,
-        "maxMoveFrame": 0.1, "#maxMoveFrame": "max distance you can replace in one time",
+        "maxMoveFrame": 0.1,
         "motionLaw": {
           "name": "STAB",
           "type": 3,
@@ -19,13 +17,12 @@
         }
       },
       {
-        "name": "RTrack",
-        "joint": 1,
-        "type": 1,
+        "name": "LTrack",
+        "joint": 0,
         "show": true,
-        "base": [ 0.05, 0.10 ],
+        "base": [ 0.15, 0.10 ],
         "nMoveFrames": 160,
-        "maxMoveFrame": 0.1,
+        "maxMoveFrame": 0.1, "#maxMoveFrame": "max distance you can replace in one time",
         "motionLaw": {
           "name": "STAB",
           "type": 3,

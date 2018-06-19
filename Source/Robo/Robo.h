@@ -1,11 +1,10 @@
-#pragma once
+Ôªø#pragma once
 #include "RoboControl.h"
 #include "RoboMotionLaws.h"
 
 
 namespace Robo
 {
-
 namespace Learn
 {
 class Act
@@ -41,13 +40,11 @@ struct State : public Point // !!! REMOVE Temporary
     //State(const Point& pos, const Point& velosity, const Point& accel) : Point(p) {}
 };
 }
-
-
 //-------------------------------------------------------------------------------
 //struct TStringSerializableI { virtual operator tstring() const = 0; };
 //-------------------------------------------------------------------------------
 using distance_t = double;
-using Trajectory = std::list<Learn::State>;
+using Trajectory = std::list<Point/*Learn::State*/>;
 using Trajectories = std::list<Trajectory>;
 using joint_t = uint8_t;
 const joint_t JInvalid = 0xFF;
@@ -56,15 +53,17 @@ struct JointInput
 {
     MotionLaws::JointMotionLaw frames{ nullptr, nullptr };
     bool show = true;
-    Point  base{};
+    Point base{};
     size_t nMoveFrames{};
-    double maxMoveFrame{};
-    joint_t type{};
+    distance_t maxMoveFrame{};
+    size_t joint{}; // not in order of `joint_t`, but Type::Joints order
+
+    bool operator<(const JointInput &ji) const { return (joint < ji.joint); }
 
     JointInput() = default;
-    JointInput(joint_t type, const MotionLaws::JointMotionLaw &frames, bool show,
+    JointInput(joint_t joint, const MotionLaws::JointMotionLaw &frames, bool show,
                const Point &base, size_t nMoveFrames, double maxMoveFrame) :
-        type(type), frames(frames), show(show), base(base),
+        joint(joint), frames(frames), show(show), base(base),
         nMoveFrames(nMoveFrames), maxMoveFrame(maxMoveFrame)
     {}
     virtual ~JointInput() {}
@@ -78,20 +77,20 @@ protected:
     
     frames_t _frame{ 0 };
     Trajectory _trajectory{};
-    bool _trajectory_show{ true };
+    bool _trajectory_save{ true };
 
     void _reset()
     {
         _frame = 0;
         _trajectory.clear();
-        _trajectory_show = true;
+        _trajectory_save = true;
     }
 
 public:
     static const double minFrameMove;
     static const muscle_t musclesPerJoint = 2;
 
-    static const muscle_t musclesMaxCount = 32;
+    static const muscle_t musclesMaxCount = 6;// !!! 32;
     static const muscle_t jointsMaxCount = musclesMaxCount / musclesPerJoint;
 
     static muscle_t muscleOpposite(IN muscle_t muscle)
@@ -109,7 +108,7 @@ public:
     RoboI() = default;
     RoboI(RoboI&&) = delete;
     RoboI(const RoboI&) = delete;
-    //RoboI(const Point&, const JointsPInputs&) {}
+    //RoboI(const Point&, const JointsInputsPtrs&) {}
 
     // RM !!! DEBUG
     virtual frames_t muscleStatus(muscle_t m) const = 0;
@@ -130,7 +129,9 @@ public:
     virtual frames_t move(IN const Control &controls, IN frames_t max_frames) = 0;
     virtual frames_t move(IN const std::bitset<musclesMaxCount> &muscles, IN frames_t lasts) = 0;
     virtual frames_t move(IN const std::bitset<musclesMaxCount> &muscles, IN frames_t lasts, IN frames_t max_frames) = 0;
+
     virtual frames_t move(IN frames_t max_frames = LastsInfinity) = 0;
+    virtual frames_t move(IN const std::vector<muscle_t> &ctrls) = 0;
 
     virtual void step() = 0;
     virtual void step(IN const Robo::Control &control) = 0;
@@ -141,20 +142,19 @@ public:
     virtual void step(const bitwise &muscles) = 0;
 
     //----------------------------------------------------
-    //using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;
-    //virtual void setJoints(const JointsOpenPercent&) = 0;
-
-    virtual void resetJoint(joint_t) = 0;
     virtual void reset() = 0;
+    virtual void resetJoint(joint_t) = 0;
+    //virtual void setJoints(const JointsOpenPercent&) = 0;
 
     //----------------------------------------------------
     virtual bool moveEnd() const = 0;
     virtual const Point& position() const = 0;
     virtual Point jointPos(joint_t) const = 0;
     virtual /*const*/ Trajectory& trajectory() /*const*/ { return _trajectory; };
-    //----------------------------------------------------
 
-    virtual void     setTrajectoryShow(bool show) { _trajectory_show = show; };
+    //----------------------------------------------------
+    virtual void setTrajectorySave(bool save) { _trajectory_save = save; };
+    virtual frames_t frame() const { return _frame; };
 
     virtual unsigned getVisitedRarity() const = 0;
     virtual void     setVisitedRarity(unsigned rarity) = 0;
@@ -163,12 +163,9 @@ public:
     virtual void     setWindy(bool windy) = 0;
     //----------------------------------------------------
     virtual tstring name() const = 0;
-    //----------------------------------------------------
     friend class EnvEdges;
-
-    frames_t frame() const { return _frame; };
     //----------------------------------------------------
-    /* ÒÂË‡ÎËÁ‡ˆËˇ */
+    /* —Å–µ—Ä–∏–∞–ª–∏–∑–∞—Ü–∏—è */
     //virtual void save(IN const tstring &filename) const = 0;
     //virtual void load(IN const tstring &filename) = 0;
 };

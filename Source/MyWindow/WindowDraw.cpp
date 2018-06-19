@@ -179,6 +179,45 @@ void  drawMyFigure(HDC hdc, const Point &center, double w, double h, double angl
             LineTo(hdc, Tx(p.x), Ty(p.y));
         }
         break;
+        //-----------------------------------
+    case MyFigure::Triangle:
+        if (angle == 0.)
+        {
+            Point p;
+
+            p = { center.x, center.y + h / 2 };
+            MoveToEx(hdc, Tx(p.x), Ty(p.y), NULL);
+
+            p = { center.x - w / 2, center.y - h / 2 };
+            LineTo(hdc, Tx(p.x), Ty(p.y));
+
+            p = { center.x + w / 2, center.y - h / 2 };
+            LineTo(hdc, Tx(p.x), Ty(p.y));
+
+            p = { center.x, center.y + h / 2 };
+            LineTo(hdc, Tx(p.x), Ty(p.y));
+        }
+        else
+        {
+            Point p;
+
+            p = { center.x, center.y + h / 2 };
+            p.rotate(center, angle);
+            MoveToEx(hdc, Tx(p.x), Ty(p.y), NULL);
+
+            p = { center.x - w / 2, center.y - h / 2 };
+            p.rotate(center, angle);
+            LineTo(hdc, Tx(p.x), Ty(p.y));
+
+            p = { center.x + w / 2, center.y - h / 2 };
+            p.rotate(center, angle);
+            LineTo(hdc, Tx(p.x), Ty(p.y));
+
+            p = { center.x, center.y + h / 2 };
+            p.rotate(center, angle);
+            LineTo(hdc, Tx(p.x), Ty(p.y));
+        }
+        break;
     //-----------------------------------
     default:
         throw std::logic_error("Not Implemented");

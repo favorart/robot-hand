@@ -294,8 +294,9 @@ void  onWindowTimer(MyWindowData &wd)
     {
         // анимация ручного управления
         if (!wd.pRobo->moveEnd())
-            wd.canvas.hDynamicBitmapChanged = true;
-        wd.pRobo->step();
+            wd.canvas.hDynamicBitmapChanged = true;        
+        for(auto i = 0u; i < wd.pRobo->getVisitedRarity(); ++i)
+            wd.pRobo->step();
     }
 }
 //-------------------------------------------------------------------------------
@@ -383,17 +384,20 @@ void MyWindowData::read_config(IN const tstring &filename)
         pt::read_json(fin, root);
 
         tstring robo_name;
-        std::list<std::shared_ptr<Robo::JointInput>> robo_joints;
+        JointsInputsPtrs joint_inputs;
         Point robo_base;
-        ConfigJSON::load(root, robo_name, robo_base, robo_joints);
-
+        ConfigJSON::load(root, robo_name, robo_base, joint_inputs);
+        // ===
+        //auto key_extractor = [](const JointInputPtr &a, const JointInputPtr &b) { return (*a < *b); };
+        joint_inputs.sort(/*key_extractor*/);
+        // ===
         if (robo_name == _T("Hand-v3"))
         {
-            pRobo = std::make_shared<Robo::NewHand::Hand>(robo_base, robo_joints);
+            pRobo = std::make_shared<Robo::NewHand::Hand>(robo_base, joint_inputs);
         }
         else if (robo_name == _T("Tank-v1"))
         {
-            pRobo = std::make_shared<Robo::Mobile::Tank>(robo_base, robo_joints);
+            pRobo = std::make_shared<Robo::Mobile::Tank>(robo_base, joint_inputs);
         }
         else
         {
@@ -438,8 +442,8 @@ void MyWindowData::write_config(IN const tstring &filename) const
     try
     {
         tptree root;
-        std::list<std::shared_ptr<Robo::JointInput>> robo_joints; /// ???
-        ConfigJSON::save(root, pRobo->name(), pRobo->jointPos(pRobo->jointsCount()), robo_joints);
+        JointsInputsPtrs joint_inputs; /// ???
+        ConfigJSON::save(root, pRobo->name(), pRobo->jointPos(pRobo->jointsCount()), joint_inputs);
 
         ConfigJSON::TargetInput target; /// ???
         ConfigJSON::save(root, target);

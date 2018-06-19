@@ -1,12 +1,8 @@
 ﻿#pragma once
 
-#include "Robo.h"
-#include "RoboEdges.h"
 #include "RoboPhysics.h"
 
-
 namespace Robo {
-class EnvEdges;
 class EnvEdgesTank;
 namespace Mobile {
 
@@ -53,16 +49,15 @@ protected:
 
     struct Params
     {
+        std::array<Tank::Muscle, muscles> musclesUsed{ Tank::Muscle::MInvalid };
+        std::array<Tank::Joint, joints> jointsUsed{ Tank::Joint::JInvalid };
         //--- draw constants
-        double   trackWidth;
-        double  trackHeight;
-        double   bodyHeight;
-        double centerRadius;
+        double   trackWidth{};
+        double  trackHeight{};
+        double   bodyHeight{};
+        double centerRadius{};
 
-        std::array<Tank::Muscle, muscles> musclesUsed;
-        std::array<Tank::Joint, joints>  jointsUsed;
-
-        Params(const JointsPInputs&, const Tank&);
+        Params(const JointsInputsPtrs&, const Tank&);
     };
     const Params params;
 
@@ -73,7 +68,7 @@ protected:
     void realMove();
     
 public:
-    Tank(const Point &baseCenter, const JointsPInputs &joints);
+    Tank(const Point &baseCenter, const JointsInputsPtrs &joints);
 
     frames_t muscleMaxLasts(muscle_t muscle) const;
     frames_t muscleMaxLasts(const Robo::Control &control) const;
@@ -81,7 +76,6 @@ public:
     void getWorkSpace(OUT Trajectory &workSpace);
     void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
     
-    void reset();
     void resetJoint(IN joint_t);
     void setJoints(IN const Robo::JointsOpenPercent&);
     

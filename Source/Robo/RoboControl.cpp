@@ -11,6 +11,7 @@ Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 
     for (actuals = 0; actuals < sz; ++actuals)
         actuators[actuals] = a[actuals];
+    _validated = false;
 }
 
 //---------------------------------------------------------
@@ -33,6 +34,7 @@ void Robo::Control::append(const Robo::Actuator &a)
             ++actuals;
             return;
         }
+    _validated = false;
 }
 
 //---------------------------------------------------------
@@ -45,6 +47,7 @@ void Robo::Control::remove(size_t i)
     for (size_t j = i; j < actuals; ++j)
         actuators[j] = actuators[j + 1];
     actuators[actuals] = { MInvalid, 0, 0 };
+    _validated = false;
 }
 
 //---------------------------------------------------------
@@ -54,6 +57,7 @@ void Robo::Control::pop_back()
         throw std::logic_error("pop_back: Controls are empty!");
     actuals--;
     actuators[actuals] = { MInvalid, 0, 0 };
+    _validated = false;
 }
 
 //---------------------------------------------------------
@@ -76,6 +80,7 @@ void Robo::Control::removeStartPause()
     if (start_time > 0)
         for (size_t i = 0; i < actuals; ++i)
             actuators[i].start -= start_time;
+    _validated = false;
 }
 
 //----------------------------------------------------
@@ -123,6 +128,7 @@ void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const std::function
         else
             a.start = Utils::random(0u, a.lasts + 1u);
     }
+    _validated = false;
 }
 
 //---------------------------------------------------------
@@ -139,6 +145,7 @@ Robo::muscle_t Robo::Control::select(Robo::muscle_t muscle) const
         //while (m == muscle || (m / 2) == (muscle / 2))
         //  m = actuators[random(size())];
     }
+    _validated = false;
     return MInvalid;
 }
 
@@ -151,6 +158,7 @@ auto Robo::Control::end()   const -> decltype(boost::end(actuators))   { return 
 //---------------------------------------------------------
 void Robo::Control::validated(Robo::muscle_t n_muscles) const
 {
+    if (_validated) return;
     /* Что-то должно двигаться, иначе беск.цикл */
     if (!actuals)
         throw std::logic_error("validated: Controls are empty!\r\n" + this->str());
@@ -160,18 +168,21 @@ void Robo::Control::validated(Robo::muscle_t n_muscles) const
     /* Исключить незадействованные двигатели */
     if (ba::any_of(*this, [n_muscles](const Actuator &a) { return (!a.lasts) || (a.muscle >= n_muscles); }))
         throw std::logic_error("validated: Controls have UNUSED or INVALID muscles!\r\n" + this->str());
+    _validated = true;
 }
 
 //---------------------------------------------------------
 bool Robo::Control::validate(Robo::muscle_t n_muscles) const
 {
+    if (_validated) return true;
     auto is_invalid = [n_muscles](const Actuator &a) {
         return (!a.lasts) || (a.muscle >= n_muscles);
     };
-    return !actuals ||
+   _validated = (!actuals ||
         actuators[0].start != 0 || 
         !br::is_sorted(*this) ||
-        ba::any_of(*this, is_invalid);
+        ba::any_of(*this, is_invalid));
+    return _validated;
 }
 
 

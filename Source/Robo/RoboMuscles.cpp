@@ -48,8 +48,8 @@ tstring Robo::Mobile::muscleHelp(Tank::Muscle muscle)
 {
     tstring THelps[] =
     {
-        _T("левая гусеница вперёд"), _T("левая гусеница назад"),
-        _T("правая гусеница вперёд"), _T("правая гусеница назад")
+        _T("левая гусеница назад"), _T("левая гусеница вперёд"),
+        _T("правая гусеница назад"), _T("правая гусеница вперёд")
     };
     if (muscle >= Tank::Muscle::MCount)
         throw std::runtime_error("Help of INVALID Tank::Muscle");

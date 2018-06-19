@@ -3,13 +3,12 @@
 
 namespace Robo
 {
+class EnvEdges;
+using JointInputPtr = std::shared_ptr<JointInput>;
+using JointsInputsPtrs = std::list<JointInputPtr>;
+using JointsInputs = std::list<JointInput>;
 /*  jointsOpenPercent={ joint, 0.% <= value <= 100.% } */
 using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;
-using JointsInputs = std::list<Robo::JointInput>;
-using JointsPInputs = std::list<std::shared_ptr<Robo::JointInput>>;
-using JInSpecFunc = std::function<void(const JointInput&)>;
-
-class EnvEdges;
 
 class RoboPhysics : public RoboI
 {
@@ -22,10 +21,10 @@ protected:
 
         std::array<Point, RoboI::jointsMaxCount + 1> jointsBases{};
         // --- велична перемещений в каждый кадр ---
-        std::array<std::vector<double>, RoboI::jointsMaxCount> framesMove{}; // при движении
-        std::array<std::vector<double>, RoboI::jointsMaxCount> framesStop{}; // при остановке
+        std::array<std::vector<distance_t>, RoboI::jointsMaxCount> framesMove{}; // при движении
+        std::array<std::vector<distance_t>, RoboI::jointsMaxCount> framesStop{}; // при остановке
 
-        Physics(const Point &base, const JointsPInputs &joint_inputs);
+        Physics(const Point &base, const JointsInputsPtrs &joint_inputs);
     };
     const Physics physics;
 
@@ -64,8 +63,8 @@ protected:
         unsigned jointsCount{ 0 };
 
         // ---current position---
-        std::array<Point, RoboI::jointsMaxCount + 1>  curPos{}; /* текущая позиция сочленения */ // curPos_Palm, curPos_Hand, curPos_Arm, curPos_Shldr (curPosClvcl fixed)
-        std::array<double, RoboI::jointsMaxCount> shifts{}; /* смещения каждого сочления */  // angle_Wrist, angle_Elbow, angle_Shldr, shift_Clvcl
+        std::array<Point, RoboI::jointsMaxCount + 1>   curPos{}; /* текущая позиция сочленения */ // curPos_Palm, curPos_Hand, curPos_Arm, curPos_Shldr (curPosClvcl fixed)
+        std::array<distance_t, RoboI::musclesMaxCount> shifts{}; /* смещения каждого сочления */  // angle_Wrist, angle_Elbow, angle_Shldr, shift_Clvcl
 
         bool moveEnd = false; // флаг окончания движения - полной остановки
 
@@ -76,18 +75,9 @@ protected:
 
         // ---frames---
         std::array<frames_t, RoboI::musclesMaxCount> musclesMove{}; // задействованные в движениии двители
-        std::array<double, RoboI::musclesMaxCount>   prevFrame{}; // величина смещения сочленения в предыдущий такт для данного мускула
+        std::array<distance_t, RoboI::musclesMaxCount> prevFrame{}; // величина смещения сочленения в предыдущий такт для данного мускула
 
-        Status(const JointsPInputs &joint_inputs)
-        {
-            for (auto &j_in : joint_inputs)
-                if (j_in->show)
-                {
-                    ++jointsCount;
-                    curPos[j_in->type] = j_in->base;
-                }
-            musclesCount = RoboI::musclesPerJoint * jointsCount;
-        }
+        Status(const JointsInputsPtrs &joint_inputs);
     };
     Status status;
     
@@ -103,7 +93,7 @@ protected:
 
 public:
     RoboPhysics(const Point &base /*Clavicle|Center*/,
-                const JointsPInputs &joint_inputs,
+                const JointsInputsPtrs &joint_inputs,
                 const std::shared_ptr<EnvEdges> &eiges);
 
     muscle_t musclesCount() const { return status.musclesCount; }
@@ -116,14 +106,18 @@ public:
     frames_t move(IN const Control &controls, IN frames_t max_frames);
     frames_t move(IN const bitset_t &muscles, IN frames_t lasts);
     frames_t move(IN const bitset_t &muscles, IN frames_t lasts, IN frames_t max_frames);
+    
     frames_t move(IN frames_t max_frames = LastsInfinity);
+    frames_t move(IN const std::vector<muscle_t> &ctrls);
 
     void step();
     void step(IN const Control &control);
     void step(IN const Control &control, OUT size_t &control_curr);
     void step(IN const bitset_t &muscles, IN frames_t lasts);
 
-    virtual void step(const Robo::RoboI::bitwise &muscles);
+    void step(const Robo::RoboI::bitwise &muscles);
+
+    void reset();
 
     virtual frames_t muscleStatus(muscle_t m) const
     { return status.musclesMove[m]; }
@@ -155,3 +149,4 @@ public:
     friend class EnvEdges;
 };
 }
+

@@ -30,9 +30,9 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
         do
         {
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
-            if (last >= physics.framesMove[joint].size())
-                throw std::runtime_error("DriveMove: Invalid lasts " + std::to_string(joint));
-        } while (status.prevFrame[muscle] >= Frame && ++last < frames.size());
+            //if (last > physics.framesMove[joint].size())
+            //    throw std::runtime_error("DriveMove: Invalid lasts " + std::to_string(joint));
+        } while (status.prevFrame[muscle] > Frame && ++last < frames.size());
     }
     else if (status.lastsStop[muscle] > 0)
     {
@@ -42,8 +42,8 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
         do
         {
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
-            if (last >= physics.framesStop[joint].size())
-                throw std::runtime_error("DriveStop: Invalid lasts " + std::to_string(joint));
+            //if (last > physics.framesStop[joint].size())
+            //    throw std::runtime_error("DriveStop: Invalid lasts " + std::to_string(joint));
         } while (status.prevFrame[muscle] < Frame && ++last < frames.size());
     }
     else throw std::logic_error("!lastsMove & !lastsStop");
@@ -76,7 +76,7 @@ void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last
     //-------------------------------------------------------
     if (lasts > 0)
     {
-        if (!status.lastsMove[muscle])
+        if (status.lastsMove[muscle] == 0)
         {
             /* движение не было - начало нового движения */
             status.lastsStop[muscle] = 0;
@@ -95,7 +95,7 @@ void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last
         }
     }
     //-------------------------------------------------------
-    if (status.lastsMove[muscle])
+    if (status.lastsMove[muscle] > 0)
     {
         if (status.lasts[muscle] < status.lastsMove[muscle]
             /* продолжение движения, если остался на месте (блокировка противоположным мускулом) */
@@ -114,7 +114,7 @@ void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last
         }
     }
     //-------------------------------------------------------
-    else if (status.lastsStop[muscle])
+    else if (status.lastsStop[muscle] > 0)
     {
         /* движение по инерции */
         if (!muscleDriveFrame(muscle))
@@ -140,57 +140,49 @@ void RoboPhysics::step(const bitwise &muscles)
 
     for (muscle_t m = 0; m < musclesCount(); ++m)
     {
-        if (muscleStatus(m) > 0 && muscleStatus(m) < _frame)
-            throw std::runtime_error("Controls invalid frame!");
-        /// TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        if ((lastsStatusT(m) == 'm' && !muscles[m]) /*stop*/ ||
-            (lastsStatusT(m) != 'm' &&  muscles[m]) /* go */)
+        if (status.musclesMove[m] > 0) // уже движется
+        {
+            if (status.musclesMove[m] < _frame || status.lasts[m] != (status.lastsMove[m] - 1))
+                throw std::runtime_error("Controls invalid frame!");
+            if (muscles[m])
+                status.lasts[m]++;
+        }
+        else
             muscleDriveMove(_frame, m, 1);
     }
     step();
 }
 
 //--------------------------------------------------------------------------------
-void RoboPhysics::step(muscle_t muscle, IN frames_t lasts)
+void RoboPhysics::step(muscle_t m, IN frames_t lasts)
 {
-    /* Исключить незадействованные двигатели */
-    if (muscle == MInvalid && lasts == 0)
+    if (status.musclesMove[m] != (0) &&
+        status.musclesMove[m] != (_frame) &&
+        status.musclesMove[m] != (_frame + 1))
         throw std::runtime_error("Controls invalid!");
-
-    if (muscleStatus(muscle) <= _frame)
-        muscleDriveMove(_frame, muscle, lasts);
-
-    /* !!! NO for, NO realMove, need step(frame, traj) !!! */
+    if (status.musclesMove[m] == 0 || status.musclesMove[m] == _frame)
+        muscleDriveMove(_frame, m, lasts);
+    // !!! NO for, thus NO realMove - need step()!
 }
 
 //--------------------------------------------------------------------------------
 void RoboPhysics::step()
 {
     for (muscle_t m = 0; m < musclesCount(); ++m)
-        while (muscleStatus(m) > 0 &&
-               muscleStatus(m) <= _frame)
-            muscleDriveMove(_frame, m, 0);
+        step(m, 0);
 
     realMove(); // step() needs !!! FOR REAL MOVE !!!
 
     auto rarity = getVisitedRarity();
-    if (_trajectory_show && !(_frame % rarity) && (_frame / rarity) >= _trajectory.size())
+    if (_trajectory_save && !(_frame % rarity) && (_frame / rarity) >= _trajectory.size())
         _trajectory.push_back(position());
     _frame++;
 }
 void RoboPhysics::step(IN const bitset_t &muscles, IN frames_t lasts)
 {
-    if (!muscles.any() /*|| muscles.to_ullong() >= frames_t(std::pow(2, musclesCount())*/ || lasts == 0)
-        throw std::runtime_error("Controls invalid!");
-
     for (muscle_t m = 0; m < musclesCount(); ++m)
-    {
-        while (muscleStatus(m) > 0 &&
-               muscleStatus(m) < _frame)
-            muscleDriveMove(_frame, m, 0);
-        if (muscles[m]/* && muscleStatus(m) == _frame*/)
-            muscleDriveMove(_frame, m, lasts);
-    }
+        if (muscles[m])
+            step(m, lasts);
 
     step();
 }
@@ -209,8 +201,12 @@ void RoboPhysics::step(IN const Control &control)
 void RoboPhysics::step(IN const Control &control, OUT size_t &control_curr)
 {
     control.validated(musclesCount());
-    for (size_t i = control_curr; (i < control.size()) && (control[i].start == _frame); ++i)
+    for (size_t i = control_curr; i < control.size(); ++i)
     {
+        if (control[i].start < _frame)
+            throw std::runtime_error("Controls invalid!");
+        if (control[i].start > _frame)
+            break;
         step(control[i].muscle, control[i].lasts);
         control_curr = i + 1;
     }
@@ -218,20 +214,36 @@ void RoboPhysics::step(IN const Control &control, OUT size_t &control_curr)
 }
 
 //--------------------------------------------------------------------------------
+frames_t RoboPhysics::move(IN const std::vector<muscle_t> &ctrls)
+{
+    for (frames_t i = 0; (i < ctrls.size()) && (!moveEnd()); ++i)
+    {
+        step({ ctrls[i] });
+        boost::this_thread::interruption_point();
+    }
+    if (_trajectory_save)
+        _trajectory.push_back(position());
+    return _frame;
+}
+//--------------------------------------------------------------------------------
 frames_t RoboPhysics::move(IN frames_t max_frames)
 {
+    /* Исключить незадействованные двигатели */
     if (!somethingMoving())
         //throw std::runtime_error("Nothing moving");
         return _frame;
 
     while (_frame < max_frames && !moveEnd()) // just moving
     {
+        if (!somethingMoving())
+            return _frame;
+        //----------------------------------------------
         step();
         //----------------------------------------------
         boost::this_thread::interruption_point();
     }
 
-    if (_trajectory_show)
+    if (_trajectory_save)
         _trajectory.push_back(position()); // put last
 
     return _frame;
@@ -259,7 +271,6 @@ frames_t RoboPhysics::move(IN const Control &controls)
 frames_t RoboPhysics::move(IN const Control &controls, IN frames_t max_frames)
 {
     controls.validated(musclesCount());
-
     for (auto &c : controls) // starts all moves
     {
         while (c.start > _frame)
@@ -268,47 +279,75 @@ frames_t RoboPhysics::move(IN const Control &controls, IN frames_t max_frames)
     }
     return move(max_frames);
 }
-
+//--------------------------------------------------------------------------------
+void RoboPhysics::reset()
+{
+    _reset();
+    //-----------------------------------------------------
+    for (muscle_t m = 0; m < musclesCount(); ++m)
+    {
+        muscleDriveStop(m);
+        //status.acceleration[m] = 0.;
+        //status.velosity[m] = 0.;
+    }
+    //-----------------------------------------------------
+    status.moveEnd = false;
+    //-----------------------------------------------------
+    for (joint_t j = 0; j < jointsCount(); ++j)
+        resetJoint(j);
+}
 //--------------------------------------------------------------------------------
 RoboPhysics::RoboPhysics(const Point &base,
-                               const JointsPInputs &joint_inputs,
-                               const std::shared_ptr<EnvEdges> &eiges) :
-    physics(base, joint_inputs), status(joint_inputs), feedback(), env(eiges)
-{}
+                         const JointsInputsPtrs &joint_inputs,
+                         const std::shared_ptr<EnvEdges> &eiges) :
+    RoboI(), physics(base, joint_inputs), status(joint_inputs), feedback(), env(eiges)
+{
+    if (!ba::is_sorted(joint_inputs))
+        throw std::runtime_error("Joint Inputs are not sorted!");
+}
 //--------------------------------------------------------------------------------
-RoboPhysics::Physics::Physics(const Point &base, const JointsPInputs &joint_inputs) :
+RoboPhysics::Status::Status(const JointsInputsPtrs &joint_inputs)
+{
+    jointsCount = 0;
+    for (auto &j_in : joint_inputs)
+        if (j_in->show)
+            curPos[jointsCount++] = j_in->base;
+    musclesCount = RoboI::musclesPerJoint * jointsCount;
+}
+//--------------------------------------------------------------------------------
+RoboPhysics::Physics::Physics(const Point &base, const JointsInputsPtrs &joint_inputs) :
     dynamics(true), oppHandle(true)
 {
-    auto joints_count = joint_inputs.size();
-    assert(joints_count > 0);
-
-    auto base_center = joints_count;
-    jointsBases[base_center] = base;
-
+    joint_t j = 0;
     for (const auto &j_in : joint_inputs)
     {
         if (!j_in->show)
             continue;
 
-        auto joint = j_in->type;
         auto law = j_in->frames;
         
         auto nMoveFrames = j_in->nMoveFrames;
         auto nStopFrames = static_cast<frames_t>(nMoveFrames * law.stopDistanceRatio) + 2;
         
-        framesMove[joint].resize(nMoveFrames);
-        framesStop[joint].resize(nStopFrames);
+        framesMove[j].resize(nMoveFrames);
+        framesStop[j].resize(nStopFrames);
 
-        law.moveLaw->generate(framesMove[joint].begin(), nMoveFrames,
+        law.moveLaw->generate(framesMove[j].begin(), nMoveFrames,
                               RoboI::minFrameMove, j_in->maxMoveFrame);
 
-        double maxVelosity = *boost::max_element(framesMove[joint]);
-        law.stopLaw->generate(framesStop[joint].begin(), nStopFrames - 1,
+        double maxVelosity = *boost::max_element(framesMove[j]);
+        law.stopLaw->generate(framesStop[j].begin(), nStopFrames - 1,
                               RoboI::minFrameMove, j_in->maxMoveFrame * law.stopDistanceRatio,
                               maxVelosity);
         /* last frame must be 0 to deadend */
-        framesStop[joint][nStopFrames - 1] = 0.;
-        jointsBases[joint] = j_in->base;
+        framesStop[j][nStopFrames - 1] = 0.;
+        jointsBases[j] = j_in->base;
+        ++j;
     }
+
+    if (!j)
+        throw std::runtime_error("No active joints!");
+
+    jointsBases[j/*base_center*/] = base;
 }
 //--------------------------------------------------------------------------------

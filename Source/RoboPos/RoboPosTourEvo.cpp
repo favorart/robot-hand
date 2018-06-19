@@ -139,13 +139,13 @@ public:
 frames_t RoboPos::TourEvo::minLasts()
 {
     frames_t ll = 0;
-    Point pos = _robo.position(), prev_pos = pos;
+    Point pos = _robo.position();
     for (muscle_t m = 0; m < _robo.musclesCount(); ++m)
     {
         frames_t lasts = 1;
-        while (fabs(boost_distance(pos, prev_pos)) <= RoboI::minFrameMove)
+        while (boost_distance(pos, _base_pos) <= RoboI::minFrameMove)
         {
-            runNestedMove({ { m, 0, lasts } }, pos);
+            runNestedMove({ Actuator{ m, 0, lasts } }, pos);
             lasts++;
         }
         if (ll < lasts)
@@ -251,6 +251,7 @@ bool RoboPos::TourEvo::stepBack(Control &controls, Control &controls_prev, dista
     //{
     //    tcout << "--from scratch " << std::endl;
     //}
+    return false;
 }
 
 
@@ -356,8 +357,10 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                     continue;
                 }
 
+                // ============
                 for (frames_t l = 0; l < lasts_step; ++l)
                     _robo.step();
+                // ============
                 pos = _robo.position();
             }
 
@@ -613,6 +616,8 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
     const muscle_t n_muscles = _robo.musclesCount();
     const joint_t  n_acts = joint_t(std::pow(2, n_muscles));
 
+    //std::vector<muscle_t> ctrls;
+
     Point best_hit{};
     joint_t best_acts{};
     distance_t best_dist = boost_distance(goal.biggest(), _base_pos);
@@ -625,13 +630,14 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
     {
         bool Act = false;
 
-        for (joint_t acts = 1; acts < (n_acts - 1) && !done; ++acts)
+        for (muscle_t acts = 1; acts < (n_acts - 1) && !done; ++acts)
         {
             if (containStore(controls, acts, lasts, 1))
                 continue;
 
             if (controls.size()) /* pre-move */
                 _robo.move(controls, lasts);
+            //_robo.move(ctrls);
 
             Act = true;
             Point hit{};
@@ -663,6 +669,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
                 return false;
             }
 
+            //ctrls.pop_back();
             {
                 //tcout << "Evo: regress " << controls << std::endl;
                 auto last = (controls.size() - 1);
@@ -690,6 +697,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
             }
         }
 
+        //ctrls.push_back(best_acts);
         {
             /* if best_acts selected */
             const auto last_start = controls[controls.size() - 1].start;

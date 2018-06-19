@@ -30,7 +30,7 @@ inline void drawCircle(HDC hdc, const Point &center, double radius)
 { drawCircle(hdc, center, radius, (HPEN)GetStockObject(BLACK_PEN)); }
 
 //------------------------------------------------------------------------------
-enum class MyFigure : uint8_t { EmptyFig = 0, Ellipse = 1, Rectangle = 2 };
+enum class MyFigure : uint8_t { EmptyFig = 0, Ellipse = 1, Rectangle = 2, Triangle = 3 };
 void drawMyFigure(HDC hdc, const Point &center, double w, double h, double angle, MyFigure figure, HPEN hPen);
 
 //------------------------------------------------------------------------------

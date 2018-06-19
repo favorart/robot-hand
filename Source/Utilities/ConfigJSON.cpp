@@ -161,37 +161,31 @@ void ConfigJSON::load(tptree &root, Robo::MotionLaws::JointMotionLaw& ml)
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &root, const Robo::NewHand::Hand::JointInput &input)
 {
-    root.put(_T("name"), Robo::NewHand::jointName(input.joint));
-    root.put<uint8_t>(_T("joint"), static_cast<uint8_t>(input.joint));
+    root.put(_T("name"), input.name());
     root.put(_T("defPoseRatio"), input.defaultPose);
     ConfigJSON::save(root, dynamic_cast<const Robo::JointInput&>(input));
 }
 void ConfigJSON::load(tptree &root, Robo::NewHand::Hand::JointInput &input)
 {
-    assert(root.size() == 9);
-    //input.name
-    input.joint = static_cast<Robo::NewHand::Hand::Joint>(root.get<uint8_t>(_T("joint")));
+    //assert(root.size() == 9 || root.size() == 8);
     input.defaultPose = root.get<double>(_T("defPoseRatio"));
     ConfigJSON::load(root, dynamic_cast<Robo::JointInput&>(input));
 }
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &root, const Robo::Mobile::Tank::JointInput &input)
 {
-    root.put(_T("name"), Robo::Mobile::jointName(input.joint));
-    root.put<uint8_t>(_T("joint"), static_cast<uint8_t>(input.joint));
+    root.put(_T("name"), input.name());
     ConfigJSON::save(root, dynamic_cast<const Robo::JointInput&>(input));
 }
 void ConfigJSON::load(tptree &root, Robo::Mobile::Tank::JointInput &input)
 {
-    //assert(root.size() == 7);
-    //input.name
-    input.joint = static_cast<Robo::Mobile::Tank::Joint>(root.get<uint8_t>(_T("joint")));
+    //assert(root.size() == 9 || root.size() == 8);
     ConfigJSON::load(root, dynamic_cast<Robo::JointInput&>(input));
 }
 //--------------------------------------------------------------------------------
 void ConfigJSON::save(tptree &root, const Robo::JointInput &input)
 {
-    root.put(_T("type"), input.type);
+    root.put(_T("joint"), input.joint);
     root.put(_T("show"), input.show);
 
     tptree base;
@@ -207,7 +201,7 @@ void ConfigJSON::save(tptree &root, const Robo::JointInput &input)
 }
 void ConfigJSON::load(tptree &root, Robo::JointInput &input)
 {
-    input.type = root.get<Robo::joint_t>(_T("type"));
+    input.joint = root.get<Robo::joint_t>(_T("joint"));
     input.show = root.get<bool>(_T("show"));
 
     ConfigJSON::load(root.get_child(_T("base")), input.base);

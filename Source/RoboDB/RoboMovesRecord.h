@@ -17,6 +17,7 @@ class Record
     Point move_begin_{}, move_final_{};
     Robo::Control    control_{};
     Robo::Trajectory visited_{};
+    //std::vector<muscle_t> _ctrls{}; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     mutable double _error_distance{0.};
     

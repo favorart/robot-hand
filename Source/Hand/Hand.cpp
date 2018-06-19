@@ -36,11 +36,10 @@ void Hand::jointMove(joint_t joint_move, double offset)
     const Point &prev = (joint_move + 1 == jointsCount()) ? base : status.curPos[joint_move + 1];
     for (joint_t j = joint_move + 1; j > 0; --j)
     {
-        Joint joint = J(j - 1);
         if (J(joint_move) == Joint::Clvcl)
-            status.curPos[j].x -= offset;
+            status.curPos[j - 1].x -= offset;
         else
-            status.curPos[j].rotate(prev, offset);
+            status.curPos[j - 1].rotate_radians(prev, offset);
     }
     angles[joint_move] += offset;
 }
@@ -54,14 +53,14 @@ void Hand::realMove()
         const auto mo = muscleByJoint(j, true);
         const auto mc = muscleByJoint(j, false);
         // =================
-        const double Frame = (status.shifts[mc] - status.shifts[mo]) * 180. / M_PI;
+        const double Frame = (status.shifts[mc] - status.shifts[mo]);
         if (!Frame) continue;
         // =================
-        const double mOf = maxJointOffset(j);
+        const double mAn = maxJointAngle(j);
         // =================
         double offset = -Frame;
         offset = (0.0 > (angles[j] + offset)) ? (0.0 - angles[j]) : offset;
-        offset = (mOf < (angles[j] + offset)) ? (mOf - angles[j]) : offset;
+        offset = (mAn < (angles[j] + offset)) ? (mAn - angles[j]) : offset;
         // =================
         jointMove(j, offset);
         // =================
@@ -82,7 +81,7 @@ void Hand::realMove()
     status.shifts.fill(0);
 }
 //--------------------------------------------------------------------------------
-Hand::Hand(const Point &base, const JointsPInputs &joints) :
+Hand::Hand(const Point &base, const JointsInputsPtrs &joints) :
     RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>()),
     params(joints, *this)
 {
@@ -91,7 +90,7 @@ Hand::Hand(const Point &base, const JointsPInputs &joints) :
     reset();
 }
 //--------------------------------------------------------------------------------
-Hand::Params::Params(const JointsPInputs &joints, const Hand &hand) :
+Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
     drawPalm(false),
     palmRadius(0.05),
     jointRadius(0.03),
@@ -104,54 +103,27 @@ Hand::Params::Params(const JointsPInputs &joints, const Hand &hand) :
         if (!j_in->show)
             continue;
 
-        joint_t joint = j_in->type;
-
-        maxAngles[joint] = j_in->maxMoveFrame;
-        nStopFrames[joint] = static_cast<frames_t>(j_in->nMoveFrames * j_in->frames.stopDistanceRatio);
-        nMoveFrames[joint] = j_in->nMoveFrames;
+        maxAngles[j] = j_in->maxMoveFrame;
+        nStopFrames[j] = static_cast<frames_t>(j_in->nMoveFrames * j_in->frames.stopDistanceRatio);
+        nMoveFrames[j] = j_in->nMoveFrames;
 
         auto pHJIn = dynamic_cast<const Hand::JointInput*>(j_in.get());
-        
-        defOpen[joint] = pHJIn->defaultPose;
-        jointsUsed[j++] = pHJIn->joint;
+        Hand::Joint joint = pHJIn->Joint();
 
-        musclesUsed[m++] = hand.MofJ(pHJIn->joint, true);
-        musclesUsed[m++] = hand.MofJ(pHJIn->joint, false);
+        defOpen[j] = pHJIn->defaultPose;
+        jointsUsed[j++] = joint;
+        musclesUsed[m++] = hand.MofJ(joint, true);
+        musclesUsed[m++] = hand.MofJ(joint, false);
 
-        if (hand.J(joint) == Hand::Joint::Wrist)
+        if (joint == Hand::Joint::Wrist)
             drawPalm = true;
-    }
-
-    for (; m < Hand::muscles; ++m)
-        musclesUsed[m] = Hand::Muscle::MInvalid;
-    for (; j < Hand::joints; ++j)
-        jointsUsed[j] = Hand::Joint::JInvalid;
-}
-//--------------------------------------------------------------------------------
-void Hand::reset()
-{
-    _reset();
-    /* drop status */
-    for (muscle_t m = 0; m < musclesCount(); ++m)
-    {
-        muscleDriveStop(m);
-        //status.acceleration[m] = 0.;
-        //status.velosity[m] = 0.;
-    }
-    //-----------------------------------------------------
-    status.moveEnd = false;
-    //-----------------------------------------------------
-    for (joint_t joint = 0; joint < jointsCount(); ++joint)
-    {
-        /* make it at resetJoint(): status[ curPos, angles ] */
-        resetJoint(joint);
     }
 }
 //--------------------------------------------------------------------------------
 void Hand::resetJoint(joint_t joint)
 {
-    // TODO: ??? drop muscle status
-    /* reset joint to default */
+    muscleDriveStop(muscleByJoint(joint, true));
+    muscleDriveStop(muscleByJoint(joint, false));
     setJoints({ {joint, params.defOpen[joint]} });
 }
 void Hand::setJoints(const JointsOpenPercent &percents)
@@ -164,7 +136,7 @@ void Hand::setJoints(const JointsOpenPercent &percents)
         if (ratio > 1. || ratio < 0.)
             throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
 
-        double angle = ratio * maxJointOffset(joint);
+        double angle = ratio * maxJointAngle(joint);
         if (angles[joint] != angle)
             jointMove(joint, (angle - angles[joint]));
     }
@@ -175,6 +147,7 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 #ifdef MY_WINDOW
     HPEN   hPen_old = (HPEN)SelectObject(hdc, hPen);
     HBRUSH hBrush_old = (HBRUSH)SelectObject(hdc, hBrush);
+    //------------------------------------------------------------------
 
     Point base = physics.jointsBases[jointsCount()];
 
@@ -184,10 +157,11 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     MoveToEx (hdc, Tx(1.00),   Ty(base.y - params.sectionWidth), NULL);
     LineTo   (hdc, Tx(base.x), Ty(base.y - params.sectionWidth));
 
+    //------------------------------------------------------------------
     for (joint_t joint = 0; joint < jointsCount(); ++joint)
     {
         const Point &B = status.curPos[joint];
-        const Point &A = (J(joint + 1) == Joint::JBase) ? base : status.curPos[joint + 1];
+        const Point &A = ((joint + 1) == jointsCount()) ? base : status.curPos[joint + 1];
 
         double sw = params.sectionWidth / boost_distance(A, B);
 
@@ -202,7 +176,9 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 
         drawCircle(hdc, status.curPos[joint], (J(joint) == Joint::Wrist) ? params.palmRadius : params.jointRadius);
     }
+
     drawCircle(hdc, base, params.jointRadius);
+
     //------------------------------------------------------------------
     // отменяем ручку
     SelectObject(hdc, hPen_old);

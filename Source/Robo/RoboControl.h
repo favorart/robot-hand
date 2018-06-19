@@ -42,23 +42,14 @@ struct Actuator
     { ar & muscle & start & lasts; }
     //----------------------------------------------------
     tstring tstr() const
-    {
-        tstringstream ss;
-        ss << *this;
-        return ss.str();
-    }
+    { tstringstream ss; ss << *this; return ss.str(); }
 
 protected:
     std::ostream& stream(std::ostream &s) const
-    {
-        return s << "{ " << uint32_t{ muscle } << " " << start << " " << lasts << " }";
-    }
+    { return s << "{ " << uint32_t{ muscle } << " " << start << " " << lasts << " }"; }
     std::string str() const
-    {
-        std::stringstream ss;
-        stream(ss);
-        return ss.str();
-    }
+    { std::stringstream ss; stream(ss); return ss.str(); }
+    //----------------------------------------------------
     friend class Control;
 };
 //-------------------------------------------------------------------------------
@@ -68,6 +59,8 @@ protected:
     static const unsigned MAX_ACTUATORS = 128;       ///< number of brakes
     std::array<Actuator, MAX_ACTUATORS> actuators{}; ///< sorted by start
     size_t actuals = 0;
+    // ----------------------------------------
+    mutable bool _validated = false;
 
     // ----------------------------------------
     friend class boost::serialization::access;
@@ -104,6 +97,7 @@ public:
         for (muscle_t m = 0; m < N; ++m)
             if (muscles[m])
                 append({ m, start, lasts });
+        _validated = false;
     }
 
     Control(Control&&) = default;
@@ -130,7 +124,7 @@ public:
     void remove(size_t i);
 
     void clear()
-    { actuals = 0; actuators.fill({}); }
+    { actuals = 0; actuators.fill({}); _validated = false; }
 
     tstring tstr() const
     {
@@ -141,7 +135,10 @@ public:
 
     //----------------------------------------------------
     Actuator& operator[](size_t i)
-    { return actuators[(i < actuals) ? i : (actuals - 1)]; };
+    {
+        _validated = false;
+        return actuators[(i < actuals) ? i : (actuals - 1)];
+    };
     const Actuator& operator[](size_t i) const
     { return actuators[(i < actuals) ? i : (actuals - 1)]; };
 
@@ -182,8 +179,6 @@ public:
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);
-    //----------------------------------------------------
-    //friend struct Actuator;
 };
 //-------------------------------------------------------------------------------
 inline Control EmptyMov() { return {}; }
