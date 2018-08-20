@@ -114,7 +114,7 @@ void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last
         }
     }
     //-------------------------------------------------------
-    else if (status.lastsStop[muscle] > 0)
+    if (status.lastsStop[muscle] > 0)
     {
         /* движение по инерции */
         if (!muscleDriveFrame(muscle))
@@ -160,7 +160,7 @@ void RoboPhysics::step(muscle_t m, IN frames_t lasts)
         status.musclesMove[m] != (_frame) &&
         status.musclesMove[m] != (_frame + 1))
         throw std::runtime_error("Controls invalid!");
-    if (status.musclesMove[m] == 0 || status.musclesMove[m] == _frame)
+    if (lasts > 0 || status.musclesMove[m] == _frame)
         muscleDriveMove(_frame, m, lasts);
     // !!! NO for, thus NO realMove - need step()!
 }

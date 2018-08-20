@@ -306,8 +306,9 @@ bool  repeatRoboMove(MyWindowData &wd)
     if (!p.first)
         throw std::runtime_error("repeatRoboMove: Empty adjacency");
     // -------------------------------------------------
-    if (boost_distance(p.second.hit, wd.mouse.aim) <= wd.pTarget->precision())
-        return false;
+    // TODO: REMOVE WHEN FIX GRADIENT ADMIX
+    //if (boost_distance(p.second.hit, wd.mouse.aim) <= wd.pTarget->precision())
+    //    return false;
     // -------------------------------------------------
     /* Repeat Hand Movement */
     wd.pRobo->reset();

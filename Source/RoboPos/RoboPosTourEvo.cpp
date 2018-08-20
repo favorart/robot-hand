@@ -1,4 +1,4 @@
-#include <stack>
+﻿#include <stack>
 #include "RoboPosTourEvo.h"
 
 using namespace Robo;
@@ -48,6 +48,7 @@ class Goal
     /// index of a sector of circle the point is belonged
     int belongs(const Point &aim, const Point &center, int n_angles)
     {
+        // TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         int res = n_angles;
         Point base = { center.x + 1, center.y };
         const auto ag = M_PI / n_angles;
@@ -154,17 +155,48 @@ frames_t RoboPos::TourEvo::minLasts()
     return ll;
 }
 
-bool RoboPos::TourEvo::containStore(const Control &controls, joint_t muscles, frames_t frame, frames_t lasts)
+const RoboMoves::Record* RoboPos::TourEvo::appendMarker(const Control &controls, muscle_t muscles, frames_t frame, const Point &hit)
 {
-    Control c = controls;
-    for (muscle_t m = 0; m < _robo.musclesCount(); ++m)
-        if (muscles & (1 << m))
-            c.append({ m, frame, lasts });
-    tcout << "-storeC=" << c << std::endl;
-    bool exists = (_store.exactRecordByControl(c) != NULL);
-    if (exists)
-        tcout << "-exists=" << c << std::endl;
+    Control c;
+    if (!muscles && !controls.size())
+        return NULL;
+    if (muscles)
+    {
+        for (muscle_t m = 0; m < _n_muscles; ++m)
+            if (muscles & (1 << m))
+                c.append({ m, frame, _lasts_init });
+    }
+    //================
+    //_robo.move(controls + c);
+    auto pReq = _store.exactRecordByControl(controls);
+    if (!pReq && controls.size())
+    {
+        //throw std::runtime_error("not found");
+        tcout << "NoApp: " << controls << std::endl;
+    }
+    Point pos = (pReq) ? pReq->hit : _base_pos;
+    auto traj = (pReq) ? pReq->getVisited() : Trajectory{ _base_pos };
+    _store.insert(RoboMoves::Record{ pos, _base_pos, pos, controls + c, traj }); // <<< insert marker
+    //_robo.reset();
+    //================
+    return _store.exactRecordByControl(controls + c);
+}
+
+bool RoboPos::TourEvo::containMarker(const Control &controls, muscle_t muscles, frames_t frame)
+{
+    Control c;
+    if (muscles)
+    {
+        for (muscle_t m = 0; m < _robo.musclesCount(); ++m)
+            if (muscles & (1 << m))
+                c.append({ m, frame, _lasts_init });
+    }
+    //tcout << "-storeC=" << c << std::endl;
+    bool exists = (_store.exactRecordByControl(controls + c) != NULL);
+    if (!exists) appendMarker(controls, muscles, frame, Point{});
+    //else tcout << "-exists=" << c << std::endl;
     return exists;
+    //return (markers.count(controls + c) != 0);
 }
 
 
@@ -173,8 +205,14 @@ RoboPos::TourEvo::TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, const Targ
     _reached_dist(0.00001),
     _oppo_penalty(1.),
     _max_ncontrols(10),
-    _step_back(4)
+    _step_back(4),    
+    _n_muscles(_robo.musclesCount()),
+    _n_acts(static_cast<muscle_t>(std::pow(2, _n_muscles))),
+    _lasts_max(std::min(musclesMaxLasts(_robo), TourI::too_long)),
+    _lasts_init(minLasts()),
+    _lasts_step(5)
 {
+
     tptree root;
     tfstream fin("TourEvo.txt", std::ios::in);
     if (!fin.is_open())
@@ -255,166 +293,176 @@ bool RoboPos::TourEvo::stepBack(Control &controls, Control &controls_prev, dista
 }
 
 
+bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscles, frames_t frame, Point &hit)
+{
+    bool exists = containMarker(controls, muscles, frame);
+    if (!muscles)
+        tcout << "-emptyC=" << controls << std::endl;
+    if (!exists)
+    {
+        if (controls.size())
+            _robo.move(controls, frame); // ??? breakings
+        _robo.move({ muscles }, _lasts_max, _lasts_init);
+        hit = _robo.position();
+
+    }
+    return exists;
+}
+
 bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
 {
     _robo.reset();
     _base_pos = _robo.position();
     
     Goal goal(_t);
+    
+    frames_t frames = 0; // максимальное число задействованных фрэймов
+    Control controls /* лучшее управление */, controls_prev /* управление на предыдущем уровне иерархии */;
+    auto p = _store.getClosestPoint(goal.biggest(), 0.5); // ближайшая точка из БД
+    if (p.first) // если такая есть
+    {
+        /* not from scratch */
+        controls = p.second.controls;
 
-    distance_t the_best_dist = boost_distance(goal.biggest(), _base_pos), curr_best_dist = the_best_dist;
-    Control controls, controls_prev;
+        auto pred = [](const auto &a, const auto &b) {return (a.start + a.lasts) < (b.start + b.lasts); };
+        auto it = br::max_element(controls, pred);
+        frames = it->start + it->lasts + 1;
+        // /* controls sorted */
+        // frames = controls.back().start + controls.back().lasts;
+    }
+
+    distance_t the_best_dist = boost_distance(goal.biggest(), _base_pos);
     std::stack<distance_t> distances{};
 
-    const muscle_t n_muscles = _robo.musclesCount();
-    const joint_t n_acts = joint_t(std::pow(2, n_muscles));
+    tcout << _lasts_init << std::endl << std::endl;
+    distance_t best_d = the_best_dist;
 
-    const frames_t lasts_max = std::min(musclesMaxLasts(_robo), TourI::too_long);
-    const frames_t lasts_step = 1;
-    const frames_t lasts_init = minLasts();
-    tcout << lasts_init << std::endl << std::endl;
-    frames_t frames = 0;
+    RoboMoves::Record best_prev{};
+    size_t step_back_count = 0;
 
-    bool one_watched = false;
     bool done = false;
     //CINFO("Evo: next_stage goal=" << goal.biggest());
-    tcout << "Evo: next_stage goal=" << goal.biggest() << std::endl;
+    tcout << "Evo: next_stage goal=" << goal.biggest() << " start=" << _robo.position() << std::endl;
     while (!done)
     {
         joint_t best_acts = 0;
-        distance_t best_d = curr_best_dist;
         frames_t best_lasts = 0;
 
         Point prev_pos{};
-        distance_t prev_dist = curr_best_dist;
-
-        for (joint_t acts = 1; acts < (n_acts - 1) && !done; ++acts)
+        distance_t prev_dist = best_d;
+        
+        bool one_watched = false;
+        for (muscle_t acts = 1; (acts < (_n_acts - 1)) && (!done); ++acts)
         {
             Point pos{};
-            if (containStore(controls, acts, frames, lasts_init))
+            // ============
+            //tcout << "controls=" << controls << " acts=" << acts << std::endl;
+            if (runNestedPreMove(controls, acts, frames, pos))
             {
-                tcout << "-exists=" << controls << std::endl;
+                //tcout << "skip" << std::endl;
                 continue;
             }
+            // ============
             one_watched = true;
+            prev_pos = pos;
             // ============
-            /* repeat trajectory after reset -- pre-move */
-            if (frames)
-                _robo.move(controls, frames);
-            // ============
-            runNestedStep(Robo::bitset_t{ acts }, lasts_max, pos);
-            // ============
-            _robo.move(lasts_init);
-            // ============
-            prev_pos = pos = _robo.position();
-
             bool first_move = true;
             frames_t lasts = 0;
-            for (lasts = lasts_init; (lasts < lasts_max) && (!done); lasts += lasts_step)
+            for (lasts = _lasts_init; (lasts < _lasts_max) && (!done); lasts += _lasts_step)
             {
                 // ============
                 distance_t d = boost_distance(goal.biggest(), pos);
                 // ============
                 if (!first_move)
                 {
-                    if (fabs(boost_distance(pos, prev_pos)) <= RoboI::minFrameMove)
+                    if (boost_distance(pos, prev_pos) <= RoboI::minFrameMove && lasts > 50)
                     {
-                        //tcout << "constPos last=" << lasts << std::endl;
-                        runNestedStop(acts, true);
-                        runNestedReset(controls, pos);
-                        //lasts = lasts_init;
+                        //tcout << "last=" << lasts << " stop " << d << " p=" << pos << std::endl;
+                        runNestedStop(acts, true); pos = _robo.position();
+                        //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
+                        runNestedReset(controls, acts, frames, lasts, pos);
                         break;
                     }
                     if (d > (prev_dist + _prev_dist_add))
                     {
                         /* This muscle is FAIL now */
                         Control c(bitset_t{ acts }, frames, lasts);
-                        //tcout << "muscle FAIL d=" << prev_dist << " { " << c << " }" << " pos=" << pos << std::endl;
-                        tcout << " FAIL pos=" << pos << " " << controls + c << std::endl;
-                        runNestedStop(acts, true);
-                        runNestedReset(controls, pos);
-                        //if (lasts <= 2 * lasts_init) lasts = lasts_init;
+                        tcout << " FAIL d=" << d << ">" << prev_dist << " { " << c << " }" /*<< " pos=" << pos*/ << std::endl;
+                        //tcout << " FAIL pos=" << pos << " " << controls + c << std::endl;
+                        runNestedStop(acts, true); pos = _robo.position();
+                        //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
+                        runNestedReset(controls, acts, frames, lasts, pos);
+
+                        frames_t ll = lasts - std::min(lasts, 2 * _lasts_step);
+                        if (ll > _lasts_init)
+                        {
+                            Control c(bitset_t{ acts }, frames, ll);
+                            runNestedMove(controls + c, Point{});
+                            _robo.reset();
+                        }
                         break;
                     }
                 }
 
-                prev_dist = d;
-                prev_pos = pos;
+                if (prev_dist > d || first_move)
+                {
+                    prev_dist = d;
+                    prev_pos = pos;
+                }
                 first_move = false;
 
                 if (prev_dist < _reached_dist)
                 {
-                    //CINFO("Evo: next_stage goal=" << goal.biggest());
-                    tcout << "Evo: next_stage goal=" << goal.biggest() << std::endl;
                     done = !goal.next_stage(_store, side);
+                    //CINFO("Evo: next_stage goal=" << goal.biggest());
+                    Control c(bitset_t{ acts }, frames, lasts);
+                    tcout << "Evo: next_stage goal=" << goal.biggest() << " controls= " << controls + c << std::endl;
 
-                    for (muscle_t m = 0; m < n_muscles; ++m)
-                        if (acts & (1 << m))
-                            controls.append({ m, frames, lasts });
-
-                    runNestedStop(acts, true);
-                    runNestedReset(controls, pos);
+                    runNestedStop(acts, true); pos = _robo.position();
+                    //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
+                    runNestedReset(controls, acts, frames, lasts, pos);
+                    runNestedPreMove(controls, 0, frames, pos);
                     continue;
                 }
 
                 // ============
-                for (frames_t l = 0; l < lasts_step; ++l)
+                for (frames_t l = 0; l < _lasts_step; ++l)
                     _robo.step();
                 // ============
                 pos = _robo.position();
             }
 
-            if (lasts >= lasts_max)
+            if (lasts >= _lasts_max)
             {
-                Control c(bitset_t{ acts }, frames, lasts_max);
+                Control c({ acts, frames, _lasts_max });
                 tcout << " d=" << prev_dist << " { " << c << " }" 
                     << " pos=" << pos 
                     << " (lasts == lasts_max)"
                     << std::endl;
-                runNestedStop(acts, false);
-                runNestedReset(controls, Point{});
+                runNestedStop(acts, false); pos = _robo.position();
+                runNestedReset(controls, acts, frames, _lasts_max, pos);
             }
 
-            if (lasts > lasts_init && best_d > prev_dist)
+            if (lasts > _lasts_init && best_d > prev_dist)
             {
-                tcout << " d=" << prev_dist << std::endl;
+                //tcout << " d=" << prev_dist << std::endl;
                 best_acts = acts;
                 best_d = prev_dist;
                 best_lasts = lasts;
             }
         }
 
-        if (!one_watched)
-        {
-            /* FAIL */
-            //CINFO("Evo: FAIL");
-            tcout << "Evo: FAIL " << the_best_dist << " stage: " << goal.stage() << std::endl;
-            return false;
-        }
-
         if (best_acts) /* if best_acts selected */
         {
-            {
-                Control c = controls;
-                for (muscle_t m = 0; m < n_muscles; ++m)
-                    if (best_acts & (1 << m))
-                        c.append({ m, frames, lasts_init });
-
-                _robo.move(c);
-                auto hit = _robo.position();
-                RoboMoves::Record rec{ hit, _base_pos, hit, c, _robo.trajectory() };
-                _store.insert(rec);
-                /* for exact by controls */
-                tcout << "---prev=" << c << std::endl;
-
-                _robo.reset();
-            }
-
-            for (muscle_t m = 0; m < n_muscles; ++m)
+            for (muscle_t m = 0; m < _n_muscles; ++m)
                 if (best_acts & (1 << m))
                     controls.append({ m, frames, best_lasts });
 
-            frames += best_lasts;
+            /* for exact by controls */
+            best_prev = (*appendMarker(controls, 0, 0, Point{}));
+            ////tcout << "---prev=" << controls << std::endl;
+
+            frames += best_lasts + 1;
             distances.push(best_d);
             tcout << "---acts=" << controls << std::endl;
         }
@@ -426,20 +474,22 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
             goal.recalc(_store, side);
         }
 
-        if (curr_best_dist > best_d)
-            curr_best_dist = best_d;
+        if (the_best_dist > best_d)
+            the_best_dist = best_d;
 
-        if (the_best_dist > curr_best_dist)
-            the_best_dist = curr_best_dist;
-
-        ///stepBack(controls, controls_prev, curr_best_dist);
-        // ==========================================================================
-        if (controls_prev == controls)
+        ///stepBack(controls, controls_prev, best_d);
+        //----------------------------------------------
+        if (controls.size() && controls_prev == controls && !one_watched)
         {
             //CINFO("Evo: regress " << controls);
-            //tcout << "Evo: regress " << controls << std::endl;
+            tcout << "Evo: regress " << controls << std::endl;
             auto last = (controls.size() - 1);
             auto start = controls[last].start;
+
+            // TEMP
+            auto pReq = _store.exactRecordByControl(controls);
+            if (pReq && !best_prev.trajectory.size())
+                best_prev = *pReq;
 
             bool popped = false;
             for (auto i = controls.size(); i > 0; --i)
@@ -447,62 +497,97 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                 if (controls[i - 1].start != start)
                     break;
 
-                controls[i - 1].lasts -= std::min(_step_back, controls[i - 1].lasts);
-
-                if (controls[i - 1].lasts > too_long)
-                    throw std::logic_error("too_long");
-
                 if (controls[i - 1].lasts <= std::max(_step_back, 1u))
                 {
                     controls.pop(i - 1);
                     popped = true;
                 }
-            }
-            frames = controls[controls.size() - 1].start;
+                else
+                {
+                    controls[i - 1].lasts -= std::min(_step_back, controls[i - 1].lasts);
+                    step_back_count++;
 
+                    if (controls[i - 1].lasts > too_long)
+                        throw std::logic_error("too_long");                
+                }
+            }
+
+            distance_t d;
             if (distances.size() && popped)
+            {
                 distances.pop();
-            curr_best_dist = (distances.size()) ? distances.top() : boost_distance(goal.biggest(), _base_pos);
+                step_back_count = 0;
+                d = (distances.size()) ? distances.top() : boost_distance(goal.biggest(), _base_pos);
+                if (distances.size())
+                {
+                    auto pReq = _store.exactRecordByControl(controls);
+                    if (pReq)
+                        best_prev = *pReq;
+                    else
+                        throw std::runtime_error("best_prev");
+                }
+                else
+                    best_prev = {};
+            }
+            else
+            {
+                size_t i = (step_back_count * _step_back) / _robo.getVisitedRarity();
+                if ((step_back_count * _step_back) % _robo.getVisitedRarity() || !i)
+                    i++;
+                i = (best_prev.trajectory.size() - std::min(best_prev.trajectory.size(), i));
+                d = boost_distance(goal.biggest(), best_prev.trajectory[i]);
+            }
+            best_d = d;
+
+            if (controls.size())
+            {
+                auto &c = controls[controls.size() - 1];
+                frames = controls.size() ? (c.start + c.lasts + 1) : 0;
+
+                runNestedMove(controls, Point{});
+                _robo.reset();
+            }
+            else frames = 0;
 
             //CINFO(" become " << controls);
-            ///tcout << "      become " << controls << std::endl;
-            ///if (controls.size() == 2 && controls[0].start == 0 && controls[1].start == 0 && controls[0].lasts < 500)
-            ///{
-            ///    tcout << "this " << controls << std::endl;
-            ///}
+            //tcout << "      become " << controls << std::endl;
+            one_watched = true;
         }
-        if (_max_ncontrols <= controls.size())
+        if (controls.size() >= _max_ncontrols)
         {
             //tcout << "Evo: maxsize " << controls << std::endl;
+            bool popped = false;
             while (_max_ncontrols <= controls.size() && controls.size())
             {
                 auto start = controls[controls.size() - 1].start;
                 while (start == controls[controls.size() - 1].start && controls.size())
+                {
                     controls.pop_back();
+                    popped = true;
+                }
+            }
+            auto &c = controls[controls.size() - 1];
 
-                if (distances.size())
-                    distances.pop();
-                if (distances.size())
-                    curr_best_dist = distances.top();
-                else
-                    curr_best_dist = boost_distance(goal.biggest(), _base_pos);
-                frames = controls[controls.size() - 1].start;
-            }
-            if (!controls.size())
-            {
-                frames = 0;
-                curr_best_dist = boost_distance(goal.biggest(), _base_pos);
-            }
+            if (distances.size() && popped)
+                distances.pop();
+            best_d = (distances.size()) ? distances.top() : boost_distance(goal.biggest(), _base_pos);
+            frames = controls.size() ? (c.start + c.lasts + 1) : 0;
             //tcout << "      become " << controls << std::endl;
             tcout << "Evo: maxsize " << controls << std::endl;
+            one_watched = true;
         }
-
-        if (!controls.size())
+        if (controls.size() == 0)
         {
-            tcout << "--from scratch " << std::endl;
-            return false;
+            if (!one_watched)
+            {
+                //CINFO("Evo: FAIL");
+                tcout << "Evo: FAIL " << the_best_dist << " stage: " << goal.stage() << std::endl;
+                return false;
+            }
         }
-        // ==========================================================================
+        //----------------------------------------------
+        boost::this_thread::interruption_point();
+        //----------------------------------------------
         controls_prev = controls;
     }
     //CINFO("Evo: DONE");
@@ -510,16 +595,18 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
     return true;
 }
 
-bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, IN OUT Point &hit)
+bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, muscle_t muscles, frames_t frame, frames_t lasts, IN OUT Point &hit)
 {
     bool exist = (_store.exactRecordByControl(controls) != NULL);
     if (!exist)
     {
         _complexity++;
-        RoboMoves::Record rec{ hit, _base_pos, hit, controls, _robo.trajectory() };
-        _store.insert(rec);
+        appendMarker(controls, muscles, frame, hit);
+        Robo::Control c(bitset_t{ muscles }, frame, lasts);
+        _store.insert(RoboMoves::Record{ hit, _base_pos, hit, controls + c, _robo.trajectory() }); // the performed move
     }
     _robo.reset();
+
     hit = { 0,0 };
     return exist;
 }
@@ -608,6 +695,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
     _robo.reset();
     _base_pos = _robo.position();
 
+    markers.clear();
     Goal goal(_t);
 
     const frames_t lasts_max = std::min(musclesMaxLasts(_robo), TourI::too_long);
@@ -632,7 +720,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
 
         for (muscle_t acts = 1; acts < (n_acts - 1) && !done; ++acts)
         {
-            if (containStore(controls, acts, lasts, 1))
+            if (containMarker(controls, acts, lasts /* !!! 1 !!!*/))
                 continue;
 
             if (controls.size()) /* pre-move */
@@ -657,8 +745,9 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
                 tcout << std::endl;
             }
 
-            runNestedStop(acts, true);
-            runNestedReset(controls, hit);
+            runNestedStop(acts, true); Point pos = _robo.position();
+            //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
+            runNestedReset(controls, acts, _robo.frame() /* ??? */, lasts, pos);
         } // end for acts
 
         if (!best_acts)
@@ -756,7 +845,7 @@ bool RoboPos::TourEvoSteps::compansateOverHit(Robo::Control &controls, const Poi
     _robo.move(controls);
     Point hit = _robo.position();
     auto &visited = _robo.trajectory();
-    runNestedReset(controls, Point{});
+    runNestedReset(controls, 0, 0, 0, Point{ hit });
 
     while (boost_distance(hit, goal) > _reached_dist)
     {
@@ -815,7 +904,7 @@ bool RoboPos::TourEvoSteps::compansateOverHit(Robo::Control &controls, const Poi
         _robo.move(controls);
         hit = _robo.position();
         visited = _robo.trajectory();
-        runNestedReset(controls, Point{});
+        runNestedReset(controls, 0, 0, 0, Point{ hit });
     }
 
     {

@@ -44,7 +44,7 @@ struct State : public Point // !!! REMOVE Temporary
 //struct TStringSerializableI { virtual operator tstring() const = 0; };
 //-------------------------------------------------------------------------------
 using distance_t = double;
-using Trajectory = std::list<Point/*Learn::State*/>;
+using Trajectory = std::vector<Point/*Learn::State*/>;
 using Trajectories = std::list<Trajectory>;
 using joint_t = uint8_t;
 const joint_t JInvalid = 0xFF;

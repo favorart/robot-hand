@@ -17,6 +17,10 @@ Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 //---------------------------------------------------------
 void Robo::Control::append(const Robo::Actuator &a)
 {
+    auto f = br::find(actuators, a);
+    if (f != std::end(actuators))
+        throw std::logic_error("append: duplicate");
+
     if (actuals >= MAX_ACTUATORS)
         throw std::logic_error("append: Too much actuators for Control!");
     // actuals is INDEX TO INSERT and LENGTH

@@ -137,8 +137,8 @@ void Hand::setJoints(const JointsOpenPercent &percents)
             throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
 
         double angle = ratio * maxJointAngle(joint);
-        if (angles[joint] != angle)
-            jointMove(joint, (angle - angles[joint]));
+        //if (fabs(angles[joint] - angle) >= Utils::EPSILONT)
+        jointMove(joint, (angle - angles[joint]));
     }
 }
 //--------------------------------------------------------------------------------

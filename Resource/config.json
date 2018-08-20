@@ -52,7 +52,7 @@
         "name": "Clvcl",
         "joint": 3,
         "defPoseRatio": 50.0,
-        "show": true,
+        "show": true, "#show": "there is a BUG of read config then show",
         "base": [ 0.75, 0.25 ],
         "nMoveFrames": 2000,
         "maxMoveFrame": 0.4,

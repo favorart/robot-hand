@@ -53,7 +53,7 @@ protected:
     friend class Control;
 };
 //-------------------------------------------------------------------------------
-class  Control
+class Control
 {
 protected:
     static const unsigned MAX_ACTUATORS = 128;       ///< number of brakes
@@ -161,6 +161,10 @@ public:
         return *this;
     }
 
+    const Actuator& front() const { return actuators[0]; };
+    const Actuator& back() const { return actuators[actuals-1]; };
+    Actuator& front() { return actuators[0]; };
+    Actuator& back() { return actuators[actuals-1]; };
     //----------------------------------------------------
     void removeStartPause();
     bool validateMusclesTimes() const;
