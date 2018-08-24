@@ -10,11 +10,9 @@ namespace RoboPos
 class TourEvo : public RoboPos::TourI
 {
 protected:
-    //const Robo::frames_t big_lasts = std::min(min_lasts * 1000, Robo::musclesMaxLasts(_robo));
-    const double side = 0.001;
-    
+    //const Robo::frames_t big_lasts = std::min(min_lasts * 1000, Robo::musclesMaxLasts(_robo));    
     Point _base_pos{};
-
+    
     const TargetI &_t;
     double _reached_dist = 0.000001;
     double _oppo_penalty = 1.;
@@ -34,30 +32,24 @@ protected:
 
     double reached_less(double dist) const { return (dist - _reached_dist / 2); }
 
-    bool runNestedReset(IN const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, Robo::frames_t lasts, IN OUT Point &hit);
-
-    bool runNestedPreMove(IN const Robo::Control&, IN Robo::frames_t max_frames, OUT Point &hit);
-
-    bool runNestedStop(IN const Robo::bitset_t &muscles, IN bool stop);
-    bool runNestedStop(IN const Robo::Control &controls, IN bool stop);
-
-    bool runNestedStep(IN const Robo::bitset_t &muscles, IN Robo::frames_t lasts, OUT Point &hit);
-    bool runNestedStep(IN const Robo::Control&, OUT Point &hit);
-
-    bool runNestedForMuscle(Robo::joint_t, Robo::Control&, Point &robo_hit);
-    bool runNestedForMuscleSteps(Robo::joint_t, Robo::Control&, Point&robo_hit);
-
-
-    bool runNestedPreMove(const Robo::Control &controls, Robo::muscle_t muscles, Robo::frames_t frame, Point &hit);
+    bool runNestedReset(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, Robo::frames_t lasts, IN OUT Point &hit);
+    bool runNestedPreMove(const Robo::Control&, Robo::frames_t max_frames, Point &hit);
+    bool runNestedStop(const Robo::bitset_t &muscles, bool stop);
+    //bool runNestedStop(const Robo::Control&, bool stop);
+    //bool runNestedStep(const Robo::bitset_t &muscles, Robo::frames_t lasts, OUT Point &hit);
+    //bool runNestedStep(const Robo::Control&, OUT Point &hit);
+    //bool runNestedForMuscleSteps(Robo::joint_t, Robo::Control&, Point&hit);
+    bool runNestedForMuscle(Robo::joint_t, Robo::Control&, Point &hit);
+    bool runNestedPreMove(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, Point &hit);
 
     const RoboMoves::Record*
-        appendMarker(const Robo::Control &controls, Robo::muscle_t muscles, Robo::frames_t frame, const Point &hit);
-    bool containMarker(const Robo::Control &controls, Robo::muscle_t muscles, Robo::frames_t frame);
+        appendMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, const Point &hit);
+    bool containMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame);
 
     bool stepBack(Robo::Control &controls, Robo::Control &controls_prev, Robo::distance_t curr_best_dist);
 
 public:
-    TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target);
+    TourEvo(RoboMoves::Store&, Robo::RoboI&, const TargetI&);
     void setParams(double reached_dist, double oppo_penalty)
     {
         _reached_dist = reached_dist;
@@ -70,10 +62,10 @@ class TourEvoSteps : public TourEvo
 protected:
     bool runNestedForStep(const Robo::RoboI::bitwise &muscles, Point &robo_hit);
     bool runNestedForMuscle(Robo::joint_t, Robo::Control&, Point &robo_hit);
-    bool compansateOverHit(Robo::Control &controls, const Point &goal);
+    bool compansateOverHit(Robo::Control&, const Point &goal);
 
 public:
-    TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target);
+    TourEvoSteps(RoboMoves::Store&, Robo::RoboI&, const TargetI&);
 };
 
 /* Случайные движения 

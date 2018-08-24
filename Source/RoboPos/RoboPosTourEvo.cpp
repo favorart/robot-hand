@@ -34,106 +34,131 @@ namespace RoboPos
 /// Center of mass of uncovered target points
 class Goal
 {
-    const TargetI &_t;
-    const size_t _max_stages{};
-    size_t _stage{};
+    const double _side{ 0.001 };
+    const size_t _max_stages{ 5 };
+    const size_t _angles_factor{ 4 };
+    const TargetI &_target;
+    size_t _stage{ 0 };
     std::vector<std::pair<Point, size_t>> _goals{};
     TargetI::vec_t::const_iterator _current{};
 
-    bool covered(const Point &aim, double side, const RoboMoves::Store &store)
+    size_t belongs(const Point &aim, const int n_angles) const
     {
-        auto cpp = store.getClosestPoint(aim, side);
-        return (cpp.first && boost_distance(cpp.second.hit, aim) < side);
+        auto OA = (aim - _target.center());
+        double a = atan2(OA.y, OA.x); /* [-pi, +pi] */
+        a = (a + M_PI) / (2 * M_PI / n_angles);
+        return static_cast<size_t>(floor(a));
     }
-    /// index of a sector of circle the point is belonged
-    int belongs(const Point &aim, const Point &center, int n_angles)
+    bool covered(const Point &aim, const RoboMoves::Store &store) const
     {
-        // TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        int res = n_angles;
-        Point base = { center.x + 1, center.y };
-        const auto ag = M_PI / n_angles;
-
-        double a = angle_radians(base, center, aim);
-        for (int i = 0; i < n_angles; ++i)
-            if (i * ag >= a && a < (i + 1) * ag)
-            {
-                res = i;
-                break;
-            }
-        return res;
+        auto cpp = store.getClosestPoint(aim, _side);
+        return (cpp.first && boost_distance(cpp.second.hit, aim) < _side);
+    }
+    void stage0()
+    {
+        auto its_pair = _target.it_coords();
+        auto n_coords = _target.n_coords();
+        _goals.emplace_back(std::accumulate(its_pair.first, its_pair.second, Point{}) / n_coords, n_coords);
     }
 
 public:
     Goal(const TargetI &t) :
-        _t(t), _goals(1, { Point{ 0, 0 }, 0 }), _current(_t.it_coords().first), _max_stages(5)
+        _target(t),
+        _current(t.it_coords().first)
     {
-        auto tp = _t.it_coords();
-        _goals.front().first += std::accumulate(tp.first, tp.second, Point{}) / _t.n_coords();
-        _goals.front().second = _t.n_coords();
-        _stage = 0;
+        _goals.reserve(_max_stages * _angles_factor);
     }
     const Point& biggest() const
     {
         return (_stage == _max_stages) ? (*_current) : (_goals.back().first);
     }
-    bool recalc(const RoboMoves::Store &store, double side)
+    bool recalc(const RoboMoves::Store &store)
     {
-        if (_stage == _max_stages)
-            return true;
         _goals.clear();
-        if (_stage) _stage--;
-        return next_stage(store, side);
+        if (_stage > 0)
+        {
+            if (_stage < _max_stages)
+                --_stage;
+            return next_stage(store);
+        }
+        else
+        {
+            stage0();
+            if (covered(_goals.front().first, store))
+            {
+                _goals.pop_back();
+                return next_stage(store);
+            }
+            return true;
+        }
     }
-    bool next_stage(const RoboMoves::Store &store, double side)
+    bool next_stage(const RoboMoves::Store &store)
     {
         if (!_goals.empty())
             _goals.pop_back();
-        if (_goals.empty())
+
+        while (_goals.empty())
         {
-            if (_stage == _max_stages)
-            {
-                /* enumerate finished */
-                if (_current == _t.it_coords().second)
-                {
-                    _stage++;
-                    _current = _t.it_coords().first;
-                    return false;
-                }
-                /* enumerate all goals from the Target */
-                while (covered(*_current, side, store))
-                    _current++;
-                return true;
-            }
             if (_stage > _max_stages)
                 return false;
-
-            const auto n_angles = (_stage) ? (4 * _stage) : 1;
-            _goals.resize(n_angles);
-
-            auto tp = _t.it_coords();
-            for (auto it = tp.first; it != tp.second; ++it)
-                if (!covered(*it, side, store))
+            else if (_stage == _max_stages)
+            {
+                /* enumerate all goals from the Target */
+                while (_current != _target.it_coords().second)
                 {
-                    auto i = (n_angles > 1) ? belongs(*it, _t.center(), n_angles) : 0;
-                    _goals[i].first += *it;
-                    _goals[i].second++;
+                    if (!covered(*_current, store))
+                        return true;
+                    _current++;
                 }
+                /* enumerate finished */
+                ++_stage;
+                _current = _target.it_coords().first;
+                return false;
+            }
+            else
+            {
+                ++_stage;
+                const auto n_angles = (_angles_factor * _stage);
+                _goals.resize(n_angles);
 
-            for (size_t n = 0; n < n_angles; ++n)
-                _goals[n].first /= _goals[n].second;
+                const auto its_pair = _target.it_coords();
+                for (auto it = its_pair.first; it != its_pair.second; ++it)
+                    if (!covered(*it, store))
+                    {
+                        size_t i = belongs(*it, n_angles);
+                        _goals[i].first += *it;
+                        _goals[i].second++;
+                    }
 
-            std::sort(_goals.begin(), _goals.end(),
-                      [](const auto &a, const auto &b) { return a.second < b.second; });
+                for (auto it = _goals.begin(); it != _goals.end();)
+                    if ((it->second > 0) && !covered((it->first /= it->second), store))
+                        ++it;
+                    else
+                        it = _goals.erase(it);
 
-            _stage++;
+                auto pred_n_uncovered = [](const auto &a, const auto &b) { return a.second < b.second; };
+                std::sort(_goals.begin(), _goals.end(), pred_n_uncovered);
+            }
         }
-
-        MyWindowData::goals.clear();
-        for (auto &goal : _goals)
-            MyWindowData::goals.push_back(goal.first);
         return true;
     }
+    // === REMOVE ===
+    void show() const
+    {
+        MyWindowData::goals.clear();
+        for (auto &goal : _goals)
+            MyWindowData::goals.push_back(goal.first);    
+    }
+    // ==============
     size_t stage() const { return _stage; }
+    /// index of a sector of the target the point is belonged
+    static size_t point_belongs_to_sector(const Point &aim, const Point &center, const int n_angles)
+    {
+        Point base = { center.x + 1., center.y };
+        double a = angle_radians(base, center, aim); /* [-pi, +pi] */
+        a = (a + M_PI) / (2 * M_PI / n_angles);
+        return static_cast<size_t>(floor(a));
+    }
 };
 }
 
@@ -167,17 +192,15 @@ const RoboMoves::Record* RoboPos::TourEvo::appendMarker(const Control &controls,
                 c.append({ m, frame, _lasts_init });
     }
     //================
-    //_robo.move(controls + c);
     auto pReq = _store.exactRecordByControl(controls);
     if (!pReq && controls.size())
     {
-        //throw std::runtime_error("not found");
-        tcout << "NoApp: " << controls << std::endl;
+        ////throw std::runtime_error("not found");
+        //tcout << "NoApp: " << controls << std::endl;
     }
     Point pos = (pReq) ? pReq->hit : _base_pos;
     auto traj = (pReq) ? pReq->getVisited() : Trajectory{ _base_pos };
     _store.insert(RoboMoves::Record{ pos, _base_pos, pos, controls + c, traj }); // <<< insert marker
-    //_robo.reset();
     //================
     return _store.exactRecordByControl(controls + c);
 }
@@ -315,6 +338,17 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
     _base_pos = _robo.position();
     
     Goal goal(_t);
+    goal.recalc(_store);
+    /// ===== TEST ============================
+    //while (goal.stage() < 5)
+    //{
+    //    goal.next_stage(_store, side);
+    //    tcout << goal.biggest() << std::endl;
+    //    //goal.show();
+    //    MyWindowData::goals.push_back(goal.biggest());
+    //}
+    //return false;
+    /// =======================================
     
     frames_t frames = 0; // максимальное число задействованных фрэймов
     Control controls /* лучшее управление */, controls_prev /* управление на предыдущем уровне иерархии */;
@@ -327,8 +361,6 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
         auto pred = [](const auto &a, const auto &b) {return (a.start + a.lasts) < (b.start + b.lasts); };
         auto it = br::max_element(controls, pred);
         frames = it->start + it->lasts + 1;
-        // /* controls sorted */
-        // frames = controls.back().start + controls.back().lasts;
     }
 
     distance_t the_best_dist = boost_distance(goal.biggest(), _base_pos);
@@ -343,6 +375,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
     bool done = false;
     //CINFO("Evo: next_stage goal=" << goal.biggest());
     tcout << "Evo: next_stage goal=" << goal.biggest() << " start=" << _robo.position() << std::endl;
+    goal.show();
     while (!done)
     {
         joint_t best_acts = 0;
@@ -387,10 +420,10 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                     {
                         /* This muscle is FAIL now */
                         Control c(bitset_t{ acts }, frames, lasts);
-                        tcout << " FAIL d=" << d << ">" << prev_dist << " { " << c << " }" /*<< " pos=" << pos*/ << std::endl;
-                        //tcout << " FAIL pos=" << pos << " " << controls + c << std::endl;
+                        //tcout << " FAIL d=" << d << ">" << prev_dist << " { " << c << " }" /*<< " pos=" << pos*/ << std::endl;
+                        ////tcout << " FAIL pos=" << pos << " " << controls + c << std::endl;
                         runNestedStop(acts, true); pos = _robo.position();
-                        //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
+                        ////tcout << "Evo: stop " << d << " p=" << pos << std::endl;
                         runNestedReset(controls, acts, frames, lasts, pos);
 
                         frames_t ll = lasts - std::min(lasts, 2 * _lasts_step);
@@ -413,13 +446,13 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
 
                 if (prev_dist < _reached_dist)
                 {
-                    done = !goal.next_stage(_store, side);
-                    //CINFO("Evo: next_stage goal=" << goal.biggest());
+                    done = !goal.next_stage(_store);
                     Control c(bitset_t{ acts }, frames, lasts);
                     tcout << "Evo: next_stage goal=" << goal.biggest() << " controls= " << controls + c << std::endl;
+                    //CINFO("Evo: next_stage goal=" << goal.biggest() << " controls= " << controls + c);
+                    goal.show();
 
                     runNestedStop(acts, true); pos = _robo.position();
-                    //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
                     runNestedReset(controls, acts, frames, lasts, pos);
                     runNestedPreMove(controls, 0, frames, pos);
                     continue;
@@ -471,7 +504,8 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
         {
             //CINFO("Evo: recalc goal");
             //tcout << "Evo: recalc goal" << std::endl;
-            goal.recalc(_store, side);
+            goal.recalc(_store);
+            goal.show();
         }
 
         if (the_best_dist > best_d)
@@ -611,15 +645,6 @@ bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, muscle_t muscl
     return exist;
 }
 
-bool RoboPos::TourEvo::runNestedStop(IN const Control &controls, IN bool stop)
-{
-    if (stop)
-        _robo.move(controls /*+ _breakings_controls*/);
-    else
-        _robo.move();
-    return stop;
-}
-
 bool RoboPos::TourEvo::runNestedStop(IN const Robo::bitset_t &muscles, IN bool stop)
 {
     if (stop)
@@ -629,34 +654,43 @@ bool RoboPos::TourEvo::runNestedStop(IN const Robo::bitset_t &muscles, IN bool s
     return stop;
 }
 
-bool RoboPos::TourEvo::runNestedStep(IN const Control &controls, OUT Point &robo_hit)
-{
-    boost::this_thread::interruption_point();
-    //----------------------------------------------
-    //const auto *pRec = _store.exactRecordByControl(controls);
-    //if (pRec)
-    //{
-    //    robo_hit = pRec->hit;
-    //    return true;
-    //}
-    //----------------------------------------------
-    _robo.step(controls /*+ _breakings_controls*/);
-    robo_hit = _robo.position();
-    //----------------------------------------------
-    return true;
-}
-
-bool RoboPos::TourEvo::runNestedStep(IN const Robo::bitset_t &muscles, IN Robo::frames_t lasts, OUT Point &robo_hit)
-{
-    boost::this_thread::interruption_point();
-    //----------------------------------------------
-    // ??? exactRecordByControl
-    //----------------------------------------------
-    _robo.step(muscles, lasts); // ??? breakings
-    robo_hit = _robo.position();
-    //----------------------------------------------
-    return true;
-}
+//bool RoboPos::TourEvo::runNestedStop(IN const Control &controls, IN bool stop)
+//{
+//    if (stop)
+//        _robo.move(controls /*+ _breakings_controls*/);
+//    else
+//        _robo.move();
+//    return stop;
+//}
+//
+//bool RoboPos::TourEvo::runNestedStep(IN const Control &controls, OUT Point &robo_hit)
+//{
+//    boost::this_thread::interruption_point();
+//    //----------------------------------------------
+//    //const auto *pRec = _store.exactRecordByControl(controls);
+//    //if (pRec)
+//    //{
+//    //    robo_hit = pRec->hit;
+//    //    return true;
+//    //}
+//    //----------------------------------------------
+//    _robo.step(controls /*+ _breakings_controls*/);
+//    robo_hit = _robo.position();
+//    //----------------------------------------------
+//    return true;
+//}
+//
+//bool RoboPos::TourEvo::runNestedStep(IN const Robo::bitset_t &muscles, IN Robo::frames_t lasts, OUT Point &robo_hit)
+//{
+//    boost::this_thread::interruption_point();
+//    //----------------------------------------------
+//    // ??? exactRecordByControl
+//    //----------------------------------------------
+//    _robo.step(muscles, lasts); // ??? breakings
+//    robo_hit = _robo.position();
+//    //----------------------------------------------
+//    return true;
+//}
 
 
 RoboPos::TourEvoSteps::TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target) :
@@ -695,7 +729,6 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
     _robo.reset();
     _base_pos = _robo.position();
 
-    markers.clear();
     Goal goal(_t);
 
     const frames_t lasts_max = std::min(musclesMaxLasts(_robo), TourI::too_long);
@@ -811,7 +844,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
         if (_t.contain(best_hit))
         {
             //tcout << "Evo: recalc goal" << std::endl;
-            goal.recalc(_store, side);
+            goal.recalc(_store);
         }
 
         if (best_dist < _reached_dist)
@@ -820,7 +853,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
             compansateOverHit(controls, goal.biggest());
 
             tcout << "Evo: next_stage goal=" << goal.biggest() << std::endl;
-            done = !goal.next_stage(_store, side);
+            done = !goal.next_stage(_store);
         }
     } // end for lasts
     

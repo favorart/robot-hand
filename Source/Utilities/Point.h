@@ -102,12 +102,13 @@ inline Point rotate_radians(const Point &p, const Point &center, double angle)
 /// Angle = L ABC
 inline double angle_radians (const Point &A, const Point &B, const Point &C)
 {
-    return atan2(boost_distance(A, C), boost_distance(B, C));
+    Point BA = (A - B), BC = (C - B);
+    return atan2(BA.x * BC.y - BA.y * BC.x, BA.x * BC.x + BA.y * BC.y);
 }
 /// Angle = L ABC
 inline double angle_degrees (const Point &A, const Point &B, const Point &C)
 {
-    return atan2(boost_distance(A, C), boost_distance(B, C)) * 180. / M_PI;
+    return angle_radians(A, B, C) * 180. / M_PI;
 }
 
 inline double norm2 (const Point &p)
