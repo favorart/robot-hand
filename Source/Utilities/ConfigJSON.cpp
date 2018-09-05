@@ -267,5 +267,6 @@ void ConfigJSON::load(tptree &root, tstring &robo_name, Point& robo_base,
         else throw std::logic_error("Not implemented");
         robo_joints.push_back(pinput);
     }
+    robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
 }
 //--------------------------------------------------------------------------------

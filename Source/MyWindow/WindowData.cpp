@@ -389,16 +389,15 @@ void MyWindowData::read_config(IN const tstring &filename)
         Point robo_base;
         ConfigJSON::load(root, robo_name, robo_base, joint_inputs);
         // ===
-        //auto key_extractor = [](const JointInputPtr &a, const JointInputPtr &b) { return (*a < *b); };
-        joint_inputs.sort(/*key_extractor*/);
-        // ===
         if (robo_name == _T("Hand-v3"))
         {
             pRobo = std::make_shared<Robo::NewHand::Hand>(robo_base, joint_inputs);
+            pRobo->reset();
         }
         else if (robo_name == _T("Tank-v1"))
         {
             pRobo = std::make_shared<Robo::Mobile::Tank>(robo_base, joint_inputs);
+            pRobo->reset();
         }
         else
         {

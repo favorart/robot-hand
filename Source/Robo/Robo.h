@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Point.h"
 #include "RoboControl.h"
 #include "RoboMotionLaws.h"
 
@@ -67,6 +68,11 @@ struct JointInput
         nMoveFrames(nMoveFrames), maxMoveFrame(maxMoveFrame)
     {}
     virtual ~JointInput() {}
+    friend tostream& operator<<(tostream &s, const JointInput &ji)
+    {
+        return s << "{ " << ji.joint << ' ' << ji.base << ' ' 
+                 << ji.nMoveFrames << ' ' << ji.maxMoveFrame << ' ' << ji.show << " +MLaw }";
+    }
 };
 //-------------------------------------------------------------------------------
 /// Robotic Interface Interaction
@@ -90,7 +96,7 @@ public:
     static const double minFrameMove;
     static const muscle_t musclesPerJoint = 2;
 
-    static const muscle_t musclesMaxCount = 6;// !!! 32;
+    static const muscle_t musclesMaxCount = 8;// !!! 32;
     static const muscle_t jointsMaxCount = musclesMaxCount / musclesPerJoint;
 
     static muscle_t muscleOpposite(IN muscle_t muscle)

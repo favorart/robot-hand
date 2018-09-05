@@ -32,12 +32,12 @@ public:
   //-----------------------------------------
   const Point&  operator= (const Point &p);
   //-----------------------------------------
+  void  rotate(const Point &center, double angle)
+  { rotate_radians (center, angle * M_PI / 180.); }
   void  rotate_degrees(const Point &center, double angle)
   { rotate_radians (center, angle * M_PI / 180.); }
   void  rotate_radians(const Point &center, double angle);
 
-  void  rotate (const Point &center, double angle)
-  { rotate_radians (center, angle * M_PI / 180.);}
   bool     hit (const Point &p, double eps) const;
   bool     hit (const Point &p) const;
   double angle (const Point &p) const;

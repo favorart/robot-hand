@@ -65,8 +65,8 @@ protected:
 
     struct Params
     {
-        std::array<Hand::Muscle, muscles> musclesUsed{ Hand::Muscle::MInvalid };
-        std::array<Hand::Joint, joints>  jointsUsed{ Hand::Joint::JInvalid };
+        std::array<Hand::Muscle, muscles> musclesUsed{};
+        std::array<Hand::Joint, joints> jointsUsed{};
         std::array<distance_t, joints> defOpen{};
 
         std::array<distance_t, joints> maxAngles{}; // maxWristAngle, maxElbowAngle, maxShldrAngle, maxClvclShift

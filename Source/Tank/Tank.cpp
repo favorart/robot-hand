@@ -41,7 +41,7 @@ Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
 {
     if (!joints.size() || joints.size() > jointsCount())
         throw std::logic_error("Incorrect joints count");
-    reset();
+    //reset();
 }
 //--------------------------------------------------------------------------------
 Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
@@ -50,6 +50,9 @@ Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
     bodyHeight(0.04),
     centerRadius(0.005)
 {
+    musclesUsed.fill(Tank::Muscle::MInvalid);
+    jointsUsed.fill(Tank::Joint::JInvalid);
+
     const auto &front = *joint_inputs.front();
     auto maxMoveFrame = front.maxMoveFrame;
     assert(maxMoveFrame > RoboI::minFrameMove);

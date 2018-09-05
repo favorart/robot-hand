@@ -294,7 +294,9 @@ void RoboPhysics::reset()
     status.moveEnd = false;
     //-----------------------------------------------------
     for (joint_t j = 0; j < jointsCount(); ++j)
+    {
         resetJoint(j);
+    }
 }
 //--------------------------------------------------------------------------------
 RoboPhysics::RoboPhysics(const Point &base,
@@ -302,7 +304,7 @@ RoboPhysics::RoboPhysics(const Point &base,
                          const std::shared_ptr<EnvEdges> &eiges) :
     RoboI(), physics(base, joint_inputs), status(joint_inputs), feedback(), env(eiges)
 {
-    if (!ba::is_sorted(joint_inputs))
+    if (!ba::is_sorted(joint_inputs, [](const auto &a, const auto &b) { return (*a < *b); }))
         throw std::runtime_error("Joint Inputs are not sorted!");
 }
 //--------------------------------------------------------------------------------

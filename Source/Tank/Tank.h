@@ -49,8 +49,8 @@ protected:
 
     struct Params
     {
-        std::array<Tank::Muscle, muscles> musclesUsed{ Tank::Muscle::MInvalid };
-        std::array<Tank::Joint, joints> jointsUsed{ Tank::Joint::JInvalid };
+        std::array<Tank::Muscle, muscles> musclesUsed{};
+        std::array<Tank::Joint, joints> jointsUsed{};
         //--- draw constants
         double   trackWidth{};
         double  trackHeight{};

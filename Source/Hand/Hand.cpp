@@ -87,7 +87,6 @@ Hand::Hand(const Point &base, const JointsInputsPtrs &joints) :
 {
     if (!joints.size() || joints.size() > Hand::joints)
         throw std::logic_error("Hand: Incorrect joints inputs size");
-    reset();
 }
 //--------------------------------------------------------------------------------
 Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
@@ -96,6 +95,9 @@ Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
     jointRadius(0.03),
     sectionWidth(0.01)
 {
+    jointsUsed.fill(Hand::Joint::JInvalid);
+    musclesUsed.fill(Hand::Muscle::MInvalid);
+
     muscle_t m = 0;
     joint_t j = 0;
     for (auto& j_in : joints)
@@ -103,14 +105,14 @@ Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
         if (!j_in->show)
             continue;
 
-        maxAngles[j] = j_in->maxMoveFrame;
-        nStopFrames[j] = static_cast<frames_t>(j_in->nMoveFrames * j_in->frames.stopDistanceRatio);
-        nMoveFrames[j] = j_in->nMoveFrames;
-
         auto pHJIn = dynamic_cast<const Hand::JointInput*>(j_in.get());
         Hand::Joint joint = pHJIn->Joint();
 
+        maxAngles[j] = j_in->maxMoveFrame;
+        nStopFrames[j] = static_cast<frames_t>(j_in->nMoveFrames * j_in->frames.stopDistanceRatio);
+        nMoveFrames[j] = j_in->nMoveFrames;
         defOpen[j] = pHJIn->defaultPose;
+
         jointsUsed[j++] = joint;
         musclesUsed[m++] = hand.MofJ(joint, true);
         musclesUsed[m++] = hand.MofJ(joint, false);
@@ -137,7 +139,6 @@ void Hand::setJoints(const JointsOpenPercent &percents)
             throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
 
         double angle = ratio * maxJointAngle(joint);
-        //if (fabs(angles[joint] - angle) >= Utils::EPSILONT)
         jointMove(joint, (angle - angles[joint]));
     }
 }
@@ -148,7 +149,6 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     HPEN   hPen_old = (HPEN)SelectObject(hdc, hPen);
     HBRUSH hBrush_old = (HBRUSH)SelectObject(hdc, hBrush);
     //------------------------------------------------------------------
-
     Point base = physics.jointsBases[jointsCount()];
 
     MoveToEx (hdc, Tx(1.00),   Ty(base.y + params.sectionWidth), NULL);
