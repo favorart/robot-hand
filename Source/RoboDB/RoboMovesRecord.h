@@ -99,6 +99,7 @@ public:
 
     void updateErrDistance(const Point &hit) { _error_distance = boost_distance(aim, hit); }
     void updateTraj(SimTime sim_time) const { _update_traj = sim_time; }
+    void updateAim(const Point &aim) { aim_ = aim; }
     // ----------------------------------------
     void clear()
     {

@@ -175,6 +175,15 @@ namespace RoboMoves
       return (exist) ? std::make_pair(true, *std::min_element(itPL, itPU, cp)) : std::make_pair(false, Record{});
     }
     //------------------------------------------------------------------------------
+    using Mod = std::function<void(Record&)>;
+    void replace(IN const Robo::Control &controls, IN const Mod &mod)
+    {
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        // -----------------------------------------------
+        auto it = _store.get<ByC>().find(controls);
+        _store.get<ByC>().modify(it, mod);
+    }
+    //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */
     template <class range_t, class index_t>
     size_t  adjacencyRectPoints(OUT range_t &range, IN const Point &min, IN const Point &max) const

@@ -749,20 +749,21 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     }
     //========================================
     /* Wrist */ /* LTrack */
-    case 'z': wd.pRobo->step(bitset_t{1}, wd.pRobo->muscleMaxLasts(0)); break; /* двинуть ключицей влево */
-    case 'a': wd.pRobo->step(bitset_t{2}, wd.pRobo->muscleMaxLasts(1)); break; /* двинуть ключицей вправо */
+    case 'z': if (!wd.testing) wd.pRobo->step(bitset_t{1}, wd.pRobo->muscleMaxLasts(0)); break; /* двинуть ключицей влево */
+    case 'a': if (!wd.testing) wd.pRobo->step(bitset_t{2}, wd.pRobo->muscleMaxLasts(1)); break; /* двинуть ключицей вправо */
     /* Elbow */ /* RTrack */                          
-    case 'x': wd.pRobo->step(bitset_t{4}, wd.pRobo->muscleMaxLasts(2)); break;
-    case 's': wd.pRobo->step(bitset_t{8}, wd.pRobo->muscleMaxLasts(3)); break;
+    case 'x': if (!wd.testing) wd.pRobo->step(bitset_t{4}, wd.pRobo->muscleMaxLasts(2)); break;
+    case 's': if (!wd.testing) wd.pRobo->step(bitset_t{8}, wd.pRobo->muscleMaxLasts(3)); break;
     /* Sholder */
-    case 'c': wd.pRobo->step(bitset_t{16}, wd.pRobo->muscleMaxLasts(4)); break;
-    case 'd': wd.pRobo->step(bitset_t{32}, wd.pRobo->muscleMaxLasts(5)); break;
+    case 'c': if (!wd.testing) wd.pRobo->step(bitset_t{16}, wd.pRobo->muscleMaxLasts(4)); break;
+    case 'd': if (!wd.testing) wd.pRobo->step(bitset_t{32}, wd.pRobo->muscleMaxLasts(5)); break;
     /* Clavicle */
-    case 'v': wd.pRobo->step(bitset_t{64}, wd.pRobo->muscleMaxLasts(6)); break;
-    case 'f': wd.pRobo->step(bitset_t{128}, wd.pRobo->muscleMaxLasts(7)); break;
+    case 'v': if (!wd.testing) wd.pRobo->step(bitset_t{64}, wd.pRobo->muscleMaxLasts(6)); break;
+    case 'f': if (!wd.testing) wd.pRobo->step(bitset_t{128}, wd.pRobo->muscleMaxLasts(7)); break;
     /* Reset */
     case 'r':
     {
+        if (!wd.testing) break;
         //========================================
         //wd.frames = 0;
         wd.pRobo->reset();

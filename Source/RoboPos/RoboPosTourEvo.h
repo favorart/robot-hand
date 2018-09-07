@@ -26,19 +26,17 @@ protected:
 
     Robo::frames_t minLasts();
 
-    bool runNestedReset(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, Robo::frames_t lasts, IN OUT Point &hit);
-    bool runNestedPreMove(const Robo::Control&, Robo::frames_t max_frames, Point &hit);
+    bool runNestedReset(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, Robo::frames_t lasts, const Point &aim, IN OUT Point &hit);
+    bool runNestedPreMove(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, const Point &aim, Point &hit);
     bool runNestedStop(const Robo::bitset_t &muscles, bool stop);
     //bool runNestedStop(const Robo::Control&, bool stop);
     //bool runNestedStep(const Robo::bitset_t &muscles, Robo::frames_t lasts, OUT Point &hit);
     //bool runNestedStep(const Robo::Control&, OUT Point &hit);
     //bool runNestedForMuscleSteps(Robo::joint_t, Robo::Control&, Point&hit);
     bool runNestedForMuscle(Robo::joint_t, Robo::Control&, Point &hit);
-    bool runNestedPreMove(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, Point &hit);
 
-    const RoboMoves::Record*
-        appendMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, const Point &hit);
-    bool containMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame);
+    const RoboMoves::Record* appendMarker(const Robo::Control &controls, const Robo::Control &new_controls, const Point &aim);
+    bool containMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, const Point &aim);
 
 public:
     TourEvo(RoboMoves::Store&, Robo::RoboI&, const TargetI&);

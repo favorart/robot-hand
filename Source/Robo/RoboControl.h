@@ -91,6 +91,7 @@ public:
     template<size_t N>
     Control(const std::bitset<N> &muscles, frames_t start, frames_t lasts)
     {
+        if (!muscles.any()) return;
         if (!lasts || !muscles.any())
             throw std::runtime_error("Invalid control");
 
@@ -183,6 +184,12 @@ public:
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);
+    //----------------------------------------------------
+    friend std::ostream& operator<<(std::ostream &s, const Control &controls)
+    {
+        controls.stream(s);
+        return s;
+    }
 };
 //-------------------------------------------------------------------------------
 inline Control EmptyMov() { return {}; }
