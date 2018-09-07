@@ -356,6 +356,9 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     _b_checking = root.get<bool>(_T("checking"));
     _step_distance = root.get<double>(_T("step_distance"));
     _lasts_step_increment = root.get<frames_t>(_T("lasts_step_increment"));
+
+    if (_b_predict && !approx.constructed())
+        approx.constructXY(store);
 }
 
 //------------------------------------------------------------------------------

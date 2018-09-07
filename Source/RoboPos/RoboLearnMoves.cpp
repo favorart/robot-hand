@@ -117,12 +117,7 @@ void  RoboPos::LearnMoves::STAGE_2()
     auto noize = [](size_t) { return 0.00000000001; };
     auto sizing = []() { return 1.01; };
 
-    bool predict = false;
-
     Approx approx(_store.size(), _robo.musclesCount(), noize, sizing);
-    if (predict) // !!!
-        approx.constructXY(_store);
-
     TourTarget::TargetContain target_contain = [&target=_target](const Point &p) {
         //return target.contain(p);
         double corr = 0.01;

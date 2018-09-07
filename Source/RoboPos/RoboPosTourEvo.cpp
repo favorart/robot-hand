@@ -122,11 +122,12 @@ public:
                 for (auto it = _goals.begin(); it != _goals.end();)
                 {
                     it->avg_goals /= it->n_goals;
-
-                    auto cpp = store.getClosestPoint(it->avg_goals, _side);
-                    double d = (cpp.first) ? boost_distance(cpp.second.hit, it->avg_goals) : _reached + 1;
-                    tcout << cpp.first << " avg=" << it->avg_goals << " hit=" << ((cpp.first) ? cpp.second.hit : Point{ 0,0 }) << ' ' << d << std::endl;
-                    if ((it->n_goals > 0) && (d > _reached)/*!covered(it->avg_goals, store)*/)
+                    //auto cpp = store.getClosestPoint(it->avg_goals, _side);
+                    //double d = (cpp.first) ? boost_distance(cpp.second.hit, it->avg_goals) : _reached + 1;
+                    //auto hit = ((cpp.first) ? cpp.second.hit : Point{ 0,0 });
+                    //tcout << cpp.first << " avg=" << it->avg_goals << " hit=" << hit << ' ' << d << std::endl;
+                    //if ((it->n_goals > 0) && (d > _reached))
+                    if ((it->n_goals > 0) && !covered(it->avg_goals, store))
                         ++it;
                     else
                         it = _goals.erase(it);

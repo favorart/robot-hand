@@ -48,6 +48,7 @@ class Approx
 
     void constructXY();
 public:
+    bool constructed() const { return _constructed; }
     /// Calibrating factor (greater is more precise)
     static double sizing() { return 4.; }
     /// Шум - этот коэффициент сообщает, насколько можно доверять управлению с номером i

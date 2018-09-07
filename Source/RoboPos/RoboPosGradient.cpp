@@ -116,7 +116,7 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double d_d
 //------------------------------------------------------------------------------
 size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
 {
-    size_t  gradient_complexity = 0U;
+    size_t gradient_complexity = 0U;
     // -----------------------------------------------
     _robo.reset();
     Point base_pos = _robo.position();
