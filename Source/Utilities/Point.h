@@ -66,6 +66,8 @@ public:
       ss << _T("pt<x=") << x << _T(", y=") << y << _T(">");
       return ss.str();
   }
+  void Point::save(tptree &node) const;
+  void Point::load(tptree &node);
   //-------------------------------------------------------------------------------
   Point operator- (const Point &p) const { return Point{ x - p.x, y - p.y }; }
   Point operator+ (const Point &p) const { return Point{ x + p.x, y + p.y }; }

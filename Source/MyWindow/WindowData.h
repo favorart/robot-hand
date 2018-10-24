@@ -13,7 +13,7 @@ class Store;
 namespace RoboPos {
 class LearnMoves;
 }
-class RecTarget;
+class TargetI;
 class CanvasScaleLetters;
 
 //-------------------------------------------------------------------------------
@@ -26,7 +26,8 @@ struct MyWindowData
         Point    aim{};
     } mouse;
     // ---------------------------------
-    static bool zoom;
+    enum class Zoom : int8_t { NONE = 0, STATIC, WHEEL };
+    static Zoom zoom;
     struct Canvas
     {
         HWND    hLabCanvas, hLabHelp, hLabMAim, hLabTest, hLabStat;
@@ -65,21 +66,22 @@ struct MyWindowData
     /// Show frames trajectory
     class TrajectoryFrames
     {
-        const size_t skip_show_steps = 15U;
         bool show_ = false;
         bool animation_ = true;
-        size_t   controls_curr_ = 0;
-        Robo::Control controls_ = {};
-        Point         base_pos_ = {};
+        size_t skip_show_frames_ = 15U;
+        size_t controls_curr_ = 0;
+        Robo::Control controls_{};
+        Point base_pos_{};
 
     public:
-        bool animation() const { return animation_; }
-        //void setAnim(bool animation) { animation_ = animation; }
+        size_t skipShowFrames() const { return skip_show_frames_; }
         bool show() const { return show_; }
-        //bool setShow(bool show) const { show_ = show; }
-        void  clear();
-        void  step(RoboMoves::Store &store, Robo::RoboI &robo, const Robo::Control &controls);
-        void  step(RoboMoves::Store &store, Robo::RoboI &robo);
+        bool animation() const { return animation_; }
+        void setAnim(bool animation) { animation_ = animation; }
+        void setSkipShowFrames(size_t ssf) { skip_show_frames_ = ssf; }
+        void clear();
+        void step(RoboMoves::Store &store, Robo::RoboI &robo, const Robo::Control &controls);
+        void step(RoboMoves::Store &store, Robo::RoboI &robo);
     };
     TrajectoryFrames trajFrames;
     //Robo::frames_t frames = 0; ///< Global App Time (to show animation)
@@ -87,7 +89,7 @@ struct MyWindowData
     bool testing = false;
     std::shared_ptr<boost::thread> pWorkerThread;
     // ---------------------------------
-    std::shared_ptr<RecTarget> pTarget;
+    std::shared_ptr<TargetI> pTarget;
     std::shared_ptr<Robo::RoboI> pRobo;
     std::shared_ptr<RoboMoves::Store> pStore;
     std::shared_ptr<RoboPos::LearnMoves> pLM;

@@ -1,6 +1,41 @@
 #include "RoboPhysics.h"
+#include "HandMotionLaws.h"
 
 using namespace Robo;
+//--------------------------------------------------------------------------------
+void JointInput::save(tptree &root) const
+{
+    root.put(_T("joint"), joint);
+    root.put(_T("show"), show);
+
+    tptree pbase;
+    base.save(pbase);
+    root.add_child(_T("base"), pbase);
+
+    root.put(_T("nMoveFrames"), nMoveFrames);
+    root.put(_T("maxMoveFrame"), maxMoveFrame);
+
+    tptree ml;
+    frames.save(ml);
+    root.add_child(_T("motionLaw"), ml);
+}
+void JointInput::load(tptree &root)
+{
+    joint = root.get<Robo::joint_t>(_T("joint"));
+    show = root.get<bool>(_T("show"));
+    base.load(root.get_child(_T("base")));
+    nMoveFrames = root.get<size_t>(_T("nMoveFrames"));
+    maxMoveFrame = root.get<double>(_T("maxMoveFrame"));
+
+    tptree &ml = root.get_child(_T("motionLaw"));
+    //frames.load(ml);
+
+    auto type = static_cast<Robo::MotionLaws::HandMLaw>(ml.get<uint8_t>(_T("type")));
+    auto param = ml.get<tstring>(_T("param"));
+    //typeName = ml.get<tstring>(_T("name"));
+    frames = Robo::MotionLaws::getHandMLaw(type, param);
+    frames.stopDistanceRatio = ml.get<double>(_T("stopD"));
+}
 //--------------------------------------------------------------------------------
 bool RoboPhysics::somethingMoving() const
 {

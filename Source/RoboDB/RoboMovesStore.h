@@ -375,7 +375,7 @@ namespace RoboMoves
             for (auto &p : found_points_indices)
                 rangeInserter(range, _inverse[p.first].second);
         }
-        CINFO(" near to " << p << " passed " << n_found);
+        CDEBUG(" near to " << p << " passed " << n_found);
         return n_found;
     }
     /// Construct Inverse Index of all passed points
@@ -396,7 +396,7 @@ namespace RoboMoves
         auto itPL = indexP.lower_bound(boost::make_tuple(aim.x - side, aim.y - side));
         auto itPU = indexP.upper_bound(boost::make_tuple(aim.x + side, aim.y + side));
         // -----------------------------------------------
-        CINFO(" aim " << aim << " side " << side << " adjacency");
+        CDEBUG(" aim " << aim << " side " << side << " adjacency");
         return std::make_pair(itPL, itPU);
     }
     /// get all points in round adjacency for the aim point
@@ -408,6 +408,17 @@ namespace RoboMoves
     //    CINFO(" aim " << aim << " r " << radius << " adjacency");
     //    return std::make_pair(indexD.lower_bound(0), indexD.upper_bound(radius));
     //}
+    MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN const Point &min, IN const Point &max) const
+    {
+        //boost::lock_guard<boost::mutex> lock(_store_mutex);
+        const auto &index = _store.get<ByP>();
+        // -----------------------------------------------
+        auto itPL = index.lower_bound(boost::tuple<double, double>(min));
+        auto itPU = index.upper_bound(boost::tuple<double, double>(max));
+        // -----------------------------------------------
+        CDEBUG(" min=" << min << " max=" << max << " adjacency" /*<< (itPU - itPL)*/);
+        return std::make_pair(itPL, itPU);
+    }
     //------------------------------------------------------------------------------
     void  insert(const Record &rec);
     //------------------------------------------------------------------------------

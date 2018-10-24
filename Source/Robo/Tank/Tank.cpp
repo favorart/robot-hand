@@ -317,4 +317,19 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
     //realMove();
 }
 //--------------------------------------------------------------------------------
+std::shared_ptr<RoboI> Tank::make(const tstring &type, tptree &node)
+{
+    Point robo_base;
+    JointsInputsPtrs robo_joints;
+    robo_base.load(node.get_child(_T("base")));
+    for (tptree::value_type &v : node.get_child(_T("joints")))
+    {
+        std::shared_ptr<Robo::JointInput> ji;
+        ji = std::make_shared<Robo::Mobile::Tank::JointInput>();
+        ji->load(v.second);
+        robo_joints.push_back(ji);
+    }
+    robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
+    return (type == Tank::name()) ? std::make_shared<Tank>(robo_base, robo_joints) : std::shared_ptr<RoboI>(nullptr);
+}
 

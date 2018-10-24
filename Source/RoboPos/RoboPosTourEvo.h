@@ -39,7 +39,7 @@ protected:
     bool containMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, const Point &aim);
 
 public:
-    TourEvo(RoboMoves::Store&, Robo::RoboI&, const TargetI&);
+    TourEvo(RoboMoves::Store&, Robo::RoboI&, tptree&, const TargetI&);
     void setParams(double reached_dist, double oppo_penalty)
     {
         _reached_dist = reached_dist;
@@ -55,7 +55,7 @@ protected:
     bool compansateOverHit(Robo::Control&, const Point &goal);
 
 public:
-    TourEvoSteps(RoboMoves::Store&, Robo::RoboI&, const TargetI&);
+    TourEvoSteps(RoboMoves::Store&, Robo::RoboI&, tptree&, const TargetI&);
 };
 
 /* Случайные движения 

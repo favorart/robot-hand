@@ -1,12 +1,12 @@
 ﻿#pragma once
 
 #include "Robo.h"
-#include "RoboPos.h"
+#include "RoboMovesStore.h"
 #include "RoboMovesTarget.h"
 
 namespace RoboPos {
 class Approx;
-
+struct Counters;
 //------------------------------------------------------------------------------
 class TourI
 {
@@ -15,11 +15,10 @@ public:
                                                         Robo::joint_t cur_joint,
                                                         bool first)>;
     static const JointsNumerator forward, reverse;
-    static const Robo::distance_t divToMeters;
+    static const Robo::distance_t divToMiliMeters;
     static const double divToMinutes;
 
-    //TourI(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const tstring &config);
-    TourI(RoboMoves::Store &store, Robo::RoboI &robo, const TourI::JointsNumerator &next_joint = TourI::reverse);
+    TourI(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint = TourI::reverse);
     size_t complexity() const { return _complexity; }
     void run();
     void setPrecision(Robo::distance_t step_distance, Robo::frames_t lasts_step_increment)
@@ -31,13 +30,15 @@ public:
     void setSimulMoves(bool simul) { _b_simul = simul; }
 
 protected:
+    tptree &_config;
     const static Robo::frames_t too_long = 10000;
     const JointsNumerator &_next_joint; ///< порядок использования сочленений
 
     RoboMoves::Store &_store;           ///< БД движений
     Robo::RoboI      &_robo;            ///< Модель робота
-    Counters          _counters{};      ///< счётчики попаданий в цель
-    size_t            _complexity = 0;  ///< сложность, выраженная в числе движений руки
+    Counters         &_counters;        ///< счётчики попаданий в цель
+
+    size_t _complexity = 0;             ///< сложность, выраженная в числе движений руки
 
     bool _b_braking{ true };            ///< использование торможения мускулом
     bool _b_simul{ true };              ///< использование мускулов одновременно
@@ -80,10 +81,11 @@ protected:
 class TourWorkSpace : public TourI
 {
 public:
-    TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, const TourI::JointsNumerator &next_joint = TourI::reverse) :
-        TourI(store, robo, next_joint)
-    {}
+    TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint = TourI::reverse);
     bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &avg_pos);
+protected:
+    std::vector<Robo::frames_t> avg_speed_on_start_for_muscle;
+    std::vector<Robo::frames_t> avg_speed_changes_for_muscle;
 };
 
 //------------------------------------------------------------------------------
@@ -97,27 +99,32 @@ public:
 
     TourTarget(IN RoboMoves::Store &store,
                IN Robo::RoboI &robo,
+               IN tptree &config,
                IN Approx &approx,
-               IN const TargetI &target, // !! RM
+               IN const TargetI &target,
                IN const TargetContain &target_contain,
                IN const TourI::JointsNumerator &next_joint = TourI::reverse);
 
-    bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high);
-    bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
+    bool runNestedForMuscle(IN Robo::joint_t, IN Robo::Control&, OUT Point &robo_pos_high);
+    bool runNestedMove(IN const Robo::Control&, OUT Point &robo_pos);
 
     void setPredict(bool pred) { _b_predict = pred; }
     void setChecking(bool check) { _b_checking = check; }
 
 protected:
-    const TargetContain &_target_contain; ///< функция проверки принадлежности координат мишени
     Approx &_approx;                      ///< интерполяция функции(x,y) остановки по управлениям мускулов
     bool _b_predict{};                    ///< использование интерполяции для предсказания места остановки
     bool _b_checking{};                   ///< проверка предсказаний основных направлений
     TargetBorders _target_borders{};      ///< границы длительности мускуов, в которые помещается мишень
-    const TargetI &_target; /// !!! RM
+    const TargetI &_target;               ///< форма мишени
+    const TargetContain &_target_contain; ///< настраиваемая функция проверки принадлежности координат мишени
 
     void specifyBordersByRecord(const RoboMoves::Record &rec);
     void defineTargetBorders(Robo::distance_t side);
+
+    std::vector<Robo::frames_t> avg_speed_on_start_for_muscle;
+    std::vector<Robo::frames_t> avg_speed_changes_for_muscle;
+    std::vector<Robo::frames_t> avg_speed_on_target_for_muscle;
 };
 }
 

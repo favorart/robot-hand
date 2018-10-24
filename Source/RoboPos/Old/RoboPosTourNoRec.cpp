@@ -1,6 +1,9 @@
 ﻿#include "StdAfx.h"
 #include "Robo.h"
-#include "RoboPos.h"
+#include "Hand.h"
+#include "Tank.h"
+#include "RoboMovesTarget.h"
+#include "RoboMovesStore.h"
 #include "RoboPosTourNoRec.h"
 
 using namespace Robo;
@@ -9,6 +12,53 @@ using namespace RoboMoves;
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 //------------------------------------------------------------------------------
+namespace RoboPos {
+struct Counters
+{
+    int count = 0;
+    int count_TP = 0;
+    int count_FP = 0;
+    int count_TN = 0;
+    int count_FN = 0;
+    double avg_miss = 0.;
+
+    Counters() = default;
+    void incr(bool model, bool real)
+    {
+        ++count;
+        if (model && real)
+            ++count_TP;
+        else if (!model && !real)
+            ++count_TN;
+        else if (model && !real)
+            ++count_FP;
+        else if (!model && real)
+            ++count_FN;
+    }
+    void fill(bool contain_pred, bool contain_pos, const Point &pos, const Point &pred);
+    void print()
+    {
+        tcout << std::endl;
+        tcout << _T("count = ") << count << _T(" avg_miss=") << avg_miss / count << std::endl;
+        tcout << _T("\t < T > \t < F >") << std::endl;
+        tcout << _T("< P >\t") << std::setw(5) << count_TP << _T("\t") << std::setw(5) << count_FP << std::endl;
+        tcout << _T("< N >\t") << std::setw(5) << count_TN << _T("\t") << std::setw(5) << count_FN << std::endl;
+    }
+    void clear()
+    {
+        count = 0;
+        count_TP = 0;
+        count_FP = 0;
+        count_TN = 0;
+        count_FN = 0;
+        avg_miss = 0.;
+    }
+};
+}
+//------------------------------------------------------------------------------
+Tour::Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo) :
+    _store(store), _robo(robo), _counters(Counters{})
+{}
 
 //DirectionPredictor  *pDP;
 //Point  predict_shift{ 0.15, -0.05 };
@@ -18,6 +68,50 @@ using namespace Robo::NewHand;
 //frames_t   _lasts_step_increment_thick = 20U;
 //frames_t   _lasts_step_initiate = 25U;
 //frames_t   _lasts_step_braking = 5U;
+
+//------------------------------------------------------------------------------
+void Tour::run(bool distance, bool target, bool braking, bool predict, bool checking,
+          double step_distance, Robo::frames_t lasts_step_increment)
+{
+    _b_distance = distance;
+    _b_target = target;
+    _b_braking = braking;
+    _b_predict = predict;
+    _b_checking = checking;
+    // ----------------------------------------------------
+    _step_distance = step_distance;
+    _lasts_step_increment = lasts_step_increment;
+    // ----------------------------------------------------
+    _complexity = 0;
+    _counters.clear();
+    // ----------------------------------------------------
+    _robo.reset();
+    _base_pos = _robo.position();
+    // ----------------------------------------------------
+    try
+    {
+        if (_step_distance < DBL_EPSILON || _lasts_step_increment == 0)
+            throw std::runtime_error{ "Increment Params aren't set" };
+
+        Point useless;
+        runNestedForMuscle(0, Robo::Control{}, useless);
+    }
+    catch (boost::thread_interrupted&)
+    {
+        CINFO("WorkingThread interrupted");
+        //return;
+    }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
+        //return;
+    }
+    // ----------------------------------------------------
+    if (_b_checking) { _counters.print(); }
+    tcout << _T("\nStep: ") << (_step_distance / 0.0028) << _T("mm.");
+    tcout << _T("\nComplexity: ") << _complexity;
+    tcout << _T("  minutes:") << double(_complexity) / 60. << std::endl;
+}
 
 //------------------------------------------------------------------------------
 void TourNoRecursion::specifyBordersByRecord(const RoboMoves::Record &rec)

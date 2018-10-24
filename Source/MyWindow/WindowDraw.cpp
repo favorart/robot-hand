@@ -147,7 +147,7 @@ void  drawMyFigure(HDC hdc, const Point &center, double w, double h, double angl
             Ellipse(hdc, Tx(center.x - w / 2), Ty(center.y + h / 2),
                          Tx(center.x + w / 2), Ty(center.y - h / 2));
         else
-            throw std::exception("Not implemented");
+            throw std::logic_error("Not implemented");
         break;
     //-----------------------------------
     case MyFigure::Rectangle:
@@ -303,13 +303,25 @@ HPEN genStoreGradientPen(size_t longs)
 }
 
 //------------------------------------------------------------------------------
-GradPens::GradPens(Robo::frames_t robo_max_last) : robo_max_last(robo_max_last)
+GradPens::GradPens(Robo::frames_t robo_max_last) : _robo_max_last(robo_max_last)
 {
-    makeGradient(colors, colorGradations, gradient);
+    makeGradient(_colors, _colorGradations, _gradient);
 
-    gradientPens.resize(gradient.size());
-    for (auto i = 0U; i < gradient.size(); ++i)
-        gradientPens[i] = CreatePen(PS_SOLID, 1, gradient[i]);
+    _gradientPens.resize(_gradient.size());
+    for (auto i = 0U; i < _gradient.size(); ++i)
+        _gradientPens[i] = CreatePen(PS_SOLID, 1, _gradient[i]);
+}
+
+//------------------------------------------------------------------------------
+void GradPens::setColors(color_interval_t colors, size_t gradations)
+{
+    _colors = colors;
+    _colorGradations = gradations;
+    makeGradient(_colors, _colorGradations, _gradient);
+
+    _gradientPens.resize(_gradient.size());
+    for (auto i = 0U; i < _gradient.size(); ++i)
+        _gradientPens[i] = CreatePen(PS_SOLID, 1, _gradient[i]);
 }
 
 //------------------------------------------------------------------------------
@@ -317,16 +329,16 @@ HPEN GradPens::operator()(Robo::frames_t longs) const
 {
     // (sz=15-1 - 0) * (input - 0) / (last=700 - 0) + 0; }
     int i = 0;
-    if (longs > robo_max_last)
+    if (longs > _robo_max_last)
     {
         //throw std::runtime_error("");
-        i = gradientPens.size() - 1;
+        i = _gradientPens.size() - 1;
     }
     else
     {
-        i = Utils::interval_map(longs, { 0u, robo_max_last }, { 0u, gradientPens.size() - 1 });
+        i = Utils::interval_map(longs, { 0u, _robo_max_last }, { 0u, _gradientPens.size() - 1u });
     }
-    return gradientPens[i];
+    return _gradientPens[i];
 }
 
 //------------------------------------------------------------------------------

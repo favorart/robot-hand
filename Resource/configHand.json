@@ -1,0 +1,111 @@
+{
+  "robo": {
+    "type": "Hand-v4",
+    "base": [ 0.75, 0.25 ],
+    "joints": [
+      {
+        "name": "Wrist",
+        "joint": 0,
+        "defPoseRatio": 0.0,
+        "show": false,
+        "base": [ -0.75, 1.05 ],
+        "maxMoveFrame": 1.7453292519943295769236907684886,
+        "#maxAngle": "radians = 100 degrees",
+        "nMoveFrames": 750,
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      },
+      {
+        "name": "Elbow",
+        "joint": 1,
+        "defPoseRatio": 70.0,
+        "show": true,
+        "base": [ -0.70, 1.00 ],
+        "nMoveFrames": 1250,
+        "maxMoveFrame": 2.3561944901923449288469825374596,
+        "#maxAngle": "radians = 135 degrees",
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      },
+      {
+        "name": "Shldr",
+        "joint": 2,
+        "defPoseRatio": 0.0,
+        "show": true,
+        "base": [ 0.10, 0.85 ],
+        "nMoveFrames": 1370,
+        "maxMoveFrame": 1.832595714594046055769875306913,
+        "#maxAngle": "radians = 105 degrees",
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      },
+      {
+        "name": "Clvcl",
+        "joint": 3,
+        "defPoseRatio": 50.0,
+        "show": false,
+        "#show": "there is a BUG of read config then show",
+        "base": [ 0.75, 0.25 ],
+        "nMoveFrames": 2000,
+        "maxMoveFrame": 0.4,
+        "motionLaw": {
+          "name": "CONAC",
+          "type": 4,
+          "stopD": 0.55,
+          "param": ""
+        }
+      }
+    ]
+  },
+  "target": {
+    "#type": "RecT",
+    "type": "PolyT",
+    "polygon": [
+      [ -0.41, -0.85 ],
+      [ -0.21, -0.75 ],
+      [ -0.01, -0.85 ],
+      [ 0.12, -0.75 ],
+      [ 0.22, -0.65 ],
+      [ 0.35, -0.55 ],
+      [ 0.43, -0.13 ],
+      [ 0.00, -0.03 ],
+      [ -0.20, -0.05 ],
+      [ -0.24, -0.65 ]
+    ],
+    "center": [ -0.195, -0.44 ],
+    "min": [ -0.41, -0.85 ],
+    "max": [ 0.43, -0.03 ],
+    "thickness": 0.43,
+    "precision": 0.004,
+
+    "hn_aims": 20,
+    "vn_aims": 20,
+    "#hn_aims": 200,
+    "#vn_aims": 200,
+
+    "left": -0.41,
+    "right": 0.43,
+    "top": -0.03,
+    "bottom": -0.85
+  },
+  "env": {
+    "skip_show_frames": 15,
+    "animation": true
+  },
+  "lm_config": "Resource\\Tour.txt",
+  "precision": 1.5, "#precision": "mm",
+  "redirect": true,
+  "#pickup": "Hand-v4-robo-moves-2018.10.23-16.55.bin"
+}

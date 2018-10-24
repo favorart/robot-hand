@@ -116,7 +116,7 @@ public:
 
     //----------------------------------------------------
     size_t size() const { return (actuals); }
-
+    std::vector<Actuator> v() const { std::vector<Actuator> v(this->begin(), this->end()); return v; }
     void append(const Actuator& a); // sorted
     void push_back(const Actuator& a) { append(a); }
 

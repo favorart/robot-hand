@@ -92,16 +92,16 @@ public:
                 return false;
             else if (_stage == _max_stages)
             {
-                /* enumerate all goals from the Target */
-                while (_current != _target.it_coords().second)
-                {
-                    if (!covered(*_current, store))
-                        return true;
-                    _current++;
-                }
-                /* enumerate finished */
+                // /* enumerate all goals from the Target */
+                //while (_current != _target.it_coords().second)
+                //{
+                //    if (!covered(*_current, store))
+                //        return true;
+                //    _current++;
+                //}
+                // /* enumerate finished */
                 ++_stage;
-                _current = _target.it_coords().first;
+                //_current = _target.it_coords().first;
                 return false;
             }
             else
@@ -209,6 +209,7 @@ bool RoboPos::TourEvo::containMarker(const Control &controls, muscle_t muscles, 
     {
         tcout << "aim= " << pReq->aim << ' ' << aim << ' ' << new_controls << std::endl;
         _store.replace(new_controls, [&aim](RoboMoves::Record &rec) { rec.updateAim(aim); });
+        exists = false;
     }
     // -----------------------------------
     if (!exists) appendMarker(controls, new_controls, aim);
@@ -218,8 +219,8 @@ bool RoboPos::TourEvo::containMarker(const Control &controls, muscle_t muscles, 
 }
 
 
-RoboPos::TourEvo::TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target) :
-    TourI(store, robo), _t(target),
+RoboPos::TourEvo::TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TargetI &target) :
+    TourI(store, robo, config), _t(target),
     _reached_dist(0.000005),
     _oppo_penalty(0.5),
     _max_ncontrols(8),
@@ -231,17 +232,17 @@ RoboPos::TourEvo::TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, const Targ
     _lasts_step(10)
 {
     tptree root;
-    tfstream fin("TourEvo.txt", std::ios::in);
+    tfstream fin("Tour.txt", std::ios::in);
     if (!fin.is_open())
         return;
     pt::read_ini(fin, root);
 
-    _reached_dist = root.get<double>(_T("reached_dist"));
-    _oppo_penalty = root.get<double>(_T("oppo_penalty"));
-    _prev_dist_add = root.get<double>(_T("prev_dist_add"));
-    _max_ncontrols = root.get<frames_t>(_T("max_ncontrols"));
-    _lasts_step = root.get<frames_t>(_T("lasts_step"));
-    _step_back = root.get<frames_t>(_T("step_back"));
+    _reached_dist = root.get<double>(_T("evo.reached_dist"));
+    _oppo_penalty = root.get<double>(_T("evo.oppo_penalty"));
+    _prev_dist_add = root.get<double>(_T("evo.prev_dist_add"));
+    _max_ncontrols = root.get<frames_t>(_T("evo.max_ncontrols"));
+    _lasts_step = root.get<frames_t>(_T("evo.lasts_step"));
+    _step_back = root.get<frames_t>(_T("evo.step_back"));
 }
 
 bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscles, frames_t frame, const Point &aim, Point &hit)
@@ -252,7 +253,8 @@ bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscle
     {
         if (controls.size())
             _robo.move(controls, frame); // ??? breakings
-        _robo.move({ muscles }, _lasts_max, _lasts_init);
+        if (muscles)
+            _robo.move(Robo::bitset_t{ muscles }, _lasts_max, _lasts_init);
         hit = _robo.position();
     }
     return exists;
@@ -299,8 +301,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
     RoboMoves::Record best_prev{};
     size_t step_back_count = 0;
 
-    //CINFO("Evo: start goal=" << goal.biggest());
-    tcout << "Evo: start goal=" << goal.biggest() << " pos=" << _robo.position() << std::endl;
+    CINFO("Evo: start goal=" << goal.biggest() << " pos=" << _robo.position());
     
     // TODO: Moves marked as USED
     // But not used for new point_targets
@@ -379,11 +380,10 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                     runNestedStop(acts, true); pos = _robo.position();
                     runNestedReset(controls, acts, frames, lasts, goal.biggest(), pos);
 
-                    tcout << "goals=" << goal.size() << std::endl;
+                    //tcout << "goals=" << goal.size() << std::endl;
                     done = !goal.next_stage(_store);
                     Control c(bitset_t{ acts }, frames, lasts);
-                    tcout << "Evo: next_stage goal=" << goal.biggest() << " controls= " << controls + c << std::endl;
-                    //CINFO("Evo: next_stage goal=" << goal.biggest() << " controls= " << controls + c);
+                    CINFO("Evo: next_stage goal=" << goal.biggest() << " controls= " << controls + c << " stage: " << goal.stage() << " goals=" << goal.size());
                     goal.show();
 
                     runNestedPreMove(controls, 0, frames, goal.biggest(), pos);
@@ -400,10 +400,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
             if (lasts >= _lasts_max)
             {
                 Control c({ acts, frames, _lasts_max });
-                tcout << " d=" << prev_dist << " { " << c << " }" 
-                    << " pos=" << pos 
-                    << " (lasts == lasts_max)"
-                    << std::endl;
+                CINFO("Evo: (lasts == lasts_max) " << " d=" << prev_dist << ' ' << c << " pos=" << pos);
                 runNestedStop(acts, false); pos = _robo.position();
                 runNestedReset(controls, acts, frames, _lasts_max, goal.biggest(), pos);
             }
@@ -429,13 +426,12 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
 
             frames += best_lasts + 1;
             distances.push(best_d);
-            tcout << "---acts=" << controls << std::endl;
+            CINFO("Evo: --best-acts=" << controls);
         }
 
         if (_t.contain(prev_pos))
         {
-            ////CINFO("Evo: recalc goal");
-            ////tcout << "Evo: recalc goal" << std::endl;
+            //CINFO("Evo: recalc goal");
             //goal.recalc(_store); /// <---- TODO !!!!!!!!!!!!!!!!!
             //goal.show();
         }
@@ -546,8 +542,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
         {
             if (!one_watched)
             {
-                //CINFO("Evo: FAIL");
-                tcout << "Evo: FAIL " << the_best_dist << " stage: " << goal.stage() << std::endl;
+                CINFO("Evo: FAIL " << the_best_dist << " stage: " << goal.stage());
                 return false;
             }
         }
@@ -556,8 +551,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
         //----------------------------------------------
         controls_prev = controls;
     }
-    //CINFO("Evo: DONE");
-    tcout << "Evo: DONE" << std::endl;
+    CINFO("Evo: DONE");
     return true;
 }
 
@@ -631,8 +625,8 @@ bool RoboPos::TourEvo::runNestedStop(IN const Robo::bitset_t &muscles, IN bool s
 //}
 
 
-RoboPos::TourEvoSteps::TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, const TargetI &target) :
-    TourEvo(store, robo, target)
+RoboPos::TourEvoSteps::TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TargetI &target) :
+    TourEvo(store, robo, config, target)
     //,
     //_reached_dist(0.00001),
     //_oppo_penalty(1.),
@@ -640,16 +634,16 @@ RoboPos::TourEvoSteps::TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, 
     //_step_back(4)
 {
     tptree root;
-    tfstream fin("TourEvo.txt", std::ios::in);
+    tfstream fin("Tour.txt", std::ios::in);
     if (!fin.is_open())
         return;
     pt::read_ini(fin, root);
 
-    _reached_dist = root.get<double>(_T("reached_dist"));
-    _oppo_penalty = root.get<double>(_T("oppo_penalty"));
-    _prev_dist_add = root.get<double>(_T("prev_dist_add"));
-    _max_ncontrols = root.get<frames_t>(_T("max_ncontrols"));
-    _step_back = root.get<frames_t>(_T("step_back"));
+    _reached_dist = root.get<double>(_T("evostep.reached_dist"));
+    _oppo_penalty = root.get<double>(_T("evostep.oppo_penalty"));
+    _prev_dist_add = root.get<double>(_T("evostep.prev_dist_add"));
+    _max_ncontrols = root.get<frames_t>(_T("evostep.max_ncontrols"));
+    _step_back = root.get<frames_t>(_T("evostep.step_back"));
 }
 
 bool RoboPos::TourEvoSteps::runNestedForStep(IN const Robo::RoboI::bitwise &muscles, OUT Point &hit)

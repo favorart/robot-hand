@@ -5,12 +5,11 @@
 #include "Robo.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
-#include "ConfigJSON.h"
-
 //#include "RoboPosApprox.h"
 
 namespace RoboPos
 {
+class TourI;
 /* тестовые движения рукой */
 //------------------------------------------------------------------------------
 void  testRandom (RoboMoves::Store &store, Robo::RoboI &robo, size_t tries);
@@ -30,40 +29,48 @@ void  testCover  (RoboMoves::Store &store, Robo::RoboI &robo);
 */
 class LearnMoves
 {
-    static int tries;
+    static const Robo::frames_t lasts_min = 1;
+    static size_t tries;
 
     RoboMoves::Store &_store;
     Robo::RoboI &_robo;
     std::shared_ptr<Robo::RoboI> _p_robo_copy;
     Point _base_pos;
 
-    RecTarget &_target;
-    const double _precision; ///< Точность = 1.5 мм  
+    const TargetI &_target;
+    //const Robo::distance_t _precision; ///< Точность = 1.5 мм  
     size_t _complexity = 0;  ///< Подсчёт сложности
+    tptree _config;
 
-    ConfigJSON::StageInput1 _stage1_params;
-    ConfigJSON::StageInput2 _stage2_params;
-    ConfigJSON::StageInput3 _stage3_params;
+    bool use_weighted_mean{};
+    Robo::distance_t side3{};
+    Robo::distance_t side_decrease_step{};
 
+    std::shared_ptr<TourI> makeTour(int stage);
     //=============================================
     bool  actionRobo(IN const Point &aim, IN const Robo::Control &controls, OUT Point &hit);
     //---------------------------------------------
     void  weightedMeanControls(IN  const Point &aim,
-                               IN  const RoboMoves::adjacency_ptrs_t &range,
-                               OUT Robo::Control &controls,
-                               OUT double *weight = NULL);
+                               IN  const RoboMoves::adjacency_ptrs_t &range, // диапазон управлений с конечными точками вблизи цели
+                               OUT Robo::Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.
+                               OUT Point &mid_hit); // среднее расстояние диапазона до цели 
 
-    bool  weightedMeanULAdjs(IN  const Point   &aim, OUT RoboMoves::Record *pRec,
+    bool  weightedMeanULAdjs(IN  const Point   &aim,
+                             OUT RoboMoves::Record *pRec,
                              OUT Robo::Control &lower_controls,
                              OUT Robo::Control &upper_controls,
-                             OUT double        &lower_distance,
-                             OUT double        &upper_distance);
+                             OUT Robo::distance_t &delta);
     //---------------------------------------------
     void  gradientControls(IN  const Point &aim, IN  double  d_d,
                            IN  const Robo::Control &inits_controls,
                            IN  const Robo::Control &lower_controls,
                            IN  const Robo::Control &upper_controls,
                            OUT       Robo::Control &controls);
+    void gradientControlsNew(IN const Point   &aim, IN  double d_d,
+                             IN const Robo::Control &inits_controls,
+                             IN const Robo::Control &lower_controls,
+                             IN const Robo::Control &upper_controls,
+                             OUT      Robo::Control &controls);
     //---------------------------------------------
     void  rundownControls(IN OUT Robo::Control &controls);
     //---------------------------------------------
@@ -96,17 +103,10 @@ class LearnMoves
     size_t weightedMean(IN const Point &aim, OUT Point &hit);
     size_t rundownMDir(IN const Point &aim, OUT Point &hit);
     size_t rundownFull(IN const Point &aim, OUT Point &hit);
-    //---------------------------------------------
-    tstring Tour1_type{};
-    tstring Tour2_type{};
 
 public:
-    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target);
-    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target,
-               IN double precision,
-               IN const ConfigJSON::StageInput1 &stage1,
-               IN const ConfigJSON::StageInput2 &stage2,
-               IN const ConfigJSON::StageInput3 &stage3);
+    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
+               IN double precision_mm, IN const tstring &fn_config);
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
     //---------------------------------------------
@@ -122,11 +122,8 @@ public:
     size_t  gradientMethod(IN const Point &aim);
     size_t  gradientMethod_admixture(IN const Point &aim);
     //---------------------------------------------
-    void  testStage1();
-    void  testStage2();
-    void  testStage3(OUT Robo::Trajectory &uncovered);
-    //---------------------------------------------
-    void  testCoverTarget(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target);
+    void save(tptree &node) const;
+    void load(tptree &node);
 }; // end LearnMovements
 
 }

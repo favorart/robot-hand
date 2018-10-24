@@ -1,5 +1,7 @@
 ﻿#include "StdAfx.h"
-#include "RoboPos.h"
+#include "Robo.h"
+#include "RoboMovesTarget.h"
+#include "RoboMovesStore.h"
 
 #ifdef MDIR_OLD
 //------------------------------------------

@@ -2,7 +2,8 @@
 
 #include "RoboPosMDirections_Old.h"
 #include "Robo.h"
-#include "RoboPos.h"
+#include "RoboMovesTarget.h"
+#include "RoboMovesStore.h"
 
 #ifdef MDIR_OLD
 using namespace RoboPos;

@@ -44,7 +44,7 @@ constexpr int LV_CALERT = 5;
                                                           title,                    \
                                                           MB_OK | MB_ICONERROR);    \
                                            }                                        \
-                                        }                                           \
+                                       }                                            \
                                         /* throw std::exception(); */               \
                                      }
 
@@ -92,4 +92,25 @@ private:
 #  undef FunctionName
 #  define FunctionName Reporter(__FUNCTION__,__FILE__,__LINE__)
 #endif
+
+//-------------------------------------------------------------------------------
+template <typename Base>
+class Factory
+{
+public:
+    static std::shared_ptr<Base> create(tptree &root)
+    {
+        auto &node = root.get_child_optional(Base::name()).get_value_or(root);
+        tstring type = node.get<tstring>(_T("type"));
+        for (auto &make : makes)
+        {
+            auto t = make(type, node);
+            if (t) return t;
+        }
+        CWARN(_T("No make function for type=") << type);
+        return std::shared_ptr<Base>(nullptr);
+    }
+private:
+    static std::vector<std::function<std::shared_ptr<Base>(const tstring&, tptree&)>> makes;
+};
 

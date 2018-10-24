@@ -2,11 +2,12 @@
 #include "WindowDraw.h"
 #include "WindowDrawLetters.h"
 
-#include "RoboPos.h"
-#include "RoboMuscles.h"
+#include "Robo.h"
+#include "RoboMovesTarget.h"
+#include "RoboMovesStore.h"
 #include "RoboLearnMoves.h"
-
 #include "RoboPosApprox.h"
+#include "RoboMuscles.h"
 
 
 using namespace Robo;
@@ -25,22 +26,63 @@ LONG Tx_zoom (double logic_x)
 LONG Ty_zoom (double logic_y)
 { return static_cast<LONG>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
 
-LONG  Tx  (double logic_x)
-{ return  (MyWindowData::zoom) ? Tx_zoom(logic_x) : Tx_norm(logic_x); }
-LONG  Ty  (double logic_y)
-{ return  (MyWindowData::zoom) ? Ty_zoom(logic_y) : Ty_norm(logic_y); }
+/* wheel */
+LONG Tx_wheel (double logic_x)
+{ return static_cast<LONG>(MARGIN + (1.) * (logic_x + 0.5) * (WindowSize()->x - 2. * MARGIN)); }
+LONG Ty_wheel (double logic_y)
+{ return static_cast<LONG>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize()->y - 2. * MARGIN)); }
+
+
+LONG Tx(double logic_x)
+{
+    switch (MyWindowData::zoom)
+    {
+    case MyWindowData::Zoom::NONE:
+        return Tx_norm(logic_x);
+    case MyWindowData::Zoom::STATIC:
+        return Tx_zoom(logic_x);
+    case MyWindowData::Zoom::WHEEL:
+        return Tx_wheel(logic_x);
+    default:
+        CERROR(_T("Invalid zoom"));
+        return 0;
+    }
+}
+LONG Ty(double logic_y)
+{
+    switch (MyWindowData::zoom)
+    {
+    case MyWindowData::Zoom::NONE:
+        return Ty_norm(logic_y);
+    case MyWindowData::Zoom::STATIC:
+        return Ty_zoom(logic_y);
+    case MyWindowData::Zoom::WHEEL:
+        return Ty_wheel(logic_y);
+    default:
+        CERROR(_T("Invalid zoom"));
+        return 0;
+    }
+}
 
 // наоборот: координаты Windows -> логические координаты
 Point LogicCoords (PPOINT coord)
 {
   Point p;
-  if ( MyWindowData::zoom )
-  { p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize ()->x - 2. * MARGIN))) - 0.5;
-    p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize ()->y - 2. * MARGIN))) + 0.0;
-  }
-  else
-  { p.x = ((coord->x - MARGIN) / (( 0.5) * (WindowSize ()->x - 2. * MARGIN))) - 1.;
-    p.y = ((coord->y - MARGIN) / ((-0.5) * (WindowSize ()->y - 2. * MARGIN))) + 1.;
+  switch (MyWindowData::zoom)
+  {
+  case MyWindowData::Zoom::NONE:
+      p.x = ((coord->x - MARGIN) / (( 0.5) * (WindowSize()->x - 2. * MARGIN))) - 1.;
+      p.y = ((coord->y - MARGIN) / ((-0.5) * (WindowSize()->y - 2. * MARGIN))) + 1.;
+      break;
+  case MyWindowData::Zoom::STATIC:
+      p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize()->x - 2. * MARGIN))) - 0.5;
+      p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize()->y - 2. * MARGIN))) + 0.0;
+      break;
+  case MyWindowData::Zoom::WHEEL:
+      p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize()->x - 2. * MARGIN))) - 0.5;
+      p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize()->y - 2. * MARGIN))) + 0.0;
+      break;
+  default: CERROR(_T("Invalid zoom"));
   }
   return p;
 }
@@ -647,27 +689,6 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'j':
-    {
-        wd.pLM->testStage3(wd.canvas.uncoveredPointsList);  /* OLD */
-        //========================================
-        wd.canvas.hDynamicBitmapChanged = true;
-        InvalidateRect(hWnd, &myRect, TRUE);
-        break;
-    }
-
-    case 'k':
-    {
-        //========================================
-        WorkerThreadRunTask(wd, _T(" *** Stage 2 test ***  "),
-                            [](LearnMoves &lm) { lm.testStage2(); /* OLD */ },
-                            std::ref(*wd.pLM));
-        if (WorkerThreadTryJoin(wd))
-            InvalidateRect(hWnd, &myRect, TRUE);
-        //========================================
-        break;
-    }
-
 
     case 'u':
     {
@@ -727,7 +748,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     case 'y':
     {
         //========================================
-        MyWindowData::zoom = !MyWindowData::zoom;
+        MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::STATIC) ? MyWindowData::Zoom::STATIC : MyWindowData::Zoom::NONE;
         //========================================
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
@@ -763,7 +784,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     /* Reset */
     case 'r':
     {
-        if (!wd.testing) break;
+        if (wd.testing) break;
         //========================================
         //wd.frames = 0;
         wd.pRobo->reset();
@@ -931,7 +952,7 @@ void zoomArea(IN Point &zoomCenter, IN double zoomFactor, OUT RECT &zoomedRect)
 // RECT zoomArea(RECT rectToZoom, Point zoomCenter, double factor);
 // // Now, your callback is a lot more simpler :
 
-void onMouseWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
+void onWindowMsWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
 {
     POINT pos;
     if (!GetCursorPos(&pos))

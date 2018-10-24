@@ -213,4 +213,19 @@ void Hand::getWorkSpace(OUT Trajectory &workSpace)
     reset();
 }
 //--------------------------------------------------------------------------------
+std::shared_ptr<RoboI> Hand::make(const tstring &type, tptree &node)
+{
+    Point robo_base;
+    JointsInputsPtrs robo_joints;
+    robo_base.load(node.get_child(_T("base")));
+    for (tptree::value_type &v : node.get_child(_T("joints")))
+    {
+        std::shared_ptr<Robo::JointInput> ji;
+        ji = std::make_shared<Robo::NewHand::Hand::JointInput>();
+        ji->load(v.second);
+        robo_joints.push_back(ji);
+    }
+    robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
+    return (type == Hand::name()) ? std::make_shared<Hand>(robo_base, robo_joints) : std::shared_ptr<RoboI>(nullptr);
+}
 

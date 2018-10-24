@@ -2,12 +2,13 @@
 #include "WindowDraw.h"
 #include "WindowDrawLetters.h"
 
-#include "RoboPos.h"
-#include "RoboMuscles.h"
+#include "Robo.h"
+#include "RoboMovesTarget.h"
+#include "RoboMovesStore.h"
 #include "RoboLearnMoves.h"
+#include "RoboMuscles.h"
 #include "Tank.h"
 #include "Hand.h"
-
 
 using namespace Robo;
 using namespace RoboMoves;
@@ -49,7 +50,7 @@ void MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo)
     /* Auto-drawing trajectory animation */
     if (show_ && animation_ && controls_curr_ && controls_.size())
     {
-        for (size_t i = 0; i < skip_show_steps; ++i)
+        for (size_t i = 0; i < skip_show_frames_; ++i)
         {
             // ============
             robo.step(controls_, controls_curr_);
@@ -77,7 +78,7 @@ void MyWindowData::TrajectoryFrames::clear()
     base_pos_ = {};
 }
 //-------------------------------------------------------------------------------
-bool MyWindowData::zoom = false;
+MyWindowData::Zoom MyWindowData::zoom = MyWindowData::Zoom::NONE;
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
     pWorkerThread{ nullptr },
@@ -105,15 +106,6 @@ MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
     canvas.hBrush_back = CreateSolidBrush(RGB(235, 235, 255));
     /* background color = RGB (255,204,238) */
     canvas.pLetters = std::make_shared<CanvasScaleLetters>(pTarget->min(), pTarget->max());
-
-    {
-        /// !! RM
-        std::freopen("out.txt", "w", stdout);
-
-        //WorkerThreadRunTask(*this, _T(" *** STAGE 1 ***  "),
-        //                    [](RoboPos::LearnMoves &lm) { lm.STAGE_1(); },
-        //                    std::ref(*pLM));
-    }
 }
 MyWindowData::~MyWindowData()
 {
@@ -192,10 +184,10 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
                                   Trajectory uncoveredPoints, HPEN uncoveredPen) {
             GradPens gradPens(robo_max_last);
             auto getPen = [&gradPens](size_t longs) { return gradPens(longs); };
-            store.draw(hdc, (MyWindowData::zoom) ? 0.003 : 0., getPen);
+            store.draw(hdc, (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? 0.003 : 0., getPen);
 
             for (auto &pt : uncoveredPoints)
-                drawCircle(hdc, pt, (MyWindowData::zoom) ? 0.005 : 0., uncoveredPen);
+                drawCircle(hdc, pt, (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? 0.005 : 0., uncoveredPen);
         }, std::ref(*wd.pStore), robot_max_lasts,
            wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{},
            wd.canvas.hPen_red);
@@ -306,9 +298,8 @@ bool  repeatRoboMove(MyWindowData &wd)
     if (!p.first)
         throw std::runtime_error("repeatRoboMove: Empty adjacency");
     // -------------------------------------------------
-    // TODO: REMOVE WHEN FIX GRADIENT ADMIX
-    //if (boost_distance(p.second.hit, wd.mouse.aim) <= wd.pTarget->precision())
-    //    return false;
+    if (boost_distance(p.second.hit, wd.mouse.aim) <= 0./*wd.pTarget->precision()*/)
+        return false;
     // -------------------------------------------------
     /* Repeat Hand Movement */
     wd.pRobo->reset();
@@ -371,64 +362,78 @@ bool  makeRoboMove(MyWindowData &wd)
     return true;
 }
 //-------------------------------------------------------------------------------
-
-//-------------------------------------------------------------------------------
-#include <ConfigJSON.h>
 using namespace NewHand;
 using namespace Mobile;
+
+Factory<TargetI> ftarget;
+Factory<RoboI> frobo;
+// http://zenol.fr/blog/boost-property-tree/en.html
+std::vector<std::function<std::shared_ptr<RoboI>(const tstring&, tptree&)>> Factory<RoboI>::makes{ Robo::NewHand::Hand::make, Robo::Mobile::Tank::make };
+std::vector<std::function<std::shared_ptr<TargetI>(const tstring&, tptree&)>> Factory<TargetI>::makes{ RecTarget::make, PolyTarget::make };
+
+template <typename Robot>
+void save(tptree &root, const Point& robo_base, const JointsInputsPtrs &robo_joints)
+{
+    tptree robo;
+    root.add_child(_T("robo"), robo);
+    robo.put(_T("name"), Robot::name());
+
+    tptree pbase;
+    robo.add_child(_T("base"), pbase);
+    pbase.save(robo_base);
+
+    tptree joints;
+    robo.add_child(_T("joints"), joints);
+    for (const auto &pji : robo_joints)
+    {
+        Robo::JointInput &ji = *pji.get();
+        auto &pp = dynamic_cast<Robot::JointInput&>(ji);
+        ConfigJSON::save(joints, pp);
+    }
+}
+//-------------------------------------------------------------------------------
 void MyWindowData::read_config(IN const tstring &filename)
 {
     try
     {
         tptree root;
         tfstream fin(filename, std::ios::in);
+        if (!fin.is_open())
+            std::runtime_error("config is not exist");
         pt::read_json(fin, root);
 
-        tstring robo_name;
-        JointsInputsPtrs joint_inputs;
-        Point robo_base;
-        ConfigJSON::load(root, robo_name, robo_base, joint_inputs);
-        // ===
-        if (robo_name == _T("Hand-v3"))
-        {
-            pRobo = std::make_shared<Robo::NewHand::Hand>(robo_base, joint_inputs);
-            pRobo->reset();
-        }
-        else if (robo_name == _T("Tank-v1"))
-        {
-            pRobo = std::make_shared<Robo::Mobile::Tank>(robo_base, joint_inputs);
-            pRobo->reset();
-        }
-        else
-        {
-            //throw std::logic_error("Not implemented");
-            //if (robo_name != robo->name())
-            throw std::runtime_error("read_config: incorrect class Robo version");
-        }
+        pRobo = Factory<RoboI>::create(root);
+        pTarget = Factory<TargetI>::create(root);
+        //throw std::runtime_error("read_config: incorrect class Robo version");
 
-        ConfigJSON::TargetInput target;
-        ConfigJSON::load(root, target);
-        pTarget = std::make_shared<RecTarget>(target.vn_aims, target.hn_aims,
-                                              target.left, target.right, target.top, target.bottom);
-        
-        auto &algo = root.get_child(_T("algo"));
-
-        ConfigJSON::TourInput tour;
-        ConfigJSON::load(algo, tour);
-
-        ConfigJSON::StageInput1 stage1;
-        ConfigJSON::StageInput2 stage2;
-        ConfigJSON::StageInput3 stage3;
-        ConfigJSON::load(algo, stage1, stage2, stage3);
-
-        double precision = algo.get<double>(_T("precision"));
-        if (precision <= 0)
+        double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
+        if (precision_mm <= 0)
             throw std::runtime_error("read_config: incorrect precision");
 
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision, stage1, stage2, stage3);
+        tstring fn_config = root.get<tstring>(_T("lm_config"));
 
-        unsigned skip_show_steps = root.get<unsigned>(_T("env.skip_show_steps")); /// ???
-        bool animation = root.get<bool>(_T("env.animation")); /// ???
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision_mm, fn_config);
+
+        unsigned skip_show_frames = root.get_optional<unsigned>(_T("env.skip_show_frames")).get_value_or(15);
+        trajFrames.setSkipShowFrames(skip_show_frames);
+
+        bool animation = root.get_optional<bool>(_T("env.animation")).get_value_or(true);
+        trajFrames.setAnim(animation);
+
+        // -------------------------------------------------------------------------
+        bool redirect = root.get_optional<bool>(_T("redirect")).get_value_or(false);
+        if (redirect)
+        {
+            auto stdout_filename = ("out-" + Utils::now() + ".txt");
+            if (std::freopen(stdout_filename.c_str(), "w", stdout) == NULL)
+                CERROR("freopen: invalid IO stream redirect");
+        }
+        tstring pickup = root.get_optional<tstring>(_T("pickup")).get_value_or(_T(""));
+        if (pickup.length())
+        {
+            pStore->pick_up(pickup);
+        }
+        // -------------------------------------------------------------------------
     }
     catch (const std::exception &e)
     {
@@ -436,41 +441,21 @@ void MyWindowData::read_config(IN const tstring &filename)
         std::exit(1);
     }
 }
+#include "RoboPosTour.h"
 void MyWindowData::write_config(IN const tstring &filename) const
 {
-    /// TODO: MyWindowData::write_config ???
     try
     {
         tptree root;
-        JointsInputsPtrs joint_inputs; /// ???
-        ConfigJSON::save(root, pRobo->name(), pRobo->jointPos(pRobo->jointsCount()), joint_inputs);
+        //JointsInputsPtrs joint_inputs = ???
+        //save<???>(root, pRobo->name(), pRobo->jointPos(pRobo->jointsCount()), joint_inputs);
 
-        ConfigJSON::TargetInput target; /// ???
-        ConfigJSON::save(root, target);
-
-        tptree algo;
-        {
-            ConfigJSON::TourInput tour; /// ???
-            ConfigJSON::save(algo, tour);
-
-            ConfigJSON::StageInput1 stage1; /// ???
-            ConfigJSON::StageInput2 stage2; /// ???
-            ConfigJSON::StageInput3 stage3; /// ???
-            ConfigJSON::save(algo, stage1, stage2, stage3);
-
-            double precision; /// ???
-            algo.get<double>(_T("precision"), precision);
-        }
-        root.put_child(_T("algo"), algo);
+        pTarget->save(root);
+        root.get<double>(_T("precision"), pTarget->precision() / RoboPos::TourI::divToMiliMeters);
         
         tptree env;
-        {
-            bool animation; /// ???
-            unsigned skip_show_steps; /// ???
-
-            env.get<unsigned>(_T("skip_show_steps"), skip_show_steps);
-            env.get<bool>(_T("animation"), animation);
-        }
+        env.get<unsigned>(_T("skip_show_steps"), unsigned(trajFrames.skipShowFrames()));
+        env.get<bool>(_T("animation"), trajFrames.animation());
         root.put_child(_T("env"), env);
 
         tfstream fout(filename, std::ios::out);

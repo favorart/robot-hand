@@ -84,3 +84,15 @@ tostream& operator<<(tostream &s, const Point &p)
 tistream& operator>>(tistream &s, Point &p)
 { return s >> ConfirmInput(_T("(")) >> p.x_ >> ConfirmInput(_T(", ")) >> p.y_ >> ConfirmInput(_T(")")); }
 //--------------------------------------------------------------------------------
+void Point::save(tptree &node) const
+{
+    tptree xelem, yelem;
+    xelem.put_value(x); node.push_back(std::make_pair(_T(""), xelem));
+    yelem.put_value(y); node.push_back(std::make_pair(_T(""), yelem));
+}
+void Point::load(tptree &node)
+{
+    assert(node.size() == 2);
+    x = node.front().second.get_value<double>();
+    y = node.back().second.get_value<double>();
+}

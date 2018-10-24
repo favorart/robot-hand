@@ -35,8 +35,8 @@
     <ClInclude Include="Source\RoboDB\RoboMovesRecord.h" />
     <ClInclude Include="Source\RoboDB\RoboMovesStore.h" />
     <ClInclude Include="Source\RoboPos\RoboMovesTarget.h" />
-    <ClInclude Include="Source\Hand\Hand.h" />
-    <ClInclude Include="Source\Hand\HandMotionLaws.h" />
+    <ClInclude Include="Source\Robo\Hand\Hand.h" />
+    <ClInclude Include="Source\Robo\Hand\HandMotionLaws.h" />
     <ClInclude Include="Source\RoboPos\RoboPosApprox.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourEvo.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourNoRec.h" />
@@ -53,7 +53,6 @@
     <ClInclude Include="Source\MyWindow\WindowDrawLetters.h" />
     <ClInclude Include="Source\MyWindow\WindowData.h" />
     <ClInclude Include="Source\MyWindow\WindowHeader.h" />
-    <ClInclude Include="Source\RoboPos\RoboPos.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTour.h" />
     <ClInclude Include="Source\Robo\Robo.h" />
     <ClInclude Include="Source\Robo\RoboControl.h" />
@@ -61,8 +60,7 @@
     <ClInclude Include="Source\Robo\RoboMotionLaws.h" />
     <ClInclude Include="Source\Robo\RoboPhysics.h" />
     <ClInclude Include="Source\StdAfx.h" />
-    <ClInclude Include="Source\Tank\Tank.h" />
-    <ClInclude Include="Source\Utilities\ConfigJSON.h" />
+    <ClInclude Include="Source\Robo\Tank\Tank.h" />
     <ClInclude Include="Source\Utilities\Point.h" />
     <ClInclude Include="Source\Utilities\Utils.h" />
     <ClInclude Include="Source\Utilities\verbose.h" />
@@ -75,7 +73,7 @@
     <ClCompile Include="Source\RoboDB\RoboMovesRecord.cpp" />
     <ClCompile Include="Source\RoboDB\RoboMovesStore.cpp" />
     <ClCompile Include="Source\RoboPos\RoboMovesTarget.cpp" />
-    <ClCompile Include="Source\Hand\Hand.cpp" />
+    <ClCompile Include="Source\Robo\Hand\Hand.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosApprox.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosRundown.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosTourEvo.cpp" />
@@ -95,7 +93,6 @@
     <ClCompile Include="Source\MyWindow\WindowMessageHandlers.cpp" />
     <ClCompile Include="Source\MyWindow\WindowMessageLoop.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosGradient.cpp" />
-    <ClCompile Include="Source\RoboPos\RoboPos.cpp" />
     <ClCompile Include="Source\RoboPos\RoboMovesTests.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosTour.cpp" />
     <ClCompile Include="Source\Robo\RoboControl.cpp" />
@@ -108,26 +105,21 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Tank|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\Tank\Tank.cpp" />
-    <ClCompile Include="Source\Utilities\ConfigJSON.cpp" />
+    <ClCompile Include="Source\Robo\Tank\Tank.cpp" />
     <ClCompile Include="Source\Utilities\Point.cpp" />
     <ClCompile Include="Source\Utilities\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="configHand-j2.json" />
-    <Text Include="LearnMoves.txt" />
-    <Text Include="Resource\configHand-j4.json" />
-    <Text Include="Resource\configTank.json" />
-    <Text Include="Tour.txt" />
-    <Text Include="TourEvo.txt" />
-    <Text Include="TourTarget.txt" />
+    <Text Include="Resource\Hand\configHand-j4.json" />
+    <Text Include="Resource\Tank\configTank.json" />
+    <Text Include="Resource\Tour.txt" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource\resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resource\config-tank.json" />
-    <None Include="Resource\config.json" />
+    <None Include="Resource\Tank\config-tank.json" />
+    <None Include="Resource\Hand\configHand.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{31D13702-BE83-40A3-9194-4A05CE7CDB34}</ProjectGuid>
@@ -216,7 +208,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\lp_solve\include\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Robo\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Robo\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\lp_solve\include\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)Source\libs\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)Source\libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(VC_SourcePath)</SourcePath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>

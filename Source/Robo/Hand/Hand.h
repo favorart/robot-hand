@@ -103,7 +103,8 @@ public:
     void setJoints(IN const Robo::JointsOpenPercent&);
     //const Point& position() const { return status.curPos[(params.drawPalm ? Joint::Wrist : Joint::Elbow)]; }
 
-    tstring name() const { return _T("Hand-v4"); }
+    static tstring name() { return _T("Hand-v4"); }
+    static std::shared_ptr<RoboI> make(const tstring &type, tptree &node);
     friend class Robo::EnvEdgesHand;
 };
 

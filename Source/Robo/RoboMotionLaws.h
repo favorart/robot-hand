@@ -57,6 +57,22 @@ struct JointMotionLaw
         moveLaw(pMoveLaw), stopLaw(pStopLaw),
         typeName(typeName), type(type), param(param)
     {}
+    void save(tptree &root) const
+    {
+        root.put(_T("type"), type);
+        root.put(_T("name"), typeName);
+        root.put(_T("param"), param);
+        root.put(_T("stopD"), stopDistanceRatio);
+    }
+    //void load(tptree &root)
+    //{
+    //    //assert(root.size() == 4);
+    //    auto type = static_cast<Robo::MotionLaws::HandMLaw>(root.get<uint8_t>(_T("type")));
+    //    auto param = root.get<tstring>(_T("param"));
+    //    //typeName = root.get<tstring>(_T("name"));
+    //    Robo::MotionLaws::getHandMLaw(type, param);
+    //    stopDistanceRatio = root.get<double>(_T("stopD"));
+    //}
 };
 
 //------------------------------------------------------------------------------

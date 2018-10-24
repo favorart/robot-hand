@@ -73,6 +73,8 @@ struct JointInput
         return s << "{ " << ji.joint << ' ' << ji.base << ' ' 
                  << ji.nMoveFrames << ' ' << ji.maxMoveFrame << ' ' << ji.show << " +MLaw }";
     }
+    virtual void save(tptree &root) const;
+    virtual void load(tptree &root);
 };
 //-------------------------------------------------------------------------------
 /// Robotic Interface Interaction
@@ -168,12 +170,8 @@ public:
     virtual unsigned getWindy() const = 0;
     virtual void     setWindy(bool windy) = 0;
     //----------------------------------------------------
-    virtual tstring name() const = 0;
+    static tstring name() { return _T("robo"); };
     friend class EnvEdges;
-    //----------------------------------------------------
-    /* сериализация */
-    //virtual void save(IN const tstring &filename) const = 0;
-    //virtual void load(IN const tstring &filename) = 0;
 };
 //-------------------------------------------------------------------------------
 using bitset_t = std::bitset<Robo::RoboI::musclesMaxCount>;

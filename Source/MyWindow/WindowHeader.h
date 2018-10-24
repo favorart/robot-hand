@@ -78,6 +78,7 @@ void onWindowStoreSz (HWND hWnd, MyWindowData &wd);
 void onWindowMouse   (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lParam);
 void onWindowChar    (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam);
 void onWindowKeyDown (HWND hWnd, MyWindowData &wd, WPARAM wParam);
+void onWindowMsWheel (HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam);
 //-------------------------------------------------------------------------------
 inline LONG width(PRECT rect)
 { return abs(rect->right - rect->left); }

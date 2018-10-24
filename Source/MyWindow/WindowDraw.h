@@ -30,8 +30,29 @@ inline void drawCircle(HDC hdc, const Point &center, double radius)
 { drawCircle(hdc, center, radius, (HPEN)GetStockObject(BLACK_PEN)); }
 
 //------------------------------------------------------------------------------
-enum class MyFigure : uint8_t { EmptyFig = 0, Ellipse = 1, Rectangle = 2, Triangle = 3 };
+enum class MyFigure : uint8_t { EmptyFig = 0, Ellipse = 1, Rectangle, Triangle, Polygon, _Last_ };
 void drawMyFigure(HDC hdc, const Point &center, double w, double h, double angle, MyFigure figure, HPEN hPen);
+
+//------------------------------------------------------------------------------
+#include <memory> // for std::allocator
+template <template <typename, typename> class Container,
+    typename Value = Point,
+    typename Allocator = std::allocator<Point> >
+void drawMyFigure(HDC hdc, const Container<Value, Allocator> &container, MyFigure figure, HPEN hPen)
+{
+    if (figure >= MyFigure::_Last_)
+        throw std::logic_error("drawMyFigure: Invalid figure=" + std::to_string(int(figure)));
+    if (figure == MyFigure::EmptyFig)
+        return;
+
+    HPEN hPen_old = (HPEN)SelectObject(hdc, hPen);
+    //-----------------------------------
+    MoveToEx(hdc, Tx(container.back().x), Ty(container.back().y), NULL);
+    for (auto &p : container)
+        LineTo(hdc, Tx(p.x), Ty(p.y));
+    //-----------------------------------
+    SelectObject(hdc, hPen_old);
+}
 
 //------------------------------------------------------------------------------
 using color_interval_t = std::pair<COLORREF, COLORREF>;
@@ -41,20 +62,21 @@ void makeGradient(color_interval_t colors, size_t color_gradations, color_gradie
 //------------------------------------------------------------------------------
 class GradPens : public std::function<HPEN(size_t)>
 {
-    const Robo::frames_t robo_max_last;
-    const size_t colorGradations = 15;
-    const color_interval_t colors{ RGB(150, 10, 245), RGB(245, 10, 150) };
+    const Robo::frames_t _robo_max_last;
+    size_t _colorGradations = 15;
+    color_interval_t _colors{ RGB(150, 10, 245), RGB(245, 10, 150) };
     //{ RGB(0,0,130), RGB(255,0,0) } // 128
     //{ RGB(130,0,0), RGB(255,155,155) }
     //gradient_t gradient({ RGB(25, 255, 25), RGB(25, 25, 255), RGB(255, 25, 25) });
-    color_gradient_t gradient;
-    std::vector<HPEN> gradientPens;
+    color_gradient_t _gradient;
+    std::vector<HPEN> _gradientPens;
 public:
     GradPens(Robo::frames_t robo_max_last);
     HPEN operator()(Robo::frames_t longs) const;
+    void setColors(color_interval_t colors, size_t gradations = 15);
     ~GradPens()
     {
-        for (auto pen : gradientPens)
+        for (HPEN pen : _gradientPens)
             DeleteObject(pen);
     }
 };
