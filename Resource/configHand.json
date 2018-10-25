@@ -9,8 +9,7 @@
         "defPoseRatio": 0.0,
         "show": false,
         "base": [ -0.75, 1.05 ],
-        "maxMoveFrame": 1.7453292519943295769236907684886,
-        "#maxAngle": "radians = 100 degrees",
+        "maxMoveFrame": 1.7453292519943295769236907684886, "#maxAngle": "radians = 100 degrees",
         "nMoveFrames": 750,
         "motionLaw": {
           "name": "CONAC",
@@ -26,8 +25,7 @@
         "show": true,
         "base": [ -0.70, 1.00 ],
         "nMoveFrames": 1250,
-        "maxMoveFrame": 2.3561944901923449288469825374596,
-        "#maxAngle": "radians = 135 degrees",
+        "maxMoveFrame": 2.3561944901923449288469825374596, "#maxAngle": "radians = 135 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -42,8 +40,7 @@
         "show": true,
         "base": [ 0.10, 0.85 ],
         "nMoveFrames": 1370,
-        "maxMoveFrame": 1.832595714594046055769875306913,
-        "#maxAngle": "radians = 105 degrees",
+        "maxMoveFrame": 1.832595714594046055769875306913, "#maxAngle": "radians = 105 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
@@ -55,8 +52,7 @@
         "name": "Clvcl",
         "joint": 3,
         "defPoseRatio": 50.0,
-        "show": false,
-        "#show": "there is a BUG of read config then show",
+        "show": false, "#show": "there is a BUG of read config then show",
         "base": [ 0.75, 0.25 ],
         "nMoveFrames": 2000,
         "maxMoveFrame": 0.4,
@@ -70,7 +66,6 @@
     ]
   },
   "target": {
-    "#type": "RecT",
     "type": "PolyT",
     "polygon": [
       [ -0.41, -0.85 ],
@@ -82,30 +77,57 @@
       [ 0.43, -0.13 ],
       [ 0.00, -0.03 ],
       [ -0.20, -0.05 ],
-      [ -0.24, -0.65 ]
+      [ -0.24, -0.65 ],
+      [ -0.41, -0.85 ]
     ],
-    "center": [ -0.195, -0.44 ],
-    "min": [ -0.41, -0.85 ],
-    "max": [ 0.43, -0.03 ],
-    "thickness": 0.43,
-    "precision": 0.004,
+    "#polygon": "полный круг - обязательно",
+
+    "#center": [ -0.195, -0.44 ],
+    "#min": [ -0.41, -0.85 ],
+    "#max": [ 0.43, -0.03 ],
+    "#thickness": 0.43,
 
     "hn_aims": 20,
     "vn_aims": 20,
-    "#hn_aims": 200,
-    "#vn_aims": 200,
+
+    "precision": 0.0042
+  },
+  "#target": {
+    "type": "RecT",
+    "rectangle": [
+      [ -0.41, -0.85 ],
+      [ 0.43, -0.85 ],
+      [ 0.43, -0.03 ],
+      [ -0.41, -0.03 ],
+      [ -0.41, -0.85 ]
+    ],     "#rectangle": "полный круг - обязательно",
+    "#rectangle1": "либо rectangle, либо (left, right, top, bottom)",
+
+    "hn_aims": 20, "#hn_aims": 200,
+    "vn_aims": 20, "#vn_aims": 200,
 
     "left": -0.41,
     "right": 0.43,
     "top": -0.03,
-    "bottom": -0.85
+    "bottom": -0.85,
+
+    "precision": 0.0042
   },
   "env": {
-    "skip_show_frames": 15,
+    "dbRadius": 0.01,
+    "storeRzoomed": 0.003,
+    "storeRnormal": 0.000,
+    "uncoveredRzoomed": 0.005,
+    "uncoveredRnormal": 0.000,
+    "centerAxes": false,
+    "targetLines": true,
+    "targetPoints": true,
+    "targetRadius": 0.007,
+    "skipShowFrames": 15,
     "animation": true
   },
-  "lm_config": "Resource\\Tour.txt",
-  "precision": 1.5, "#precision": "mm",
+  "lm_config": ".\\Resource\\Tour.txt",
+  "precision": 1.5,    "#precision": "mm",
   "redirect": true,
   "#pickup": "Hand-v4-robo-moves-2018.10.23-16.55.bin"
 }

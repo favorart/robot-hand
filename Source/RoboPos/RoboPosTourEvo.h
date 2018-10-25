@@ -37,6 +37,7 @@ protected:
 
     const RoboMoves::Record* appendMarker(const Robo::Control &controls, const Robo::Control &new_controls, const Point &aim);
     bool containMarker(const Robo::Control&, Robo::muscle_t muscles, Robo::frames_t frame, const Point &aim);
+    void printParameters() const;
 
 public:
     TourEvo(RoboMoves::Store&, Robo::RoboI&, tptree&, const TargetI&);
@@ -53,6 +54,7 @@ protected:
     bool runNestedForStep(const Robo::RoboI::bitwise &muscles, Point &robo_hit);
     bool runNestedForMuscle(Robo::joint_t, Robo::Control&, Point &robo_hit);
     bool compansateOverHit(Robo::Control&, const Point &goal);
+    void printParameters() const;
 
 public:
     TourEvoSteps(RoboMoves::Store&, Robo::RoboI&, tptree&, const TargetI&);

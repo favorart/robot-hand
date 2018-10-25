@@ -231,18 +231,23 @@ RoboPos::TourEvo::TourEvo(RoboMoves::Store &store, Robo::RoboI &robo, tptree &co
     _lasts_init(minLasts() + 5),
     _lasts_step(10)
 {
-    tptree root;
-    tfstream fin("Tour.txt", std::ios::in);
-    if (!fin.is_open())
-        return;
-    pt::read_ini(fin, root);
+    _reached_dist = _config.get<double>(_T("evo.reached_dist"));
+    _oppo_penalty = _config.get<double>(_T("evo.oppo_penalty"));
+    _prev_dist_add = _config.get<double>(_T("evo.prev_dist_add"));
+    _max_ncontrols = _config.get<frames_t>(_T("evo.max_ncontrols"));
+    _lasts_step = _config.get<frames_t>(_T("evo.lasts_step"));
+    _step_back = _config.get<frames_t>(_T("evo.step_back"));
+}
 
-    _reached_dist = root.get<double>(_T("evo.reached_dist"));
-    _oppo_penalty = root.get<double>(_T("evo.oppo_penalty"));
-    _prev_dist_add = root.get<double>(_T("evo.prev_dist_add"));
-    _max_ncontrols = root.get<frames_t>(_T("evo.max_ncontrols"));
-    _lasts_step = root.get<frames_t>(_T("evo.lasts_step"));
-    _step_back = root.get<frames_t>(_T("evo.step_back"));
+//------------------------------------------------------------------------------
+void RoboPos::TourEvo::printParameters() const
+{
+    CINFO("\nTourEvo:\n\nreached_dist=" << _reached_dist <<
+          "\noppo_penalty=" << _oppo_penalty <<
+          "\nprev_dist_add=" << _prev_dist_add <<
+          "\nmax_ncontrols=" << _max_ncontrols <<
+          "\nlasts_step=" << _lasts_step <<
+          "\nstep_back=" << _step_back << std::endl);
 }
 
 bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscles, frames_t frame, const Point &aim, Point &hit)
@@ -625,6 +630,7 @@ bool RoboPos::TourEvo::runNestedStop(IN const Robo::bitset_t &muscles, IN bool s
 //}
 
 
+//------------------------------------------------------------------------------
 RoboPos::TourEvoSteps::TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TargetI &target) :
     TourEvo(store, robo, config, target)
     //,
@@ -633,17 +639,23 @@ RoboPos::TourEvoSteps::TourEvoSteps(RoboMoves::Store &store, Robo::RoboI &robo, 
     //_max_ncontrols(10),
     //_step_back(4)
 {
-    tptree root;
-    tfstream fin("Tour.txt", std::ios::in);
-    if (!fin.is_open())
-        return;
-    pt::read_ini(fin, root);
+    //_reached_dist = _config.get<double>(_T("evostep.reached_dist"));
+    //_oppo_penalty = _config.get<double>(_T("evostep.oppo_penalty"));
+    //_prev_dist_add = _config.get<double>(_T("evostep.prev_dist_add"));
+    //_max_ncontrols = _config.get<frames_t>(_T("evostep.max_ncontrols"));
+    //_step_back = _config.get<frames_t>(_T("evostep.step_back"));
+}
 
-    _reached_dist = root.get<double>(_T("evostep.reached_dist"));
-    _oppo_penalty = root.get<double>(_T("evostep.oppo_penalty"));
-    _prev_dist_add = root.get<double>(_T("evostep.prev_dist_add"));
-    _max_ncontrols = root.get<frames_t>(_T("evostep.max_ncontrols"));
-    _step_back = root.get<frames_t>(_T("evostep.step_back"));
+//------------------------------------------------------------------------------
+void RoboPos::TourEvoSteps::printParameters() const
+{
+    //CINFO(std::endl <<
+    //      "reached_dist=" << _reached_dist << std::endl
+    //      "oppo_penalty=" << _oppo_penalty << std::endl
+    //      "prev_dist_add=" << _prev_dist_add << std::endl
+    //      "max_ncontrols=" << _max_ncontrols << std::endl
+    //      "lasts_step=" << _lasts_step << std::endl
+    //      "step_back=" << _step_back << std::endl);
 }
 
 bool RoboPos::TourEvoSteps::runNestedForStep(IN const Robo::RoboI::bitwise &muscles, OUT Point &hit)

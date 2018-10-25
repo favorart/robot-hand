@@ -21,9 +21,9 @@ struct MyWindowData
 {
     struct MouseHandler
     {
-        bool   click{ false };
+        bool   click{ false }; ///< был ли клик в этот фрэйм в рабочейо области окна
         POINT coords{}; ///< координаты мыши в пикселях
-        Point    aim{};
+        Point    aim{}; ///< координаты мыши преобразованы во внутреннее представление
     } mouse;
     // ---------------------------------
     enum class Zoom : int8_t { NONE = 0, STATIC, WHEEL };
@@ -61,6 +61,18 @@ struct MyWindowData
         std::vector<Point/*Robo::Learn::State*/> uncoveredPointsList{};
         bool uncoveredPointsShow{ true };
         // --------------------------------
+        bool   centerAxes{ false };
+        bool   targetLines{ true };
+        bool   targetPoints{ true };
+        double targetRadius{ 0.0007 };
+        double uncoveredRzoomed{ 0.005 };
+        double uncoveredRnormal{ 0.000 };
+        double storeRzoomed{ 0.003 };
+        double storeRnormal{ 0.000 };
+        double dbRadius{ 0.01 };
+        // --------------------------------
+        CGradient cGradient{ CGradient::None };
+        // --------------------------------
     } canvas;
 
     /// Show frames trajectory
@@ -91,6 +103,7 @@ struct MyWindowData
     // ---------------------------------
     std::shared_ptr<TargetI> pTarget;
     std::shared_ptr<Robo::RoboI> pRobo;
+    std::shared_ptr<Robo::RoboI> pRoboClone; ///< For the !weather! testing
     std::shared_ptr<RoboMoves::Store> pStore;
     std::shared_ptr<RoboPos::LearnMoves> pLM;
     // ---------------------------------
@@ -114,7 +127,8 @@ struct MyWindowData
     // ---------------------------------
     void save(const tstring &fn_db) const;
     void load(const tstring &fn_db);
-
+    // ---------------------------------
+    // DEBUG --- RM !!!
     static std::list<Point> goals;
     static std::list<Point> predicts;
     static std::list<Point> reals;

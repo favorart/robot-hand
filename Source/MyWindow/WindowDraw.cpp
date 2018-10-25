@@ -18,7 +18,7 @@ void  drawDecardsCoordinates(HDC hdc)
     LineTo   (hdc, Tx( 0.008), Ty( 0.960));
     LineTo   (hdc, Tx( 0.000), Ty( 1.000));
     //--------
-    for (uint_t i = 0; i < 19; i++)
+    for (auto i = 0u; i < 19u; ++i)
     {
         MoveToEx (hdc, Tx(-0.90 + 0.1*i), Ty(-0.01), NULL);
         LineTo   (hdc, Tx(-0.90 + 0.1*i), Ty( 0.01));
@@ -45,7 +45,7 @@ void  drawCoordinates(HDC hdc, bool marks)
     LineTo   (hdc, Tx(-0.992), Ty( 0.960));
     LineTo   (hdc, Tx(-1.000), Ty( 1.000));
     //--------
-    for (uint_t i = 0; i < 19; i++)
+    for (auto i = 0u; i < 19u; ++i)
     {
         MoveToEx (hdc, Tx(-0.90 + 0.1*i), Ty(-1.01), NULL);
         LineTo   (hdc, Tx(-0.90 + 0.1*i), Ty(-0.99));

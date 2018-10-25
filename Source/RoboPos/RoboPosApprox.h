@@ -99,8 +99,23 @@ public:
     bool  clarify(const Robo::Control&, Point);
     /// Exact interpolation by one more point converted
     bool  clarify(const Eigen::VectorXd&, const Eigen::Vector2d&);
-    /// Construct the train date from a store
+    /// Construct the train data from the Store
     void constructXY(const RoboMoves::Store&);
+    /// Construct the train data from any iterable container
+    template <template <typename, typename> class Container,
+        typename Value = Record,
+        typename Allocator = std::allocator<Value> >
+    void constructXY(const Container<Value, Allocator> &container)
+    {
+        int i = 0;
+        for (const Record &rec : container)
+        {
+            _mX.row(i) = convertToRow(rec.controls);
+            _mY.row(i) = Eigen::Vector2d(rec.hit.x, rec.hit.y);
+            ++i;
+        }
+        constructXY();
+    }
     /// save/load
     template <class Archive>
     void serialize(Archive &ar, unsigned version)

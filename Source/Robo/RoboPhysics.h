@@ -4,9 +4,6 @@
 namespace Robo
 {
 class EnvEdges;
-using JointInputPtr = std::shared_ptr<JointInput>;
-using JointsInputsPtrs = std::list<JointInputPtr>;
-using JointsInputs = std::list<JointInput>;
 /*  jointsOpenPercent={ joint, 0.% <= value <= 100.% } */
 using JointsOpenPercent = std::initializer_list<std::pair<joint_t, double>>;
 
@@ -47,7 +44,7 @@ protected:
         Learn::State calc() const { return Learn::State{ Point{} }; }
     };
     FeedBack feedback;
-    
+
     struct Enviroment
     {
         bool windy{ false }; ///< случайное перемещение в первый такт движения мускулом
@@ -80,7 +77,7 @@ protected:
         Status(const JointsInputsPtrs &joint_inputs);
     };
     Status status;
-    
+
     virtual void realMove() = 0;
 
     virtual void step(IN muscle_t muscle /*= Robo::MInvalid*/, IN frames_t lasts /*= 0*/);
@@ -106,7 +103,7 @@ public:
     frames_t move(IN const Control &controls, IN frames_t max_frames);
     frames_t move(IN const bitset_t &muscles, IN frames_t lasts);
     frames_t move(IN const bitset_t &muscles, IN frames_t lasts, IN frames_t max_frames);
-    
+
     frames_t move(IN frames_t max_frames = LastsInfinity);
     frames_t move(IN const std::vector<muscle_t> &ctrls);
 
@@ -119,6 +116,7 @@ public:
 
     void reset();
 
+    // DEBUG -- RM !!!
     virtual frames_t muscleStatus(muscle_t m) const
     { return status.musclesMove[m]; }
     virtual frames_t lastsStatus(muscle_t m) const
@@ -128,7 +126,8 @@ public:
         return (status.lastsMove[m] > status.lastsStop[m]) ? (
             (status.lastsMove[m] > 0) ? 'm' : '0') : 's';
     }
-    
+    // -----------------------------
+
     Point jointPos(IN joint_t joint) const
     {
         if (joint >= jointsCount())
@@ -143,9 +142,17 @@ public:
     void     setWindy(bool windy) { env.windy = windy; }
 
     bool     moveEnd() const { return status.moveEnd; }
-
     const Point& position() const { return status.curPos[0]; }
 
+    tstring getName() const { return RoboPhysics::name(); };
+    static tstring name() { return _T("RoboPhysics"); };
+
+protected:
+    Point _base() const { return physics.jointsBases[jointsCount()/*base_center*/]; }
+
+private:
+    static std::shared_ptr<RoboI> make(const tstring &type, tptree &node)
+    { throw std::logic_error("Depricated"); };
     friend class EnvEdges;
 };
 }

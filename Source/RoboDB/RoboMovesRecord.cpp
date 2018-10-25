@@ -11,37 +11,47 @@ RoboMoves::Record::Record(IN const Point         &aim,
                           IN const frames_array  &lasts,
                           IN size_t               controls_count,
                           IN const Trajectory    &visited) :
-    aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited)
+    aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited), _lasts_step(0)
 {
     if (!visited_.size())
         throw std::logic_error("Incorrect trajectory in constructor Record");
 
     for (auto i = 0U; i < controls_count; ++i)
         control_.append({ muscles[i], starts[i], lasts[i] });
+    control_.validated(RoboI::musclesMaxCount);
 
-    //if (!control_.validateMusclesTimes())
-    //    throw std::logic_error("Invalid muscles constructor Record parameter");
     updateErrDistance(move_final);
 }
 
-RoboMoves::Record::Record(IN const Point         &aim,
-                          IN const Point         &move_begin,
-                          IN const Point         &move_final,
-                          IN const Robo::Control &controls,
-                          IN const Trajectory    &visited) :
+RoboMoves::Record::Record(IN const Point            &aim,
+                          IN const Point            &move_begin,
+                          IN const Point            &move_final,
+                          IN const Robo::Control    &controls,
+                          IN const Robo::Trajectory &visited) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final),
-    control_(controls), visited_(visited),
+    control_(controls), visited_(visited), _lasts_step(0),
     _update_time(std::time(NULL)), _update_traj(0)
 {
     if (!visited_.size())
-        throw std::logic_error("Incorrect trajectory in constructor Record");
+        throw std::logic_error("Record: Incorrect trajectory");
 
     //if (!control_.validateMusclesTimes())
-    //    throw std::logic_error("Invalid muscles constructor Record parameter");
-    updateErrDistance(move_final);
+    //    throw std::logic_error("Record: Invalid control");
+    updateErrDistance(move_final_);
 }
-//---------------------------------------------------------
 
+RoboMoves::Record::Record(IN const Point            &aim,
+                          IN const Point            &move_begin,
+                          IN const Point            &move_final,
+                          IN const Robo::Control    &controls,
+                          IN const Robo::Trajectory &visited,
+                          IN Robo::frames_t lasts_step) :
+    Record(aim, move_begin, move_final, controls, visited)
+{
+    _lasts_step = lasts_step;
+    if (!_lasts_step)
+        throw std::logic_error("Record: Incorrect lasts_step");
+}
 //---------------------------------------------------------
 double  RoboMoves::Record::eleganceMove() const
 {
@@ -140,7 +150,6 @@ double RoboMoves::Record::ratioTrajectoryBrakes() const
     /// (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
     return 0.;
 }
-
 //------------------------------------------------------------------------------
 tostream& RoboMoves::operator<<(tostream &s, const RoboMoves::Record &rec)
 {
@@ -152,6 +161,9 @@ tostream& RoboMoves::operator<<(tostream &s, const RoboMoves::Record &rec)
     for (auto p : rec.visited_)
         s << p << _T(' ');
     s << std::endl << std::endl;
+    s << rec._lasts_step;
+    // s << (_update_time - std::time(NULL)) << _update_traj;
+    ////s << _error_distance;
     return s;
 }
 tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
@@ -168,7 +180,11 @@ tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
         s >> p;
         rec.visited_.push_back(p);
     }
+    s >> rec._lasts_step;
+    // s >> _update_time >> _update_traj;
+    // _update_time += std::time(NULL);
+    rec.updateErrDistance(rec.move_final_);
+    ////s >> _error_distance;
     return s;
 }
-
 //------------------------------------------------------------------------------

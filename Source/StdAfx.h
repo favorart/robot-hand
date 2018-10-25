@@ -22,11 +22,11 @@
 #include <set>
 #include <map>
 #include <list>
-#include <limits>
+#include <limits> // std::numeric_limits<T>
 #include <string>
 #include <bitset>
 #include <vector>
-#include <memory>
+#include <memory> // for std::allocator
 #include <numeric>
 #include <utility>
 #include <fstream>
@@ -104,6 +104,7 @@ namespace pt = boost::property_tree;
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/segment.hpp>
 #include <boost/geometry/geometries/linestring.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
 
 typedef boost::geometry::model::d2::point_xy<double> boost_point2_t;
 inline double boost_distance(boost_point2_t a, boost_point2_t b)
@@ -185,13 +186,13 @@ using tptree = pt::ptree;
 #define   IN
 #define   OUT
 
-typedef unsigned char  uchar_t;
-typedef uint32_t        uint_t;
-typedef uint64_t       ulong_t;
-//--------------------------------
 #include "Utils.h"
 #include "verbose.h"
 #include "Point.h"
+#include "PointAdapter.h"
 #include "resource.h"
+//-------------------------------------
+inline Point::value_type boost_distance(const Point &a, const Point &b)
+{ return bg::distance(a, b); }
 //-------------------------------------
 #endif // _HEADER_H_

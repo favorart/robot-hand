@@ -30,25 +30,23 @@ void  testCover  (RoboMoves::Store &store, Robo::RoboI &robo);
 class LearnMoves
 {
     static const Robo::frames_t lasts_min = 1;
-    static size_t tries;
 
     RoboMoves::Store &_store;
     Robo::RoboI &_robo;
-    std::shared_ptr<Robo::RoboI> _p_robo_copy;
-    Point _base_pos;
+    Point _base_pos{};
 
     const TargetI &_target;
-    //const Robo::distance_t _precision; ///< Точность = 1.5 мм  
     size_t _complexity = 0;  ///< Подсчёт сложности
     tptree _config;
 
     bool use_weighted_mean{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
+    size_t _tries = 8;
 
     std::shared_ptr<TourI> makeTour(int stage);
     //=============================================
-    bool  actionRobo(IN const Point &aim, IN const Robo::Control &controls, OUT Point &hit);
+    bool actionRobo(IN const Point &aim, IN const Robo::Control &controls, OUT Point &hit);
     //---------------------------------------------
     void  weightedMeanControls(IN  const Point &aim,
                                IN  const RoboMoves::adjacency_ptrs_t &range, // диапазон управлений с конечными точками вблизи цели
@@ -103,6 +101,15 @@ class LearnMoves
     size_t weightedMean(IN const Point &aim, OUT Point &hit);
     size_t rundownMDir(IN const Point &aim, OUT Point &hit);
     size_t rundownFull(IN const Point &aim, OUT Point &hit);
+    size_t gradientMethod(IN const Point &aim, OUT Point &pos);
+
+    using pAdmixMethod = size_t(LearnMoves::*)(const Point&, Point&);
+    const pAdmixMethod admixes[2] = {
+        &LearnMoves::weightedMean,
+        &LearnMoves::gradientMethod//,
+        //&LearnMoves::rundownMDir,
+        //&LearnMoves::rundownFull
+    };
 
 public:
     LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
@@ -119,8 +126,7 @@ public:
     //---------------------------------------------
     void  uncover(OUT Robo::Trajectory &uncovered);
     //---------------------------------------------
-    size_t  gradientMethod(IN const Point &aim);
-    size_t  gradientMethod_admixture(IN const Point &aim);
+    size_t testStage3(IN const Point &aim);
     //---------------------------------------------
     void save(tptree &node) const;
     void load(tptree &node);

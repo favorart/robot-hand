@@ -167,7 +167,6 @@ tstring getCurrentTimeString(tstring format, std::time_t *the_time)
     return ss.str();
 }
 //-------------------------------------------------------------------------------
-#include <cstring>
 std::string Utils::now()
 {
     time_t rawtime;

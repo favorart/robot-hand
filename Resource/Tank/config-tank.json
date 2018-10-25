@@ -1,8 +1,9 @@
 {
   "robo": {
-    "type": "Tank-v1",
+    "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
-    "joints": [ {
+    "joints": [
+      {
         "name": "RTrack",
         "joint": 1,
         "show": true,
@@ -32,60 +33,35 @@
       }
     ]
   },
-  "env": {
-    "skip_show_steps": 15,
-    "animation": true
-  },
-  "target": {
-    "type": "Rect",
 
+  "#target": {
+    "type": "RecT",
+    "rectangle": [
+      [ -0.41, -0.85 ],
+      [ 0.43, -0.85 ],
+      [ 0.43, -0.03 ],
+      [ -0.41, -0.03 ],
+      [ -0.41, -0.85 ]
+    ],    "#rectangle": "full round of points!",
     "hn_aims": 20,
     "vn_aims": 20,
-    "#hn_aims": 200,
-    "#vn_aims": 200,
-
-    "left": -0.41,
-    "right": 0.43,
-    "top": -0.03,
-    "bottom": -0.85
+    "precision": 0.0042
   },
-  "algo": {
-    "tour": {
-      "type": "new",
-      "#type": "old",
-
-      "lasts_step_increment_thick": 20,
-      "lasts_step_initiate": 25,
-      "lasts_step_braking": 5,
-
-      "#STAGEs": {
-        "b_distance": false,
-        "b_target": false,
-        "b_braking": false,
-        "b_checking": false,
-        "step_distance": 0.07,
-        "lasts_step_increment": 5
-      }
-    },
-    "stage3": {
-      "tries": 32,
-      "tries_break": 100,
-      "random_try": 3,
-
-      "side": 0.1,                 "#side"               : "половина ребра квадрата, из которого берутся все точки",
-      "side_decrease_step": 0.01,  "#side_decrease_step" : "шаг уменьшения области поиска для взвешанной суммы",
-      "use_weighted_mean": true,   "#use_weighted_mean"  : "используется взвешенная арифметическое среднее (иначе обычное)"
-    },
-    "stage2": {
-      "draft_distance"   : 0.005,  "#detail!_distance" : "Желаемое расстояние между конеными точками чернового покрытия",
-      "lasts_init_value" : 1,      "#lasts_init_value" : "Время преодоления инерции",
-      "lasts_incr_value" : 3,      "#lasts_incr_value" : "Изменение шага времени"
-    },
-    "stage1": {
-      "draft_distance"   : 0.07,   "#draft_distance"   : "Желаемое расстояние между конеными точками чернового покрытия",
-      "lasts_init_value" : 50,     "#lasts_init_value" : "Время преодоления инерции",
-      "lasts_incr_value" : 10,     "#lasts_incr_value" : "Изменение шага времени"
-    },
-  "precision": 1.5,                "#precision" : "mm"
-  }
+  "env": {
+    "dbRadius": 0.01,
+    "storeRzoomed": 0.003,
+    "storeRnormal": 0.000,
+    "uncoveredRzoomed": 0.005,
+    "uncoveredRnormal": 0.000,
+    "centerAxes": false,
+    "targetLines": true,
+    "targetPoints": true,
+    "targetRadius": 0.007,
+    "skipShowFrames": 15,
+    "animation": true
+  },
+  "lm_config": ".\\Resource\\Tour.txt",
+  "precision": 1.5,
+  "#precision": "mm",
+  "redirect": true
 }

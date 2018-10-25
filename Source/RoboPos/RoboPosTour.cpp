@@ -145,13 +145,13 @@ void TourI::exactBreakings(IN joint_t joint, IN const Control &controls)
 //frames_t glob_lasts_step; /// !!! RM
 //------------------------------------------------------------------------------
 void TourI::adaptiveLasts(IN const Point &prev_pos, IN const Point &curr_pos,
-                          IN const Actuator &control_i, OUT frames_t &lasts_step,
+                          IN const Actuator &control_i, IN OUT frames_t &lasts_step,
                           IN bool target_contain, IN bool was_on_target)
 {
     distance_t d = boost_distance(prev_pos, curr_pos);
     //------------------------------------------
     /* адаптивный шаг изменения длительности */
-    if (d > _step_distance && target_contain)
+    if (d > _step_distance /*&& target_contain*/)
     {
         if ((lasts_step / _lasts_step_increment) > 2 || (d / _step_distance) > 2)
         {
@@ -195,31 +195,155 @@ void TourI::adaptiveLasts(IN const Point &prev_pos, IN const Point &curr_pos,
 }
 
 //------------------------------------------------------------------------------
-TourI::TourI(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint) :
-    _store(store), _robo(robo), _config(config), _next_joint(next_joint), _counters(Counters{}),
+class TourI::AvgLastsIncrement
+{
+    struct Data { Robo::frames_t lasts; unsigned n; };
+    using MusclesAvgLasts = std::vector<std::array<Data, _LI_LAST_>>;
+
+    MusclesAvgLasts _avg_lasts_specs;
+    std::vector<Data> _avg_lasts_steps;
+    unsigned _range_n;
+    unsigned _range_len;
+
+public:
+    AvgLastsIncrement(muscle_t n_muscles,
+                      frames_t max_lasts,
+                      unsigned n,
+                      frames_t incr_init,
+                      frames_t incr_step,
+                      frames_t brake_init,
+                      frames_t brake_incr,
+                      frames_t on_target) :
+        AvgLastsIncrement(n_muscles, max_lasts, n, LastsIncrs{ incr_init, incr_step, brake_init, brake_incr, on_target })
+    {}
+    AvgLastsIncrement(muscle_t n_muscles, frames_t max_lasts,
+                      unsigned n, LastsIncrs increments) :
+        _range_len(max_lasts / n), _range_n(n)
+    {
+        _avg_lasts_specs.resize(n_muscles);
+        _avg_lasts_steps.resize(n_muscles * n, { increments[LI_STEP], 1 });
+
+        for (muscle_t m = 0; m < n_muscles; ++m)
+            for (auto i = 0u; i < increments.size(); ++i)
+                _avg_lasts_specs[m][i] = { increments[i], 1 };
+    }
+    frames_t li_step(const Actuator &a, LastsIncrement li) const
+    {
+        const Data *data;
+        if (li == LI_STEP)
+        {
+            unsigned range = a.lasts / _range_len;
+            data = &_avg_lasts_steps[a.muscle * _range_n + range];
+        }
+        else
+        {
+            data = &_avg_lasts_specs[a.muscle][li];
+        }
+        return (data->lasts / data->n);
+    }
+    void recalc(const Actuator &a, LastsIncrement li, frames_t incr, double ratio)
+    {
+        Data *data;
+        if (li == LI_STEP)
+        {
+            unsigned range = a.lasts / _range_len;
+            data = &_avg_lasts_steps[a.muscle * _range_n + range];
+        }
+        else
+        {
+            data = &_avg_lasts_specs[a.muscle][li];
+        }
+        data->lasts += frames_t(incr * ratio);
+        data->n++;
+    }
+};
+
+void TourI::adaptiveAvgLasts(IN const Point &prev_pos, IN const Point &curr_pos,
+                             IN const Robo::Actuator &control_i, IN OUT Robo::frames_t &lasts_step,
+                             IN bool target_contain, IN bool was_on_target, IN bool init)
+{
+    distance_t d = bg::distance(prev_pos, curr_pos);
+    //------------------------------------------
+    if (_b_braking && d > _step_distance && lasts_step < 2)
+    {
+        //glob_lasts_step = lasts_step; /// REMOVE
+        joint_t joint = RoboI::jointByMuscle(control_i.muscle);
+        /* если нельзя сохранить одинаковый промежуток
+        * уменьшением длительность основного,
+        * подключаем торможение противоположным
+        */
+        appendBreakings(joint, control_i);
+    }
+    else if (_b_braking && (d < _step_distance || !was_on_target) && _breakings_controls_actives > 0)
+    {
+        joint_t joint = RoboI::jointByMuscle(control_i.muscle);
+        /* сначала по возможности отключаем торможения */
+        removeBreakings(joint);    
+    }
+    else
+    {
+        double coef = (d <= _step_distance && !was_on_target) ? ((2 * _step_distance - d) / _step_distance) : (d / _step_distance);
+        _p_avg_lasts->recalc(control_i, (init) ? LI_STEP_INIT : LI_STEP, lasts_step, coef);
+        lasts_step = _p_avg_lasts->li_step(control_i, LI_STEP);
+    }
+    if (lasts_step == 0)
+        CERROR("lasts_step == 0");
+}
+
+//------------------------------------------------------------------------------
+inline Robo::frames_t musclesMinLasts(const Robo::RoboI &robo)
+{
+    frames_t l = 0;
+    for (muscle_t m = 0; m < robo.musclesCount(); ++m)
+        if (l < robo.muscleMaxLasts(m))
+            l = robo.muscleMaxLasts(m);
+    return l;
+}
+
+
+#define STRINGIFY(s) #s
+#define NORM_NAME(P) ((STRINGIFY(P)[0]=='_')?tstring(_T(STRINGIFY(P))).substr(1,strlen(STRINGIFY(P))-1):tstring(_T(STRINGIFY(P))))
+
+#define GET_OPTS(config, name, scope) name=config.get_optional<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)).get_value_or(name)
+#define GET_OPT(config, name)         name=config.get_optional<decltype(name)>(NORM_NAME(name)).get_value_or(name)
+
+#define SET_OPTS(config, name, scope) config.put<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)))
+#define SET_OPT(config, name)         config.put<decltype(name)>(NORM_NAME(name))
+
+//------------------------------------------------------------------------------
+TourI::TourI(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &nj) :
+    _store(store), _robo(robo), _config(config), _next_joint(nj), _counters(Counters{}),
     _max_nested(_robo.jointsCount()),
     _breakings_controls(_max_nested),
     _breakings_controls_actives(0),
     _b_braking(false),
     _b_simul(true)
 {
-    _b_braking = _config.get_optional<bool>(_T("target.braking")).get_value_or(_b_braking);
-    _b_simul = _config.get_optional<bool>(_T("target.simul")).get_value_or(_b_simul);
-    _b_starts = _config.get_optional<bool>(_T("target.starts")).get_value_or(_b_starts);
+    GET_OPTS(_config, _b_simul, TourI);
+    GET_OPTS(_config, _b_starts, TourI);
+    GET_OPTS(_config, _b_braking, TourI);
+    GET_OPTS(_config, _step_distance, TourI);
 
-    _step_distance = _config.get_optional<double>(_T("target.step_distance")).get_value_or(_step_distance);
-    _lasts_step_increment = _config.get_optional<frames_t>(_T("target.lasts_step_increment")).get_value_or(_lasts_step_increment);
+    GET_OPTS(_config, _lasts_step_increment_init, TourI);
+    GET_OPTS(_config, _lasts_step_increment, TourI);
+    GET_OPTS(_config, _lasts_step_braking_init, TourI);
+    GET_OPTS(_config, _lasts_step_braking_incr, TourI);
+    GET_OPTS(_config, _lasts_step_on_target, TourI);
+    GET_OPTS(_config, _lasts_step_n, TourI);
 
-    _lasts_step_increment_init = _config.get_optional<frames_t>(_T("target.lasts_step_increment_init")).get_value_or(_lasts_step_increment_init);
-    _lasts_step_braking_init = _config.get_optional<frames_t>(_T("target.lasts_step_braking_init")).get_value_or(_lasts_step_braking_init);
-    _lasts_step_braking_incr = _config.get_optional<frames_t>(_T("target.lasts_step_braking_init")).get_value_or(_lasts_step_braking_incr);
-    
-    //if (_config.get_optional<tstring>(_T("next_joint")) == _T("reverse"))
-    //    _next_joint = reverse;
-    //if (_config.get_optional<tstring>(_T("next_joint")) == _T("forward"))
-    //    _next_joint = forward;    
-    //if (_config.get_optional<tstring>(_T("next_joint")) == _T("custom"))
-    //    _next_joint = []() { return; };
+    //tstring next_joint;
+    //GET_OPT(_config, next_joint, TourI);
+    //if      (next_joint == _T("reverse")) _next_joint = reverse;
+    //else if (next_joint == _T("forward")) _next_joint = forward;    
+    //else if (next_joint == _T("customs")) _next_joint = nj;
+
+    //_p_avg_lasts = std::make_shared<TourI::AvgLastsIncrement>(_robo.musclesCount(), musclesMinLasts(_robo),
+    //                                                          _lasts_step_n,
+    //                                                          _lasts_step_increment_init,
+    //                                                          _lasts_step_increment,
+    //                                                          _lasts_step_braking_init,
+    //                                                          _lasts_step_braking_incr,
+    //                                                          _lasts_step_on_target);
 }
 
 //------------------------------------------------------------------------------
@@ -233,6 +357,7 @@ void TourI::run()
     {
         if (_step_distance < DBL_EPSILON || _lasts_step_increment == 0)
             throw std::runtime_error{ "Increment Params aren't set" };
+        printParameters();
 
         Point useless;
         runNestedForMuscle(_next_joint(_robo.jointsCount(), 0/*any*/, true/*first*/), Robo::Control{}, useless);
@@ -276,7 +401,7 @@ bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
     ++_complexity;
     robo_hit = _robo.position();
 
-    Record rec(robo_hit, base_pos, robo_hit, controling, _robo.trajectory());
+    Record rec(robo_hit, base_pos, robo_hit, controling, _robo.trajectory(), _lasts_step_increment);
     _store.insert(rec);
     //----------------------------------------------
     boost::this_thread::interruption_point();
@@ -288,17 +413,33 @@ bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 TourWorkSpace::TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint) :
     TourI(store, robo, config, next_joint)
 {
-    _b_braking = _config.get<bool>(_T("workspace.braking"));
-    _b_simul = _config.get<bool>(_T("workspace.simul"));
-    _b_starts = _config.get<bool>(_T("workspace.starts"));
+    GET_OPTS(_config, _b_simul, workspace);
+    GET_OPTS(_config, _b_starts, workspace);
+    GET_OPTS(_config, _b_braking, workspace);
+    GET_OPTS(_config, _step_distance, workspace);
 
-    tcout << _config.get<tstring>(_T("workspace.step_distance")) << std::endl;
-    _step_distance = _config.get<double>(_T("workspace.step_distance"));
-    _lasts_step_increment = _config.get<frames_t>(_T("workspace.lasts_step_increment"));
+    GET_OPTS(_config, _lasts_step_increment_init, workspace);
+    GET_OPTS(_config, _lasts_step_increment, workspace);
+    GET_OPTS(_config, _lasts_step_braking_init, workspace);
+    GET_OPTS(_config, _lasts_step_braking_incr, workspace);
+    GET_OPTS(_config, _lasts_step_on_target, workspace);
+    GET_OPTS(_config, _lasts_step_n, workspace);
+}
 
-    _lasts_step_increment_init = _config.get<frames_t>(_T("workspace.lasts_step_increment_init"));
-    _lasts_step_braking_init = _config.get<frames_t>(_T("workspace.lasts_step_braking_init"));
-    _lasts_step_braking_incr = _config.get<frames_t>(_T("workspace.lasts_step_braking_init"));
+//------------------------------------------------------------------------------
+void TourWorkSpace::printParameters() const
+{
+    CINFO(std::endl <<
+          "\nTourWorkSpace:\n\nb_simul=" << _b_simul <<
+          "\nb_starts=" << _b_starts <<
+          "\nb_braking=" << _b_braking <<
+          "\nstep_distance=" << _step_distance <<
+          "\nlasts_step_increment=" << _lasts_step_increment <<
+          "\nlasts_step_increment_init=" << _lasts_step_increment_init <<
+          "\nlasts_step_braking_init=" << _lasts_step_braking_init <<
+          "\nlasts_step_braking_incr=" << _lasts_step_braking_incr <<
+          "\nlasts_step_on_target=" << _lasts_step_on_target <<
+          "\nlasts_step_n=" << _lasts_step_n << std::endl);
 }
 
 //------------------------------------------------------------------------------
@@ -326,6 +467,9 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
         //------------------------------------------
         /* адаптивный шаг длительности */
         frames_t lasts_step = _lasts_step_increment_init;
+        //frames_t lasts_step = _p_avg_lasts->li_step(control_i, LI_STEP_INIT);
+        //bool init = true;
+
         frames_t lasts_i_max = _robo.muscleMaxLasts(muscle_i);
         lasts_i_max = (lasts_i_max > TourI::too_long) ? TourI::too_long : lasts_i_max;
         //------------------------------------------
@@ -358,6 +502,8 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
                 }
                 else advantage = boost_distance(base_pos, curr_pos);
                 adaptiveLasts(prev_pos, curr_pos, control_i, lasts_step);
+                //adaptiveAvgLasts(prev_pos, curr_pos, control_i, lasts_step, true, true, init);
+                //init = false;
             }
             else
             {
@@ -393,7 +539,7 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
                        IN Robo::RoboI &robo,
                        IN tptree &config,
                        IN Approx &approx,
-                       IN const TargetI &target, // !! RM
+                       IN const TargetI &target,
                        IN const TargetContain &target_contain,
                        IN const TourI::JointsNumerator &next_joint) :
     TourI(store, robo, config, next_joint),
@@ -403,24 +549,43 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     _b_predict(false),
     _b_checking(false)
 {
-    defineTargetBorders(0.05);
+    double borders_side;
+    GET_OPTS(_config, borders_side, target);
+    defineTargetBorders(borders_side);
 
-    _b_predict = _config.get_optional<bool>(_T("target.predict")).get_value_or(_b_predict);
-    _b_checking = _config.get_optional<bool>(_T("target.checking")).get_value_or(_b_checking);
-
-    _b_braking = _config.get_optional<bool>(_T("target.braking")).get_value_or(_b_braking);
-    _b_simul = _config.get_optional<bool>(_T("target.simul")).get_value_or(_b_simul);
-    _b_starts = _config.get_optional<bool>(_T("target.starts")).get_value_or(_b_starts);
-
-    _step_distance = _config.get_optional<double>(_T("target.step_distance")).get_value_or(_step_distance);
-    _lasts_step_increment = _config.get_optional<frames_t>(_T("target.lasts_step_increment")).get_value_or(_lasts_step_increment);
-
-    _lasts_step_increment_init = _config.get_optional<frames_t>(_T("target.lasts_step_increment_init")).get_value_or(_lasts_step_increment_init);
-    _lasts_step_braking_init = _config.get_optional<frames_t>(_T("target.lasts_step_braking_init")).get_value_or(_lasts_step_braking_init);
-    _lasts_step_braking_incr = _config.get_optional<frames_t>(_T("target.lasts_step_braking_init")).get_value_or(_lasts_step_braking_incr);
+    GET_OPTS(_config, _b_simul, target);
+    GET_OPTS(_config, _b_starts, target);
+    GET_OPTS(_config, _b_braking, target);
+    GET_OPTS(_config, _b_predict, target);
+    GET_OPTS(_config, _b_checking, target);
+    GET_OPTS(_config, _step_distance, target);
+    GET_OPTS(_config, _lasts_step_increment, target);
+    GET_OPTS(_config, _lasts_step_increment_init, target);
+    GET_OPTS(_config, _lasts_step_braking_init, target);
+    GET_OPTS(_config, _lasts_step_braking_incr, target);
+    GET_OPTS(_config, _lasts_step_on_target, target);
+    GET_OPTS(_config, _lasts_step_n, target);
 
     if (_b_predict && !approx.constructed())
         approx.constructXY(store);
+}
+
+//------------------------------------------------------------------------------
+void TourTarget::printParameters() const
+{
+    CINFO(std::endl << 
+          "\nTourTarget:\n\nb_simul=" << _b_simul << 
+          "\nb_starts=" << _b_starts << 
+          "\nb_braking=" << _b_braking << 
+          "\nb_predict=" << _b_predict << 
+          "\nb_checking=" << _b_checking << 
+          "\nstep_distance=" << _step_distance << 
+          "\nlasts_step_increment=" << _lasts_step_increment << 
+          "\nlasts_step_increment_init=" << _lasts_step_increment_init << 
+          "\nlasts_step_braking_init=" << _lasts_step_braking_init << 
+          "\nlasts_step_braking_incr=" << _lasts_step_braking_incr << 
+          "\nlasts_step_on_target=" << _lasts_step_on_target << 
+          "\nlasts_step_n=" << _lasts_step_n << std::endl);
 }
 
 //------------------------------------------------------------------------------
@@ -504,6 +669,9 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
         //------------------------------------------
         /* адаптивный шаг длительности */
         frames_t lasts_step = _lasts_step_increment_init;
+        //frames_t lasts_step = _p_avg_lasts->li_step(control_i, LI_STEP_INIT);
+        //bool init = true;
+
         for (frames_t last_i = (border.min_lasts + lasts_step); (last_i <= border.max_lasts) || (target_contain); last_i += lasts_step)
         {
             control_i.lasts = last_i;
@@ -542,11 +710,11 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                 if (!target_contain &&
                     boost_distance(_target.center(), curr_pos) > boost_distance(_target.center(), prev_pos))
                 {
-                    CINFO("Center is far");
+                    //CINFO("Center is far");
                     break;
                 }
                 //------------------------------------------
-                /* при удалении от мишени прекращаем данный проход */
+                /* при неподвижности или при удалении от мишени прекращаем данный проход */
                 distance_t advantage_prev = boost_distance(base_pos, prev_pos);
                 distance_t advantage_curr = boost_distance(base_pos, curr_pos);
                 distance_t distance_curr = boost_distance(prev_pos, curr_pos);
@@ -559,6 +727,8 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                 //------------------------------------------
                 adaptiveLasts(prev_pos, curr_pos, control_i, lasts_step,
                               target_contain, was_on_target);
+                //adaptiveAvgLasts(prev_pos, curr_pos, control_i, lasts_step,
+                //                 target_contain, was_on_target, init);
             }
             else
             {
@@ -649,12 +819,12 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
     ++_complexity;
     robo_hit = _robo.position();
 
-    Record rec(robo_hit, base_pos, robo_hit, controling, _robo.trajectory());
+    Record rec(robo_hit, base_pos, robo_hit, controling, _robo.trajectory(), _lasts_step_increment);
     _store.insert(rec);
     //----------------------------------------------
     boost::this_thread::interruption_point();
     //----------------------------------------------
-    tcout << robo_hit << '-' << pred_end << ' ' << _target_contain(robo_hit) << std::endl;
+    //tcout << robo_hit << '-' << pred_end << ' ' << _target_contain(robo_hit) << std::endl;
     //----------------------------------------------
     return _target_contain(robo_hit);
 }

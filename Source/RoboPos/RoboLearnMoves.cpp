@@ -40,7 +40,7 @@ void RoboPos::LearnMoves::save(tptree &node) const
 {
     tptree lm;
     node.add_child(_T("LearnMoves"), lm);
-    lm.put(_T("tries"), unsigned(tries));
+    lm.put(_T("tries"), unsigned(_tries));
     //lm.put(_T("LearnMoves.tries_break"), tries_break);
     //lm.put(_T("LearnMoves.random_try"), random_try);
     lm.put(_T("side"), side3);
@@ -52,7 +52,7 @@ void RoboPos::LearnMoves::save(tptree &node) const
 void RoboPos::LearnMoves::load(tptree &node)
 {
     //assert(node.size() == 6);
-    tries = node.get_optional<unsigned>(_T("tries")).get_value_or(4);
+    _tries = node.get_optional<unsigned>(_T("tries")).get_value_or(4);
     //tries_break = node.get_optional<unsigned>(_T("tries_break"));
     //random_try = node.get_optional<unsigned>(_T("random_try"));
     side3 = node.get<double>(_T("side"), 0.1);
@@ -177,12 +177,12 @@ void  RoboPos::LearnMoves::STAGE_2()
 #endif
 }
 
-size_t RoboPos::LearnMoves::tries = 8;
-
 /// Попадание в оставшиеся непокрытыми точки мишени
 void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 {
     size_t count = 0;
+    try
+    {
     uncovered.clear();
     // -----------------------------------------------------
     auto itp = _target.it_coords();
@@ -192,7 +192,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         // ---------------------------------------------------
         auto prec = _target.precision();
         auto p = _store.getClosestPoint(*it, side3);
-        for (size_t tries = 0; (tries <= LearnMoves::tries) && (!p.first || boost_distance(p.second.hit, *it) > prec); ++tries)
+        for (size_t tries = 0; (tries <= _tries) && (!p.first || boost_distance(p.second.hit, *it) > prec); ++tries)
         {
             ++count;
             Point pt;
@@ -212,7 +212,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
                 pt = { it->x + rx, it->y + ry };
             }
             // -------------------------------------------------
-            _complexity += gradientMethod_admixture(pt);
+            _complexity += testStage3(pt);
             p = _store.getClosestPoint(*it, side3);
             // -------------------------------------------------
             boost::this_thread::interruption_point();
@@ -220,6 +220,11 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         // ---------------------------------------------------
         if (!p.first || boost_distance(p.second.hit, *it) > prec)
             uncovered.push_back(*it);
+    }
+    }
+    catch (const std::exception &e)
+    {
+        CERROR(e.what());
     }
     // -----------------------------------------------------
     CINFO(_T("TOTAL Complexity: ") << complexity() << 

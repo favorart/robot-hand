@@ -34,7 +34,6 @@ enum class MyFigure : uint8_t { EmptyFig = 0, Ellipse = 1, Rectangle, Triangle, 
 void drawMyFigure(HDC hdc, const Point &center, double w, double h, double angle, MyFigure figure, HPEN hPen);
 
 //------------------------------------------------------------------------------
-#include <memory> // for std::allocator
 template <template <typename, typename> class Container,
     typename Value = Point,
     typename Allocator = std::allocator<Point> >
@@ -80,5 +79,23 @@ public:
             DeleteObject(pen);
     }
 };
+//------------------------------------------------------------------------------
+//template <Var ...>
+inline GradPens makeGrad(CGradient cg/*, ...*/)
+{
+    //GradPens(Robo::frames_t robo_max_last);
+    switch (cg)
+    {
+    case CGradient::None:
+        break;
+    case CGradient::Longz:
+        break;
+    case CGradient::Lasts:
+        break;
+    case CGradient::Strats:
+        break;
+    }
+    return GradPens{ 0 };
+}
 //------------------------------------------------------------------------------
 #endif // _DRAW_H_

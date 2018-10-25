@@ -109,7 +109,6 @@ MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
 }
 MyWindowData::~MyWindowData()
 {
-    // if ( lt ) delete lt;
     //=======================
     /* очищаем ручку */
     DeleteObject(canvas.hPen_grn);
@@ -148,12 +147,14 @@ void MyWindowData::load(const tstring &filename)
 //-------------------------------------------------------------------------------
 void  onPaintStaticBckGrnd(HDC hdc, MyWindowData &wd)
 {
-    drawCoordinates(hdc, wd.canvas.pLetters->show);
-    /// TODO : drawDecardsCoordinates(hdc);
+    if (wd.canvas.centerAxes)
+        drawDecardsCoordinates(hdc);
+    else
+        drawCoordinates(hdc, wd.canvas.pLetters->show);
     wd.pTarget->draw(hdc, wd.canvas.hPen_grn,
-                     true /* false */,    /* internal lines */
-                     true /* false */,   /* internal points */
-                     false);       /* ellipse instead pixel */
+                     wd.canvas.targetLines,
+                     wd.canvas.targetPoints,
+                     wd.canvas.targetRadius);
 }
 void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
@@ -177,28 +178,28 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
     {
         frames_t robot_max_lasts = musclesMaxLasts(*wd.pRobo);
-        robot_max_lasts = (LastsInfinity == robot_max_lasts) ? LastsInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
+        robot_max_lasts = (Robo::LastsInfinity == robot_max_lasts) ? Robo::LastsInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
+
+        auto sR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.storeRzoomed : wd.canvas.storeRnormal;
+        auto uR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.uncoveredRzoomed : wd.canvas.uncoveredRnormal;
 
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
-                            [hdc](Store &store, frames_t robo_max_last,
-                                  Trajectory uncoveredPoints, HPEN uncoveredPen) {
-            GradPens gradPens(robo_max_last);
-            auto getPen = [&gradPens](size_t longs) { return gradPens(longs); };
-            store.draw(hdc, (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? 0.003 : 0., getPen);
+                            [hdc](Store &store, frames_t maxLast, Trajectory uncoveredPoints,
+                                  HPEN uncoveredPen, double uR, double sR, CGradient cGrad) {
 
+            GradPens gradPens(maxLast); // ????
+            auto getPen = [&gradPens](size_t longs) { return gradPens(longs); };
+            store.draw(hdc, sR, getPen);
+            
             for (auto &pt : uncoveredPoints)
-                drawCircle(hdc, pt, (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? 0.005 : 0., uncoveredPen);
+                drawCircle(hdc, pt, uR, uncoveredPen);
         }, std::ref(*wd.pStore), robot_max_lasts,
            wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{},
-           wd.canvas.hPen_red);
+           wd.canvas.hPen_red, uR, sR, wd.canvas.cGradient);
     } // end if
 }
 void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
 {
-    const double CircleRadius = 0.01;
-    // --------------------------------------------------------------
-    /* Target to achive */
-    // if ( wd.lt )  wd.lt->draw (hdc, wd);
     if (wd.canvas.hDynamicBitmapChanged && !wd.testing)
     {
         // ----- Отрисовка фигуры ---------------------------------------
@@ -217,7 +218,7 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
         {
             HPEN hPen_old = (HPEN)SelectObject(hdc, wd.canvas.hPen_cian);
             for (auto &p : wd.canvas.pointsDB)
-                drawCircle(hdc, p->hit, CircleRadius);
+                drawCircle(hdc, p->hit, wd.canvas.dbRadius);
             SelectObject(hdc, hPen_old);
         }
         // --------------------------------------------------------------
@@ -298,7 +299,7 @@ bool  repeatRoboMove(MyWindowData &wd)
     if (!p.first)
         throw std::runtime_error("repeatRoboMove: Empty adjacency");
     // -------------------------------------------------
-    if (boost_distance(p.second.hit, wd.mouse.aim) <= 0./*wd.pTarget->precision()*/)
+    if (boost_distance(p.second.hit, wd.mouse.aim) <= wd.pTarget->precision())
         return false;
     // -------------------------------------------------
     /* Repeat Hand Movement */
@@ -321,14 +322,13 @@ bool  repeatRoboMove(MyWindowData &wd)
 }
 bool  makeRoboMove(MyWindowData &wd)
 {
-    // wd.adjPointsDB.clear ();
     wd.trajFrames.clear();
     wd.canvas.testingTrajsList.clear();
     // -------------------------------------------------
     if (!repeatRoboMove(wd))
     {
         const Point &aim = wd.mouse.aim;
-        wd.pLM->gradientMethod_admixture(aim);
+        wd.pLM->testStage3(aim);
         // -------------------------------------------------
         if (0 /* Around Trajectories !!! */)
         {
@@ -370,27 +370,6 @@ Factory<RoboI> frobo;
 // http://zenol.fr/blog/boost-property-tree/en.html
 std::vector<std::function<std::shared_ptr<RoboI>(const tstring&, tptree&)>> Factory<RoboI>::makes{ Robo::NewHand::Hand::make, Robo::Mobile::Tank::make };
 std::vector<std::function<std::shared_ptr<TargetI>(const tstring&, tptree&)>> Factory<TargetI>::makes{ RecTarget::make, PolyTarget::make };
-
-template <typename Robot>
-void save(tptree &root, const Point& robo_base, const JointsInputsPtrs &robo_joints)
-{
-    tptree robo;
-    root.add_child(_T("robo"), robo);
-    robo.put(_T("name"), Robot::name());
-
-    tptree pbase;
-    robo.add_child(_T("base"), pbase);
-    pbase.save(robo_base);
-
-    tptree joints;
-    robo.add_child(_T("joints"), joints);
-    for (const auto &pji : robo_joints)
-    {
-        Robo::JointInput &ji = *pji.get();
-        auto &pp = dynamic_cast<Robot::JointInput&>(ji);
-        ConfigJSON::save(joints, pp);
-    }
-}
 //-------------------------------------------------------------------------------
 void MyWindowData::read_config(IN const tstring &filename)
 {
@@ -401,24 +380,6 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (!fin.is_open())
             std::runtime_error("config is not exist");
         pt::read_json(fin, root);
-
-        pRobo = Factory<RoboI>::create(root);
-        pTarget = Factory<TargetI>::create(root);
-        //throw std::runtime_error("read_config: incorrect class Robo version");
-
-        double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
-        if (precision_mm <= 0)
-            throw std::runtime_error("read_config: incorrect precision");
-
-        tstring fn_config = root.get<tstring>(_T("lm_config"));
-
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision_mm, fn_config);
-
-        unsigned skip_show_frames = root.get_optional<unsigned>(_T("env.skip_show_frames")).get_value_or(15);
-        trajFrames.setSkipShowFrames(skip_show_frames);
-
-        bool animation = root.get_optional<bool>(_T("env.animation")).get_value_or(true);
-        trajFrames.setAnim(animation);
 
         // -------------------------------------------------------------------------
         bool redirect = root.get_optional<bool>(_T("redirect")).get_value_or(false);
@@ -434,6 +395,35 @@ void MyWindowData::read_config(IN const tstring &filename)
             pStore->pick_up(pickup);
         }
         // -------------------------------------------------------------------------
+
+        pRobo = Factory<RoboI>::create(root);
+        pTarget = Factory<TargetI>::create(root);
+        //throw std::runtime_error("read_config: incorrect class Robo version");
+
+        double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
+        if (precision_mm <= 0)
+            throw std::runtime_error("read_config: incorrect precision");
+
+        tstring fn_config = root.get<tstring>(_T("lm_config"));
+
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision_mm, fn_config);
+
+        unsigned skip_show_frames = root.get_optional<unsigned>(_T("env.skipShowFrames")).get_value_or(15);
+        trajFrames.setSkipShowFrames(skip_show_frames);
+
+        bool animation = root.get_optional<bool>(_T("env.animation")).get_value_or(true);
+        trajFrames.setAnim(animation);
+
+        canvas.centerAxes = root.get_optional<bool>(_T("env.centerAxes")).get_value_or(true);
+        canvas.targetLines = root.get_optional<bool>(_T("env.targetLines")).get_value_or(true);
+        canvas.targetPoints = root.get_optional<bool>(_T("env.targetPoints")).get_value_or(true);
+        canvas.targetRadius = root.get_optional<double>(_T("env.targetRadius")).get_value_or(0.007);
+
+        canvas.uncoveredRzoomed = root.get_optional<double>(_T("env.uncoveredRzoomed")).get_value_or(0.005);
+        canvas.uncoveredRnormal = root.get_optional<double>(_T("env.uncoveredRnormal")).get_value_or(0.000);
+        canvas.storeRzoomed = root.get_optional<double>(_T("env.storeRzoomed")).get_value_or(0.003);
+        canvas.storeRnormal = root.get_optional<double>(_T("env.storeRnormal")).get_value_or(0.000);
+        canvas.dbRadius = root.get_optional<double>(_T("env.dbRadius")).get_value_or(0.01);
     }
     catch (const std::exception &e)
     {
@@ -447,16 +437,18 @@ void MyWindowData::write_config(IN const tstring &filename) const
     try
     {
         tptree root;
-        //JointsInputsPtrs joint_inputs = ???
-        //save<???>(root, pRobo->name(), pRobo->jointPos(pRobo->jointsCount()), joint_inputs);
 
+        pRobo->save(root);
         pTarget->save(root);
-        root.get<double>(_T("precision"), pTarget->precision() / RoboPos::TourI::divToMiliMeters);
+
+        double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
+        root.get<double>(_T("precision"), precision_mm);
         
         tptree env;
-        env.get<unsigned>(_T("skip_show_steps"), unsigned(trajFrames.skipShowFrames()));
-        env.get<bool>(_T("animation"), trajFrames.animation());
         root.put_child(_T("env"), env);
+
+        env.get<unsigned>(_T("skipShowFrames"), unsigned(trajFrames.skipShowFrames()));
+        env.get<bool>(_T("animation"), trajFrames.animation());
 
         tfstream fout(filename, std::ios::out);
         pt::write_json(fout, root);

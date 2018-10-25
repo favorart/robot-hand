@@ -62,6 +62,7 @@
     <ClInclude Include="Source\StdAfx.h" />
     <ClInclude Include="Source\Robo\Tank\Tank.h" />
     <ClInclude Include="Source\Utilities\Point.h" />
+    <ClInclude Include="Source\Utilities\PointAdapter.h" />
     <ClInclude Include="Source\Utilities\Utils.h" />
     <ClInclude Include="Source\Utilities\verbose.h" />
   </ItemGroup>
@@ -110,16 +111,7 @@
     <ClCompile Include="Source\Utilities\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Resource\Hand\configHand-j4.json" />
-    <Text Include="Resource\Tank\configTank.json" />
-    <Text Include="Resource\Tour.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="Resource\resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resource\Tank\config-tank.json" />
-    <None Include="Resource\Hand\configHand.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{31D13702-BE83-40A3-9194-4A05CE7CDB34}</ProjectGuid>

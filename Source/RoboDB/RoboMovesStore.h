@@ -27,32 +27,34 @@ namespace RoboMoves
   //------------------------------------------------------------------------------
   class  ClosestPredicate
   {
-    boost_point2_t aim;
+    //boost_point2_t aim;
+      Point aim;
   public:
     ClosestPredicate (const Point &aim) : aim (aim) {}
     double  operator() (const std::shared_ptr<Record> &a,
                         const std::shared_ptr<Record> &b)
     {
-      return this->operator() (boost_point2_t (a->hit),
-                               boost_point2_t (b->hit));
+      return this->operator() (/*boost_point2_t*/ (a->hit),
+                               /*boost_point2_t*/ (b->hit));
     }
     double  operator() (const Record *a,
                         const Record *b)
     {
-      return this->operator() (boost_point2_t (a->hit),
-                               boost_point2_t (b->hit));
+      return this->operator() (/*boost_point2_t*/ (a->hit),
+                               /*boost_point2_t*/ (b->hit));
     }
     double  operator() (const Record &a,
                         const Record &b)
     {
-      return this->operator() (boost_point2_t (a.hit),
-                               boost_point2_t (b.hit));
+      return this->operator() (/*boost_point2_t*/ (a.hit),
+                               /*boost_point2_t*/ (b.hit));
     }
-    double  operator() (const boost_point2_t &a,
-                        const boost_point2_t &b)
+    //double  operator() (const boost_point2_t &a,
+    //                    const boost_point2_t &b)
+    Point::value_type operator()(const Point &a, const Point &b)
     {
-      double  da = boost::geometry::distance (aim, a);
-      double  db = boost::geometry::distance (aim, b);
+      Point::value_type da = bg::distance(aim, a);
+      Point::value_type db = bg::distance(aim, b);
       return (da < db);
     }
   };

@@ -310,3 +310,5 @@ libs/Shark-3.1.0/*
 *.ipdb
 *.lib
 *.res
+
+enc_temp_folder/*

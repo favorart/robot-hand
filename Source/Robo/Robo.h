@@ -77,6 +77,12 @@ struct JointInput
     virtual void load(tptree &root);
 };
 //-------------------------------------------------------------------------------
+using JointInputPtr = std::shared_ptr<JointInput>;
+using JointsInputsPtrs = std::list<JointInputPtr>;
+using JointsInputs = std::list<JointInput>;
+//-------------------------------------------------------------------------------
+template <typename T> void forceIncludeMethodMake() { T::name(); T::make(); }
+//-------------------------------------------------------------------------------
 /// Robotic Interface Interaction
 class RoboI
 {
@@ -113,10 +119,9 @@ public:
     { return (muscle / 2); }
 
     //----------------------------------------------------
-    RoboI() = default;
+    RoboI(const JointsInputsPtrs &joint_inputs) : _joint_inputs(joint_inputs) {}
     RoboI(RoboI&&) = delete;
     RoboI(const RoboI&) = delete;
-    //RoboI(const Point&, const JointsInputsPtrs&) {}
 
     // RM !!! DEBUG
     virtual frames_t muscleStatus(muscle_t m) const = 0;
@@ -171,7 +176,20 @@ public:
     virtual void     setWindy(bool windy) = 0;
     //----------------------------------------------------
     static tstring name() { return _T("robo"); };
+    virtual tstring getName() const = 0;
+    /*virtual*/ void save(tptree &root) const;
+
+protected:
+    /* save-load data */
+    virtual Point _base() const = 0;
+    JointsInputsPtrs _joint_inputs{};
+
+private:
+    static std::shared_ptr<RoboI> make(const tstring &type, tptree &node)
+    { throw std::logic_error("Depricated"); };
+    //----------------------------------------------------
     friend class EnvEdges;
+    friend void forceIncludeMethodMake<RoboI>();
 };
 //-------------------------------------------------------------------------------
 using bitset_t = std::bitset<Robo::RoboI::musclesMaxCount>;

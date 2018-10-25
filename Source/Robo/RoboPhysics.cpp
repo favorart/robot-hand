@@ -36,6 +36,26 @@ void JointInput::load(tptree &root)
     frames = Robo::MotionLaws::getHandMLaw(type, param);
     frames.stopDistanceRatio = ml.get<double>(_T("stopD"));
 }
+void RoboI::save(tptree &root) const
+{
+    tptree robo;
+    root.add_child(_T("robo"), robo);
+
+    tptree pbase;
+    _base().save(pbase);
+
+    tptree joints;
+    for (const auto &pJI : _joint_inputs)
+    {
+        //auto &ji = dynamic_cast<Robot::JointInput&>(*pJI.get());
+        //ji.save(joints);
+        pJI->save(joints);
+    }
+
+    robo.put(_T("name"), getName());
+    robo.add_child(_T("base"), pbase);
+    robo.add_child(_T("joints"), joints);
+}
 //--------------------------------------------------------------------------------
 bool RoboPhysics::somethingMoving() const
 {
@@ -337,7 +357,7 @@ void RoboPhysics::reset()
 RoboPhysics::RoboPhysics(const Point &base,
                          const JointsInputsPtrs &joint_inputs,
                          const std::shared_ptr<EnvEdges> &eiges) :
-    RoboI(), physics(base, joint_inputs), status(joint_inputs), feedback(), env(eiges)
+    RoboI(joint_inputs), physics(base, joint_inputs), status(joint_inputs), feedback(), env(eiges)
 {
     if (!ba::is_sorted(joint_inputs, [](const auto &a, const auto &b) { return (*a < *b); }))
         throw std::runtime_error("Joint Inputs are not sorted!");

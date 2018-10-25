@@ -228,7 +228,7 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double d_
 {}
 
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
+size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
 {
     size_t gradient_complexity = 0U;
     // -----------------------------------------------
@@ -239,6 +239,7 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
     distance_t distance = boost_distance(base_pos, aim),
         new_distance = distance;
     // -----------------------------------------------
+    //int i = 0, n = sizeof(admixes) / sizeof(*admixes);
     do
     {
         // -----------------------------------------------
@@ -265,6 +266,8 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
         else
         {
             gradient_complexity += weightedMean(aim, pos);
+            //gradient_complexity += (this->*(admixes[i]))(aim, pos);
+            //i = ++i % n;
 
             d = boost_distance(pos, aim);
             if (_target.precision() > d)
@@ -273,6 +276,7 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
                 break;
             }
             else if (new_distance > d)
+            //    continue; /// !!! REMOVE LOWER else
             { continue; }
             else
             {
@@ -288,7 +292,7 @@ size_t RoboPos::LearnMoves::gradientMethod_admixture(IN const Point &aim)
                 //{ continue; }
                 //else
                 {
-                    gradient_complexity += gradientMethod(aim);
+                    gradient_complexity += gradientMethod(aim, Point{});
 
                     auto p = _store.getClosestPoint(aim, side3);
                     if (!p.first)
@@ -417,7 +421,7 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
     return true;
 }
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
+size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, OUT Point &pos)
 {
     size_t gradient_complexity = 0;
     // -----------------------------------------------
@@ -505,6 +509,11 @@ size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
     CINFO(aim << _T(" precision: ") << distance << std::endl << 
           _T("grad_complex ") << gradient_complexity << std::endl);
     // -----------------------------------------------
+    //auto p = _store.getClosestPoint(aim, side3);
+    //if (!p.first)
+    //    throw std::runtime_error{ "gradientMethod_admixture: Empty adjacency" };
+    //pos = p.second.hit;
+
     return gradient_complexity;
 }
 //------------------------------------------------------------------------------

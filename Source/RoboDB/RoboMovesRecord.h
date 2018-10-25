@@ -1,7 +1,6 @@
 ﻿#pragma once
+
 #include "Robo.h"
-
-
 /// TODO: !!! UPDATE TIME & SIM_TIME when request the Record !!!
 
 namespace RoboMoves
@@ -19,6 +18,7 @@ class Record
     Robo::Trajectory visited_{};
     //std::vector<muscle_t> _ctrls{}; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    Robo::frames_t _lasts_step{};
     mutable double _error_distance{0.};
     
     //bool _outdated{false};
@@ -27,21 +27,18 @@ class Record
 
     // ----------------------------------------
     friend class boost::serialization::access;
-    //template <class Archive>
-    //void serialize(Archive &ar, unsigned version)
-    //{ ar & aim_ & move_begin_ & move_final_ & control_ & visited_; }
     BOOST_SERIALIZATION_SPLIT_MEMBER()
     template <class Archive>
     void save(Archive &ar, unsigned version) const
     {
         ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
-        ar & (_update_time - std::time(NULL)) & _update_traj & _error_distance;
+        ar /*& _lasts_step*/ & (_update_time - std::time(NULL)) & _update_traj & _error_distance;
     }
     template <class Archive>
     void load(Archive &ar, unsigned version)
     {
         ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
-        ar & _update_time & _update_traj & _error_distance;
+        ar /*& _lasts_step*/ & _update_time & _update_traj & _error_distance;
         _update_time += std::time(NULL);
     }
 
@@ -67,6 +64,13 @@ public:
            IN const Point            &move_final,
            IN const Robo::Control    &controls,
            IN const Robo::Trajectory &visited);
+
+    Record(IN const Point            &aim,
+           IN const Point            &move_begin,
+           IN const Point            &move_final,
+           IN const Robo::Control    &controls,
+           IN const Robo::Trajectory &visited,
+           IN Robo::frames_t lasts_step);
     // ----------------------------------------
     bool  operator== (const Record &rec) const
     { return (this == &rec) || (control_ == rec.control_); }

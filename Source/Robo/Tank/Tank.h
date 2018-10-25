@@ -81,6 +81,7 @@ public:
     
     const Point& position() const;
 
+    tstring getName() const { return Tank::name(); }
     static tstring name() { return _T("Tank-v2"); }
     static std::shared_ptr<RoboI> make(const tstring &type, tptree &root);
     friend class Robo::EnvEdgesTank;
