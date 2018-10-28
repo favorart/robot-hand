@@ -1,4 +1,4 @@
-{
+﻿{
   "robo": {
     "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
@@ -34,7 +34,7 @@
     ]
   },
 
-  "#target": {
+  "target": {
     "type": "RecT",
     "rectangle": [
       [ -0.41, -0.85 ],
@@ -60,8 +60,15 @@
     "skipShowFrames": 15,
     "animation": true
   },
-  "lm_config": ".\\Resource\\Tour.txt",
-  "precision": 1.5,
-  "#precision": "mm",
-  "redirect": true
+  "lm_config": ".\\Resource\\Tour-tank.txt",
+  "precision": 1.5,   "#precision": "mm",
+  "redirect": true,
+
+  "#LV_OUTALL": 0,
+  "#LV_CDEBUG": 1,
+  "#LV_CINFO": 2,
+  "#LV_CWARN": 3,
+  "#LV_CERROR": 4,
+  "#LV_CALERT": 5,
+  "verbose": 1
 }

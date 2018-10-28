@@ -125,7 +125,7 @@ public:
     void remove(size_t i);
 
     void clear()
-    { actuals = 0; actuators.fill({}); _validated = false; }
+    { actuals = 0; actuators.fill({MInvalid,0,0}); _validated = false; }
 
     tstring tstr() const
     {

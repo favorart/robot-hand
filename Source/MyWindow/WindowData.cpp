@@ -264,8 +264,9 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
         {
             std::vector<Point> jPos(wd.pRobo->jointsCount());
             for (joint_t joint = 0; joint < wd.pRobo->jointsCount(); ++joint)
-                jPos.push_back(wd.pRobo->jointPos(joint));
-            wd.canvas.pLetters->draw(hdc, jPos /*, &wd.pRobo->position()*/);
+                jPos[joint] = wd.pRobo->jointPos(joint);
+            jPos.push_back(wd.pRobo->_base());
+            wd.canvas.pLetters->draw(hdc, jPos, wd.canvas.centerAxes);
         }
     }
     // --------------------------------------------------------------

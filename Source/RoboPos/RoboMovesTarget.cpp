@@ -58,8 +58,8 @@ void  RecTarget::draw(HDC hdc, HPEN hPen,
     if (internalLines)
     {
         for (auto i = 1U; i < _n_cols; ++i)
-            drawLine(hdc, { lft + i * c - c / 2., top - r / 2. },
-                          { lft + i * c - c / 2., btm + r / 2. }, hPen);
+            drawLine(hdc, { lft + i * c - c / 2., top + r / 2. },
+                          { lft + i * c - c / 2., btm - r / 2. }, hPen);
 
         for (auto i = 1U; i < _n_rows; ++i)
             drawLine(hdc, { lft - c / 2., btm + i * r - r / 2. },
@@ -171,8 +171,8 @@ void PolyTarget::draw(HDC hdc, HPEN hPen,
     if (internalLines)
     {
         for (auto i = 1U; i < _n_cols; ++i)
-            drawLine(hdc, { lft + i * c - c / 2., top - r / 2. },
-                          { lft + i * c - c / 2., btm + r / 2. }, hPen);
+            drawLine(hdc, { lft + i * c - c / 2., top + r / 2. },
+                          { lft + i * c - c / 2., btm - r / 2. }, hPen);
 
         for (auto i = 1U; i < _n_rows; ++i)
             drawLine(hdc, { lft - c / 2., btm + i * r - r / 2. },

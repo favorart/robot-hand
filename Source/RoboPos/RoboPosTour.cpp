@@ -361,6 +361,7 @@ void TourI::run()
 
         Point useless;
         runNestedForMuscle(_next_joint(_robo.jointsCount(), 0/*any*/, true/*first*/), Robo::Control{}, useless);
+        if (_counters.count) _counters.print();
     }
     catch (boost::thread_interrupted&)
     {
@@ -373,7 +374,6 @@ void TourI::run()
         //return;
     }
     // -------------------------------
-    if (_counters.count) _counters.print();
     CINFO(std::endl << 
           _T("step: ") << (_step_distance / TourI::divToMiliMeters) << _T(" mm.") << std::endl <<
           _T("Complexity: ") << complexity() <<
@@ -448,7 +448,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
     --_max_nested;
     //CDEBUG("runNested " << joint/* << " last_i " << last_i*/);
     /* стартруем разными сочленениями (одновременно) или последовательно */
-    //const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
+    const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
     //------------------------------------------
     Point curr_pos = {}, prev_pos = {}, base_pos = {};
     distance_t advantage = 0.;
@@ -498,7 +498,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
                     // boost_distance(base_pos, curr_pos) < Utils::EPSILONT) &&
                     boost_distance(base_pos, curr_pos) <= (advantage - _step_distance / 2))// && !_max_nested)
                 {
-                    //if (_b_simul) control_i.start += _lasts_step_increment;
+                    if (_b_simul) control_i.start += _lasts_step_increment;
                 }
                 else advantage = boost_distance(base_pos, curr_pos);
                 adaptiveLasts(prev_pos, curr_pos, control_i, lasts_step);
@@ -636,7 +636,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     --_max_nested;
     auto next_joint = _next_joint(_robo.jointsCount(), joint, false/*non-first*/);
     /* стартруем разными сочленениями (одновременно) или последовательно */
-    //const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
+    const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
     //------------------------------------------
     Point curr_pos = {}, prev_pos = {}, base_pos = {};
     //------------------------------------------

@@ -114,12 +114,13 @@
     <ResourceCompile Include="Resource\resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Resource\Tour-tank.txt" />
     <Text Include="Resource\Tour.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Resource\config-tank.json" />
     <None Include="Resource\Hand\configHand-j4.json" />
     <None Include="Resource\Hand\configHand.json" />
-    <None Include="Resource\Tank\config-tank.json" />
     <None Include="Resource\Tank\configTank.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -19,7 +19,7 @@ public:
     bool show;
     
     double RealScale;
-    double NormScale;
+    //double NormScale; // ???
     
     tstring txtTargetScale;
     tstring txtXScale;
@@ -34,7 +34,7 @@ public:
       DeleteObject (Font_270);
     }
     
-    void  draw (HDC hdc, const std::vector<Point> &jointsCoords /*, const Point* handPos*/);
+    void  draw (HDC hdc, const std::vector<Point> &jointsCoords, bool centerCoords = false);
 };
 //------------------------------------------------------------------------------
 #endif // _DRAW_LETTERS_H_

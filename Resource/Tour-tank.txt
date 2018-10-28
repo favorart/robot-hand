@@ -1,0 +1,82 @@
+﻿
+[LearnMoves]
+tries = 4
+; tries = 32
+tries_break = 3
+; tries_break = 100
+; random_try = 3
+; половина ребра квадрата, из которого берутся все точки
+side = 0.1
+; шаг уменьшения области поиска для взвешанной суммы
+side_decrease_step = 0.01
+; используется взвешенная арифметическое среднее (иначе обычное)
+use_weighted_mean = true
+
+
+[Tour]
+; 1 = workspace 
+1 = evo
+; 1 = evostep
+2 = target
+
+
+[TourI]
+b_simul = true
+b_starts = true
+b_braking = true
+step_distance = 0.5
+lasts_step_n = 10
+lasts_step_increment = 8
+lasts_step_increment_init = 10   
+lasts_step_braking_init = 8
+lasts_step_braking_incr = 5
+lasts_step_on_target = 7
+next_joint = "reverse"
+
+[workspace]
+b_simul = true
+b_starts = true
+b_braking = true
+step_distance = 0.2
+; step_distance = 0.07             ; Желаемое расстояние между конеными точками чернового покрытия
+lasts_step_n = 10
+lasts_step_increment = 11
+; lasts_step_increment = 10        ; Изменение шага времени
+lasts_step_increment_init = 37
+; lasts_step_increment_init = 50   ; Время преодоления инерции
+lasts_step_braking_init = 8		  
+lasts_step_braking_incr = 5
+lasts_step_on_target = 7
+
+[target]
+b_simul = true
+b_starts = true
+b_braking = true
+b_predict = true
+b_checking = true
+lasts_step_n = 10
+lasts_step_increment = 7
+; lasts_step_increment = 3         ; Изменение шага времени
+lasts_step_increment_init = 37
+; lasts_step_increment_init = 1    ; Время преодоления инерции
+lasts_step_braking_init = 5
+lasts_step_braking_incr = 2
+lasts_step_on_target = 7
+; step_distance = 0.025
+; step_distance = 0.005            ; Желаемое расстояние между конеными точками чернового покрытия
+step_distance = 0.02
+borders_side = 0.05
+
+[evo]
+reached_dist = 0.009
+oppo_penalty = 0.5
+prev_dist_add = 0.00001
+max_ncontrols = 8
+step_back = 100
+lasts_step = 50
+
+[evostep]
+reached_dist = 0.007
+oppo_penalty = 0.5
+prev_dist_add = 0.000005
+

@@ -9,21 +9,26 @@ void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
     try
     {
         /* Для нового потока нужно снова переинициализировать rand */
-        std::srand((unsigned int)clock());
-        // ==============================
+        std::srand((unsigned)clock());
+        //-------------------------------
         robo.reset();
         Point pos_base = robo.position();
-
+        //-------------------------------
         for (size_t i = 0; i < tries; ++i)
         {
             Control controls;
             controls.fillRandom(robo.musclesCount(), [&robo](muscle_t m) {
-                return (robo.muscleMaxLasts(m) / 2);
-            });
-            // ==============================
+                return (robo.muscleMaxLasts(m)/* / 2*/);
+            }, 50, 1, 8, true /*simil*/);
+            //-------------------------------
+            if (store.exactRecordByControl(controls))
+            {
+                if (i) --i;
+                continue;
+            }
             robo.move(controls);
             const Point& pos = robo.position();
-            // ==============================
+            //-------------------------------
             store.insert(Record{ pos, pos_base, pos, controls, robo.trajectory() });
             // ==============================
             boost::this_thread::interruption_point();
@@ -32,9 +37,9 @@ void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
         }
     }
     catch (boost::thread_interrupted&)
-    {
-        CINFO("WorkingThread interrupted");
-    }
+    { CINFO("WorkingThread interrupted"); }
+    catch (const std::exception &e)
+    { CERROR(e.what()); }
 }
 
 //------------------------------------------------------------------------------

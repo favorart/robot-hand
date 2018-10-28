@@ -6,27 +6,30 @@ CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
                                         const Point &RecTargetMaxPos) :
   show (false), targetMin_ (RecTargetMinPos), targetMax_ (RecTargetMaxPos)
 {
-  NormScale = 30.;
-  RealScale = boost_distance (targetMin_, targetMax_);
+  double NormXScale = 30.; // ????
+  double NormYScale = 30.; // ????
+  double RealXScale = bg::distance(Point{ targetMin_.x, targetMax_.y }, targetMax_);
+  double RealYScale = bg::distance(Point{ targetMax_.x, targetMin_.y }, targetMax_);
+  RealScale = RealXScale / NormXScale; // ????
 
   ss_ << std::fixed << std::setprecision (2);
 
-  ss_ << NormScale << _T (" sm");
+  ss_ << NormXScale /* ??? */ << _T (" sm");
   txtTargetScale = ss_.str ();
   ss_.str (tstring ());
   ss_.clear ();
 
-  ss_ << 0.1 * NormScale / RealScale << _T (" sm");
+  ss_ << NormXScale << _T (" sm");
   txtXScale = ss_.str ();
   ss_.str (tstring ());
   ss_.clear ();
 
-  ss_ << 0.1 * NormScale / RealScale << _T (" sm");
+  ss_ << NormYScale << _T (" sm");
   txtYScale = ss_.str ();
   ss_.str (tstring ());
   ss_.clear ();
 
-  lf_.lfHeight = 15;
+  lf_.lfHeight = 15; // ???
   lf_.lfWeight = FW_NORMAL;
   lstrcpy (lf_.lfFaceName, _T ("Tahoma"));
 
@@ -43,102 +46,81 @@ CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
   Font_270 = CreateFontIndirect (&lf_);
 }
 //------------------------------------------------------------------------------
-void  CanvasScaleLetters::draw (HDC hdc, const std::vector<Point> &jointsCoords /*, const Point* handPos*/)
+void  CanvasScaleLetters::draw(HDC hdc, const std::vector<Point> &jointsCoords, bool centerCoords)
 {
-  const double targetXShift = 0.1;
-  HFONT oldFont;
-  //---------------------------------------------------------------
-  // SetBkMode (hdc, TRANSPARENT);
-
-  oldFont = (HFONT) SelectObject (hdc, Font_270);
-  //---draw scale on RecTarget-------------------------------------
-  TextOut (hdc,
-           Tx ( targetMax_.x + targetXShift), /* Location of the text */
-           Ty ((targetMax_.y + targetMin_.y) * 0.5 + targetXShift),
-           txtTargetScale.c_str (),                  /* Text to print */
-           (int) txtTargetScale.size ()           /* Size of the text */
-           );
-  //---------------------------------------------------------------
-  SelectObject (hdc, oldFont);
-
-  oldFont = (HFONT) SelectObject (hdc, Font_090);
-  //---draw scale on coord plate-----------------------------------
-  TextOut (hdc,
-           Tx (-0.13), Ty (0.01),   /* Location of the text */
-           txtXScale.c_str (),             /* Text to print */
-           (int) txtXScale.size ()      /* Size of the text */
-           );
-  //---------------------------------------------------------------
-  SelectObject (hdc, oldFont);
-
-  oldFont = (HFONT) SelectObject (hdc, Font_000);
-  //---draw scale on coord plate-----------------------------------
-  TextOut (hdc,
-           Tx (0.01), Ty (0.13),    /* Location of the text */
-           txtYScale.c_str (),             /* Text to print */
-           (int) txtYScale.size ()      /* Size of the text */
-           );
-  //---------------------------------------------------------------
-  SelectObject (hdc, oldFont);
-
-  //---draw scale on hand joints-----------------------------------
-  if (jointsCoords.size () >= 2U )
-  {
-    /* Clvcl, Shldr, Elbow */
-    auto it = jointsCoords.begin (), next = it + 1;
-    do
+    const double targetXShift = 0.1;
+    Point sx, sy;
+    if (centerCoords)
     {
-      /* Calculate value of scale */
-      double Scale = boost_distance (*it, *next) / (RealScale * NormScale);
+        sx = {  0.01, 0.13 };
+        sy = { -0.13, 0.01 };
+    }
+    else
+    {
+        sx = { -0.90, -0.96 };
+        sy = { -0.98, -0.90 };
+    }
+    // SetBkMode (hdc, TRANSPARENT);
 
-      ss_ << Scale << _T (" sm");
-      tstring strHandScale = ss_.str ();
-      ss_.str (tstring ());
-      ss_.clear ();
+    HFONT oldFont = (HFONT)SelectObject(hdc, Font_270);
+    //---draw scale on Target---
+    TextOut(hdc,
+            Tx(targetMax_.x + targetXShift),  /* Location of the text */
+            Ty((targetMax_.y + targetMin_.y) / 2 + targetXShift),
+            txtTargetScale.c_str(),                  /* Text to print */
+            (int)txtTargetScale.size());          /* Size of the text */
 
-      /* Calculate angle */
-      double angle = atan2 ((it->y - next->y),
-                            (it->x - next->x)) * 180. / M_PI;
+    //!!! lf_.lfHeight = 15; // SCALE WITH WINDOW
+    //---draw scales on coord plate---
+    SelectObject(hdc, Font_090);
+    TextOut(hdc,
+            Tx(sy.x), Ty(sy.y),      /* Location of the text */
+            txtXScale.c_str(),              /* Text to print */
+            (int)txtXScale.size()        /* Size of the text */
+    );
 
-      /* Calculate position */
-      Point pos ((next->x + it->x) / 2., (next->y + it->y) / 2.);
+    SelectObject(hdc, Font_000);
+    TextOut(hdc,
+            Tx(sx.x), Ty(sx.y),     /* Location of the text */
+            txtYScale.c_str(),               /* Text to print */
+            (int)txtYScale.size()         /* Size of the text */
+    );
 
-      LOGFONT lf = lf_;
-      lf.lfEscapement = LONG (10 * angle);
-      lf.lfOrientation = LONG (10 * angle);
-      HFONT Font = CreateFontIndirect (&lf);
+    //---draw scale on hand joints---
+    if (jointsCoords.size() > 1)
+    {
+        /* Clvcl, Shldr, Elbow */
+        for (auto it = jointsCoords.begin(), next = std::next(it);
+             next != jointsCoords.end();
+             it = next, ++next)
+        {
+            /* Calculate value of scale */
+            ss_ << (bg::distance(*it, *next) / RealScale) << _T(" sm");
+            tstring strHandScale = ss_.str();
+            ss_.str(tstring());
+            ss_.clear();
 
-      oldFont = (HFONT) SelectObject (hdc, Font);
-      //---------------------------------------
-      TextOut ( hdc,
-                Tx (pos.x), Ty (pos.y),  /* Location of the text */
-                strHandScale.c_str (),          /* Text to print */
-                (int) strHandScale.size ()   /* Size of the text */
-               );
-      //---------------------------------------
-      SelectObject (hdc, oldFont);
+            /* Calculate angle */
+            double angle = atan2((next->y - it->y), (next->x - it->x));
+            angle *= 180. / M_PI;
 
-      ++it; ++next;
-    } while ( next != jointsCoords.end () );
-  }
-  //---------------------------------------------------------------
-  ///if ( handPos )
-  ///{
-  ///  ss_ << tstring (*handPos);
-  ///  tstring strHandPos = ss_.str ();
-  ///  ss_.str (tstring ());
-  ///  ss_.clear ();
-  ///
-  ///  oldFont = (HFONT) SelectObject (hdc, Font_000);
-  ///  //---draw scale on coord plate-----------------------------------
-  ///  TextOut (hdc,
-  ///           Tx (handPos->x),
-  ///           Ty (handPos->y),          /* Location of the text */
-  ///           strHandPos.c_str (),             /* Text to print */
-  ///           (int) strHandPos.size ()      /* Size of the text */
-  ///           );
-  ///  //---------------------------------------------------------------
-  ///  SelectObject (hdc, oldFont);
-  ///}
+            /* Calculate position */
+            Point pos = (*next + *it) / 2;
+            //---------------------------------------
+            LOGFONT lf = lf_;
+            lf.lfEscapement = LONG(10 * angle);
+            lf.lfOrientation = LONG(10 * angle);
+            HFONT Font = CreateFontIndirect(&lf);
+
+            SelectObject(hdc, Font);
+            //---------------------------------------
+            TextOut(hdc,
+                    Tx(pos.x), Ty(pos.y),   /* Location of the text */
+                    strHandScale.c_str(),          /* Text to print */
+                    (int)strHandScale.size());  /* Size of the text */
+        }
+    }
+    //-------------------------------
+    SelectObject(hdc, oldFont);
 }
 //------------------------------------------------------------------------------

@@ -182,12 +182,13 @@ std::string Utils::now()
 #include <codecvt>
 tfstream utf8_stream(const tstring &fn)
 {
-    const std::locale empty_locale = std::locale::empty();
+    //https://msdn.microsoft.com/en-us/library/7dd6d271-472d-4750-8fb5-ea8f55fbef62.aspx
+    const std::locale empty_locale = std::locale::empty(); //locale::global() might works as well
     using converter_type = std::codecvt_utf8<TCHAR>;
     const converter_type* converter = new converter_type;
     const std::locale utf8_locale = std::locale(empty_locale, converter);
     tfstream stream(fn);
-    stream.imbue(utf8_locale);
+    stream.imbue(utf8_locale); // replaces the current locale
     //tstring line;
     //std::getline(stream, line);
     return stream;
