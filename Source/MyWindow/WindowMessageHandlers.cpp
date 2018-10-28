@@ -539,7 +539,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         //========================================
         // onShowDBPoints (wd);
         wd.canvas.allPointsDBShow = !wd.canvas.allPointsDBShow;
-        //========================================
+        //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================
@@ -712,7 +712,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         if (!wd.canvas.workingSpaceTraj.size())
             wd.pRobo->getWorkSpace(wd.canvas.workingSpaceTraj);
         wd.canvas.workingSpaceShow = !wd.canvas.workingSpaceShow;
-        //========================================
+        //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================
@@ -737,7 +737,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //========================================
         wd.canvas.pLetters->show = !wd.canvas.pLetters->show;
-        //========================================
+        //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================
@@ -748,10 +748,28 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     case 'y':
     {
         //========================================
-        MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::STATIC) ? MyWindowData::Zoom::STATIC : MyWindowData::Zoom::NONE;
-        //========================================
+        MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::STATIC) ?
+            MyWindowData::Zoom::STATIC : MyWindowData::Zoom::NONE;
+        //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
+    }
+
+
+    case 'j':
+    {
+        //========================================
+        wd.canvas.cGradient = CGradient(std::max(1/*not None*/,(int(wd.canvas.cGradient) + 1) % int(CGradient::_Last_)));
+        //----------------------------------------
+        tstring strGradient[] = { _T("cGradient::None"), _T("cGradient::Longz"), _T("cGradient::Dense"), 
+                                  _T("cGradient::Strats"), _T("cGradient::_Last_") };
+        CDEBUG(strGradient[int(wd.canvas.cGradient)]);
+        //----------------------------------------
+        wd.canvas.hStaticBitmapChanged = true;
+        //wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, FALSE);
         break;
@@ -761,7 +779,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //========================================
         wd.canvas.uncoveredPointsShow = !wd.canvas.uncoveredPointsShow;
-        //========================================
+        //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================
@@ -802,7 +820,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
                     WM_SETTEXT,          /* Message */
                     (WPARAM)NULL,        /* Unused  */
                     (LPARAM)_T(" "));
-        //========================================
+        //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================

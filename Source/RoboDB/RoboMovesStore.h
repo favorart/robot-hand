@@ -337,17 +337,18 @@ namespace RoboMoves
         return count;
     }
     //------------------------------------------------------------------------------
+    using GetHPen = std::function<HPEN(const RoboMoves::Record&)>;
     void draw(HDC hdc, double radius) const
     {
-        auto getPen = [](size_t) { return (HPEN)GetStockObject(BLACK_PEN); };
+        auto getPen = [](const Record&) { return (HPEN)GetStockObject(BLACK_PEN); };
         draw(hdc, radius, getPen);
     }
     void draw(HDC hdc, double radius, HPEN hPen) const
     {
-        auto getPen = [hPen](size_t) { return hPen; };
+        auto getPen = [hPen](const Record&) { return hPen; };
         draw(hdc, radius, getPen);
     }
-    void draw(HDC hdc, double radius, const std::function<HPEN(size_t)> &getPen) const;
+    void draw(HDC hdc, double radius, const GetHPen&) const;
     //------------------------------------------------------------------------------
     void dump_off(const tstring &filename, bool text_else_bin = true) const;
     void pick_up(const tstring &filename, bool text_else_bin = true);

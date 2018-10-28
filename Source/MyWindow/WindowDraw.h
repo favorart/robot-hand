@@ -56,22 +56,23 @@ void drawMyFigure(HDC hdc, const Container<Value, Allocator> &container, MyFigur
 //------------------------------------------------------------------------------
 using color_interval_t = std::pair<COLORREF, COLORREF>;
 using color_gradient_t = std::vector<COLORREF>;
+using hpens_gradient_t = std::vector<HPEN>;
 
 void makeGradient(color_interval_t colors, size_t color_gradations, color_gradient_t &gradient);
 //------------------------------------------------------------------------------
 class GradPens : public std::function<HPEN(size_t)>
 {
-    const Robo::frames_t _robo_max_last;
+    const Robo::frames_t _maxLasts;
     size_t _colorGradations = 15;
     color_interval_t _colors{ RGB(150, 10, 245), RGB(245, 10, 150) };
-    //{ RGB(0,0,130), RGB(255,0,0) } // 128
-    //{ RGB(130,0,0), RGB(255,155,155) }
-    //gradient_t gradient({ RGB(25, 255, 25), RGB(25, 25, 255), RGB(255, 25, 25) });
-    color_gradient_t _gradient;
-    std::vector<HPEN> _gradientPens;
+    hpens_gradient_t _gradientPens;
 public:
-    GradPens(Robo::frames_t robo_max_last);
-    HPEN operator()(Robo::frames_t longs) const;
+    GradPens(Robo::frames_t maxLasts) : _maxLasts(maxLasts) { restoreGradient(); }
+    GradPens(const GradPens&) = delete;
+    GradPens(GradPens&&) = default;
+    HPEN operator()(Robo::frames_t longz) const;
+    void shuffleGradient() { std::random_shuffle(_gradientPens.begin(), _gradientPens.end()); }
+    void restoreGradient();
     void setColors(color_interval_t colors, size_t gradations = 15);
     ~GradPens()
     {
@@ -80,22 +81,6 @@ public:
     }
 };
 //------------------------------------------------------------------------------
-//template <Var ...>
-inline GradPens makeGrad(CGradient cg/*, ...*/)
-{
-    //GradPens(Robo::frames_t robo_max_last);
-    switch (cg)
-    {
-    case CGradient::None:
-        break;
-    case CGradient::Longz:
-        break;
-    case CGradient::Lasts:
-        break;
-    case CGradient::Strats:
-        break;
-    }
-    return GradPens{ 0 };
-}
+//RoboMoves::Store::GetHPen makeGrad(CGradient cg);
 //------------------------------------------------------------------------------
 #endif // _DRAW_H_

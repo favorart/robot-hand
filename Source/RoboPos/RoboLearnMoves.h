@@ -42,7 +42,7 @@ class LearnMoves
     bool use_weighted_mean{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
-    size_t _tries = 8;
+    size_t _tries = 0;
 
     std::shared_ptr<TourI> makeTour(int stage);
     //=============================================

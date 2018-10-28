@@ -107,7 +107,9 @@ void RoboPos::Approx::constructXY()
     mA << mD, MatrixXd::Ones(mD.rows(), 1), MatrixXd::Ones(1, mD.cols() + 1);
     mA(mD.rows(), mD.cols()) = 0;
     //std::cout << "mA=" << mA.rows() << ", " << mA.cols() << std::endl;// << mA << std::endl;
-
+    //----------------------------------------------
+    boost::this_thread::interruption_point();
+    //----------------------------------------------
     MatrixXd mY(_mY.rows() + 1, _mY.cols());
     mY << _mY, MatrixXd::Ones(1, _mY.cols());
     //std::cout << "mY= " << mY.rows() << ", " << mY.cols() << std::endl;// << _mY << std::endl;

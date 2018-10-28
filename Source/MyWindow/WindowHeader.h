@@ -43,7 +43,7 @@ inline bool isFileExists (const TCHAR *fileName)
   return (0xFFFFFFFF != fileAttr);
 }
 
-enum class CGradient { None, Longz, Lasts, Strats };
+enum class CGradient { None, Longz, Dense, Strats, _Last_ };
 
 tstring   OpenFileDialog (HWND hWnd);
 tstring   SaveFileDialog (HWND hWnd);

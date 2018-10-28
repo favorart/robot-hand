@@ -302,14 +302,35 @@ HPEN genStoreGradientPen(size_t longs)
     return hpen;
 }
 
+//{ RGB(0,0,130), RGB(255,0,0) } // 128
+//{ RGB(130,0,0), RGB(255,155,155) }
+//gradient_t gradient({ RGB(25, 255, 25), RGB(25, 25, 255), RGB(255, 25, 25) });
 //------------------------------------------------------------------------------
-GradPens::GradPens(Robo::frames_t robo_max_last) : _robo_max_last(robo_max_last)
+//GradPens::GradPens(GradPens &&gp)
+//{
+//    _maxLasts = gp._maxLasts; gp._maxLasts = 0;
+//    _colors = gp._colors; gp._colors = { 0,0 };
+//    _colorGradations = gp._colorGradations; gp._colorGradations = 0;
+//    _gradient = gp._gradient; gp._gradient.clear();
+//    _gradientPens = gp._gradientPens gp._gradientPens.clear();
+//}
+
+//------------------------------------------------------------------------------
+void GradPens::restoreGradient()
 {
+    color_gradient_t _gradient;
     makeGradient(_colors, _colorGradations, _gradient);
 
-    _gradientPens.resize(_gradient.size());
-    for (auto i = 0U; i < _gradient.size(); ++i)
+    CDEBUG("restoreGradient-------------");
+    _gradientPens.resize(_colorGradations);
+    for (auto i = 0U; i < _colorGradations; ++i)
+    {
         _gradientPens[i] = CreatePen(PS_SOLID, 1, _gradient[i]);
+        CDEBUG(GetRValue(_gradient[i]) << ' ' <<
+               GetGValue(_gradient[i]) << ' ' <<
+               GetBValue(_gradient[i]));
+    }
+    CDEBUG("----------------------------");
 }
 
 //------------------------------------------------------------------------------
@@ -317,26 +338,23 @@ void GradPens::setColors(color_interval_t colors, size_t gradations)
 {
     _colors = colors;
     _colorGradations = gradations;
-    makeGradient(_colors, _colorGradations, _gradient);
-
-    _gradientPens.resize(_gradient.size());
-    for (auto i = 0U; i < _gradient.size(); ++i)
-        _gradientPens[i] = CreatePen(PS_SOLID, 1, _gradient[i]);
+    restoreGradient();
 }
 
 //------------------------------------------------------------------------------
-HPEN GradPens::operator()(Robo::frames_t longs) const
+HPEN GradPens::operator()(Robo::frames_t longz) const
 {
-    // (sz=15-1 - 0) * (input - 0) / (last=700 - 0) + 0; }
     int i = 0;
-    if (longs > _robo_max_last)
+    CDEBUG("longz=" << longz);
+    if (longz > _maxLasts)
     {
         //throw std::runtime_error("");
         i = _gradientPens.size() - 1;
     }
     else
     {
-        i = Utils::interval_map(longs, { 0u, _robo_max_last }, { 0u, _gradientPens.size() - 1u });
+        // (sz=15-1 - 0) * (input - 0) / (last=700 - 0) + 0; }
+        i = Utils::interval_map(longz, { 0u, _maxLasts }, { 0u, _gradientPens.size() - 1u });
     }
     return _gradientPens[i];
 }

@@ -1,6 +1,6 @@
 ﻿
 
-int LV_CLEVEL = 1;
+int LV_CLEVEL = LV_CINFO;
 //------------------------------------------------------------------------------
 /*  Размедение с повторениями:
  *    currents   - текущее размещение
@@ -178,3 +178,18 @@ std::string Utils::now()
     strftime(buffer, sizeof(buffer), "%Y.%m.%d-%H.%M.%S", timeinfo);
     return { buffer };
 }
+//-------------------------------------------------------------------------------
+#include <codecvt>
+tfstream utf8_stream(const tstring &fn)
+{
+    const std::locale empty_locale = std::locale::empty();
+    using converter_type = std::codecvt_utf8<TCHAR>;
+    const converter_type* converter = new converter_type;
+    const std::locale utf8_locale = std::locale(empty_locale, converter);
+    tfstream stream(fn);
+    stream.imbue(utf8_locale);
+    //tstring line;
+    //std::getline(stream, line);
+    return stream;
+}
+//-------------------------------------------------------------------------------

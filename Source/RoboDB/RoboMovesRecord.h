@@ -122,7 +122,8 @@ public:
     double  ratioUsedMusclesCount() const;
     double  ratioTrajectoryBrakes() const;
 
-    Robo::frames_t  longestMusclesControl() const;
+    Robo::frames_t controlsDense() const { return _lasts_step; }
+    Robo::frames_t longestMusclesControl() const;
     // ----------------------------------------
     friend tostream& operator<<(tostream &s, const RoboMoves::Record &rec);
     friend tistream& operator>>(tistream &s, RoboMoves::Record &rec);

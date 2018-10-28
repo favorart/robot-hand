@@ -145,6 +145,38 @@ void MyWindowData::load(const tstring &filename)
     pStore->pick_up(filename);
 }
 //-------------------------------------------------------------------------------
+RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
+{
+    switch (cg)
+    {
+    case CGradient::Longz:
+        gradPens.setColors({ RGB(150, 10, 245), RGB(245, 10, 150) }, 25);
+        return [&gradPens](const Record &rec) { return gradPens(/*longs*/rec.longestMusclesControl()); };
+    case CGradient::Dense:
+        gradPens.setColors({ RGB(0,0,255), RGB(255,0,0) }, 35);
+        gradPens.shuffleGradient();
+        return [&gradPens](const Record &rec) { return gradPens(rec.controlsDense()); };
+    case CGradient::Strats:
+    {
+        size_t n_controls = 20;
+        gradPens.setColors({ RGB(0,255,0), RGB(255,0,0) }, RoboI::musclesMaxCount * n_controls);
+        gradPens.shuffleGradient();
+        return [&gradPens](const Record &rec) {
+            std::srand(unsigned(std::time(NULL)));
+            const auto k = size_t(std::ceil(std::log2(RoboI::musclesMaxCount))); // k = 3 = log2(8)
+            if (rec.controls.size() > 20) // 64 / 3 ~ 21
+                throw std::runtime_error("Too long control=" + std::to_string(rec.controls.size()) + " >20");
+            size_t n_strat = 0, i = 0;
+            for (auto &a : rec.controls)
+                n_strat += (a.muscle << (k*i++));
+            return gradPens(n_strat);
+        };
+    }
+    //case CGradient::None:
+    default: throw std::logic_error("Invalid CGradient");
+    }
+}
+//-------------------------------------------------------------------------------
 void  onPaintStaticBckGrnd(HDC hdc, MyWindowData &wd)
 {
     if (wd.canvas.centerAxes)
@@ -178,24 +210,30 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
     if (!wd.testing && wd.canvas.allPointsDBShow && !wd.pStore->empty())
     {
         frames_t robot_max_lasts = musclesMaxLasts(*wd.pRobo);
-        robot_max_lasts = (Robo::LastsInfinity == robot_max_lasts) ? Robo::LastsInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
+        //robot_max_lasts = (Robo::LastsInfinity == robot_max_lasts) ? Robo::LastsInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
 
         auto sR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.storeRzoomed : wd.canvas.storeRnormal;
         auto uR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.uncoveredRzoomed : wd.canvas.uncoveredRnormal;
 
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
-                            [hdc](Store &store, frames_t maxLast, Trajectory uncoveredPoints,
-                                  HPEN uncoveredPen, double uR, double sR, CGradient cGrad) {
+                            [hdc](const Store &store, CGradient cGrad, frames_t maxLasts, double sR,
+                                  const Trajectory &uncoveredPoints, HPEN uncoveredPen, double uR) {
+            try
+            {
+                GradPens gradPens(maxLasts);
+                Store::GetHPen g = makeGrad(cGrad, gradPens);
+                store.draw(hdc, sR, g);
 
-            GradPens gradPens(maxLast); // ????
-            auto getPen = [&gradPens](size_t longs) { return gradPens(longs); };
-            store.draw(hdc, sR, getPen);
-            
-            for (auto &pt : uncoveredPoints)
-                drawCircle(hdc, pt, uR, uncoveredPen);
-        }, std::ref(*wd.pStore), robot_max_lasts,
-           wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{},
-           wd.canvas.hPen_red, uR, sR, wd.canvas.cGradient);
+                for (auto &pt : uncoveredPoints)
+                    drawCircle(hdc, pt, uR, uncoveredPen);
+            }
+            catch (const std::exception &e)
+            {
+                CERROR(e.what());
+            }
+        }, std::ref(*wd.pStore), wd.canvas.cGradient, robot_max_lasts, sR,
+           (wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{}),
+           wd.canvas.hPen_red, uR);
     } // end if
 }
 void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
@@ -365,18 +403,21 @@ bool  makeRoboMove(MyWindowData &wd)
 using namespace NewHand;
 using namespace Mobile;
 
-Factory<TargetI> ftarget;
 Factory<RoboI> frobo;
-// http://zenol.fr/blog/boost-property-tree/en.html
-std::vector<std::function<std::shared_ptr<RoboI>(const tstring&, tptree&)>> Factory<RoboI>::makes{ Robo::NewHand::Hand::make, Robo::Mobile::Tank::make };
-std::vector<std::function<std::shared_ptr<TargetI>(const tstring&, tptree&)>> Factory<TargetI>::makes{ RecTarget::make, PolyTarget::make };
+Factory<RoboI>::MakeMethods Factory<RoboI>::makes{ Robo::NewHand::Hand::make, Robo::Mobile::Tank::make };
+
+Factory<TargetI> ftarget;
+Factory<TargetI>::MakeMethods Factory<TargetI>::makes{ RecTarget::make, PolyTarget::make };
 //-------------------------------------------------------------------------------
+tfstream utf8_stream(const tstring &fn);
+// http://zenol.fr/blog/boost-property-tree/en.html
 void MyWindowData::read_config(IN const tstring &filename)
 {
     try
     {
         tptree root;
-        tfstream fin(filename, std::ios::in);
+        tfstream fin = utf8_stream(filename);
+        //tfstream fin(filename, std::ios::in);
         if (!fin.is_open())
             std::runtime_error("config is not exist");
         pt::read_json(fin, root);
@@ -424,6 +465,8 @@ void MyWindowData::read_config(IN const tstring &filename)
         canvas.storeRzoomed = root.get_optional<double>(_T("env.storeRzoomed")).get_value_or(0.003);
         canvas.storeRnormal = root.get_optional<double>(_T("env.storeRnormal")).get_value_or(0.000);
         canvas.dbRadius = root.get_optional<double>(_T("env.dbRadius")).get_value_or(0.01);
+
+        LV_CLEVEL = root.get_optional<int>(_T("verbose")).get_value_or(1);
     }
     catch (const std::exception &e)
     {
@@ -450,7 +493,8 @@ void MyWindowData::write_config(IN const tstring &filename) const
         env.get<unsigned>(_T("skipShowFrames"), unsigned(trajFrames.skipShowFrames()));
         env.get<bool>(_T("animation"), trajFrames.animation());
 
-        tfstream fout(filename, std::ios::out);
+        tfstream fout = utf8_stream(filename);
+        //tfstream fout(filename, std::ios::out);
         pt::write_json(fout, root);
     }
     catch (const std::exception &e)

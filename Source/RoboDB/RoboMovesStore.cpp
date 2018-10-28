@@ -51,7 +51,7 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
 }
 
 // --------------------------------------------------------------
-void RoboMoves::Store::draw(HDC hdc, double radius, const std::function<HPEN(size_t)> &getPen) const
+void RoboMoves::Store::draw(HDC hdc, double radius, const GetHPen &getPen) const
 {
 #ifdef MY_WINDOW
     try
@@ -59,7 +59,7 @@ void RoboMoves::Store::draw(HDC hdc, double radius, const std::function<HPEN(siz
         unsigned i = 0;
         for (const auto &rec : _store)
         {
-            drawCircle(hdc, rec.hit, radius, getPen(rec.longestMusclesControl()));
+            drawCircle(hdc, rec.hit, radius, getPen(rec));
 
             if (++i == 100)
             {

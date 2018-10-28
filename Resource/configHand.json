@@ -1,4 +1,4 @@
-{
+п»ї{
   "robo": {
     "type": "Hand-v4",
     "base": [ 0.75, 0.25 ],
@@ -52,7 +52,7 @@
         "name": "Clvcl",
         "joint": 3,
         "defPoseRatio": 50.0,
-        "show": false, "#show": "there is a BUG of read config then show",
+        "show": false,
         "base": [ 0.75, 0.25 ],
         "nMoveFrames": 2000,
         "maxMoveFrame": 0.4,
@@ -80,7 +80,7 @@
       [ -0.24, -0.65 ],
       [ -0.41, -0.85 ]
     ],
-    "#polygon": "полный круг - обязательно",
+    "#polygon": "РїРѕР»РЅС‹Р№ РєСЂСѓРі - РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ",
 
     "#center": [ -0.195, -0.44 ],
     "#min": [ -0.41, -0.85 ],
@@ -100,8 +100,8 @@
       [ 0.43, -0.03 ],
       [ -0.41, -0.03 ],
       [ -0.41, -0.85 ]
-    ],     "#rectangle": "полный круг - обязательно",
-    "#rectangle1": "либо rectangle, либо (left, right, top, bottom)",
+    ], "#rectangle": "РїРѕР»РЅС‹Р№ РєСЂСѓРі - РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ",
+    "#rectangle1": "Р»РёР±Рѕ rectangle, Р»РёР±Рѕ (left, right, top, bottom)",
 
     "hn_aims": 20, "#hn_aims": 200,
     "vn_aims": 20, "#vn_aims": 200,
@@ -129,5 +129,13 @@
   "lm_config": ".\\Resource\\Tour.txt",
   "precision": 1.5,    "#precision": "mm",
   "redirect": true,
-  "#pickup": "Hand-v4-robo-moves-2018.10.23-16.55.bin"
+  "#pickup": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
+
+  "#LV_OUTALL": 0,
+  "#LV_CDEBUG": 1,
+  "#LV_CINFO": 2,
+  "#LV_CWARN": 3,
+  "#LV_CERROR": 4,
+  "#LV_CALERT": 5,
+  "verbose": 1
 }

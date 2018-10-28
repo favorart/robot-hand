@@ -98,6 +98,7 @@ template <typename Base>
 class Factory
 {
 public:
+    using MakeMethods = std::vector<std::function<std::shared_ptr<Base>(const tstring&, tptree&)>>;
     static std::shared_ptr<Base> create(tptree &root)
     {
         auto &node = root.get_child_optional(Base::name()).get_value_or(root);
@@ -111,6 +112,6 @@ public:
         return std::shared_ptr<Base>(nullptr);
     }
 private:
-    static std::vector<std::function<std::shared_ptr<Base>(const tstring&, tptree&)>> makes;
+    static MakeMethods makes;
 };
 

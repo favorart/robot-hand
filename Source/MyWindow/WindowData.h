@@ -71,7 +71,7 @@ struct MyWindowData
         double storeRnormal{ 0.000 };
         double dbRadius{ 0.01 };
         // --------------------------------
-        CGradient cGradient{ CGradient::None };
+        CGradient cGradient{ CGradient::Longz };
         // --------------------------------
     } canvas;
 

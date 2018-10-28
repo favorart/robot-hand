@@ -20,6 +20,7 @@ using namespace RoboMoves;
 #include "RoboPosTourEvo.h"
 //#endif
 
+tfstream utf8_stream(const tstring &fn);
 //------------------------------------------------------------------------------
 RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
                                 IN double precision_mm, IN const tstring &fn_config) :
@@ -28,9 +29,10 @@ RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo
     _robo.reset();
     _base_pos = _robo.position();
     
-    tfstream fin(fn_config, std::ios::in);
+    tfstream fin = utf8_stream(fn_config);
+    //tfstream fin(fn_config, std::ios::in);
     if (!fin.is_open())
-        return;
+        throw std::runtime_error("LM: config is not open");
     pt::read_ini(fin, _config);
     load(_config);
 }
@@ -99,6 +101,7 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
 {
+    load(_config);
     /* mm :
     *    (target.max - target.min) = 300 mm
     *    1
@@ -131,6 +134,7 @@ void  RoboPos::LearnMoves::STAGE_1()
 /// Покрытие всей мишени не слишком плотно
 void  RoboPos::LearnMoves::STAGE_2()
 {
+    load(_config);
     /*         ~ - - - - *
      *       /
      *      /  +----------------+
@@ -180,6 +184,7 @@ void  RoboPos::LearnMoves::STAGE_2()
 /// Попадание в оставшиеся непокрытыми точки мишени
 void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 {
+    load(_config);
     size_t count = 0;
     try
     {
