@@ -20,7 +20,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
         //=======================
         wd = reinterpret_cast<MyWindowData*>(lpcs->lpCreateParams);
         // кладём полученное из WinMain значение указателя в выделенное место в hWnd
-        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG>(wd));
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wd));
         //=======================
         break;
     }
@@ -142,7 +142,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
   }
   catch (const std::exception &e)
   {
-    CERROR(e.what());
+    SHOW_CERROR(e.what());
     InvalidateRect(hWnd, &wd->canvas.myRect, FALSE);
   }
 

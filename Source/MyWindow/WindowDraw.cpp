@@ -349,12 +349,15 @@ HPEN GradPens::operator()(Robo::frames_t longz) const
     if (longz > _maxLasts)
     {
         //throw std::runtime_error("");
-        i = _gradientPens.size() - 1;
+        i = int(_gradientPens.size() - 1);
     }
     else
     {
         // (sz=15-1 - 0) * (input - 0) / (last=700 - 0) + 0; }
-        i = Utils::interval_map(longz, { 0u, _maxLasts }, { 0u, _gradientPens.size() - 1u });
+        Robo::frames_t t = Utils::interval_map(longz, { 0u, _maxLasts }, { 0u, _gradientPens.size() - 1u });
+        if (t > INT_MAX)
+            throw std::runtime_error("longz is too large");
+        i = int(t);
     }
     return _gradientPens[i];
 }

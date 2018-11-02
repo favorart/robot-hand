@@ -74,19 +74,19 @@ protected:
         std::array<frames_t, RoboI::musclesMaxCount> musclesMove{}; // задействованные в движениии двители
         std::array<distance_t, RoboI::musclesMaxCount> prevFrame{}; // величина смещения сочленения в предыдущий такт для данного мускула
 
-        Status(const JointsInputsPtrs &joint_inputs);
+        Status(const Point &base, const JointsInputsPtrs &joint_inputs);
     };
     Status status;
 
-    virtual void realMove() = 0;
+    Point _base() const { return physics.jointsBases[jointsCount()/*base_center*/]; }
 
+    virtual bool somethingMoving() const;
     virtual void step(IN muscle_t muscle /*= Robo::MInvalid*/, IN frames_t lasts /*= 0*/);
+    virtual void realMove() = 0;
 
     virtual void muscleDriveStop(muscle_t);
     virtual bool muscleDriveFrame(muscle_t);
     virtual void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last);
-
-    virtual bool somethingMoving() const;
 
 public:
     RoboPhysics(const Point &base /*Clavicle|Center*/,
@@ -111,9 +111,7 @@ public:
     void step(IN const Control &control);
     void step(IN const Control &control, OUT size_t &control_curr);
     void step(IN const bitset_t &muscles, IN frames_t lasts);
-
     void step(const Robo::RoboI::bitwise &muscles);
-
     void reset();
 
     // DEBUG -- RM !!!
@@ -126,9 +124,12 @@ public:
         return (status.lastsMove[m] > status.lastsStop[m]) ? (
             (status.lastsMove[m] > 0) ? 'm' : '0') : 's';
     }
+
+    Trajectory& traj() { return _trajectory; };
+    virtual void resetJoint(joint_t) = 0;
     // -----------------------------
 
-    Point jointPos(IN joint_t joint) const
+    const Point& jointPos(IN joint_t joint) const
     {
         if (joint >= jointsCount())
             throw std::logic_error("jointPos: Inorrect joint");
@@ -146,9 +147,6 @@ public:
 
     tstring getName() const { return RoboPhysics::name(); };
     static tstring name() { return _T("RoboPhysics"); };
-
-protected:
-    Point _base() const { return physics.jointsBases[jointsCount()/*base_center*/]; }
 
 private:
     static std::shared_ptr<RoboI> make(const tstring &type, tptree &node)

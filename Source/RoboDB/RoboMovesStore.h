@@ -27,36 +27,18 @@ namespace RoboMoves
   //------------------------------------------------------------------------------
   class  ClosestPredicate
   {
-    //boost_point2_t aim;
-      Point aim;
+      Point _aim;
   public:
-    ClosestPredicate (const Point &aim) : aim (aim) {}
-    double  operator() (const std::shared_ptr<Record> &a,
-                        const std::shared_ptr<Record> &b)
-    {
-      return this->operator() (/*boost_point2_t*/ (a->hit),
-                               /*boost_point2_t*/ (b->hit));
-    }
-    double  operator() (const Record *a,
-                        const Record *b)
-    {
-      return this->operator() (/*boost_point2_t*/ (a->hit),
-                               /*boost_point2_t*/ (b->hit));
-    }
-    double  operator() (const Record &a,
-                        const Record &b)
-    {
-      return this->operator() (/*boost_point2_t*/ (a.hit),
-                               /*boost_point2_t*/ (b.hit));
-    }
-    //double  operator() (const boost_point2_t &a,
-    //                    const boost_point2_t &b)
-    Point::value_type operator()(const Point &a, const Point &b)
-    {
-      Point::value_type da = bg::distance(aim, a);
-      Point::value_type db = bg::distance(aim, b);
-      return (da < db);
-    }
+    ClosestPredicate(const Point &aim) : _aim(aim) {}
+    double operator()(const std::shared_ptr<Record> &a,
+                      const std::shared_ptr<Record> &b)
+    { return this->operator()(a->hit, b->hit); }
+    double operator()(const Record *a, const Record *b)
+    { return this->operator()(a->hit, b->hit); }
+    double operator()(const Record &a, const Record &b)
+    { return this->operator()(a.hit, b.hit); }
+    double operator()(const Point &a, const Point &b)
+    { return (bg::distance(_aim, a) < bg::distance(_aim, b)); }
   };
   //------------------------------------------------------------------------------
   class  ControlHasher : std::unary_function<const Robo::Control&, size_t>
@@ -130,16 +112,16 @@ namespace RoboMoves
     inline size_t kdtree_get_point_count() const { return _inverse.size(); }
     
     /// \returns the dim-th component of the i-th point
-    inline double kdtree_get_pt(const int i, int dim) const
+    inline distance_t kdtree_get_pt(const size_t i, int dim) const
     { return (dim) ? _inverse[i].first->y : _inverse[i].first->x; }
         
     /// Optional bounding-box computation: return false by default
     /// \return true if the BBOX was already computed (to avoid the redoing) and return it in "bb"
-    template <class BBOX>
+    template<class BBOX>
     bool kdtree_get_bbox(BBOX&/*bb*/) const { return false; }
     
     static const size_t KDTDim = 2;
-    using KDTDist = nanoflann::L2_Simple_Adaptor<double, Store>;
+    using KDTDist = nanoflann::L2_Simple_Adaptor<distance_t, Store>;
     using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor<KDTDist, Store, KDTDim>;    
     using KDTree1 = nanoflann::KDTreeSingleIndexDynamicAdaptor_<KDTDist, Store, KDTDim, size_t>;
     using KDTreeBase = nanoflann::KDTreeBaseClass<KDTree1, KDTDist, Store, KDTDim, size_t>;
@@ -151,16 +133,17 @@ namespace RoboMoves
     KDTree _inverse_kdtree{ KDTDim, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10) };
     //==============================================================================
     friend class boost::serialization::access;
-    //BOOST_SERIALIZATION_SPLIT_MEMBER()
     template <class Archive>
     void serialize(Archive &ar, unsigned version)
     { ar & _store; }
 
   public:
+    enum class Format { NONE = 0, TXT = (1 << 0), BIN = (1 << 1) };
+
     Store() = default;
     Store(Store&&) = delete;
     Store(const Store&) = delete;
-    Store(const tstring &database) : Store() { pick_up(database); }
+    Store(const tstring &filename, std::shared_ptr<Robo::RoboI> &r, Format f) : Store() { pick_up(filename, r, f); }
     //------------------------------------------------------------------------------
     /// \return the closest hit in a square adjacency of the aim point
     std::pair<bool, Record> getClosestPoint(IN const Point &aim, IN double side) const
@@ -350,9 +333,8 @@ namespace RoboMoves
     }
     void draw(HDC hdc, double radius, const GetHPen&) const;
     //------------------------------------------------------------------------------
-    void dump_off(const tstring &filename, bool text_else_bin = true) const;
-    void pick_up(const tstring &filename, bool text_else_bin = true);
-
+    void dump_off(const tstring &filename, const Robo::RoboI &robo, Format format) const;
+    void pick_up(const tstring &filename, std::shared_ptr<Robo::RoboI> &robo, Format format);
     //------------------------------------------------------------------------------
     template <class range_t>
     size_t near_passed_points(OUT range_t &range, IN const Point &p, IN distance_t radius) const
@@ -384,12 +366,9 @@ namespace RoboMoves
     /// Construct Inverse Index of all passed points
     bool near_passed_build_index();
     //------------------------------------------------------------------------------
-    //using MultiIndexMovesIxDcIter = MultiIndexMoves::index<ByD>::type::const_iterator;
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
     using MultiIndexMovesSqPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;
-    //using MultiIndexMovesRnPassing = std::pair<MultiIndexMovesIxDcIter, MultiIndexMovesIxDcIter>;
-
-    // for (auto it=ret.first; it!=ret.second; ++it) {}
+    /// iterators-pair using: for (auto it=ret.first; it!=ret.second; ++it) {}
     /// \return all points in a square adjacency for the aim point
     MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN double side) const
     {
@@ -402,15 +381,6 @@ namespace RoboMoves
         CDEBUG(" aim " << aim << " side " << side << " adjacency");
         return std::make_pair(itPL, itPU);
     }
-    /// get all points in round adjacency for the aim point
-    //MultiIndexMovesRnPassing aim_rn_adjacency(IN const Point &aim, IN double radius) const
-    //{
-    //    //boost::lock_guard<boost::mutex> lock(_store_mutex);
-    //    //MultiIndexMoves::index<ByD>::type
-    //    const auto &indexD = _store.get<ByD>();
-    //    CINFO(" aim " << aim << " r " << radius << " adjacency");
-    //    return std::make_pair(indexD.lower_bound(0), indexD.upper_bound(radius));
-    //}
     MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN const Point &min, IN const Point &max) const
     {
         //boost::lock_guard<boost::mutex> lock(_store_mutex);
@@ -422,6 +392,16 @@ namespace RoboMoves
         CDEBUG(" min=" << min << " max=" << max << " adjacency" /*<< (itPU - itPL)*/);
         return std::make_pair(itPL, itPU);
     }
+    // // get all points in round adjacency for the aim point
+    //using MultiIndexMovesRnPassing = std::pair<MultiIndexMovesIxDcIter, MultiIndexMovesIxDcIter>;
+    //MultiIndexMovesRnPassing aim_rn_adjacency(IN const Point &aim, IN double radius) const
+    //{
+    //    //boost::lock_guard<boost::mutex> lock(_store_mutex);
+    //    //MultiIndexMoves::index<ByD>::type
+    //    const auto &indexD = _store.get<ByD>();
+    //    CINFO(" aim " << aim << " r " << radius << " adjacency");
+    //    return std::make_pair(indexD.lower_bound(0), indexD.upper_bound(radius));
+    //}
     //------------------------------------------------------------------------------
     void  insert(const Record &rec);
     //------------------------------------------------------------------------------

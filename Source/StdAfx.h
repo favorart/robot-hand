@@ -22,6 +22,7 @@
 #include <set>
 #include <map>
 #include <list>
+#include <stack>
 #include <limits> // std::numeric_limits<T>
 #include <string>
 #include <bitset>
@@ -30,6 +31,7 @@
 #include <numeric>
 #include <utility>
 #include <fstream>
+#include <codecvt> // utf converter
 #include <iostream>
 #include <iterator>
 #include <algorithm>
@@ -126,16 +128,16 @@ namespace bg = boost::geometry;
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/export.hpp> 
 
-// a portable text archive
-#include <boost/archive/text_oarchive.hpp> // saving
-#include <boost/archive/text_iarchive.hpp> // loading
-// a binary archive
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/property_tree/ptree_serialization.hpp>
 
 #include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
+namespace bfs = boost::filesystem;
 
 //#include <boost/interprocess/allocators/allocator.hpp>
 //#include <boost/interprocess/containers/string.hpp>

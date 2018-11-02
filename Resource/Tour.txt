@@ -1,14 +1,14 @@
 ﻿
 [LearnMoves]
-tries = 4
+tries = 8
 ; tries = 32
-tries_break = 3
+tries_break = 100
 ; tries_break = 100
 ; random_try = 3
 ; половина ребра квадрата, из которого берутся все точки
-side = 0.1
+side = 0.2
 ; шаг уменьшения области поиска для взвешанной суммы
-side_decrease_step = 0.01
+side_decrease_step = 0.005
 ; используется взвешенная арифметическое среднее (иначе обычное)
 use_weighted_mean = true
 
@@ -40,10 +40,10 @@ b_braking = true
 step_distance = 0.2
 ; step_distance = 0.07             ; Желаемое расстояние между конеными точками чернового покрытия
 lasts_step_n = 10
-lasts_step_increment = 11
+lasts_step_increment = 13
 ; lasts_step_increment = 10        ; Изменение шага времени
 lasts_step_increment_init = 37
-; lasts_step_increment_init = 50   ; Время преодоления инерции
+; lasts_step_increment_init = 70   ; Время преодоления инерции
 lasts_step_braking_init = 8		  
 lasts_step_braking_incr = 5
 lasts_step_on_target = 7
@@ -68,11 +68,17 @@ step_distance = 0.02
 borders_side = 0.05
 
 [evo]
-reached_dist = 0.005
+;reached_dist = 0.0009
+;oppo_penalty = 0.5
+;prev_dist_add = 0.000005
+;max_ncontrols = 4
+;step_back = 100
+;lasts_step = 10
+reached_dist = 0.0009
 oppo_penalty = 0.5
-prev_dist_add = 0.000005
-max_ncontrols = 8
-step_back = 105
+prev_dist_add = 0.00001
+max_ncontrols = 4
+step_back = 200
 lasts_step = 10
 
 [evostep]

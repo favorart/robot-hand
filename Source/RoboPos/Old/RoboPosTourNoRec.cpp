@@ -97,15 +97,9 @@ void Tour::run(bool distance, bool target, bool braking, bool predict, bool chec
         runNestedForMuscle(0, Robo::Control{}, useless);
     }
     catch (boost::thread_interrupted&)
-    {
-        CINFO("WorkingThread interrupted");
-        //return;
-    }
+    { CINFO("WorkingThread interrupted"); }
     catch (const std::exception &e)
-    {
-        CERROR(e.what());
-        //return;
-    }
+    { SHOW_CERROR(e.what()); }
     // ----------------------------------------------------
     if (_b_checking) { _counters.print(); }
     tcout << _T("\nStep: ") << (_step_distance / 0.0028) << _T("mm.");

@@ -9,9 +9,10 @@ constexpr int LV_CWARN  = 3;
 constexpr int LV_CERROR = 4;
 constexpr int LV_CALERT = 5;
 
+//-------------------------------------------------------------------------------
 #define _CVERBOSE_(LV,message)       { if (LV_CLEVEL <= LV)                         \
                                        {                                            \
-                                           fs::path p(__FILE__);                    \
+                                           bfs::path p(__FILE__);                   \
                                            tcout << p.filename() << _T("@")         \
                                                  << __LINE__ << _T(": ") << message \
                                                  << std::endl;                      \
@@ -19,7 +20,7 @@ constexpr int LV_CALERT = 5;
                                      }
 #define _CWARNING_(LV,message,title) { if (LV_CLEVEL <= LV)                         \
                                        {                                            \
-                                           fs::path p(__FILE__);                    \
+                                           bfs::path p(__FILE__);                   \
                                            tstring last_err = getLastErrorString(); \
                                            tcout << __FUNCTION__ << _T("() ")       \
                                                  << p.filename() << _T("@")         \
@@ -39,28 +40,39 @@ constexpr int LV_CALERT = 5;
                                               tstringstream ss;                     \
                                               ss << message  << std::endl           \
                                                  << last_err << std::endl;          \
-                                              MessageBoxW(NULL,                     \
-                                                          ss.str().c_str(),         \
-                                                          title,                    \
-                                                          MB_OK | MB_ICONERROR);    \
+                                              MessageBox(NULL,                      \
+                                                         ss.str().c_str(),          \
+                                                         title,                     \
+                                                         MB_OK | MB_ICONERROR);     \
+                                              throw std::runtime_error("");         \
                                            }                                        \
                                        }                                            \
-                                        /* throw std::exception(); */               \
+                                     }
+#define SHOW_CERROR(message)         { tstring msg = Utils::uni({ message });       \
+                                       if (msg.length() > 0)                        \
+                                       {                                            \
+                                           bfs::path p(__FILE__);                   \
+                                           tcout << __FUNCTION__ << _T("() ")       \
+                                                 << p.filename() << _T("@")         \
+                                                 << __LINE__ << _T(": ")            \
+                                                 << msg << std::endl;               \
+                                           tcerr << __FUNCTION__ << _T("() ")       \
+                                                 << p.filename() << _T("@")         \
+                                                 << __LINE__ << _T(": ")            \
+                                                 << msg << std::endl;               \
+                                            MessageBox(NULL,msg.c_str(),_T("error"),\
+                                                       MB_OK | MB_ICONERROR);       \
+                                        }                                           \
                                      }
 
+//-------------------------------------------------------------------------------
 #define CDEBUG(msg)    _CVERBOSE_(LV_CDEBUG,msg)
 #define CINFO(msg)     _CVERBOSE_(LV_CINFO,msg)
 #define CWARN(msg)     _CWARNING_(LV_CWARN,msg,_T("WARNING"))
 #define CERROR(msg)    _CWARNING_(LV_CERROR,msg,_T("ERROR"))
 #define CALERT(msg)    _CWARNING_(LV_CALERT,msg,_T("ALERT"))
 
-//inline void CDEBUG(const char*tstring s) {}
-//inline void CINFO() {}
-//inline void CWARN() {}
-//inline void CERROR() {}
-//inline void CALERT() {}
-
-
+//-------------------------------------------------------------------------------
 #ifdef REPORT
 // class to capture the caller and print it.  
 class Reporter
@@ -114,4 +126,15 @@ public:
 private:
     static MakeMethods makes;
 };
+
+//-------------------------------------------------------------------------------
+#define STRINGIFY(s) #s
+#define NORM_NAME(P) ((STRINGIFY(P)[0]=='_')?tstring(_T(STRINGIFY(P))).substr(1,strlen(STRINGIFY(P))-1):tstring(_T(STRINGIFY(P))))
+
+#define GET_OPTS(config, name, scope) name=config.get_optional<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)).get_value_or(name)
+#define GET_OPT(config, name)         name=config.get_optional<decltype(name)>(NORM_NAME(name)).get_value_or(name)
+
+#define SET_OPTS(config, name, scope) config.put<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)))
+#define SET_OPT(config, name)         config.put<decltype(name)>(NORM_NAME(name))
+//-------------------------------------------------------------------------------
 

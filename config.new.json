@@ -1,0 +1,152 @@
+{
+    "robo": {
+        "type": "Hand-v4",
+        "base": [
+            "0.75",
+            "0.25"
+        ],
+        "joints": [
+            {
+                "joint": "0",
+                "show": "false",
+                "base": [
+                    "-0.75",
+                    "1.05"
+                ],
+                "nMoveFrames": "750",
+                "maxMoveFrame": "1.74533",
+                "motionLaw": {
+                    "type": "4",
+                    "name": "CONAC",
+                    "param": "",
+                    "stopD": "0.55000000000000004"
+                },
+                "name": " J:Wrist    ",
+                "defPoseRatio": "0"
+            },
+            {
+                "joint": "1",
+                "show": "true",
+                "base": [
+                    "-0.69999999999999996",
+                    "1"
+                ],
+                "nMoveFrames": "1250",
+                "maxMoveFrame": "2.3561999999999999",
+                "motionLaw": {
+                    "type": "4",
+                    "name": "CONAC",
+                    "param": "",
+                    "stopD": "0.55000000000000004"
+                },
+                "name": " J:Elbow    ",
+                "defPoseRatio": "70"
+            },
+            {
+                "joint": "2",
+                "show": "true",
+                "base": [
+                    "0.10000000000000001",
+                    "0.84999999999999998"
+                ],
+                "nMoveFrames": "1370",
+                "maxMoveFrame": "1.8326",
+                "motionLaw": {
+                    "type": "4",
+                    "name": "CONAC",
+                    "param": "",
+                    "stopD": "0.55000000000000004"
+                },
+                "name": " J:Shoulder ",
+                "defPoseRatio": "0"
+            },
+            {
+                "joint": "3",
+                "show": "false",
+                "base": [
+                    "0.75",
+                    "0.25"
+                ],
+                "nMoveFrames": "2000",
+                "maxMoveFrame": "0.40000000000000002",
+                "motionLaw": {
+                    "type": "4",
+                    "name": "CONAC",
+                    "param": "",
+                    "stopD": "0.55000000000000004"
+                },
+                "name": " J:Clavicle ",
+                "defPoseRatio": "50"
+            }
+        ]
+    },
+    "target": {
+        "precision": "0.0041999999999999997",
+        "type": "PolyT",
+        "hn_aims": "20",
+        "vn_aims": "20",
+        "polygon": [
+            [
+                "-0.40999999999999998",
+                "-0.84999999999999998"
+            ],
+            [
+                "-0.20999999999999999",
+                "-0.75"
+            ],
+            [
+                "-0.01",
+                "-0.84999999999999998"
+            ],
+            [
+                "0.12",
+                "-0.75"
+            ],
+            [
+                "0.22",
+                "-0.65000000000000002"
+            ],
+            [
+                "0.34999999999999998",
+                "-0.55000000000000004"
+            ],
+            [
+                "0.42999999999999999",
+                "-0.13"
+            ],
+            [
+                "0",
+                "-0.029999999999999999"
+            ],
+            [
+                "-0.20000000000000001",
+                "-0.050000000000000003"
+            ],
+            [
+                "-0.23999999999999999",
+                "-0.65000000000000002"
+            ],
+            [
+                "-0.40999999999999998",
+                "-0.84999999999999998"
+            ]
+        ]
+    },
+    "env": {
+        "skipShowFrames": "15",
+        "animation": "true",
+        "centerAxes": "false",
+        "targetLines": "true",
+        "targetPoints": "true",
+        "targetRadius": "0.0070000000000000001",
+        "uncoveredRzoomed": "0.0050000000000000001",
+        "uncoveredRnormal": "0",
+        "storeRzoomed": "0.0030000000000000001",
+        "storeRnormal": "0",
+        "dbRadius": "0.01"
+    },
+    "precision": "1.5",
+    "lm_config": ".\\Resource\\Tour.txt",
+    "store_save_load_format": "1",
+    "verbose": "3"
+}

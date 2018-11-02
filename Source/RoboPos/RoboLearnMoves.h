@@ -5,7 +5,10 @@
 #include "Robo.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
-//#include "RoboPosApprox.h"
+
+namespace Robo {
+class RoboPhysics;
+}
 
 namespace RoboPos
 {
@@ -13,7 +16,7 @@ class TourI;
 /* тестовые движения рукой */
 //------------------------------------------------------------------------------
 void  testRandom (RoboMoves::Store &store, Robo::RoboI &robo, size_t tries);
-void  testCover  (RoboMoves::Store &store, Robo::RoboI &robo);
+void  testCover  (RoboMoves::Store &store, Robo::RoboPhysics &robo);
 //------------------------------------------------------------------------------
 
 /*!  Количество точек, в окресности искомой точки.
@@ -48,6 +51,9 @@ class LearnMoves
     //=============================================
     bool actionRobo(IN const Point &aim, IN const Robo::Control &controls, OUT Point &hit);
     //---------------------------------------------
+    bool defineDependenceOfMuscles() {}
+    bool defineStaticalPeriodsinMuscles() {}
+
     void  weightedMeanControls(IN  const Point &aim,
                                IN  const RoboMoves::adjacency_ptrs_t &range, // диапазон управлений с конечными точками вблизи цели
                                OUT Robo::Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.

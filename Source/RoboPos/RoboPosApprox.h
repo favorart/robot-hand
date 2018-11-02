@@ -21,7 +21,7 @@ class Approx
     bool _constructed = false;
     bool _train = false;
 
-    const size_t _max_controls_count;
+    const size_t _max_n_controls;
     /// интерполируемая функция: X - aргументы функции, Y - значения функции
     Eigen::MatrixXd _mX, _mY, _mQ;
     Eigen::VectorXd _vNorm, _vK;
@@ -56,27 +56,27 @@ public:
 
     Approx() = delete;
     /// Construct from store
-    Approx(size_t store_size, size_t max_controls_count,
+    Approx(size_t store_size, size_t max_n_controls,
            std::function<double(size_t)> noize = Approx::noize,
            std::function<double()> sizing = Approx::sizing) :
-        _max_controls_count(max_controls_count),
-        _mX(store_size, Approx::control_size * _max_controls_count),
+        _max_n_controls(max_n_controls),
+        _mX(store_size, Approx::control_size * _max_n_controls),
         _mY(store_size, Approx::point_size),
         _mQ(store_size, Approx::point_size),
         _vNorm(store_size),
         _vK(store_size),
-        _nmX(Approx::control_size * _max_controls_count, store_size),
+        _nmX(Approx::control_size * _max_n_controls, store_size),
         _noize(noize), _sizing(sizing)
     {}
     /// Construct from converted matrices
     Approx(Eigen::MatrixXd &X, Eigen::MatrixXd &Y) :
-        _max_controls_count(X.cols() / Approx::control_size),
+        _max_n_controls(X.cols() / Approx::control_size),
         _mX(X),
         _mY(Y),
         _mQ(X.rows(), Approx::point_size),
         _vNorm(X.rows()),
         _vK(X.rows()),
-        _nmX(Approx::control_size * _max_controls_count, X.rows()),
+        _nmX(Approx::control_size * _max_n_controls, X.rows()),
         _noize(noize), _sizing(sizing)
     { 
         if ((X.cols() % Approx::control_size) > 0 || 

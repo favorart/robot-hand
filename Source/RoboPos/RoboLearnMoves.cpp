@@ -20,7 +20,6 @@ using namespace RoboMoves;
 #include "RoboPosTourEvo.h"
 //#endif
 
-tfstream utf8_stream(const tstring &fn);
 //------------------------------------------------------------------------------
 RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
                                 IN double precision_mm, IN const tstring &fn_config) :
@@ -29,8 +28,7 @@ RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo
     _robo.reset();
     _base_pos = _robo.position();
     
-    tfstream fin = utf8_stream(fn_config);
-    //tfstream fin(fn_config, std::ios::in);
+    tfstream fin = Utils::utf8_stream(fn_config, std::ios::in);
     if (!fin.is_open())
         throw std::runtime_error("LM: config is not open");
     pt::read_ini(fin, _config);
@@ -68,22 +66,15 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
     std::shared_ptr<TourI> pTour;
     if (stage == 1)
     {
-        try
-        {
-            tstring type = _config.get<tstring>(_T("Tour.1"));
-            if (type == _T("evo"))
-                pTour = std::make_shared<TourEvo>(_store, _robo, _config, _target);
-            else if (type == _T("evostep"))
-                pTour = std::make_shared<TourEvoSteps>(_store, _robo, _config, _target);
-            else if (type == _T("workspace"))
-                pTour = std::make_shared<TourWorkSpace>(_store, _robo, _config);
-            else
-                CERROR("Invalid type");
-        }
-        catch (const std::exception &e)
-        {
-            CERROR(e.what());
-        }
+        tstring type = _config.get<tstring>(_T("Tour.1"));
+        if (type == _T("evo"))
+            pTour = std::make_shared<TourEvo>(_store, _robo, _config, _target);
+        else if (type == _T("evostep"))
+            pTour = std::make_shared<TourEvoSteps>(_store, _robo, _config, _target);
+        else if (type == _T("workspace"))
+            pTour = std::make_shared<TourWorkSpace>(_store, _robo, _config);
+        else
+            CERROR("Invalid type");
     }
     //else if (stage == 2)
     //{
@@ -101,6 +92,8 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
 {
+    try
+    {
     load(_config);
     /* mm :
     *    (target.max - target.min) = 300 mm
@@ -130,10 +123,17 @@ void  RoboPos::LearnMoves::STAGE_1()
     //pTour->setBrakings(false);
     pTour->run();
 #endif
+    }
+    catch (boost::thread_interrupted&)
+    { CINFO("WorkingThread interrupted"); }
+    catch (const std::exception &e)
+    { SHOW_CERROR(e.what()); }
 }
 /// Покрытие всей мишени не слишком плотно
 void  RoboPos::LearnMoves::STAGE_2()
 {
+    try
+    {
     load(_config);
     /*         ~ - - - - *
      *       /
@@ -146,11 +146,6 @@ void  RoboPos::LearnMoves::STAGE_2()
      *         |                |
      *         +----------------+
      */
-
-    auto noize = [](size_t) { return 0.00000000001; };
-    auto sizing = []() { return 1.01; };
-
-    Approx approx(_store.size(), _robo.musclesCount(), noize, sizing);
     TourTarget::TargetContain target_contain = [&target=_target](const Point &p) {
         //return target.contain(p);
         double corr = 0.01;
@@ -172,13 +167,18 @@ void  RoboPos::LearnMoves::STAGE_2()
                //0.015, 2); // non-recursive
 #else
     // _T("target")
-    std::shared_ptr<TourTarget> pTour = std::make_shared<TourTarget>(_store, _robo, _config, approx, _target, target_contain);
+    std::shared_ptr<TourTarget> pTour = std::make_shared<TourTarget>(_store, _robo, _config, _target, target_contain);
     if (!pTour) return;
     //pTour->setPrecision(0.011, 3);
     //pTour->setChecking(predict);
     //pTour->setPredict(predict);
     pTour->run();
 #endif
+    }
+    catch (boost::thread_interrupted&)
+    { CINFO("WorkingThread interrupted"); }
+    catch (const std::exception &e)
+    { SHOW_CERROR(e.what()); }
 }
 
 /// Попадание в оставшиеся непокрытыми точки мишени
@@ -227,10 +227,10 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             uncovered.push_back(*it);
     }
     }
+    catch (boost::thread_interrupted&)
+    { CINFO("WorkingThread interrupted"); }
     catch (const std::exception &e)
-    {
-        CERROR(e.what());
-    }
+    { SHOW_CERROR(e.what()); }
     // -----------------------------------------------------
     CINFO(_T("TOTAL Complexity: ") << complexity() << 
           _T(" minutes:") << (static_cast<double>(complexity()) / TourI::divToMinutes) << std::endl <<

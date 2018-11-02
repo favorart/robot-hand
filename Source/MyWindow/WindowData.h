@@ -118,7 +118,7 @@ struct MyWindowData
     tstring getCurrFileName() const
     {
         tstringstream ss;
-        ss << pRobo->name() << _T("-robo-moves-")
+        ss << pRobo->getName() << '-' << Robo::RoboI::name() << _T("-moves-")
            << getCurrentTimeString(_T("%Y.%m.%d-%H.%M"))
            << _T(".bin");
         // ?? currFileName = ss.str();
@@ -132,12 +132,16 @@ struct MyWindowData
     static std::list<Point> goals;
     static std::list<Point> predicts;
     static std::list<Point> reals;
+    tstring _config;
+    tstring _lm_config;
     // ---------------------------------
     MyWindowData(const tstring &config, const tstring &database);
     ~MyWindowData();
     // ---------------------------------
     void read_config(IN const tstring &filename);
     void write_config(IN const tstring &filename) const;
+    // ---------------------------------
+    int store_save_load_format = 1;
 };
 //-------------------------------------------------------------------------------
 template<typename Function, typename... Args>
@@ -155,7 +159,7 @@ void  WorkerThreadRunTask (MyWindowData &wd, const tstring &message, Function ta
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
         //InvalidateRect(hWnd, &myRect, FALSE);
     }
 }

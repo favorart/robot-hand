@@ -1419,9 +1419,7 @@ void i4vec_transpose_print ( int n, int a[], string title )
   int i;
   int ihi;
   int ilo;
-  int title_len;
-
-  title_len = title.length ( );
+  int title_len = int(title.length());
 
   for ( ilo = 1; ilo <= n; ilo = ilo + 5 )
   {
@@ -41414,19 +41412,13 @@ int s_len_trim ( string s )
 //    If S_LEN_TRIM is 0, then the string is entirely blank.
 //
 {
-  int n;
-
-  n = s.length ( );
-
+  size_t n = s.length ( );
   while ( 0 < n )
   {
     if ( s[n-1] != ' ' )
-    {
       return n;
-    }
-    n = n - 1;
+    --n;
   }
-
   return n;
 }
 //****************************************************************************80

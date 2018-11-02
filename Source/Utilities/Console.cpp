@@ -31,7 +31,7 @@ void redirectConsoleIO()
     SetConsoleScreenBufferSize(GetStdHandle(STD_OUTPUT_HANDLE), coninfo.dwSize);
 
     // redirect unbuffered STDOUT to the console
-    long lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+    intptr_t lStdHandle = (intptr_t)GetStdHandle(STD_OUTPUT_HANDLE);
     int hConHandle = _open_osfhandle(lStdHandle, _O_TTEXT);
 
     //FILE *fp;
@@ -40,7 +40,7 @@ void redirectConsoleIO()
     //setvbuf (stdout, NULL, _IONBF, 90);
 
     // redirect unbuffered STDIN to the console
-    lStdHandle = (long)GetStdHandle(STD_INPUT_HANDLE);
+    lStdHandle = (intptr_t)GetStdHandle(STD_INPUT_HANDLE);
     hConHandle = _open_osfhandle(lStdHandle, _O_TTEXT);
 
     //fp = tfdopen (hConHandle, _T("r"));
@@ -48,7 +48,7 @@ void redirectConsoleIO()
     //setvbuf (stdin, NULL, _IONBF, 90);
 
     // redirect unbuffered STDERR to the console
-    lStdHandle = (long)GetStdHandle(STD_ERROR_HANDLE);
+    lStdHandle = (intptr_t)GetStdHandle(STD_ERROR_HANDLE);
     hConHandle = _open_osfhandle(lStdHandle, _O_TTEXT);
 
     //fp = tfdopen (hConHandle, _T("w"));

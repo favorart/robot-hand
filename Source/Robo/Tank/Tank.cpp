@@ -29,11 +29,7 @@ frames_t Tank::muscleMaxLasts(muscle_t muscle) const
 }
 //--------------------------------------------------------------------------------
 const Point& Tank::position() const
-{
-    //Point center = (status.curPos[Joint::LTrack] + status.curPos[Joint::RTrack]) / 2.;
-    //return center;
-    return status.curPos[jointsCount()];
-}
+{ return status.curPos[jointsCount()]; }
 //--------------------------------------------------------------------------------
 Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
     RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>()),
@@ -91,7 +87,7 @@ void Tank::realMove()
     center_ = { 0.,0. };
 #endif // TANK_DEBUG
 
-    const joint_t jcenter = jointsCount();
+    const joint_t jcenter = joint_t(Joint::Center);
     const joint_t l_track = (params.jointsUsed[0] == Joint::LTrack) ? 0 : 1;
     const joint_t r_track = (params.jointsUsed[0] == Joint::RTrack) ? 0 : 1;
 
@@ -245,20 +241,20 @@ void Tank::realMove()
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 {
 #ifdef MY_WINDOW
-    const Point &L = status.curPos[0];
-    const Point &R = status.curPos[1];
-    Point centerBody = status.curPos[2];
+    const Point &L = status.curPos[int(Joint::LTrack)];
+    const Point &R = status.curPos[int(Joint::RTrack)];
+    Point centerBody = status.curPos[int(Joint::Center)];
     //------------------------------------------------------------------
     double phy = L.angle(R);
-    // draw Body
+    // Body
     double bodyWidth = (boost_distance(R, L) - params.trackWidth);
     drawMyFigure(hdc, centerBody, bodyWidth, params.bodyHeight, phy, MyFigure::Rectangle, hPen);
-    // draw Tracks
+    // Tracks
     for (joint_t j = 0; j < jointsCount(); ++j)
         drawMyFigure(hdc, status.curPos[j], params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
-    // draw Center
+    // Center
     drawCircle(hdc, centerBody, params.centerRadius);
-    // draw Front
+    // Front
     drawMyFigure(hdc, centerBody, bodyWidth, params.bodyHeight, phy, MyFigure::Triangle, hPen);
     //------------------------------------------------------------------
 #ifdef TANK_DEBUG

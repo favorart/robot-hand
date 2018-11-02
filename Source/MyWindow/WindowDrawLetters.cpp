@@ -2,9 +2,8 @@
 #include "WindowHeader.h"
 #include "WindowDrawLetters.h"
 //------------------------------------------------------------------------------
-CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
-                                        const Point &RecTargetMaxPos) :
-  show (false), targetMin_ (RecTargetMinPos), targetMax_ (RecTargetMaxPos)
+CanvasScaleLetters::CanvasScaleLetters (const Point &targetMin, const Point &targetMax) :
+  show(false), targetMin_(targetMin), targetMax_(targetMax)
 {
   double NormXScale = 30.; // ????
   double NormYScale = 30.; // ????
@@ -19,12 +18,12 @@ CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
   ss_.str (tstring ());
   ss_.clear ();
 
-  ss_ << NormXScale << _T (" sm");
+  ss_ << RealXScale << _T (" sm");
   txtXScale = ss_.str ();
   ss_.str (tstring ());
   ss_.clear ();
 
-  ss_ << NormYScale << _T (" sm");
+  ss_ << RealYScale << _T (" sm");
   txtYScale = ss_.str ();
   ss_.str (tstring ());
   ss_.clear ();
@@ -46,7 +45,7 @@ CanvasScaleLetters::CanvasScaleLetters (const Point &RecTargetMinPos,
   Font_270 = CreateFontIndirect (&lf_);
 }
 //------------------------------------------------------------------------------
-void  CanvasScaleLetters::draw(HDC hdc, const std::vector<Point> &jointsCoords, bool centerCoords)
+void CanvasScaleLetters::draw(HDC hdc, const Point *jointsPoses, int jointsN, bool centerCoords)
 {
     const double targetXShift = 0.1;
     Point sx, sy;
@@ -87,35 +86,28 @@ void  CanvasScaleLetters::draw(HDC hdc, const std::vector<Point> &jointsCoords, 
     );
 
     //---draw scale on hand joints---
-    if (jointsCoords.size() > 1)
+    if (jointsN > 1)
     {
-        /* Clvcl, Shldr, Elbow */
-        for (auto it = jointsCoords.begin(), next = std::next(it);
-             next != jointsCoords.end();
-             it = next, ++next)
+        for (auto *p = jointsPoses, *next = p + 1; next < (jointsPoses + jointsN); p = next, ++next)
         {
             /* Calculate value of scale */
-            ss_ << (bg::distance(*it, *next) / RealScale) << _T(" sm");
+            ss_ << (bg::distance(*p, *next) / RealScale) << _T(" sm");
             tstring strHandScale = ss_.str();
             ss_.str(tstring());
             ss_.clear();
-
-            /* Calculate angle */
-            double angle = atan2((next->y - it->y), (next->x - it->x));
+            //---------------------------------------
+            POINT pos{ (Tx((next->x + p->x) / 2) - /*90 > angle < 270*/textLength(hdc, strHandScale).cx / 2), Ty((next->y + p->y) / 2) };
+            double angle = atan2((next->y - p->y), (next->x - p->x));
             angle *= 180. / M_PI;
-
-            /* Calculate position */
-            Point pos = (*next + *it) / 2;
             //---------------------------------------
             LOGFONT lf = lf_;
             lf.lfEscapement = LONG(10 * angle);
             lf.lfOrientation = LONG(10 * angle);
             HFONT Font = CreateFontIndirect(&lf);
-
             SelectObject(hdc, Font);
             //---------------------------------------
             TextOut(hdc,
-                    Tx(pos.x), Ty(pos.y),   /* Location of the text */
+                    pos.x, pos.y,           /* Location of the text */
                     strHandScale.c_str(),          /* Text to print */
                     (int)strHandScale.size());  /* Size of the text */
         }

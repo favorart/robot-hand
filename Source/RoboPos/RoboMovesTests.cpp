@@ -1,5 +1,6 @@
 ﻿#include "StdAfx.h"
 #include "RoboLearnMoves.h"
+#include "RoboPhysics.h"
 
 using namespace Robo;
 using namespace RoboMoves;
@@ -39,11 +40,11 @@ void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
     catch (boost::thread_interrupted&)
     { CINFO("WorkingThread interrupted"); }
     catch (const std::exception &e)
-    { CERROR(e.what()); }
+    { SHOW_CERROR(e.what()); }
 }
 
 //------------------------------------------------------------------------------
-void RoboPos::testCover(Store &store, RoboI &robo)
+void RoboPos::testCover(Store &store, RoboPhysics &robo)
 {
     const frames_t lasts_min = 50U;
     const frames_t lasts_step = 10U;
@@ -73,7 +74,7 @@ void RoboPos::testCover(Store &store, RoboI &robo)
 
                     for (frames_t last_j = lasts_min; last_j < robo.muscleMaxLasts(muscle_j); last_j += lasts_step)
                     {
-                        Trajectory::iterator tail_j = robo.trajectory().end();
+                        Trajectory::iterator tail_j = robo.traj().end();
                         --tail_j;
 
                         robo.move(Control{ { muscle_j, 0, last_j } });
@@ -92,7 +93,7 @@ void RoboPos::testCover(Store &store, RoboI &robo)
 
                             for (frames_t last_k = lasts_min; last_k < robo.muscleMaxLasts(muscle_k); last_k += lasts_step)
                             {
-                                Trajectory::iterator tail_k = robo.trajectory().end();
+                                Trajectory::iterator tail_k = robo.traj().end();
                                 --tail_k;
 
                                 robo.move(Control{ { muscle_k, 0, last_j } });
@@ -104,17 +105,17 @@ void RoboPos::testCover(Store &store, RoboI &robo)
 
                                 ++tail_k;
 
-                                robo.trajectory().erase(tail_k, robo.trajectory().end());
+                                robo.traj().erase(tail_k, robo.traj().end());
                                 robo.resetJoint(RoboI::jointByMuscle(muscle_k));
                                 boost::this_thread::interruption_point();
                             }
                         }
                         //=================================================
-                        robo.trajectory().erase(tail_j, robo.trajectory().end());
+                        robo.traj().erase(tail_j, robo.traj().end());
                         robo.resetJoint(RoboI::jointByMuscle(muscle_j));
                     }
                 }
-                robo.trajectory().clear();
+                robo.traj().clear();
                 robo.resetJoint(RoboI::jointByMuscle(muscle_i));
             }
         }
@@ -126,10 +127,8 @@ void RoboPos::testCover(Store &store, RoboI &robo)
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
     }
 }
+
 //------------------------------------------------------------------------------
-
-
-

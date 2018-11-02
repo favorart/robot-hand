@@ -11,7 +11,9 @@ RoboMoves::Record::Record(IN const Point         &aim,
                           IN const frames_array  &lasts,
                           IN size_t               controls_count,
                           IN const Trajectory    &visited) :
-    aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited), _lasts_step(0)
+    aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited),
+    _strategy(getStrategy(controls)),
+    _lasts_step(0)
 {
     if (!visited_.size())
         throw std::logic_error("Incorrect trajectory in constructor Record");
@@ -30,6 +32,7 @@ RoboMoves::Record::Record(IN const Point            &aim,
                           IN const Robo::Trajectory &visited) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final),
     control_(controls), visited_(visited), _lasts_step(0),
+    _strategy(getStrategy(controls)),
     _update_time(std::time(NULL)), _update_traj(0)
 {
     if (!visited_.size())
@@ -174,7 +177,7 @@ tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
     s >> rec.move_final_;
     s >> rec.control_;
     s >> sz;
-    for (auto i : boost::irange(0u, sz))
+    for (auto i : boost::irange<size_t>(0, sz))
     {
         Point p;
         s >> p;
@@ -188,3 +191,14 @@ tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
     return s;
 }
 //------------------------------------------------------------------------------
+int64_t RoboMoves::getStrategy(const Robo::Control &controls)
+{
+    const auto k = int(std::ceil(std::log2(RoboI::musclesMaxCount))); // k = 3 = log2(8)
+    if (controls.size() > 20) // 64 / 3 ~ 21
+        CERROR("Too long control=" << controls.size() << " >20");
+    int64_t n_strat = 0;
+    int i = 0;
+    for (auto &a : controls)
+        n_strat += (int64_t(a.muscle) << (k*i++));
+    return n_strat;
+}

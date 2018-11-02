@@ -1783,7 +1783,7 @@ namespace nanoflann
 			if (DIM > 0) dim = DIM;
 			m_leaf_max_size = params.leaf_max_size;
 			init();
-			int num_initial_points = dataset.kdtree_get_point_count();
+			auto num_initial_points = dataset.kdtree_get_point_count();
 			if (num_initial_points > 0) {
 				addPoints(0, num_initial_points - 1);
 			}
@@ -1796,7 +1796,7 @@ namespace nanoflann
 		/** Add points to the set, Inserts all points from [start, end] */
 		void addPoints(IndexType start, IndexType end)
 		{
-			int count = end - start + 1;
+			auto count = end - start + 1;
 			treeIndex.resize(treeIndex.size() + count);
 			for(IndexType idx = start; idx <= end; idx++) {
 				int pos = First0Bit(pointCount);

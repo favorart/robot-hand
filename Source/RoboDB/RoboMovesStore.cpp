@@ -96,42 +96,48 @@ void RoboMoves::Store::insert(const Record &rec)
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
     }
 }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::dump_off(const tstring &filename, bool text_else_bin) const
+void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo, Format format) const
 {
     try
     {
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::mutex> lock(_store_mutex);
 
-        if (text_else_bin)
+        // --- header ---
+        tptree root;
+        robo.save(root);
+        // --------------
+        if (format == Format::TXT)
         {
             std::ofstream ofs(filename, std::ios_base::out);
             boost::archive::text_oarchive toa(ofs);
-            toa & *this;
+            toa << root << this;
         }
-        else
+        else if (format == Format::BIN)
         {
             std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
             boost::archive::binary_oarchive boa(ofs);
-            boa & *this;
+            boa << root << *this;
         }
+        else if (format != Format::NONE)
+            throw std::runtime_error("Invalid store format");
         CINFO("saved '" << filename << "' store " << size() << " inverse " << _inverse.size());
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
     }
 }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::pick_up(const tstring &filename, bool text_else_bin)
+void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::RoboI> &pRobo, Format format)
 {
-    if (!fs::exists(filename))
+    if (!bfs::exists(filename))
         CERROR(_T("File '") << filename << _T("' does not exists."));
 
     clear();
@@ -141,28 +147,40 @@ void RoboMoves::Store::pick_up(const tstring &filename, bool text_else_bin)
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::mutex> lock(_store_mutex);
 
-        if (text_else_bin)
+        tptree root;
+        if (format == Format::TXT)
         {
             std::ifstream ifs(filename, std::ios_base::in);
             boost::archive::text_iarchive tia(ifs);
-            tia & *this;
+            tia >> root >> *this;
         }
-        else
+        else if (format == Format::BIN)
         {
             std::ifstream ifs(filename, std::ios_base::in | std::ios_base::binary);
             boost::archive::binary_iarchive bia(ifs);
-            bia & *this;
+            bia >> root >> *this;
         }
+        else if (format != Format::NONE)
+            throw std::runtime_error("Invalid store format");
 
         for (const auto &rec : _store)
             for (const auto &p : rec.trajectory)
                 _inverse.push_back({ &p, &rec });
 
         CINFO("loaded '" << filename << "' store " << size() << " inverse " << _inverse.size());
+        // --- header ---
+        Factory<Robo::RoboI> frobo;
+        auto pNewRobo = frobo.create(root);
+        if (*pNewRobo != *pRobo)
+        {
+            CINFO("change robo from " << pRobo->getName() << " to " << pNewRobo->getName());
+            pRobo = pNewRobo;
+        }
+        // --------------
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
     }
 }
 
@@ -183,7 +201,7 @@ bool RoboMoves::Store::near_passed_build_index()
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
         return false;
     }
 }

@@ -122,10 +122,11 @@ public:
     struct TargetBorderLasts { Robo::frames_t min_lasts, max_lasts; };
     using  TargetBorders = std::vector<TargetBorderLasts>;
 
+    static const unsigned _max_n_controls = 8;
+
     TourTarget(IN RoboMoves::Store &store,
                IN Robo::RoboI &robo,
                IN tptree &config,
-               IN Approx &approx,
                IN const TargetI &target,
                IN const TargetContain &target_contain,
                IN const TourI::JointsNumerator &next_joint = TourI::reverse);
@@ -146,10 +147,6 @@ protected:
 
     void specifyBordersByRecord(const RoboMoves::Record &rec);
     void defineTargetBorders(Robo::distance_t side);
-
-    //std::vector<Robo::frames_t> avg_speed_on_start_for_muscle;
-    //std::vector<Robo::frames_t> avg_speed_changes_for_muscle;
-    //std::vector<Robo::frames_t> avg_speed_on_target_for_muscle;
     virtual void printParameters() const;
 };
 }

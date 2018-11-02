@@ -6,6 +6,8 @@
 #include "RoboMovesStore.h"
 #include "RoboMovesTarget.h"
 
+#include "TourAdaptiveLasts.h"
+
 using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
@@ -195,102 +197,6 @@ void TourI::adaptiveLasts(IN const Point &prev_pos, IN const Point &curr_pos,
 }
 
 //------------------------------------------------------------------------------
-class TourI::AvgLastsIncrement
-{
-    struct Data { Robo::frames_t lasts; unsigned n; };
-    using MusclesAvgLasts = std::vector<std::array<Data, _LI_LAST_>>;
-
-    MusclesAvgLasts _avg_lasts_specs;
-    std::vector<Data> _avg_lasts_steps;
-    unsigned _range_n;
-    unsigned _range_len;
-
-public:
-    AvgLastsIncrement(muscle_t n_muscles,
-                      frames_t max_lasts,
-                      unsigned n,
-                      frames_t incr_init,
-                      frames_t incr_step,
-                      frames_t brake_init,
-                      frames_t brake_incr,
-                      frames_t on_target) :
-        AvgLastsIncrement(n_muscles, max_lasts, n, LastsIncrs{ incr_init, incr_step, brake_init, brake_incr, on_target })
-    {}
-    AvgLastsIncrement(muscle_t n_muscles, frames_t max_lasts,
-                      unsigned n, LastsIncrs increments) :
-        _range_len(max_lasts / n), _range_n(n)
-    {
-        _avg_lasts_specs.resize(n_muscles);
-        _avg_lasts_steps.resize(n_muscles * n, { increments[LI_STEP], 1 });
-
-        for (muscle_t m = 0; m < n_muscles; ++m)
-            for (auto i = 0u; i < increments.size(); ++i)
-                _avg_lasts_specs[m][i] = { increments[i], 1 };
-    }
-    frames_t li_step(const Actuator &a, LastsIncrement li) const
-    {
-        const Data *data;
-        if (li == LI_STEP)
-        {
-            unsigned range = a.lasts / _range_len;
-            data = &_avg_lasts_steps[a.muscle * _range_n + range];
-        }
-        else
-        {
-            data = &_avg_lasts_specs[a.muscle][li];
-        }
-        return (data->lasts / data->n);
-    }
-    void recalc(const Actuator &a, LastsIncrement li, frames_t incr, double ratio)
-    {
-        Data *data;
-        if (li == LI_STEP)
-        {
-            unsigned range = a.lasts / _range_len;
-            data = &_avg_lasts_steps[a.muscle * _range_n + range];
-        }
-        else
-        {
-            data = &_avg_lasts_specs[a.muscle][li];
-        }
-        data->lasts += frames_t(incr * ratio);
-        data->n++;
-    }
-};
-
-void TourI::adaptiveAvgLasts(IN const Point &prev_pos, IN const Point &curr_pos,
-                             IN const Robo::Actuator &control_i, IN OUT Robo::frames_t &lasts_step,
-                             IN bool target_contain, IN bool was_on_target, IN bool init)
-{
-    distance_t d = bg::distance(prev_pos, curr_pos);
-    //------------------------------------------
-    if (_b_braking && d > _step_distance && lasts_step < 2)
-    {
-        //glob_lasts_step = lasts_step; /// REMOVE
-        joint_t joint = RoboI::jointByMuscle(control_i.muscle);
-        /* если нельзя сохранить одинаковый промежуток
-        * уменьшением длительность основного,
-        * подключаем торможение противоположным
-        */
-        appendBreakings(joint, control_i);
-    }
-    else if (_b_braking && (d < _step_distance || !was_on_target) && _breakings_controls_actives > 0)
-    {
-        joint_t joint = RoboI::jointByMuscle(control_i.muscle);
-        /* сначала по возможности отключаем торможения */
-        removeBreakings(joint);    
-    }
-    else
-    {
-        double coef = (d <= _step_distance && !was_on_target) ? ((2 * _step_distance - d) / _step_distance) : (d / _step_distance);
-        _p_avg_lasts->recalc(control_i, (init) ? LI_STEP_INIT : LI_STEP, lasts_step, coef);
-        lasts_step = _p_avg_lasts->li_step(control_i, LI_STEP);
-    }
-    if (lasts_step == 0)
-        CERROR("lasts_step == 0");
-}
-
-//------------------------------------------------------------------------------
 inline Robo::frames_t musclesMinLasts(const Robo::RoboI &robo)
 {
     frames_t l = 0;
@@ -299,16 +205,6 @@ inline Robo::frames_t musclesMinLasts(const Robo::RoboI &robo)
             l = robo.muscleMaxLasts(m);
     return l;
 }
-
-
-#define STRINGIFY(s) #s
-#define NORM_NAME(P) ((STRINGIFY(P)[0]=='_')?tstring(_T(STRINGIFY(P))).substr(1,strlen(STRINGIFY(P))-1):tstring(_T(STRINGIFY(P))))
-
-#define GET_OPTS(config, name, scope) name=config.get_optional<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)).get_value_or(name)
-#define GET_OPT(config, name)         name=config.get_optional<decltype(name)>(NORM_NAME(name)).get_value_or(name)
-
-#define SET_OPTS(config, name, scope) config.put<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)))
-#define SET_OPT(config, name)         config.put<decltype(name)>(NORM_NAME(name))
 
 //------------------------------------------------------------------------------
 TourI::TourI(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &nj) :
@@ -361,19 +257,13 @@ void TourI::run()
 
         Point useless;
         runNestedForMuscle(_next_joint(_robo.jointsCount(), 0/*any*/, true/*first*/), Robo::Control{}, useless);
-        if (_counters.count) _counters.print();
     }
     catch (boost::thread_interrupted&)
-    {
-        CINFO("WorkingThread interrupted");
-        //return;
-    }
+    { CINFO("WorkingThread interrupted"); }
     catch (const std::exception &e)
-    {
-        CERROR(e.what());
-        //return;
-    }
+    { SHOW_CERROR(e.what()); }
     // -------------------------------
+    if (_counters.count) _counters.print();
     CINFO(std::endl << 
           _T("step: ") << (_step_distance / TourI::divToMiliMeters) << _T(" mm.") << std::endl <<
           _T("Complexity: ") << complexity() <<
@@ -448,7 +338,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
     --_max_nested;
     //CDEBUG("runNested " << joint/* << " last_i " << last_i*/);
     /* стартруем разными сочленениями (одновременно) или последовательно */
-    const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
+    //const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0; // ???
     //------------------------------------------
     Point curr_pos = {}, prev_pos = {}, base_pos = {};
     distance_t advantage = 0.;
@@ -458,7 +348,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
     Point all_poses_high{ 0., 0. }; /* сумма положений робота в вышестоящем ряду */
 
     Actuator control_i;
-    //control_i.start = start_i;
+    //control_i.start = start_i; // ???
     //------------------------------------------
     for (auto muscle_i : { RoboI::muscleByJoint(joint, true),
                            RoboI::muscleByJoint(joint, false) })
@@ -498,7 +388,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
                     // boost_distance(base_pos, curr_pos) < Utils::EPSILONT) &&
                     boost_distance(base_pos, curr_pos) <= (advantage - _step_distance / 2))// && !_max_nested)
                 {
-                    if (_b_simul) control_i.start += _lasts_step_increment;
+                    //if (_b_simul) control_i.start += _lasts_step_increment; // ?????
                 }
                 else advantage = boost_distance(base_pos, curr_pos);
                 adaptiveLasts(prev_pos, curr_pos, control_i, lasts_step);
@@ -538,14 +428,15 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
 TourTarget::TourTarget(IN RoboMoves::Store &store,
                        IN Robo::RoboI &robo,
                        IN tptree &config,
-                       IN Approx &approx,
                        IN const TargetI &target,
                        IN const TargetContain &target_contain,
                        IN const TourI::JointsNumerator &next_joint) :
     TourI(store, robo, config, next_joint),
     _target(target),
     _target_contain(target_contain),
-    _approx(approx),
+    _approx(Approx(_store.size(), _max_n_controls,
+                   /*noize*/[](size_t) { return 0.00000000001; },
+                   /*sizing*/[]() { return 1.01; })),
     _b_predict(false),
     _b_checking(false)
 {
@@ -566,8 +457,9 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     GET_OPTS(_config, _lasts_step_on_target, target);
     GET_OPTS(_config, _lasts_step_n, target);
 
-    if (_b_predict && !approx.constructed())
-        approx.constructXY(store);
+    if (_b_predict && !_approx.constructed())
+        //  FILTERING !!!!!!!
+        _approx.constructXY(store);
 }
 
 //------------------------------------------------------------------------------
@@ -636,7 +528,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     --_max_nested;
     auto next_joint = _next_joint(_robo.jointsCount(), joint, false/*non-first*/);
     /* стартруем разными сочленениями (одновременно) или последовательно */
-    const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0;
+    //const frames_t start_i = (_b_simul && controls.size()) ? (controls[-1].lasts + controls[-1].start) : 0; // ???
     //------------------------------------------
     Point curr_pos = {}, prev_pos = {}, base_pos = {};
     //------------------------------------------
@@ -649,7 +541,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
     bool target_contain = false; /* положение захвата достигло мишени и остаётся на ней */
 
     Actuator control_i;
-    //control_i.start = start_i;
+    //control_i.start = start_i; // ???
     //------------------------------------------
     for (auto muscle_i : { RoboI::muscleByJoint(joint, true),
                            RoboI::muscleByJoint(joint, false) })
@@ -682,7 +574,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                 break;
             }
             //------------------------------------------
-            if (_max_nested)
+            if (_max_nested > 0)
             {
                 //===============================================================
                 target_contain = runNestedForMuscle(next_joint, controls + control_i, curr_pos);
@@ -710,7 +602,8 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                 if (!target_contain &&
                     boost_distance(_target.center(), curr_pos) > boost_distance(_target.center(), prev_pos))
                 {
-                    //CINFO("Center is far");
+                    if (_max_nested == _robo.jointsCount())
+                        CWARN("Center is far " << joint);
                     break;
                 }
                 //------------------------------------------
@@ -721,7 +614,7 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
                 if ((distance_curr < Utils::EPSILONT || advantage_curr < Utils::EPSILONT) &&
                     advantage_curr >= advantage_prev) // && !_max_nested)
                 {
-                    CINFO("advantage is small");
+                    CWARN("advantage is small");
                     break;
                 }
                 //------------------------------------------
@@ -806,6 +699,7 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
             bool real = _target_contain(_robo.position());
             //--------------------------------------------
             _counters.fill(model, real, _robo.position(), pred_end);
+            _robo.reset();
         }
 
         if (!_target_contain(pred_end))

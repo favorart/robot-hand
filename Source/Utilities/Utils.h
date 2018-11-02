@@ -26,6 +26,7 @@ template<typename INTEGER>
 INTEGER interval_map(INTEGER input, std::pair<INTEGER, INTEGER> inv_in, std::pair<INTEGER, INTEGER> inv_out)
 { return (inv_out.second - inv_out.first) * (input - inv_in.first) / (inv_in.second - inv_in.first) + inv_out.first; }
 
+tfstream utf8_stream(const tstring &fn, int mode);
 //-------------------------------------------------------------------------------
 tstring uni(const std::string&);
 tstring uni(const std::wstring&);

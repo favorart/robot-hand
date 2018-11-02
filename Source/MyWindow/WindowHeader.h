@@ -43,6 +43,14 @@ inline bool isFileExists (const TCHAR *fileName)
   return (0xFFFFFFFF != fileAttr);
 }
 
+inline SIZE textLength(HDC hdc, const tstring &s)
+{ 
+    SIZE sz{};
+    if (!GetTextExtentPoint32(hdc, s.c_str(), s.length(), &sz))
+        throw std::runtime_error("!GetTextExtentPoint32A");
+    return sz;
+}
+
 enum class CGradient { None, Longz, Dense, Strats, _Last_ };
 
 tstring   OpenFileDialog (HWND hWnd);

@@ -62,7 +62,7 @@ struct JointMotionLaw
         root.put(_T("type"), type);
         root.put(_T("name"), typeName);
         root.put(_T("param"), param);
-        root.put(_T("stopD"), stopDistanceRatio);
+        root.put<double>(_T("stopD"), stopDistanceRatio);
     }
     //void load(tptree &root)
     //{

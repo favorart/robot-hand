@@ -133,7 +133,7 @@ tstring getLastErrorString()
     if (error)
     {
         LPVOID lpMsgBuf;
-        DWORD bufLen = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+        DWORD bufLen = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                                       // FORMAT_MESSAGE_IGNORE_INSERTS |
                                       FORMAT_MESSAGE_FROM_SYSTEM,
                                       NULL,
@@ -141,11 +141,10 @@ tstring getLastErrorString()
                                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                                       (LPTSTR)&lpMsgBuf,
                                       0, NULL);
-        if (bufLen)
+        if (bufLen > 1)
         {
             LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
             tstring result(lpMsgStr, lpMsgStr + bufLen);
-
             LocalFree(lpMsgBuf);
             return result;
         }
@@ -179,15 +178,14 @@ std::string Utils::now()
     return { buffer };
 }
 //-------------------------------------------------------------------------------
-#include <codecvt>
-tfstream utf8_stream(const tstring &fn)
+tfstream Utils::utf8_stream(const tstring &fn, int mode)
 {
     //https://msdn.microsoft.com/en-us/library/7dd6d271-472d-4750-8fb5-ea8f55fbef62.aspx
     const std::locale empty_locale = std::locale::empty(); //locale::global() might works as well
     using converter_type = std::codecvt_utf8<TCHAR>;
     const converter_type* converter = new converter_type;
     const std::locale utf8_locale = std::locale(empty_locale, converter);
-    tfstream stream(fn);
+    tfstream stream(fn, mode);
     stream.imbue(utf8_locale); // replaces the current locale
     //tstring line;
     //std::getline(stream, line);

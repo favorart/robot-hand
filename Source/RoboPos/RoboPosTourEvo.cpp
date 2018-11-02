@@ -1,5 +1,4 @@
-﻿#include <stack>
-#include "RoboPosTourEvo.h"
+﻿#include "RoboPosTourEvo.h"
 
 using namespace Robo;
 using namespace RoboPos;
@@ -15,18 +14,18 @@ class Goal
     struct AvgGoals
     {
         Point avg_goals{};
-        size_t n_goals = 0;
+        unsigned n_goals = 0;
         AvgGoals() = default;
-        AvgGoals(const Point &p, size_t n) :
+        AvgGoals(const Point &p, unsigned n) :
             avg_goals(p), n_goals(n)
         {}
     };
     const double _side{ 0.01 };
     const double _reached{};
-    const size_t _max_stages{ 5 };
-    const size_t _angles_factor{ 4 };
+    const unsigned _max_stages{ 5 };
+    const unsigned _angles_factor{ 4 };
     const TargetI &_target;
-    size_t _stage{ 0 };
+    unsigned _stage{ 0 };
     std::vector<AvgGoals> _goals{};
     TargetI::vec_t::const_iterator _current{};
 
@@ -45,7 +44,7 @@ class Goal
     void stage0()
     {
         auto its_pair = _target.it_coords();
-        auto n_coords = _target.n_coords();
+        auto n_coords = static_cast<unsigned>(_target.n_coords());
         _goals.emplace_back(std::accumulate(its_pair.first, its_pair.second, Point{}) / n_coords, n_coords);
     }
 
@@ -464,7 +463,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                 if (controls[i - 1].start != start)
                     break;
 
-                if (controls[i - 1].lasts <= std::max(_step_back, 1u))
+                if (controls[i - 1].lasts <= std::max<frames_t>(_step_back, 1))
                 {
                     controls.pop(i - 1);
                     popped = true;
@@ -822,11 +821,11 @@ bool RoboPos::TourEvoSteps::compansateOverHit(Robo::Control &controls, const Poi
 
     _robo.move(controls);
     Point hit = _robo.position();
-    auto &visited = _robo.trajectory();
     runNestedReset(controls, 0, 0, 0, goal/*.biggest()*/, Point{ hit });
 
     while (boost_distance(hit, goal) > _reached_dist)
     {
+        const auto &visited = _robo.trajectory();
         distance_t best_path = boost_distance(hit, goal);
         size_t best_n = 0, n = 0;
         auto best_it = visited.end();
@@ -881,7 +880,6 @@ bool RoboPos::TourEvoSteps::compansateOverHit(Robo::Control &controls, const Poi
 
         _robo.move(controls);
         hit = _robo.position();
-        visited = _robo.trajectory();
         runNestedReset(controls, 0, 0, 0, goal/*.biggest()*/, Point{ hit });
     }
 
@@ -889,7 +887,7 @@ bool RoboPos::TourEvoSteps::compansateOverHit(Robo::Control &controls, const Poi
         /* check-out */
         _robo.move(controls);
         hit = _robo.position();
-        visited = _robo.trajectory();
+        const auto &visited = _robo.trajectory();
         _robo.reset();
         if (boost_distance(hit, goal) > _reached_dist)
         {

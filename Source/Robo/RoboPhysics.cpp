@@ -5,15 +5,15 @@ using namespace Robo;
 //--------------------------------------------------------------------------------
 void JointInput::save(tptree &root) const
 {
-    root.put(_T("joint"), joint);
-    root.put(_T("show"), show);
+    root.put<unsigned>(_T("joint"), joint);
+    root.put<bool>(_T("show"), show);
 
     tptree pbase;
     base.save(pbase);
     root.add_child(_T("base"), pbase);
 
-    root.put(_T("nMoveFrames"), nMoveFrames);
-    root.put(_T("maxMoveFrame"), maxMoveFrame);
+    root.put<unsigned>(_T("nMoveFrames"), nMoveFrames);
+    root.put<distance_t>(_T("maxMoveFrame"), maxMoveFrame);
 
     tptree ml;
     frames.save(ml);
@@ -36,25 +36,49 @@ void JointInput::load(tptree &root)
     frames = Robo::MotionLaws::getHandMLaw(type, param);
     frames.stopDistanceRatio = ml.get<double>(_T("stopD"));
 }
+//--------------------------------------------------------------------------------
+bool RoboI::operator==(const RoboI &r) const
+{
+    bool res =
+        (getName() == r.getName()) &&
+        (_base() == r._base()) &&
+        (_joint_inputs.size() == r._joint_inputs.size());
+    if (res)
+    {
+        auto it = _joint_inputs.begin();
+        auto jt = r._joint_inputs.begin();
+        /*&& jt != r._joint_inputs.end()*/
+        while (it != _joint_inputs.end())
+        {
+            if (*it != *jt)
+            {
+                res = false;
+                break;
+            }
+            ++it;
+            ++jt;
+        }
+    }
+    return res;
+}
 void RoboI::save(tptree &root) const
 {
-    tptree robo;
-    root.add_child(_T("robo"), robo);
-
     tptree pbase;
     _base().save(pbase);
-
     tptree joints;
     for (const auto &pJI : _joint_inputs)
     {
         //auto &ji = dynamic_cast<Robot::JointInput&>(*pJI.get());
         //ji.save(joints);
-        pJI->save(joints);
+        tptree node;
+        pJI->save(node);
+        joints.push_back(std::make_pair(_T(""), node));
     }
-
-    robo.put(_T("name"), getName());
+    tptree robo;
+    robo.put(_T("type"), getName());
     robo.add_child(_T("base"), pbase);
     robo.add_child(_T("joints"), joints);
+    root.add_child(_T("robo"), robo);
 }
 //--------------------------------------------------------------------------------
 bool RoboPhysics::somethingMoving() const
@@ -357,18 +381,20 @@ void RoboPhysics::reset()
 RoboPhysics::RoboPhysics(const Point &base,
                          const JointsInputsPtrs &joint_inputs,
                          const std::shared_ptr<EnvEdges> &eiges) :
-    RoboI(joint_inputs), physics(base, joint_inputs), status(joint_inputs), feedback(), env(eiges)
+    RoboI(joint_inputs), physics(base, joint_inputs), status(base, joint_inputs), feedback(), env(eiges)
 {
     if (!ba::is_sorted(joint_inputs, [](const auto &a, const auto &b) { return (*a < *b); }))
         throw std::runtime_error("Joint Inputs are not sorted!");
 }
 //--------------------------------------------------------------------------------
-RoboPhysics::Status::Status(const JointsInputsPtrs &joint_inputs)
+RoboPhysics::Status::Status(const Point &base,
+                            const JointsInputsPtrs &joint_inputs)
 {
     jointsCount = 0;
     for (auto &j_in : joint_inputs)
         if (j_in->show)
             curPos[jointsCount++] = j_in->base;
+    curPos[jointsCount] = base;
     musclesCount = RoboI::musclesPerJoint * jointsCount;
 }
 //--------------------------------------------------------------------------------

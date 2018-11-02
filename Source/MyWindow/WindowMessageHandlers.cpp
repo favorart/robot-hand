@@ -159,8 +159,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
                            (HMENU) IDL_CANVAS,                               /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
-  if ( !hLabCanv )
-    MessageBox (hWnd, _T ("Could not create hLabCanv."), _T ("Error"), MB_OK | MB_ICONERROR);
+  if ( !hLabCanv ) CERROR("Could not create hLabCanv");
 
   // Create a Static Label control
   hLabHelp = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
@@ -174,8 +173,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
                            (HMENU) IDL_HELP,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
-  if ( !hLabHelp )
-    MessageBox (hWnd, _T ("Could not create hLabHelp."), _T ("Error"), MB_OK | MB_ICONERROR);
+  if ( !hLabHelp ) CERROR("Could not create hLabHelp");
 
   // Create a Static Label control
   hLabMAim = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
@@ -189,8 +187,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
                            (HMENU) IDL_MAIM,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
-  if ( !hLabMAim )
-    MessageBox (hWnd, _T ("Could not create hLabMAim."), _T ("Error"), MB_OK | MB_ICONERROR);
+  if ( !hLabMAim ) CERROR("Could not create hLabMAim");
   
   // Create a Static Label control
   hLabTest = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
@@ -204,8 +201,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
                            (HMENU) IDL_TEST,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
-  if ( !hLabTest )
-    MessageBox (hWnd, _T ("Could not create hLabTest."), _T ("Error"), MB_OK | MB_ICONERROR);
+  if ( !hLabTest ) CERROR("Could not create hLabTest");
   
   // Create a Static Label control
   hLabStat = CreateWindow (_T ("STATIC"),            /* The name of the static control's class */
@@ -219,8 +215,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
                            (HMENU) IDL_STAT,                                 /* The Label's ID */
                            NULL,                              /* The HINSTANCE of your program */
                            NULL);                                /* Parameters for main window */
-  if ( !hLabStat )
-    MessageBox (hWnd, _T ("Could not create hLabStat."), _T ("Error"), MB_OK | MB_ICONERROR);
+  if ( !hLabStat ) CERROR("Could not create hLabStat");
 
   // Generate the help string
   tstringstream ss;
@@ -237,9 +232,14 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
      << _T ("  Y - приблизить, показать только мишень  \r")
      << _T ("  U - посчитать непокрытые точки мишени  \r")
      << _T ("  H - показать  непокрытые точки мишени  \r")
-     << _T ("  G - показать масштаб и размеры  \r\r")
+     << _T ("  G - показать масштаб и размеры  \r")
+     << _T ("  J - сменить градиент точек БД  \r\r")
+     << _T ("  I - test approx  \r")
+     << _T ("  M - write config  \r")
+     << _T ("  N - read config  \r")
      << _T ("  O - Random Test,   P - Cover Test  \r")
-     << _T ("  1 - STAGE,  2 - STAGE,  3 - STAGE  \r\r")
+     << _T ("  1 - STAGE,  2 - STAGE,  3 - STAGE  \r")
+     << _T ("  0 - free storage  \r\r")
      << _T ("  \r\r");
 
   // Setting the Label's text
@@ -255,11 +255,11 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
   
   wd.pRobo->reset();
 
-  if (fs::exists(wd.currFileName))
+  if (bfs::exists(wd.currFileName))
   {
       WorkerThreadRunTask(wd, _T("  *** loading ***  "),
                           [](MyWindowData &wd, const tstring &filename) {
-                              wd.pStore->pick_up(filename);
+                              wd.pStore->pick_up(filename, wd.pRobo, Store::Format(wd.store_save_load_format));
                               /// wd.load(filename); TODO:
                           }, std::ref(wd), wd.currFileName);
       WorkerThreadTryJoin(wd);
@@ -363,7 +363,7 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
     if ( !wd.canvas.hStaticDC )
     {
       wd.canvas.hStaticDC = CreateCompatibleDC (hdc);
-      if ( !wd.canvas.hStaticDC ) CERROR("");
+      if ( !wd.canvas.hStaticDC ) CERROR("!hStaticDC");
     }
 
     /* Удаляем старый объект */
@@ -375,7 +375,7 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
     /* Создаём новый растровый холст */
     wd.canvas.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
                                                            myRect.bottom - myRect.top);
-    if ( !wd.canvas.hStaticBitmap ) CERROR("");
+    if ( !wd.canvas.hStaticBitmap ) CERROR("!hStaticBitmap");
     SelectObject (wd.canvas.hStaticDC, wd.canvas.hStaticBitmap);
 
     /* Рисуем всё заново */
@@ -396,11 +396,11 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
   //-------------------------------------
   /* Создание теневого контекста для двойной буфферизации */
   HDC   hCmpDC = CreateCompatibleDC (hdc);
-  if ( !hCmpDC ) CERROR("");
+  if ( !hCmpDC ) CERROR("!hCmpDC");
 
   HBITMAP hBmp = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
                                               myRect.bottom - myRect.top);
-  if ( !hBmp ) CERROR("");
+  if ( !hBmp ) CERROR("!hBmp");
   SelectObject (hCmpDC, hBmp);
   //-------------------------------------
   if ( !wd.testing )
@@ -525,7 +525,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     //========================================
     switch (symbol)
     {
-    case 0x0D: /* Process a carriage return */
+    case 0x0D: /* enter - invalidate Rect */
     {
         //========================================
         wd.canvas.hDynamicBitmapChanged = true;
@@ -534,7 +534,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'q':
+    case 'q': /* show storage end points */
     {
         //========================================
         // onShowDBPoints (wd);
@@ -547,7 +547,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'i':
+    case 'i': /* test approx */
     {
         //========================================
         //wd.pStore->near_passed_build_index();
@@ -556,7 +556,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
             for (int i = 1; i < 20; ++i)
             {
                 tcout << i << _T(" approx sizing=") << i * 2 << std::endl;
-                Approx approx(store.size(), robo.musclesCount(), Approx::noize, [i]() {return i * 2; });
+                Approx approx(store.size(), 8, Approx::noize, [i]() {return i * 2; });
                 approx.constructXY(store);
                 //tcout << _T("writing") << std::endl;
                 {
@@ -597,15 +597,12 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
     
-    case 't':
+    case 't': /* show one random test */
     {
         //========================================
         wd.trajFrames.clear();
         wd.pRobo->reset();
 
-        // // wd.trajFrames_muscle = selectRoboIMove (random (RoboIMovesCount));
-        // wd.trajFrames_muscle = wd.pRobo->selectControl ();
-        // wd.trajFrames_lasts = random (1U, wd.pRobo->muscleMaxLast (wd.trajFrames_muscle));
         Control controls;
         controls.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return robo.muscleMaxLasts(m); }, 70, 2, 4, true);
         CDEBUG(controls);
@@ -617,7 +614,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'o':
+    case 'o': /* random test */
     {
         //========================================
         const size_t tries = 3000;
@@ -629,18 +626,18 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'p':
+    case 'p': /* cover test */
     {
         //========================================
         WorkerThreadRunTask(wd, _T("\n *** cover test ***  "), testCover,
-                            std::ref(*wd.pStore), std::ref(*wd.pRobo));
+                            std::ref(*wd.pStore), std::ref(dynamic_cast<Robo::RoboPhysics&>(*wd.pRobo)));
         if (WorkerThreadTryJoin(wd))
             InvalidateRect(hWnd, &myRect, TRUE);
         //========================================
         break;
     }
 
-    case '1':
+    case '1': /* Stage 1 */
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 1 ***  "),
@@ -652,7 +649,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case '2':
+    case '2': /* Stage 2 */
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 2 ***  "),
@@ -664,7 +661,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case '3':
+    case '3': /* Stage 3 */
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 3 ***  "),
@@ -680,7 +677,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case '0':
+    case '0': /* free storage */
     {
         //========================================
         wd.pStore->clear();
@@ -691,7 +688,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     }
 
 
-    case 'u':
+    case 'u': /* calculate uncovered */
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** Uncover ***  "),
@@ -707,7 +704,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'w':
+    case 'w': /* workspace */
     {
         //========================================
         if (!wd.canvas.workingSpaceTraj.size())
@@ -721,7 +718,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'e':
+    case 'e': /* stop thread */
     {
         //========================================
         if (wd.pWorkerThread)
@@ -734,7 +731,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'g':
+    case 'g': /* show units, scales */
     {
         //========================================
         wd.canvas.pLetters->show = !wd.canvas.pLetters->show;
@@ -746,7 +743,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'y':
+    case 'y': /* zoom target */
     {
         //========================================
         MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::STATIC) ?
@@ -759,8 +756,23 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
+    case 'n': /* read current wd config */
+    {
+        wd.read_config(wd._config);
+        break;
+    }
 
-    case 'j':
+    case 'm': /* write current wd config */
+    {
+        tstringstream ss;
+        ss << _T("config-") << wd.pRobo->getName()
+           << '-' << getCurrentTimeString(_T("%Y.%m.%d-%H.%M"))
+           << _T(".json");
+        wd.write_config(ss.str());
+        break;
+    }
+
+    case 'j': /* change color database points */
     {
         //========================================
         wd.canvas.cGradient = CGradient(std::max(1/*not None*/,(int(wd.canvas.cGradient) + 1) % int(CGradient::_Last_)));
@@ -776,7 +788,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'h':
+    case 'h': /* show|hide uncovered */
     {
         //========================================
         wd.canvas.uncoveredPointsShow = !wd.canvas.uncoveredPointsShow;
@@ -846,15 +858,14 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
             if (!FileName.empty())
             {
                 WorkerThreadRunTask(wd, _T("  *** loading ***  "),
-                                    [FileName, DefaultName](RoboMoves::Store &store) {
-                    /// TODO:
-                    ///if (!store.empty())
-                    ///{
-                    ///    store.dump_off(DefaultName);
-                    ///    store.clear();
-                    ///}
-                    store.pick_up(FileName);
-                }, std::ref(*wd.pStore));
+                                    [FileName, DefaultName](RoboMoves::Store &store, MyWindowData &wd) {
+                    //if (!store.empty()) // TODO:
+                    //{
+                    //    store.dump_off(DefaultName);
+                    //    store.clear();
+                    //}
+                    store.pick_up(FileName, wd.pRobo, Store::Format(wd.store_save_load_format));
+                }, std::ref(*wd.pStore), std::ref(wd));
                 WorkerThreadTryJoin(wd);
                 wd.currFileName = FileName;
             }
@@ -870,9 +881,9 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
             if (!wd.pStore->empty())
             {
                 WorkerThreadRunTask(wd, _T("  *** saving ***  "),
-                                    [](const RoboMoves::Store &store, const tstring &filename) {
-                    store.dump_off(filename); /// wd->save();
-                }, std::ref(*wd.pStore), wd.getCurrFileName());
+                                    [](const RoboMoves::Store &store, MyWindowData &wd) {
+                    store.dump_off(wd.getCurrFileName(), *wd.pRobo, Store::Format(wd.store_save_load_format)); // ??? wd->save();
+                }, std::ref(*wd.pStore), std::ref(wd));
                 WorkerThreadTryJoin(wd);
             }
             //========================================
@@ -883,7 +894,7 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
         if (GetAsyncKeyState(VK_CONTROL))
         {
             //========================================
-            wd.pStore->dump_off(wd.getCurrFileName()); /// wd.save();
+            wd.pStore->dump_off(wd.getCurrFileName(), *wd.pRobo, Store::Format(wd.store_save_load_format)); // ??? wd.save();
             //========================================
         }
         break;

@@ -24,7 +24,14 @@ struct Actuator
     Actuator& operator=(const Actuator&) = default;
     //----------------------------------------------------
     bool operator<  (const Actuator &a) const
-    { return (start < a.start); }
+    { return (start < a.start) || (start == a.start && muscle < a.muscle); }
+    bool operator>  (const Actuator &a) const
+    { return !(*this < a) && !(*this == a); }
+    bool operator<= (const Actuator &a) const
+    { return (*this < a) || (*this == a); }
+    bool operator>=  (const Actuator &a) const
+    { return !(*this < a); }
+
     bool operator== (const Actuator &a) const
     { return (muscle == a.muscle && start == a.start && lasts == a.lasts); }
     bool operator!= (const Actuator &a) const
@@ -168,18 +175,16 @@ public:
     Actuator& back() { return actuators[actuals-1]; };
     //----------------------------------------------------
     void removeStartPause();
-    bool validateMusclesTimes() const;
+    bool intersectMusclesOpposites() const;
     bool validate(Robo::muscle_t n_muscles) /*nothrow*/ const;
-    void validated(Robo::muscle_t n_muscles) const;
-    
-    muscle_t select(muscle_t muscle) const;
-
+    void validated(Robo::muscle_t n_muscles) /*!throw*/ const;
     //----------------------------------------------------
-    void fillRandom(muscle_t muscles_count,
-                    const std::function<frames_t(muscle_t)> &muscleMaxLasts,
+    using MaxMuscleCount = std::function<frames_t(muscle_t)>;
+    void fillRandom(muscle_t n_muscles,
+                    const MaxMuscleCount &muscleMaxLasts,
                     frames_t lasts_min = 50,
-                    unsigned moves_count_min = 1,
-                    unsigned moves_count_max = 3,
+                    unsigned min_n_moves = 1,
+                    unsigned max_n_moves = 3,
                     bool simul = true);
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);

@@ -78,7 +78,7 @@ protected:
 class RecTarget : public TargetI
 {
 protected:
-  unsigned _n_rows, _n_cols; ///< rectangle range: число строк и столбцов (по числу мишений)
+  size_t _n_rows, _n_cols; ///< rectangle range: число строк и столбцов (по числу мишений)
   void generate();
   
 public:
@@ -139,7 +139,7 @@ public:
 
 protected:
     Poly _polygon;              ///< outer polygon vertices
-    unsigned _n_rows, _n_cols;  ///< rectangle range: число строк и столбцов (по числу мишений)
+    size_t _n_rows, _n_cols;    ///< rectangle range: число строк и столбцов (по числу мишений)
     void generate();
 };
 //------------------------------------------------------------------------------

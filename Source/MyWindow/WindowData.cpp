@@ -9,6 +9,7 @@
 #include "RoboMuscles.h"
 #include "Tank.h"
 #include "Hand.h"
+#include "Utils.h"
 
 using namespace Robo;
 using namespace RoboMoves;
@@ -36,7 +37,8 @@ void MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo, const Contr
         // ============
         robo.move(controls);
         // ============
-        store.insert(Record{ robo.position(), base_pos_, robo.position(), controls, robo.trajectory() });
+        if (!store.exactRecordByControl(controls_))
+            store.insert(Record{ robo.position(), base_pos_, robo.position(), controls_, robo.trajectory() });
         // ------------
         controls_.clear();
         controls_curr_ = 0;
@@ -58,7 +60,9 @@ void MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo)
             if (robo.moveEnd())
             {
                 // ------------
-                store.insert(Record{ robo.position(), base_pos_, robo.position(), controls_, robo.trajectory() });
+                auto *pRec = store.exactRecordByControl(controls_);
+                if (!pRec)
+                    store.insert(Record{ robo.position(), base_pos_, robo.position(), controls_, robo.trajectory() });
                 // ------------
                 controls_.clear();
                 controls_curr_ = 0;
@@ -81,6 +85,7 @@ void MyWindowData::TrajectoryFrames::clear()
 MyWindowData::Zoom MyWindowData::zoom = MyWindowData::Zoom::NONE;
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
+    _config(config),
     pWorkerThread{ nullptr },
     pTarget{ nullptr },
     pStore{ std::make_shared<RoboMoves::Store>() }
@@ -136,17 +141,18 @@ MyWindowData::~MyWindowData()
 //-------------------------------------------------------------------------------
 void MyWindowData::save(const tstring &filename) const
 {
-    write_config(filename);
-    pStore->dump_off(filename);
+    //write_config(filename);
+    pStore->dump_off(filename, *pRobo, Store::Format(store_save_load_format));
 }
 void MyWindowData::load(const tstring &filename)
 {
     read_config(filename);
-    pStore->pick_up(filename);
+    pStore->pick_up(filename, pRobo, Store::Format(store_save_load_format));
 }
 //-------------------------------------------------------------------------------
 RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
 {
+    std::srand(unsigned(std::time(NULL)));
     switch (cg)
     {
     case CGradient::Longz:
@@ -162,14 +168,8 @@ RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
         gradPens.setColors({ RGB(0,255,0), RGB(255,0,0) }, RoboI::musclesMaxCount * n_controls);
         gradPens.shuffleGradient();
         return [&gradPens](const Record &rec) {
-            std::srand(unsigned(std::time(NULL)));
-            const auto k = size_t(std::ceil(std::log2(RoboI::musclesMaxCount))); // k = 3 = log2(8)
-            if (rec.controls.size() > 20) // 64 / 3 ~ 21
-                throw std::runtime_error("Too long control=" + std::to_string(rec.controls.size()) + " >20");
-            size_t n_strat = 0, i = 0;
-            for (auto &a : rec.controls)
-                n_strat += (a.muscle << (k*i++));
-            return gradPens(n_strat);
+            auto n_strat = RoboMoves::getStrategy(rec.controls);
+            return gradPens(frames_t(n_strat));
         };
     }
     //case CGradient::None:
@@ -229,7 +229,7 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
             }
             catch (const std::exception &e)
             {
-                CERROR(e.what());
+                SHOW_CERROR(e.what());
             }
         }, std::ref(*wd.pStore), wd.canvas.cGradient, robot_max_lasts, sR,
            (wd.canvas.uncoveredPointsShow ? wd.canvas.uncoveredPointsList : Trajectory{}),
@@ -261,13 +261,7 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
         }
         // --------------------------------------------------------------
         if (wd.canvas.pLetters->show)
-        {
-            std::vector<Point> jPos(wd.pRobo->jointsCount());
-            for (joint_t joint = 0; joint < wd.pRobo->jointsCount(); ++joint)
-                jPos[joint] = wd.pRobo->jointPos(joint);
-            jPos.push_back(wd.pRobo->_base());
-            wd.canvas.pLetters->draw(hdc, jPos, wd.canvas.centerAxes);
-        }
+            wd.canvas.pLetters->draw(hdc, &wd.pRobo->jointPos(0)/*curPos.begin()*/, wd.pRobo->jointsCount()+1, wd.canvas.centerAxes);
     }
     // --------------------------------------------------------------
     if (wd.mouse.click)
@@ -344,6 +338,8 @@ bool  repeatRoboMove(MyWindowData &wd)
     /* Repeat Hand Movement */
     wd.pRobo->reset();
     wd.trajFrames.step(*wd.pStore, *wd.pRobo, p.second.controls);
+    //MyWindowData::reals.clear();
+    //br::copy(p.second.trajectory, std::back_inserter(MyWindowData::reals));
     // -------------------------------------------------
     if (!wd.trajFrames.animation())
     {
@@ -410,45 +406,49 @@ Factory<RoboI>::MakeMethods Factory<RoboI>::makes{ Robo::NewHand::Hand::make, Ro
 Factory<TargetI> ftarget;
 Factory<TargetI>::MakeMethods Factory<TargetI>::makes{ RecTarget::make, PolyTarget::make };
 //-------------------------------------------------------------------------------
-tfstream utf8_stream(const tstring &fn);
 // http://zenol.fr/blog/boost-property-tree/en.html
 void MyWindowData::read_config(IN const tstring &filename)
 {
     try
     {
         tptree root;
-        tfstream fin = utf8_stream(filename);
-        //tfstream fin(filename, std::ios::in);
+        tfstream fin = Utils::utf8_stream(filename, std::ios::in);
         if (!fin.is_open())
-            std::runtime_error("config is not exist");
+            throw std::runtime_error("read_config: file is not exist");
         pt::read_json(fin, root);
+        
+        pRobo = Factory<RoboI>::create(root);
+        pTarget = Factory<TargetI>::create(root);
+
+        if (!pRobo) throw std::runtime_error("read_config: incorrect class RoboI version");
+        if (!pTarget) throw std::runtime_error("read_config: incorrect class TargetI version");
+
+        GET_OPT(root, store_save_load_format);
 
         // -------------------------------------------------------------------------
-        bool redirect = root.get_optional<bool>(_T("redirect")).get_value_or(false);
+        bool redirect = false;
+        GET_OPT(root, redirect);
         if (redirect)
         {
             auto stdout_filename = ("out-" + Utils::now() + ".txt");
             if (std::freopen(stdout_filename.c_str(), "w", stdout) == NULL)
-                CERROR("freopen: invalid IO stream redirect");
+                throw std::runtime_error("read_config: invalid IO stream redirect freopen");
         }
-        tstring pickup = root.get_optional<tstring>(_T("pickup")).get_value_or(_T(""));
+
+        tstring pickup;
+        GET_OPT(root, pickup);
         if (pickup.length())
         {
-            pStore->pick_up(pickup);
+            pStore->pick_up(pickup, pRobo, Store::Format(store_save_load_format));
         }
         // -------------------------------------------------------------------------
-
-        pRobo = Factory<RoboI>::create(root);
-        pTarget = Factory<TargetI>::create(root);
-        //throw std::runtime_error("read_config: incorrect class Robo version");
 
         double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
         if (precision_mm <= 0)
             throw std::runtime_error("read_config: incorrect precision");
 
-        tstring fn_config = root.get<tstring>(_T("lm_config"));
-
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision_mm, fn_config);
+        _lm_config = root.get<tstring>(_T("lm_config"));
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision_mm, _lm_config);
 
         unsigned skip_show_frames = root.get_optional<unsigned>(_T("env.skipShowFrames")).get_value_or(15);
         trajFrames.setSkipShowFrames(skip_show_frames);
@@ -471,7 +471,7 @@ void MyWindowData::read_config(IN const tstring &filename)
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
         std::exit(1);
     }
 }
@@ -481,26 +481,41 @@ void MyWindowData::write_config(IN const tstring &filename) const
     try
     {
         tptree root;
-
         pRobo->save(root);
         pTarget->save(root);
-
-        double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
-        root.get<double>(_T("precision"), precision_mm);
         
         tptree env;
+        env.put<unsigned>(_T("skipShowFrames"), unsigned(trajFrames.skipShowFrames()));
+        env.put<bool>(_T("animation"), trajFrames.animation());
+        env.put<bool>(_T("centerAxes"), canvas.centerAxes);
+        env.put<bool>(_T("targetLines"), canvas.targetLines);
+        env.put<bool>(_T("targetPoints")  , canvas.targetPoints);
+        env.put<double>(_T("targetRadius"), canvas.targetRadius);
+        env.put<double>(_T("uncoveredRzoomed"), canvas.uncoveredRzoomed);
+        env.put<double>(_T("uncoveredRnormal"), canvas.uncoveredRnormal);
+        env.put<double>(_T("storeRzoomed"), canvas.storeRzoomed);
+        env.put<double>(_T("storeRnormal"), canvas.storeRnormal);
+        env.put<double>(_T("dbRadius"), canvas.dbRadius);
         root.put_child(_T("env"), env);
 
-        env.get<unsigned>(_T("skipShowFrames"), unsigned(trajFrames.skipShowFrames()));
-        env.get<bool>(_T("animation"), trajFrames.animation());
+        double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
+        root.put<double>(_T("precision"), precision_mm);
+        root.put<tstring>(_T("lm_config"), _lm_config);
+        root.put<int>(_T("store_save_load_format"), store_save_load_format);
+        root.put<int>(_T("verbose"), LV_CLEVEL);
+        //root.put<bool>(_T("redirect"), redirect);
+        //root.put<tstring>(_T("pickup"), pickup);
+        //root.put<tstring>(_T("lm_config"), fn_config);
 
-        tfstream fout = utf8_stream(filename);
-        //tfstream fout(filename, std::ios::out);
+        tfstream fout = Utils::utf8_stream(filename, std::ios::out);
+        if (!fout.is_open())
+            throw std::runtime_error("write_config: file is not opened");
+        fout << std::setprecision(4);
         pt::write_json(fout, root);
     }
     catch (const std::exception &e)
     {
-        CERROR(e.what());
+        SHOW_CERROR(e.what());
     }
 }
 //-------------------------------------------------------------------------------

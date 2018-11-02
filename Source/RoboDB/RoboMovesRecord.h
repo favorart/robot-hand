@@ -10,14 +10,16 @@ using SimTime = uint64_t;
 typedef std::vector<Robo::frames_t>   frames_array;
 typedef std::vector<Robo::muscle_t>  muscles_array;
 
+int64_t getStrategy(const Robo::Control &controls);
+
 class Record
 {
-    Point aim_{}; // TODO: REMOVE
+    Point aim_{}; // TODO: ??? REMOVE
     Point move_begin_{}, move_final_{};
     Robo::Control    control_{};
     Robo::Trajectory visited_{};
-    //std::vector<muscle_t> _ctrls{}; // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    int64_t _strategy{-1};
     Robo::frames_t _lasts_step{};
     mutable double _error_distance{0.};
     
@@ -32,13 +34,15 @@ class Record
     void save(Archive &ar, unsigned version) const
     {
         ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
-        ar /*& _lasts_step*/ & (_update_time - std::time(NULL)) & _update_traj & _error_distance;
+        //ar & _lasts_step & _strategy;
+        ar &(_update_time - std::time(NULL)) & _update_traj & _error_distance;
     }
     template <class Archive>
     void load(Archive &ar, unsigned version)
     {
         ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
-        ar /*& _lasts_step*/ & _update_time & _update_traj & _error_distance;
+        //ar & _lasts_step & _strategy;
+        ar & _update_time & _update_traj & _error_distance;
         _update_time += std::time(NULL);
     }
 
@@ -133,12 +137,10 @@ struct RecordHasher
 {
     std::size_t operator()(const Record& rec) const
     {
-        std::size_t  seed = 0U;
-        // modify seed by xor and bit-shifting
-        // of the key members
+        std::size_t seed = 0;
+        // modify seed by xor and bit-shifting of the key members
         boost::hash_combine(seed, boost::hash_value(rec.hit.x));
         boost::hash_combine(seed, boost::hash_value(rec.hit.y));
-        // the result.
         return seed;
     }
 };

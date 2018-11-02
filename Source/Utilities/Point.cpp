@@ -140,8 +140,8 @@ tistream& operator>>(tistream &s, Point &p)
 void Point::save(tptree &node) const
 {
     tptree xelem, yelem;
-    xelem.put_value(x); node.push_back(std::make_pair(_T(""), xelem));
-    yelem.put_value(y); node.push_back(std::make_pair(_T(""), yelem));
+    xelem.put_value<Point::value_type>(x); node.push_back(std::make_pair(_T(""), xelem));
+    yelem.put_value<Point::value_type>(y); node.push_back(std::make_pair(_T(""), yelem));
 }
 void Point::load(tptree &node)
 {

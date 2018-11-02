@@ -7,12 +7,12 @@
 void TargetI::save(tptree &root) const
 {
     tptree node;
-    root.add_child(_T("target"), node);
     //node.put(_T("center"), _center);
     //node.put(_T("min"), _min);
     //node.put(_T("max"), _max);
-    //node.put(_T("_thickness"), _thickness);
-    node.put(_T("_precision"), _precision);
+    //node.put(_T("thickness"), _thickness);
+    node.put(_T("precision"), _precision);
+    root.add_child(_T("target"), node);
 }
 void TargetI::load(tptree &root)
 {
@@ -77,7 +77,7 @@ void  RecTarget::draw(HDC hdc, HPEN hPen,
 void RecTarget::save(tptree &root) const
 {
     TargetI::save(root);
-    auto &node = root.get_child(_T("target"));
+    auto &node = root.get_child_optional(_T("target")).get_value_or(root);
     node.put(_T("type"), RecTarget::name());
     node.put(_T("hn_aims"), _n_cols);
     node.put(_T("vn_aims"), _n_rows);
@@ -87,7 +87,7 @@ void RecTarget::save(tptree &root) const
     //node.put(_T("top"), target.top);
     //node.put(_T("bottom"), target.bottom);
 
-    auto &prect = node.get_child(_T("rectangle"));
+    tptree prect;
     vec_t rect{ min(),{ max().x, min().y }, max(),{ min().x, max().y }, min() };
     for (auto &p : rect)
     {
@@ -95,6 +95,7 @@ void RecTarget::save(tptree &root) const
         p.save(pt);
         prect.push_back(std::make_pair(_T(""), pt));
     }
+    node.add_child(_T("rectangle"), prect);
 }
 void RecTarget::load(tptree &root)
 {
@@ -190,19 +191,19 @@ void PolyTarget::draw(HDC hdc, HPEN hPen,
 void PolyTarget::save(tptree &root) const
 {
     TargetI::save(root);
-    auto &node = root.get_child(_T("target"));
-    node.put(_T("type"), RecTarget::name());
-    node.put(_T("hn_aims"), _n_cols);
-    node.put(_T("vn_aims"), _n_rows);
+    auto &node = root.get_child_optional(_T("target")).get_value_or(root);
+    node.put(_T("type"), PolyTarget::name());
+    node.put<unsigned>(_T("hn_aims"), _n_cols);
+    node.put<unsigned>(_T("vn_aims"), _n_rows);
 
     tptree polygon;
-    node.add_child(_T("polygon"), polygon);
     for (auto &p : _polygon.outer())
     {
         tptree pt;
         p.save(pt);
         polygon.push_back(std::make_pair(_T(""), pt));
     }
+    node.add_child(_T("polygon"), polygon);
 }
 void PolyTarget::load(tptree &root)
 {
@@ -210,7 +211,7 @@ void PolyTarget::load(tptree &root)
     auto &node = root.get_child_optional(_T("target")).get_value_or(root);
     //auto type = node.get<tstring>(_T("type"));
     //if (type != RecTarget::name())
-    //    CERROR("RecTarget: Invalid load");
+    //    CERROR("PolyTarget: Invalid load");
 
     _n_cols = node.get<unsigned>(_T("hn_aims"));
     _n_rows = node.get<unsigned>(_T("vn_aims"));

@@ -154,16 +154,15 @@ public:
     using bitwise = std::bitset<musclesMaxCount + 1>;
     virtual void step(const bitwise &muscles) = 0;
 
+    bool operator!=(const RoboI &r) const
+    { return !(*this == r); }
+    bool operator==(const RoboI &r) const;
     //----------------------------------------------------
     virtual void reset() = 0;
-    virtual void resetJoint(joint_t) = 0;
-    //virtual void setJoints(const JointsOpenPercent&) = 0;
-
-    //----------------------------------------------------
     virtual bool moveEnd() const = 0;
     virtual const Point& position() const = 0;
-    virtual Point jointPos(joint_t) const = 0;
-    virtual /*const*/ Trajectory& trajectory() /*const*/ { return _trajectory; };
+    virtual const Point& jointPos(joint_t) const = 0;
+    virtual const Trajectory& trajectory() const { return _trajectory; };
 
     //----------------------------------------------------
     virtual void setTrajectorySave(bool save) { _trajectory_save = save; };

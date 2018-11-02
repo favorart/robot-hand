@@ -31,7 +31,7 @@ void Robo::Control::append(const Robo::Actuator &a)
     }
     // sorted insert
     for (size_t i = 0; i < actuals; ++i)
-        if (actuators[i].start > a.start)
+        if (actuators[i] >= a)
         {
             memmove(&actuators[i + 1], &actuators[i], (actuals + 1 - i) * sizeof(Actuator));
             actuators[i] = a;
@@ -87,27 +87,6 @@ void Robo::Control::removeStartPause()
     _validated = false;
 }
 
-//----------------------------------------------------
-bool Robo::Control::validateMusclesTimes() const
-{
-    if (actuals <= 1)
-        return true;
-
-    throw std::logic_error("validateMusclesTimes: Not implemented!");
-
-    //for (auto iti = this->begin(); iti != this->end(); ++iti)
-    //    for (auto itj = std::next(iti); itj != this->end(); ++itj)
-    //        if (itj->start >= (iti->start + iti->last))
-    //            break; // т.к. отсортированы по возрастанию start
-    //        else if (!musclesValidUnion(iti->muscle, itj->muscle))
-    //        {
-    //            // Если есть перекрытие по времени и есть
-    //            // работающие одновременно противоположные мышцы
-    //            return false;
-    //        }
-    return true;
-}
-
 //---------------------------------------------------------
 bool intersect(const Robo::Actuator &a1, const Robo::Actuator &a2)
 {
@@ -117,52 +96,48 @@ bool intersect(const Robo::Actuator &a1, const Robo::Actuator &a2)
            (a2.lasts >= a1.start && a2.lasts <= (a1.start + a1.lasts));
 }
 
-//---------------------------------------------------------
-using FuncMaxLastsMuscle = std::function<Robo::frames_t(Robo::muscle_t)>;
-void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const FuncMaxLastsMuscle &muscleMaxLasts,
-                               Robo::frames_t lasts_min, unsigned moves_count_min, unsigned moves_count_max, bool simul)
+//----------------------------------------------------
+bool Robo::Control::intersectMusclesOpposites() const
 {
-    unsigned moves_count = Utils::random(moves_count_min, moves_count_max);
+    if (actuals <= 1)
+        return true;
+    for (auto iti = this->begin(); iti != this->end(); ++iti)
+        for (auto itj = std::next(iti); itj != this->end(); ++itj)
+            if (itj->start > (iti->start + iti->lasts))
+                break; // т.к. отсортированы по возрастанию start
+            // есть противоположные мышцы и есть перекрытие по времени
+            else if (RoboI::muscleOpposite(iti->muscle) == itj->muscle && intersect(*iti, *itj))
+                return false;
+    return true;
+}
+
+//---------------------------------------------------------
+void Robo::Control::fillRandom(Robo::muscle_t n_muscles, const MaxMuscleCount &muscleMaxLasts,
+                               Robo::frames_t lasts_min, unsigned min_n_moves, unsigned max_n_moves, bool simul)
+{
+    if (min_n_moves <= 0 || max_n_moves <= 0 || max_n_moves < min_n_moves)
+        throw std::logic_error("fillRandom: Incorrect Min Max n_moves");
+
+    unsigned moves_count = Utils::random(min_n_moves, max_n_moves);
     if (moves_count >= MAX_ACTUATORS)
         throw std::logic_error("fillRandom: Too much actuators for Control!");
 
     clear();
-    Robo::Actuator a{ MInvalid /* muscle - empty move */, 0 /* start */ , 0 /* last */ };
+    Robo::Actuator a{};
     for (unsigned mv = 0; mv < moves_count; ++mv)
     {
-        a.muscle = Utils::random(muscles_count);
-        if (!a.lasts)
-        { a.lasts = Utils::random(lasts_min, muscleMaxLasts(a.muscle)); }
-        else
-        { a.lasts = Utils::random(lasts_min, a.lasts); }
-        // /*if*/ while (!a.last)
-        //{ a.last = random(lasts_min, muscleMaxLasts(a.muscle)); } /* Tank */
-
-        // append to end
-        actuators[actuals++] = a;
-
-        //// append
-        //if (actuals == 0 || actuators[actuals - 1].start <= a.start)
-        //    actuators[actuals++] = a;
-        //// sorted insert
-        //for (size_t i = 0; i < actuals; ++i)
-        //    if (actuators[i].start > a.start)
-        //    {
-        //        memmove(&actuators[i + 1], &actuators[i], (actuals + 1 - i) * sizeof(Actuator));
-        //        actuators[i] = a;
-        //        ++actuals;
-        //    }
+        a.muscle = Utils::random(n_muscles);
+        while (!a.lasts)
+            a.lasts = Utils::random(lasts_min, muscleMaxLasts(a.muscle));
+        actuators[actuals++] = a; // append to end NOT SORTED
 
         if (!simul)
-            a.start += (a.lasts + 1u);
+            a.start += (a.lasts + 1);
         else
-            a.start = Utils::random(0u, a.lasts + 1u);
+            a.start = Utils::random<frames_t>(0, a.lasts + 1);
     }
-
-    // SORTED
-    br::sort(*this);
-
-    // remove duplicates and intersects
+    br::sort(*this); // then SORT
+    // remove duplicates and combine intersects
     for (auto i = 0u; i < (this->size() - 1u); ++i)
         for (auto j = i + 1u; j < this->size();)
             if (actuators[i].muscle == actuators[j].muscle && 
@@ -178,26 +153,7 @@ void Robo::Control::fillRandom(Robo::muscle_t muscles_count, const FuncMaxLastsM
                 }
                 else
                     ++j;
-
-    _validated = false;
-}
-
-//---------------------------------------------------------
-Robo::muscle_t Robo::Control::select(Robo::muscle_t muscle) const
-{
-    if (!muscle)
-    { return actuators[Utils::random(size())].muscle; }
-    else
-    {
-        for (auto &a : actuators)
-            if (a.muscle != muscle && (a.muscle / 2) != (muscle / 2))
-                return a.muscle;
-        //auto m = actuators[random(size())].muscle;
-        //while (m == muscle || (m / 2) == (muscle / 2))
-        //  m = actuators[random(size())];
-    }
-    _validated = false;
-    return MInvalid;
+    _validated = true;
 }
 
 //---------------------------------------------------------
