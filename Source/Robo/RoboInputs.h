@@ -28,7 +28,6 @@ struct Robo::NewHand::Hand::JointInput : public Robo::JointInput
     // [ &palm, &hand, &arm, &shoulder ]
     Hand::Joint Joint() const { return static_cast<Hand::Joint>(joint); }
     tstring name() const { return jointName(Joint()); }
-
     double defaultPose{ 0. };
 
     JointInput() : Robo::JointInput() {}

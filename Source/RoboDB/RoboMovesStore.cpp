@@ -60,8 +60,7 @@ void RoboMoves::Store::draw(HDC hdc, double radius, const GetHPen &getPen) const
         for (const auto &rec : _store)
         {
             drawCircle(hdc, rec.hit, radius, getPen(rec));
-
-            if (++i == 100)
+            if (++i == 500)
             {
                 boost::this_thread::interruption_point();
                 i = 1;
@@ -69,9 +68,7 @@ void RoboMoves::Store::draw(HDC hdc, double radius, const GetHPen &getPen) const
         }
     }
     catch (boost::thread_interrupted&)
-    {
-        CINFO("WorkingThread interrupted");
-    }
+    { CINFO("WorkingThread interrupted"); }
 #endif // MY_WINDOW
 }
 

@@ -39,6 +39,8 @@ void JointInput::load(tptree &root)
 //--------------------------------------------------------------------------------
 bool RoboI::operator==(const RoboI &r) const
 {
+    if (this == &r)
+        return true;
     bool res =
         (getName() == r.getName()) &&
         (_base() == r._base()) &&

@@ -38,26 +38,26 @@ Point LogicCoords (PPOINT coord);
 LRESULT CALLBACK  WndProc (HWND, UINT, WPARAM, LPARAM);
 //-------------------------------------------------------------------------------
 /// \return TRUE if file with fileName exists on disk
-inline bool isFileExists (const TCHAR *fileName)
+inline bool isFileExists(const TCHAR *fileName)
 { DWORD  fileAttr = GetFileAttributes (fileName);
   return (0xFFFFFFFF != fileAttr);
 }
-
-inline SIZE textLength(HDC hdc, const tstring &s)
+/// \return {cx=width,cy=height} of the given text string in currect HDC
+inline SIZE rectTextSize(HDC hdc, const tstring &s)
 { 
     SIZE sz{};
     if (!GetTextExtentPoint32(hdc, s.c_str(), s.length(), &sz))
         throw std::runtime_error("!GetTextExtentPoint32A");
     return sz;
 }
-
+//-------------------------------------------------------------------------------
 enum class CGradient { None, Longz, Dense, Strats, _Last_ };
+//-------------------------------------------------------------------------------
+tstring OpenFileDialog(HWND hWnd);
+tstring SaveFileDialog(HWND hWnd);
 
-tstring   OpenFileDialog (HWND hWnd);
-tstring   SaveFileDialog (HWND hWnd);
-
-tstring   getCurrentTimeString (tstring format, std::time_t *the_time=NULL);
-tstring   getWindowTitleString (HWND hWnd);
+tstring getCurrentTimeString (tstring format, std::time_t *the_time=NULL);
+tstring getWindowTitleString (HWND hWnd);
 //-------------------------------------------------------------------------------
 void  redirectConsoleIO ();
 void  getConsoleArguments (tstring &config, tstring &database);

@@ -28,7 +28,7 @@ LONG Ty_zoom (double logic_y)
 
 /* wheel */
 LONG Tx_wheel (double logic_x)
-{ return static_cast<LONG>(MARGIN + (1.) * (logic_x + 0.5) * (WindowSize()->x - 2. * MARGIN)); }
+{ return static_cast<LONG>(MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize()->x - 2. * MARGIN)); }
 LONG Ty_wheel (double logic_y)
 { return static_cast<LONG>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize()->y - 2. * MARGIN)); }
 

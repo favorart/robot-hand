@@ -1,4 +1,5 @@
-﻿#include "RoboMovesStore.h"
+﻿#include "RoboMovesRecord.h"
+#include "RoboMovesStore.h"
 
 using namespace Robo;
 using namespace RoboMoves;
@@ -56,102 +57,103 @@ RoboMoves::Record::Record(IN const Point            &aim,
         throw std::logic_error("Record: Incorrect lasts_step");
 }
 //---------------------------------------------------------
-double  RoboMoves::Record::eleganceMove() const
+void RoboMoves::Record::clear()
 {
-    /* Суммарное время работы двигателей */
-    double sum_time_muscles = 0.;
-    for (size_t i = 0U; i < control_.size(); ++i)
-    { sum_time_muscles += control_[i].lasts; }
+    aim_ = { 0.,0. };
+    move_begin_ = { 0.,0. };
+    move_final_ = { 0.,0. };
+    control_.clear();
+    visited_.clear();
 
-    /* Количество движений */
-    double controls_count_ratio = 1. / n_controls;
-    /* Количество задействованных мышц */
-    double muscles_count_ratio = ratioUsedMusclesCount();
-    /* max.отклонение от оптимальной траектории */
-    double max_divirgence = ratioTrajectoryDivirgence();
-    /* Длина траектории по сравнениею с дистанцией */
-    double distance_ratio = ratioDistanceByTrajectory();
-    /* Переломы в движении */
-    double trajectory_brakes = ratioTrajectoryBrakes();
-
-    return  distance_ratio + max_divirgence
-        + trajectory_brakes + sum_time_muscles
-        + muscles_count_ratio + controls_count_ratio;
-
-    // double total_time = longestMusclesControl ();
-    // return total_time;
+    _strategy = -1;
+    _lasts_step = 0;
+    _error_distance = 0.;
+    _update_time = 0;
+    _update_traj = 0;
 }
 //---------------------------------------------------------
-double  RoboMoves::Record::ratioDistanceByTrajectory() const
+distance_t RoboMoves::Record::eleganceMove() const
 {
-    double  distance_ratio = 1.;
-    double visited_disance = 0.;
-
-    if (visited_.size())
-    {
-        auto curr = move_begin_;
-        /* Длина траектории по сравнениею с дистанцией */
-        for (auto next = visited_.begin() /*, next = std::next (curr)*/; next != visited_.end(); ++next)
-        {
-            visited_disance += boost_distance(curr, *next);
-            curr = *next;
-        }
-        visited_disance += boost_distance(aim_, visited_.back());
-
-        distance_ratio = (visited_disance) ? (boost_distance(aim_, move_begin_) / visited_disance) : 1.;
-    }
-    // else distance_ratio = 1.;
-    return  distance_ratio;
+    distance_t res = 0;
+    /* Количество движений */
+    res += distance_t(1) / getNControls();
+    /* Суммарное время работы двигателей */
+    res += ratioSumOfWorkingTime();
+    /* Количество задействованных мышц */
+    res += ratioUsedMusclesCount();
+    /* max.отклонение от оптимальной траектории */
+    res += ratioTrajectoryDivirgence();
+    /* Длина траектории по сравнениею с дистанцией */
+    res += ratioDistanceByTrajectory();
+    /* Переломы в движении */
+    res += ratioTrajectoryBrakes();
+    return res;
 }
-double  RoboMoves::Record::ratioTrajectoryDivirgence() const
+//---------------------------------------------------------
+distance_t RoboMoves::Record::ratioDistanceByTrajectory() const
 {
-    /* max.отклонение */
-    typedef boost::geometry::model::d2::point_xy<double> bpt;
-    boost::geometry::model::linestring<bpt>  line;
-
-    auto start = visited_.front();
-    line.push_back(bpt(start.x, start.y));
-    line.push_back(bpt(aim.x, aim.y));
-
-    double max_divirgence = 0.;
-    for (auto &pt : visited_)
-    {
-        double dist = boost::geometry::distance(bpt(pt.x, pt.y), line);
-        if (dist > max_divirgence)
-            max_divirgence = dist;
-    }
-
-    return max_divirgence;
+    distance_t visited_distance = 0;
+    for (auto curr = visited_.begin(), next = std::next(curr); next != visited_.end(); curr = next, ++next)
+        visited_distance += bg::distance(*curr, *next);
+    /* длина траектории по сравнениею с дистанцией */
+    return (visited_distance > 0) ? (bg::distance(aim_, move_begin_) / visited_distance) : 1.;
+}
+distance_t RoboMoves::Record::ratioTrajectoryDivirgence() const
+{
+    using Line = boost::geometry::model::linestring<Point>;
+    Line line{ move_begin_, aim };
+    distance_t max_divirgence = 0.;
+    /* max. отклонение от кратчайшего пути - прямой */
+    br::for_each(visited_, [&line, &max_divirgence](const Point &p) {
+        distance_t d = bg::distance(p, line);
+        if (max_divirgence < d)
+            max_divirgence = d;
+    });
+    return distance_t(1) / max_divirgence;
 }
 //---------------------------------------------------------
 Robo::frames_t RoboMoves::Record::longestMusclesControl() const
 {
     auto cmpAc = [](const Actuator &a, const Actuator &b) {
-            return ((a.start + a.lasts) < (b.start + b.lasts));
-        };
+        return ((a.start + a.lasts) < (b.start + b.lasts));
+    };
     const Actuator &longestControl = *boost::max_element(control_, cmpAc);
-    return  (longestControl.start + longestControl.lasts);
+    return (longestControl.start + longestControl.lasts);
 }
 //---------------------------------------------------------
-double RoboMoves::Record::ratioUsedMusclesCount() const
+distance_t RoboMoves::Record::ratioSumOfWorkingTime() const
 {
-    /* Количество задействованных мышц */
-    ///double muscles_count = 0.;
-    ///for (muscle_t m = 0; m < RoboI::musclesMaxCount; ++m)
-    ///    if (br::find(control_, m) != control_.end())
-    ///        ++muscles_count;
-    ///return  (1. / muscles_count);
-    return 0.;
+    frames_t sum = 0;
+    br::for_each(control_, [&sum](const Actuator &a) { sum += a.lasts; });
+    return distance_t(1) / sum;
 }
-double RoboMoves::Record::ratioTrajectoryBrakes() const
+distance_t RoboMoves::Record::ratioUsedMusclesCount() const
 {
-    /// TODO: ПЕРEЛОМЫ = остановки
-
-    /// for ( auto m : mus )
-    /// if ( Opn and Cls in controls )
-    /// or start > start + last
-    /// (1. / controlsCount) * /* Количество движений != ПЕРЕЛОМ */
-    return 0.;
+    muscle_t muscles = 0, max_m = 0;
+    br::for_each(control_, [&muscles, &max_m](const Actuator &a) {
+        max_m = std::max(max_m, a.muscle);
+        muscles |= (1 << a.muscle);
+    });
+    /* Количество задействованных мышц */
+    unsigned count = 0;
+    for (muscle_t m = 0; m < max_m; ++m)
+        count += (muscles & (1 << m)) ? 1 : 0;
+    return distance_t(1) / count;
+}
+distance_t RoboMoves::Record::ratioTrajectoryBrakes() const
+{
+    unsigned count = 0;
+    // резакая смена направления - ПЕРEЛОМЫ и остановки
+    distance_t small = (2 * RoboI::minFrameMove);
+    for (auto prev = visited_.begin(), curr = std::next(prev), next = std::next(curr);
+         next != visited_.end();
+         prev = curr, curr = next, ++next)
+    {
+        auto a = angle_degrees(*prev, *curr, *next);
+        if (a < 120 || a > 240 || bg::distance(*curr, *next) < small)
+            ++count;
+    }
+    return distance_t(1) / count;
 }
 //------------------------------------------------------------------------------
 tostream& RoboMoves::operator<<(tostream &s, const RoboMoves::Record &rec)

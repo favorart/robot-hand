@@ -33,7 +33,7 @@ struct Actuator
     { return !(*this < a); }
 
     bool operator== (const Actuator &a) const
-    { return (muscle == a.muscle && start == a.start && lasts == a.lasts); }
+    { return (this == &a) || (muscle == a.muscle && start == a.start && lasts == a.lasts); }
     bool operator!= (const Actuator &a) const
     { return !(*this == a); }
     bool operator== (const muscle_t  m) const

@@ -82,14 +82,12 @@ public:
     { return (this != &rec) && (control_ != rec.control_); }
     // ----------------------------------------
     /* Container index keys  */
-    double  hit_x() const { return move_final_.x; }
-    double  hit_y() const { return move_final_.y; }
-
-    double  aim_x() const { return aim_.x; }
-    double  aim_y() const { return aim_.y; }
-
-    double  distanceCovered() const
-    { return boost_distance(move_final_, move_begin_); }
+    Robo::distance_t hit_x() const { return move_final_.x; }
+    Robo::distance_t hit_y() const { return move_final_.y; }
+    Robo::distance_t aim_x() const { return aim_.x; }
+    Robo::distance_t aim_y() const { return aim_.y; }
+    Robo::distance_t distanceCovered() const
+    { return bg::distance(move_final_, move_begin_); }
     // ----------------------------------------
     /* Microsoft specific: C++ properties */
     __declspec(property(get = getAim))       const Point&            aim;
@@ -109,23 +107,15 @@ public:
     void updateTraj(SimTime sim_time) const { _update_traj = sim_time; }
     void updateAim(const Point &aim) { aim_ = aim; }
     // ----------------------------------------
-    void clear()
-    {
-        aim_ = { 0.,0. };
-        move_begin_ = { 0.,0. };
-        move_final_ = { 0.,0. };
-        control_.clear();
-        visited_.clear();
-    }
+    void clear();
     // ----------------------------------------
-    double  eleganceMove() const;
+    Robo::distance_t ratioDistanceByTrajectory() const;
+    Robo::distance_t ratioTrajectoryDivirgence() const;
+    Robo::distance_t ratioUsedMusclesCount() const;
+    Robo::distance_t ratioTrajectoryBrakes() const;
+    Robo::distance_t ratioSumOfWorkingTime() const;
+    Robo::distance_t eleganceMove() const; ///< less value is better
     // ----------------------------------------
-    double  ratioDistanceByTrajectory() const;
-    double  ratioTrajectoryDivirgence() const;
-
-    double  ratioUsedMusclesCount() const;
-    double  ratioTrajectoryBrakes() const;
-
     Robo::frames_t controlsDense() const { return _lasts_step; }
     Robo::frames_t longestMusclesControl() const;
     // ----------------------------------------
@@ -135,14 +125,7 @@ public:
 //------------------------------------------------------------------------------
 struct RecordHasher
 {
-    std::size_t operator()(const Record& rec) const
-    {
-        std::size_t seed = 0;
-        // modify seed by xor and bit-shifting of the key members
-        boost::hash_combine(seed, boost::hash_value(rec.hit.x));
-        boost::hash_combine(seed, boost::hash_value(rec.hit.y));
-        return seed;
-    }
+    size_t operator()(const Record& rec) const { return PointHasher{}(rec.hit); }
 };
 }
 //------------------------------------------------------------------------------

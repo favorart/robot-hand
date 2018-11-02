@@ -96,7 +96,7 @@ void CanvasScaleLetters::draw(HDC hdc, const Point *jointsPoses, int jointsN, bo
             ss_.str(tstring());
             ss_.clear();
             //---------------------------------------
-            POINT pos{ (Tx((next->x + p->x) / 2) - /*90 > angle < 270*/textLength(hdc, strHandScale).cx / 2), Ty((next->y + p->y) / 2) };
+            POINT pos{ (Tx((next->x + p->x) / 2) - /*90 > angle < 270*/rectTextSize(hdc, strHandScale).cx / 2), Ty((next->y + p->y) / 2) };
             double angle = atan2((next->y - p->y), (next->x - p->x));
             angle *= 180. / M_PI;
             //---------------------------------------
