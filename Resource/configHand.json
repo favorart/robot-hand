@@ -52,7 +52,7 @@
         "name": "Clvcl",
         "joint": 3,
         "defPoseRatio": 50.0,
-        "show": true,
+        "show": false,
         "base": [ 0.75, 0.25 ],
         "nMoveFrames": 2000,
         "maxMoveFrame": 0.4,
@@ -65,7 +65,7 @@
       }
     ]
   },
-  "target": {
+  "#target": {
     "type": "PolyT",
     "polygon": [
       [ -0.41, -0.85 ],
@@ -92,7 +92,7 @@
 
     "precision": 0.0042
   },
-  "#target": {
+  "target": {
     "type": "RecT",
     "rectangle": [
       [ -0.41, -0.85 ],

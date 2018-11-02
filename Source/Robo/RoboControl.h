@@ -47,6 +47,8 @@ struct Actuator
     template<class Archive>
     void serialize(Archive &ar, unsigned version)
     { ar & muscle & start & lasts; }
+
+    bool intersect(const Robo::Actuator&) const;
     //----------------------------------------------------
     tstring tstr() const
     { tstringstream ss; ss << *this; return ss.str(); }
@@ -66,28 +68,17 @@ protected:
     static const unsigned MAX_ACTUATORS = 128;       ///< number of brakes
     std::array<Actuator, MAX_ACTUATORS> actuators{}; ///< sorted by start
     size_t actuals = 0;
-    // ----------------------------------------
     mutable bool _validated = false;
 
     // ----------------------------------------
     friend class boost::serialization::access;
     template <class Archive>
     void serialize(Archive &ar, unsigned version)
-    {
-        ar & actuals;
-        for (auto &a : actuators)
-            ar & a;
-    }
-
+    { ar & actuals; for (auto &a : actuators) ar & a; }
     // ----------------------------------------
-    std::string str() const
-    {
-        std::stringstream ss;
-        stream(ss);
-        return ss.str();
-    }
-    //----------------------------------------------------
+    std::string str() const { std::stringstream ss; stream(ss); return ss.str(); }
     std::ostream& stream(std::ostream&) const;
+    //----------------------------------------------------
 
 public:
     Control() = default;
@@ -111,7 +102,6 @@ public:
     Control(Control&&) = default;
     Control(const Control&) = default;
     Control& operator=(const Control &c) = default;
-
     //----------------------------------------------------
     using iterator = std::array<Actuator, MAX_ACTUATORS>::iterator;
     using const_iterator = std::array<Actuator, MAX_ACTUATORS>::const_iterator;
@@ -120,10 +110,8 @@ public:
     auto begin() const -> decltype(boost::begin(actuators));
     auto   end()       -> decltype(boost::end(actuators));
     auto   end() const -> decltype(boost::end(actuators));
-
     //----------------------------------------------------
     size_t size() const { return (actuals); }
-    std::vector<Actuator> v() const { std::vector<Actuator> v(this->begin(), this->end()); return v; }
     void append(const Actuator& a); // sorted
     void push_back(const Actuator& a) { append(a); }
 
@@ -133,14 +121,6 @@ public:
 
     void clear()
     { actuals = 0; actuators.fill({MInvalid,0,0}); _validated = false; }
-
-    tstring tstr() const
-    {
-        tstringstream ss;
-        ss << *this;
-        return ss.str();
-    }
-
     //----------------------------------------------------
     Actuator& operator[](size_t i)
     {
@@ -159,15 +139,8 @@ public:
     bool  operator!= (const muscle_t m) const
     { return  !(*this == m); }
 
-    const Control& operator+=(const Control &c)
-    {
-        for (const auto &a : c)
-            if (a.muscle != MInvalid && a.lasts != 0)
-                append(a);
-            else
-                CWARN("muscle==MInvalid or last==0");
-        return *this;
-    }
+    const Control& operator+=(const Control &cl) { return (*this + cl); }
+    const Control& operator+=(const Actuator &a) { return (*this + a); }
 
     const Actuator& front() const { return actuators[0]; };
     const Actuator& back() const { return actuators[actuals-1]; };
@@ -186,46 +159,27 @@ public:
                     unsigned min_n_moves = 1,
                     unsigned max_n_moves = 3,
                     bool simul = true);
+
+    std::vector<Actuator> v() const { return std::vector<Actuator>(this->begin(), this->end()); }
+    std::vector<Actuator> align() const;
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);
+    //----------------------------------------------------
+    tstring tstr() const { tstringstream ss; ss << *this; return ss.str(); }
     //----------------------------------------------------
     friend std::ostream& operator<<(std::ostream &s, const Control &controls)
     {
         controls.stream(s);
         return s;
     }
+    
+    friend Control operator+(const Control&, const Control&);
+    friend Control operator+(const Control&, const Actuator&);
+    friend Control operator+(const Control&, const std::vector<Actuator>&);
+    //-------------------------------------------------------------------------------
+    static Control EmptyMove() { return Control{}; }
 };
-//-------------------------------------------------------------------------------
-inline Control EmptyMov() { return {}; }
-//-------------------------------------------------------------------------------
-inline Control operator+(const Control &cl, const Control &cr)
-{ 
-    Control c = cl;
-    for (auto &a : cr)
-        if (a.muscle != MInvalid && a.lasts != 0)
-            c.append(a);
-        else CWARN("muscle==MInvalid or last==0");
-    return c;
-}
-inline Control operator+(const Control &cl, const Actuator &a)
-{
-    Control c = cl;
-    if (a.muscle != MInvalid && a.lasts != 0)
-        c.append(a);
-    else CWARN("muscle==MInvalid or last==0");
-    return c;
-}
-inline Control operator+(const Control &cl, const std::vector<Actuator> &v)
-{
-    Control c = cl;
-    for (auto &a : v)
-        if (a.muscle != MInvalid && a.lasts != 0)
-            c.append(a);
-        //else CWARN("muscle==MInvalid or last==0");
-    return c;
-}
-//-------------------------------------------------------------------------------
 }
 //-------------------------------------------------------------------------------
 BOOST_CLASS_VERSION(Robo::Actuator, 2)

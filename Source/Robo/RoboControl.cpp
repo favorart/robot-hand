@@ -4,6 +4,15 @@
 
 const double Robo::RoboI::minFrameMove = Utils::EPSILONT;
 //---------------------------------------------------------
+bool Robo::Actuator::intersect(const Robo::Actuator &a) const
+{
+    return (a.start <= start && start <= (a.start + a.lasts)) ||
+           (a.start <= lasts && lasts <= (a.start + a.lasts)) ||
+           (start <= a.start && a.start <= (start + lasts)) ||
+           (start <= a.lasts && a.lasts <= (start + lasts));
+}
+
+//---------------------------------------------------------
 Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 {
     if (sz > MAX_ACTUATORS)
@@ -87,15 +96,6 @@ void Robo::Control::removeStartPause()
     _validated = false;
 }
 
-//---------------------------------------------------------
-bool intersect(const Robo::Actuator &a1, const Robo::Actuator &a2)
-{
-    return (a1.start >= a2.start && a1.start <= (a2.start + a2.lasts)) ||
-           (a1.lasts >= a2.start && a1.lasts <= (a2.start + a2.lasts)) ||
-           (a2.start >= a1.start && a2.start <= (a1.start + a1.lasts)) ||
-           (a2.lasts >= a1.start && a2.lasts <= (a1.start + a1.lasts));
-}
-
 //----------------------------------------------------
 bool Robo::Control::intersectMusclesOpposites() const
 {
@@ -106,7 +106,7 @@ bool Robo::Control::intersectMusclesOpposites() const
             if (itj->start > (iti->start + iti->lasts))
                 break; // т.к. отсортированы по возрастанию start
             // есть противоположные мышцы и есть перекрытие по времени
-            else if (RoboI::muscleOpposite(iti->muscle) == itj->muscle && intersect(*iti, *itj))
+            else if (RoboI::muscleOpposite(iti->muscle) == itj->muscle && iti->intersect(*itj))
                 return false;
     return true;
 }
@@ -138,22 +138,33 @@ void Robo::Control::fillRandom(Robo::muscle_t n_muscles, const MaxMuscleCount &m
     }
     br::sort(*this); // then SORT
     // remove duplicates and combine intersects
-    for (auto i = 0u; i < (this->size() - 1u); ++i)
-        for (auto j = i + 1u; j < this->size();)
-            if (actuators[i].muscle == actuators[j].muscle && 
-                intersect(actuators[i], actuators[j]))
-                {
-                    actuators[i].lasts = std::max(actuators[i].start + actuators[i].lasts,
-                                                  actuators[j].start + actuators[j].lasts);
-                    actuators[i].start = std::min(actuators[i].start, actuators[j].start);
-                    actuators[i].lasts -= actuators[i].start;
-                    std::memmove(&actuators[j], &actuators[j + 1u], actuals - j);
-                    --actuals;
-                    actuators[actuals] = { MInvalid, 0, 0};
-                }
-                else
-                    ++j;
+    for (auto i = 0u; i < (actuals - 1); ++i)
+        for (auto j = (i + 1); j < actuals;)
+        {
+            auto &ai = actuators[i], &aj = actuators[j];
+            frames_t ai_fin = ai.start + ai.lasts;
+            if (ai.muscle == aj.muscle && ai.intersect(aj))
+            {
+                ai.lasts = std::max(ai_fin, aj.start + aj.lasts);
+                ai.start = std::min(ai.start, aj.start);
+                ai.lasts -= ai.start;
+
+                std::memmove(&actuators[j], &actuators[j + 1u], actuals - j);
+                --actuals;
+                actuators[actuals] = { MInvalid, 0, 0 };
+            }
+            else if (ai_fin < aj.start)
+                break;
+            else
+                ++j;
+        }
     _validated = true;
+}
+
+//---------------------------------------------------------
+std::vector<Robo::Actuator> Robo::Control::align() const
+{
+    return {};
 }
 
 //---------------------------------------------------------
@@ -197,6 +208,33 @@ bool Robo::Control::validate(Robo::muscle_t n_muscles) const
     return _validated = (actuals > 0 && ba::none_of(*this, is_invalid));
 }
 
+//-------------------------------------------------------------------------------
+Robo::Control Robo::operator+(const Robo::Control &cl, const Robo::Control &cr)
+{
+    Robo::Control c{ cl };
+    for (auto &a : cr)
+        if (a.muscle != Robo::MInvalid && a.lasts != 0)
+            c.append(a);
+        else CWARN("muscle==MInvalid or last==0");
+    return c;
+}
+Robo::Control Robo::operator+(const Robo::Control &cl, const Robo::Actuator &a)
+{
+    Robo::Control c{ cl };
+    if (a.muscle != Robo::MInvalid && a.lasts != 0)
+        c.append(a);
+    else CWARN("muscle==MInvalid or last==0");
+    return c;
+}
+Robo::Control Robo::operator+(const Robo::Control &cl, const std::vector<Robo::Actuator> &v)
+{
+    Robo::Control c{ cl };
+    for (auto &a : v)
+        if (a.muscle != Robo::MInvalid && a.lasts != 0)
+            c.append(a);
+    //else CWARN("muscle==MInvalid or last==0");
+    return c;
+}
 
 //---------------------------------------------------------
 //void  Hand::recursiveControlsAppend(muscle_t muscles, joint_t joints,

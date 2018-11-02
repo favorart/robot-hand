@@ -4,6 +4,7 @@
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
 #include "RoboPosTour.h"
+#include "RoboPosTourEvo.h"
 #include "RoboPosApprox.h"
 #include "RoboLearnMoves.h"
 
@@ -12,13 +13,9 @@ using namespace RoboPos;
 using namespace RoboMoves;
 
 //#define TOUR_OLD
-//#define TOUR_EVO
-#if defined TOUR_OLD
+#if defined(TOUR_OLD)
 #include "RoboPosTourNoRec.h"
 #endif
-//#elif defined TOUR_EVO
-#include "RoboPosTourEvo.h"
-//#endif
 
 //------------------------------------------------------------------------------
 RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
@@ -119,8 +116,6 @@ void  RoboPos::LearnMoves::STAGE_1()
 #else
     std::shared_ptr<TourI> pTour = makeTour(1);
     if (!pTour) return;
-    //pTour->setPrecision(0.1, 7);
-    //pTour->setBrakings(false);
     pTour->run();
 #endif
     }
@@ -169,9 +164,6 @@ void  RoboPos::LearnMoves::STAGE_2()
     // _T("target")
     std::shared_ptr<TourTarget> pTour = std::make_shared<TourTarget>(_store, _robo, _config, _target, target_contain);
     if (!pTour) return;
-    //pTour->setPrecision(0.011, 3);
-    //pTour->setChecking(predict);
-    //pTour->setPredict(predict);
     pTour->run();
 #endif
     }
@@ -186,6 +178,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 {
     load(_config);
     size_t count = 0;
+    size_t count_random = 0;
     try
     {
     uncovered.clear();
@@ -197,7 +190,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         // ---------------------------------------------------
         auto prec = _target.precision();
         auto p = _store.getClosestPoint(*it, side3);
-        for (size_t tries = 0; (tries <= _tries) && (!p.first || boost_distance(p.second.hit, *it) > prec); ++tries)
+        for (size_t tries = 0; (tries <= _tries) && (!p.first || bg::distance(p.second.hit, *it) > prec); ++tries)
         {
             ++count;
             Point pt;
@@ -205,6 +198,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             if (!(tries % 3)) pt = *it;
             else
             {
+                ++count_random;
                 double min = prec * prec;
                 double max = prec * 2.;
 
@@ -235,7 +229,8 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     CINFO(_T("TOTAL Complexity: ") << complexity() << 
           _T(" minutes:") << (static_cast<double>(complexity()) / TourI::divToMinutes) << std::endl <<
           _T("AVERAGE Complexity: ") << complexity() / count << std::endl << 
-          _T("Uncovered points: ") << uncovered.size() << "/" << _target.coords().size() << std::endl);
+          _T("Uncovered points: ") << uncovered.size() << "/" << _target.coords().size() << std::endl <<
+          _T("tries: ") << count << _T(" tries-of-randoms: ") << count_random << std::endl);
 }
 
 //------------------------------------------------------------------------------
@@ -256,8 +251,8 @@ void  RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &controls, OUT Point &hit)
 {
     bool res = false;
-    ControlHasher ch;
-    size_t h = ch(controls);
+    //ControlHasher ch; // ???
+    //size_t h = ch(controls);
     // -----------------------------------------------
     boost::this_thread::interruption_point();
     // -----------------------------------------------

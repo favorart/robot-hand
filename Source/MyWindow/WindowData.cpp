@@ -510,7 +510,7 @@ void MyWindowData::write_config(IN const tstring &filename) const
         tfstream fout = Utils::utf8_stream(filename, std::ios::out);
         if (!fout.is_open())
             throw std::runtime_error("write_config: file is not opened");
-        fout << std::setprecision(4);
+        //fout << setprecision(3); // useless
         pt::write_json(fout, root);
     }
     catch (const std::exception &e)
