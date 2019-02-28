@@ -489,7 +489,7 @@ void MyWindowData::write_config(IN const tstring &filename) const
         env.put<bool>(_T("animation"), trajFrames.animation());
         env.put<bool>(_T("centerAxes"), canvas.centerAxes);
         env.put<bool>(_T("targetLines"), canvas.targetLines);
-        env.put<bool>(_T("targetPoints")  , canvas.targetPoints);
+        env.put<bool>(_T("targetPoints"), canvas.targetPoints);
         env.put<double>(_T("targetRadius"), canvas.targetRadius);
         env.put<double>(_T("uncoveredRzoomed"), canvas.uncoveredRzoomed);
         env.put<double>(_T("uncoveredRnormal"), canvas.uncoveredRnormal);
@@ -510,7 +510,8 @@ void MyWindowData::write_config(IN const tstring &filename) const
         tfstream fout = Utils::utf8_stream(filename, std::ios::out);
         if (!fout.is_open())
             throw std::runtime_error("write_config: file is not opened");
-        //fout << setprecision(3); // useless
+        fout.precision(3);
+        fout.setf(std::ios::fixed);// | std::ios::showpoint | std::ios::floatfield);  // useless
         pt::write_json(fout, root);
     }
     catch (const std::exception &e)

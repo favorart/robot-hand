@@ -130,7 +130,6 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
     else throw std::logic_error("!lastsMove & !lastsStop");
     //------------------------------------------------
     status.prevFrame[muscle] = Frame;
-    // ??? hs.velosity_  -- momentum velosity
 
     // --- WIND ----------------------------------
     if (env.windy && status.lastsMove[muscle] == 1)
@@ -383,7 +382,7 @@ void RoboPhysics::reset()
 RoboPhysics::RoboPhysics(const Point &base,
                          const JointsInputsPtrs &joint_inputs,
                          const std::shared_ptr<EnvEdges> &eiges) :
-    RoboI(joint_inputs), physics(base, joint_inputs), status(base, joint_inputs), feedback(), env(eiges)
+    RoboI(joint_inputs), physics(base, joint_inputs), status(base, joint_inputs), feedback(physics.jointsBases), env(eiges)
 {
     if (!ba::is_sorted(joint_inputs, [](const auto &a, const auto &b) { return (*a < *b); }))
         throw std::runtime_error("Joint Inputs are not sorted!");

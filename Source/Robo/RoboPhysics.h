@@ -29,17 +29,25 @@ protected:
     {
         unsigned visitedRarity{ 10 };  // число записей в траекторию
 
-        std::array<Point, RoboI::jointsMaxCount>    direction{}; // направление перемещения
+        std::array<Point, RoboI::jointsMaxCount>      prevPos{}; // позиция сочленений в предыдущий такт
         std::array<Point, RoboI::jointsMaxCount>     velosity{}; // скорость сочленения в данный такт
         std::array<Point, RoboI::jointsMaxCount> acceleration{}; // ускорение сочленения в данный такт
 
-        void calcVelosity()
+        FeedBack(const std::array<Point,RoboI::jointsMaxCount+1>& basePos)
         {
-            /// TODO:
+            int i = 0;
+            std::generate(prevPos.begin(), prevPos.end(), [&basePos, &i]() { return basePos[i++]; });
         }
-        void calcAccel()
+        void currVelAcc(const joint_t n_joints, const std::array<Point,RoboI::jointsMaxCount+1>& curPos)
         {
-            /// TODO:
+            for (joint_t joint = 0; joint < n_joints; ++joint)
+            {
+                auto vel = curPos[joint] - prevPos[joint]; // momentum velosity
+                acceleration[joint] = vel - velosity[joint]; // momentum acceleration
+                velosity[joint] = vel;
+
+                prevPos[joint] = curPos[joint];
+            }
         }
         Learn::State calc() const { return Learn::State{ Point{} }; }
     };

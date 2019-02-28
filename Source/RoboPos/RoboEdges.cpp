@@ -9,104 +9,112 @@
 using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 
-bool Robo::EnvEdgesTank::interaction(RoboI &robo, const Point &vecBodyVelocity)
+bool Robo::EnvEdgesTank::border() const
 {
-    auto &tank = dynamic_cast<Tank&>(robo);
+    const Point& cpL{ tank_.status.curPos[0] };
+    const Point& cpR{ tank_.status.curPos[1] };
+    //const auto W = tank_.params.trackWidth / 2;
+    const auto H = tank_.params.trackHeight;
 
-    if (state || vecBodyVelocity.norm2() >= Tank::minFrameMove)
+    Point normal{ (cpL - cpR).orto() };
+    normal *= H / normal.norm2();
+
+    Point corners[]{ cpL + normal, cpL - normal ,
+                     cpR + normal, cpR - normal };
+    for (auto &c : corners)
+        if (c.x < borders_[0] || c.y < borders_[0] || 
+            c.x > borders_[1] || c.y > borders_[1])
+            return true;
+    return false;
+}
+
+void Robo::EnvEdgesTank::interaction(const Point &center, const Point &moved, double tan_angle)
+{
+    if (tank_.moveEnd())
+        return;
+
+    const bool moves0 = (tank_.status.musclesMove[0] > 0 || tank_.status.musclesMove[1] > 0);
+    const bool moves1 = (tank_.status.musclesMove[2] > 0 || tank_.status.musclesMove[3] > 0);
+
+    if ((moves0 || moves1) && border())
     {
-        Point &cpL{ tank.status.curPos[0] };
-        Point &cpR{ tank.status.curPos[1] };
-         
-        const Point LEdge{ std::min(cpL.x, cpR.x) - tank.params.trackHeight,
-                           std::min(cpL.y, cpR.y) - tank.params.trackWidth / 2 };
-        const Point REdge{ std::max(cpL.x, cpR.x) + tank.params.trackHeight,
-                           std::max(cpL.y, cpR.y) + tank.params.trackWidth / 2 };
+        moved_ = moved * 50;
+        offset_ = tan_angle * 10;
+        
+        const joint_t jcenter = joint_t(Tank::Joint::Center);
+        const joint_t l_track = (tank_.params.jointsUsed[0] == Tank::Joint::LTrack) ? 0 : 1;
+        const joint_t r_track = (tank_.params.jointsUsed[0] == Tank::Joint::RTrack) ? 0 : 1;
 
-        if (state || LEdge < LBorder || REdge > RBorder)
+        Point &cpL{ tank_.status.curPos[l_track] };
+        Point &cpR{ tank_.status.curPos[r_track] };
+
+        if (fabs(offset_) > 0)
         {
-            if (!state) //(oscillate.norm2() < Tank::minFrameMove)
-                oscillate = -(vecBodyVelocity / 2.);// -vecBodyVelocity / 20.);
-            else
-                oscillate = -(oscillate / 2.);// -oscillate / 20.);
-            state = true;
+            cpL.rotate_radians(center, -std::atan(offset_));
+            cpR.rotate_radians(center, +std::atan(offset_));
+        }
+        else
+        {
+            cpL -= moved_;
+            cpR -= moved_;
+        }
+        tank_.status.curPos[jcenter] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
 
-            tcout << _T("oscillate=") << oscillate << std::endl;
-
-            //for (muscle_t m = 0; m < robo.musclesCount(); ++m)
-            //for (joint_t j = 0; j < robo.jointsCount(); ++j)
-            //    tank.status.curPos[j] -= oscillate;
-            cpL -= (oscillate);
-            cpR -= (oscillate);
-
-            tcout << cpL << ' ' << cpR << std::endl;
-
-            if (oscillate.norm2() < RoboI::minFrameMove)
-            {
-                state = false;
-                oscillate = { 0., 0. };
-
-                for (muscle_t m = 0; m < robo.musclesCount(); ++m)
-                    tank.status.shifts[m] = 0.;
-                //return false; // full stop
-            }
-            return true; // interact         
+        for (muscle_t m = 0 ; m < tank_.muscles; ++m)
+        {
+            auto &lasts = (tank_.status.lastsMove[m] > 0) ? tank_.status.lastsMove : tank_.status.lastsStop;
+            lasts[m] -= tank_.status.lasts[m];
+            tank_.status.lasts[m] -= tank_.status.lasts[m];
+            tank_.status.prevFrame[m] /= damping_;
         }
     }
-    return false; // not interact
 }
 
 
-bool Robo::EnvEdgesHand::interaction(RoboI &robo, const Point &vecBodyVelocity)
+bool Robo::EnvEdgesHand::full_opened(joint_t joint) const
+{ return (hand_.angles[joint] > (hand_.params.maxAngles[joint] - RoboI::minFrameMove)); }
+
+bool Robo::EnvEdgesHand::full_closed(joint_t joint) const
+{ return (hand_.angles[joint] < RoboI::minFrameMove); }
+
+bool Robo::EnvEdgesHand::border(joint_t joint) const
 {
-    auto &hand = dynamic_cast<Hand&>(robo);
+    return ((hand_.status.curPos[joint].x - hand_.params.jointRadius) > borders_[1] ||
+            (hand_.status.curPos[joint].y - hand_.params.jointRadius) > borders_[1] ||
+            (hand_.status.curPos[joint].x + hand_.params.jointRadius) < borders_[0] ||
+            (hand_.status.curPos[joint].y + hand_.params.jointRadius) < borders_[0]);
+}
 
-    // if (vecBodyVelocity > 0 && (maxAngle == 100 || maxAngle == 0))
-    // if (curPos < LBorder || curPos > RBorder)
+void Robo::EnvEdgesHand::interaction()
+{
+    if (hand_.moveEnd())
+        return;
 
-    if (state || vecBodyVelocity.norm2() >= Hand::minFrameMove)
+    for (joint_t joint = 0; joint < hand_.jointsCount(); ++joint)
     {
-        //Point LEdge, REdge;
-        std::array<bool, Hand::joints> inters;
-        //Hand::Joint min_inter = Hand::Joint::JInvalid;
-        joint_t min_inter = Robo::JInvalid;
+        const double mAn = (hand_.maxJointAngle(joint));
+        const muscle_t mo = hand_.muscleByJoint(joint, true);
+        const muscle_t mc = hand_.muscleByJoint(joint, false);
+        const bool moves = (hand_.status.musclesMove[mo] > 0 || hand_.status.musclesMove[mc] > 0);
+         
+        if ( !(moves && ( full_opened(joint) || full_closed(joint) || border(joint) )) )
+            continue;
+        
+        if (hand_.status.lastsMove[mo] > 0 || hand_.status.lastsStop[mo] > 0) hand_.muscleDriveFrame(mo);
+        if (hand_.status.lastsMove[mc] > 0 || hand_.status.lastsStop[mc] > 0) hand_.muscleDriveFrame(mc);
 
-        for (joint_t joint = 0; joint < robo.jointsCount(); ++joint)
+        offset_ = /*-*/(hand_.status.shifts[mc] - hand_.status.shifts[mo]) * (hand_.muscleMaxLasts(mc) / 20);
+        offset_ = (0.0 > (hand_.angles[joint] + offset_)) ? (0.0 - hand_.angles[joint]) : offset_;
+        offset_ = (mAn < (hand_.angles[joint] + offset_)) ? (mAn - hand_.angles[joint]) : offset_;
+
+        hand_.jointMove(joint, offset_);
+
+        for (muscle_t m : { mo, mc })
         {
-            if ((hand.status.curPos[joint].x - hand.params.jointRadius) > RBorder.x) inters[joint] = true;
-            if ((hand.status.curPos[joint].y - hand.params.jointRadius) > RBorder.y) inters[joint] = true;
-            if ((hand.status.curPos[joint].x + hand.params.jointRadius) < LBorder.x) inters[joint] = true;
-            if ((hand.status.curPos[joint].y + hand.params.jointRadius) < LBorder.y) inters[joint] = true;
-
-            if (hand.angles[joint] == 0 || hand.angles[joint] == hand.params.maxAngles[joint])
-                inters[joint] = true;
-
-            if (inters[joint])
-            {
-                state = true;
-                if (min_inter > joint)
-                    min_inter = joint;
-            }
-        }
-
-        joint_t joint = min_inter;
-        if (min_inter != Robo::JInvalid || state)
-        {
-            const Point oscillate = vecBodyVelocity / 2.;
-            for (joint_t j = 0; j < robo.jointsCount(); ++j)
-            {
-                // сочленение получившее импульс через другое сочленение имеет отклонение /2
-                hand.status.curPos[j] += oscillate;
-                // (2. * j); if (j > 1) --j;
-            }
-
-            if (oscillate.norm2() >= RoboI::minFrameMove)
-                return true;
-
-            state = false;
-            for (muscle_t m = 0; m < robo.musclesCount(); ++m)
-                hand.angles[m] = 0.;
-        }
+            auto &lasts = (hand_.status.lastsMove[m] > 0) ? hand_.status.lastsMove : hand_.status.lastsStop;
+            lasts[m] -= hand_.status.lasts[m];
+            hand_.status.lasts[m] -= hand_.status.lasts[m];
+            hand_.status.prevFrame[m] /= damping_;
+        }        
     }
-    return false;
 }

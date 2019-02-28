@@ -37,6 +37,7 @@ public:
     bool hit(const Point &p) const;
     Point::value_type angle(const Point &p) const;
     Point::value_type norm2() const { return sqrt(x * x + y * y); }
+    Point orto() const { return Point{ -y,x }; }
     //-----------------------------------------
     /* Microsoft specific: C++ properties */
     __declspec(property(get = get_x, put = put_x)) Point::value_type x;

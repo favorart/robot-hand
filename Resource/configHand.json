@@ -124,11 +124,12 @@
     "targetPoints": true,
     "targetRadius": 0.007,
     "skipShowFrames": 15,
-    "animation": true
+    "animation": true,
+    "edges": true
   },
   "lm_config": ".\\Resource\\Tour.txt",
   "precision": 1.5,    "#precision": "mm",
-  "redirect": true,
+  "redirect": false,
   "#pickup": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
   "store_save_load_format": 1,   "#none": 0, "#txt":  1, "#bin" :  2,
 

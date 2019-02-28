@@ -12,7 +12,7 @@ struct Robo::Mobile::Tank::JointInput : public Robo::JointInput
     void save(tptree &node) const
     {
         Robo::JointInput::save(node);
-        node.put(_T("name"), name());
+        node.put(_T("name"), ba::trim_copy(name()));
     }
     void load(tptree &node)
     {
@@ -39,7 +39,7 @@ struct Robo::NewHand::Hand::JointInput : public Robo::JointInput
     void save(tptree &node) const
     {
         Robo::JointInput::save(node);
-        node.put(_T("name"), name());
+        node.put(_T("name"), ba::trim_copy(name()));
         node.put(_T("defPoseRatio"), defaultPose);
     }
     void load(tptree &node)

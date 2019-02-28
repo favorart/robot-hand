@@ -58,11 +58,12 @@
     "targetPoints": true,
     "targetRadius": 0.007,
     "skipShowFrames": 15,
-    "animation": true
+    "animation": true,
+    "edges": true
   },
   "lm_config": ".\\Resource\\Tour-tank.txt",
   "precision": 1.5,   "#precision": "mm",
-  "redirect": true,
+  "redirect": false,
 
   "#LV_OUTALL": 0,
   "#LV_CDEBUG": 1,

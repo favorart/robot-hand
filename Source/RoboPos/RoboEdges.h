@@ -6,35 +6,43 @@
 #include "Hand.h"
 #include "Tank.h"
 
-namespace Robo
-{
+namespace Robo {
 class EnvEdges
 {
 protected:
-    const Point LBorder, RBorder;
-    Point oscillate;
-    bool state;
+    const distance_t borders_[2] = { (-1. + RoboI::minFrameMove), (+1. - RoboI::minFrameMove) };
+    distance_t offset_{};
+    frames_t damping_{ 2 };
+    frames_t lasts_{};
 public:
-    EnvEdges() :
-        LBorder{ (-1. + RoboI::minFrameMove), (-1. + RoboI::minFrameMove) },
-        RBorder{ (+1. - RoboI::minFrameMove), (+1. - RoboI::minFrameMove) },
-        oscillate{},
-        state{ false }
-    {}
-    virtual bool interaction(RoboI &robo, const Point &vecBodyVelocity) = 0;
     virtual ~EnvEdges() {}
+    virtual void interaction() = 0;
+    virtual void interaction(const Point&, const Point&, double) = 0;
 };
 
 class EnvEdgesTank : public EnvEdges
 {
+protected:
+    Robo::Mobile::Tank &tank_;
+    Point moved_{};
+    frames_t max_lasts_{};
+    bool border() const;
 public:
-    bool interaction(RoboI &robo, const Point &vecBodyVelocity);
+    EnvEdgesTank(Robo::Mobile::Tank &tank) : max_lasts_(2 * tank.feedback.visitedRarity), tank_(tank) {}
+    void interaction() {}
+    void interaction(const Point&, const Point&, double);
 };
 
 class EnvEdgesHand : public EnvEdges
 {
+protected:
+    Robo::NewHand::Hand &hand_;
+    bool full_opened(joint_t) const;
+    bool full_closed(joint_t) const;
+    bool border(joint_t) const;
 public:
-    bool interaction(RoboI &robo, const Point &vecBodyVelocity);
+    EnvEdgesHand(Robo::NewHand::Hand &hand) : hand_(hand) {}
+    void interaction();
+    void interaction(const Point&, const Point&, double) {}
 };
-
 }

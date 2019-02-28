@@ -391,6 +391,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                     goal.show();
 
                     runNestedPreMove(controls, 0, frames, goal.biggest(), pos);
+                    //first_move==true??
                     continue;
                 }
 

@@ -4,7 +4,6 @@
 #include "RoboMovesStore.h"
 #include "RoboLearnMoves.h"
 
-
 using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
@@ -24,6 +23,24 @@ void create_actuators_vector(std::vector<Actuator> &v, const Control &c, muscle_
         }
 }
 
+const int _max_n_controls = 20;
+//------------------------------------------------------------------------------
+void layout_controls(std::vector<Actuator> &v, const Control &c, muscle_t n)
+{
+    if (c.size() > _max_n_controls)
+        CERROR("layout_controls: controls " << c.size() << " is too long " << _max_n_controls);
+
+    v.resize(_max_n_controls);
+    for (auto &a : c)
+        for (int j = a.muscle; v[j].muscle == MInvalid; j += n)
+        {
+            if (j > _max_n_controls)
+                CERROR("layout_controls: 20 < j=" << j);
+            v[j] = a;
+        }
+}
+
+
 //------------------------------------------------------------------------------
 void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double delta,
                                            IN const Control &inits_controls,
@@ -33,25 +50,45 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
 {
     const auto n_muscles = _robo.musclesCount();
     std::vector<Actuator> inits, lower, upper;
-    create_actuators_vector(inits, inits_controls, n_muscles);
-    create_actuators_vector(lower, lower_controls, n_muscles);
-    create_actuators_vector(upper, upper_controls, n_muscles);
 
-    tcout << "delta=" << delta << std::endl;
-    const double d = (delta * 5 / _target.precision()); /* velosity */
-    const int delta_normalized = int(d);
+    //create_actuators_vector(inits, inits_controls, n_muscles);
+    //create_actuators_vector(lower, lower_controls, n_muscles);
+    //create_actuators_vector(upper, upper_controls, n_muscles);
+    layout_controls(inits, inits_controls, n_muscles);
+    layout_controls(lower, lower_controls, n_muscles);
+    layout_controls(upper, upper_controls, n_muscles);
+
+    //Control inits(inits_controls);
+    //const Control &lower = lower_controls;
+    //const Control &upper = upper_controls;
+
+    if (getStrategy(lower_controls) != getStrategy(upper_controls))
+        CWARN("incorrect strategies (lower=" << getStrategy(lower_controls) << " & upper=" << getStrategy(upper_controls) << " )");
+    if (getStrategy(inits_controls) != getStrategy(upper_controls))
+        CWARN("incorrect strategies (inits=" << getStrategy(inits_controls) << " & upper=" << getStrategy(upper_controls) << " )");
+    if (getStrategy(inits_controls) != getStrategy(lower_controls))
+        CWARN("incorrect strategies (inits=" << getStrategy(inits_controls) << " & lower=" << getStrategy(lower_controls) << " )");
+
+    //inits_controls
+
+    //tcout << "delta=" << delta << std::endl;
+    const double d = (delta / _target.precision()); /* velosity */
+    const int delta_normalized = int(d * 5);    
 
     frames_t min_start = SIZE_MAX;
-    for (muscle_t m = 0; m < n_muscles; ++m)
+    auto sz = std::max(lower_controls.size(), upper_controls.size());
+    sz = std::max(inits_controls.size(), sz);
+    for (muscle_t m = 0; m < sz/*n_muscles*/; ++m)
     {
         frames_t start;
-        int lasts = 0;
+        int64_t lasts = 0;
 
         if (upper[m].muscle != MInvalid && inits[m].muscle != MInvalid && lower[m].muscle != MInvalid)
+        //if (upper[m].muscle == inits[m].muscle && lower[m].muscle == inits[m].muscle)
         {
             start = (lower[m].start + inits[m].start + upper[m].start) / 3;
 
-            int denom = ((lower[m].lasts - inits[m].lasts) + (upper[m].lasts - inits[m].lasts));
+            int64_t denom = ((lower[m].lasts - inits[m].lasts) + (upper[m].lasts - inits[m].lasts));
             if (denom != 0)
                 lasts = delta_normalized / denom;
             lasts = inits[m].lasts + lasts;
@@ -71,11 +108,12 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
                 continue;
             }
         }
+        //else if (upper[m].muscle == lower[m].muscle)
         else if (upper[m].muscle != MInvalid && lower[m].muscle != MInvalid)
         {
             start = (lower[m].start + upper[m].start) / 3;
         
-            int denom = (upper[m].lasts - lower[m].lasts) / 3;
+            int64_t denom = (upper[m].lasts - lower[m].lasts) / 3;
             if (denom != 0)
                 lasts = delta_normalized / denom;
             lasts = lower[m].lasts + lasts;
@@ -95,11 +133,11 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
                 continue;
             }
         }
-        //else if (inits[m].muscle != MInvalid)
-        //{
-        //    start = inits[m].start;
-        //    lasts = inits[m].lasts;
-        //}
+        else if (inits[m].muscle != MInvalid)
+        {
+            start = inits[m].start;
+            lasts = inits[m].lasts;
+        }
         //else if (upper[m].muscle == MInvalid && inits[m].muscle == MInvalid && lower[m].muscle == MInvalid)
         //{
         //    start = 0;
@@ -239,7 +277,7 @@ size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
     distance_t distance = boost_distance(base_pos, aim),
         new_distance = distance;
     // -----------------------------------------------
-    //int i = 0, n = sizeof(admixes) / sizeof(*admixes);
+    int i = 0, n = sizeof(admixes) / sizeof(*admixes);
     do
     {
         // -----------------------------------------------
@@ -262,60 +300,20 @@ size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
         // -----------------------------------------------
         if (new_distance > d)
         { new_distance = d; }
-        // -----------------------------------------------
         else
         {
-            gradient_complexity += weightedMean(aim, pos);
-            //gradient_complexity += (this->*(admixes[i]))(aim, pos);
-            //i = ++i % n;
+            gradient_complexity += (this->*(admixes[i]))(aim, pos);
+            i = ++i % n;
 
-            d = boost_distance(pos, aim);
+            d = bg::distance(pos, aim);
             if (_target.precision() > d)
             {
                 CINFO("precision " << _target.precision() << " reached " << d);
                 break;
             }
             else if (new_distance > d)
-            //    continue; /// !!! REMOVE LOWER else
-            { continue; }
-            else
-            {
-                //gradient_complexity += rundownMDir(aim, pos);
-                //
-                //d = boost_distance(pos, aim);
-                //if (_target.precision() > d)
-                //{
-                //    CINFO("precision " << _target.precision() << " reached " << d);
-                //    break;
-                //}
-                //else if (new_distance > d)
-                //{ continue; }
-                //else
-                {
-                    gradient_complexity += gradientMethod(aim, Point{});
-
-                    auto p = _store.getClosestPoint(aim, side3);
-                    if (!p.first)
-                        throw std::runtime_error{ "gradientMethod_admixture: Empty adjacency" };
-                    pos = p.second.hit;
-
-                    d = boost_distance(pos, aim);
-                    if (_target.precision() > d)
-                    {
-                        CINFO("precision " << _target.precision() << " reached " << d);
-                        break;
-                    }
-                    else if (new_distance > d)
-                    { continue; }
-                    else
-                    {
-                        /* FAIL */
-                        CINFO("gradientMethod_admixture FAIL");
-                        break;
-                    } // end else
-                } // end else
-            } // end else
-        } // end else
+                continue;
+        }
         // -----------------------------------------------
         Control controls;
         gradientControls(aim, delta,

@@ -71,6 +71,10 @@ void Hand::realMove()
         if (offset) move = true;
     }
     // =================
+    feedback.currVelAcc(jointsCount(), status.curPos);
+    // =================
+    env.edges->interaction();
+    // =================
     if (!move)
     {
         for (muscle_t m = 0; m < musclesCount(); ++m)
@@ -82,7 +86,7 @@ void Hand::realMove()
 }
 //--------------------------------------------------------------------------------
 Hand::Hand(const Point &base, const JointsInputsPtrs &joints) :
-    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>()),
+    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>(*this)),
     params(joints, *this)
 {
     if (!joints.size() || joints.size() > Hand::joints)

@@ -32,7 +32,7 @@ const Point& Tank::position() const
 { return status.curPos[jointsCount()]; }
 //--------------------------------------------------------------------------------
 Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
-    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>()),
+    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>(*this)),
     params(joints, *this)
 {
     if (!joints.size() || joints.size() > jointsCount())
@@ -110,15 +110,6 @@ void Tank::realMove()
         std::getchar();
         std::exit(1);
     }
-
-    //if (fabs(shiftL) < Tank::minFrameMove &&
-    //    fabs(shiftR) < Tank::minFrameMove)
-    //{
-    //    for (muscle_t m = 0; m < musclesCount(); ++m)
-    //        muscleDriveStop(m);
-    //    status.moveEnd = true;
-    //    return;
-    //}
 
     const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
     Point center{}, normal{};
@@ -208,32 +199,19 @@ void Tank::realMove()
         cpL += normal;
         cpR += normal;
     }
-
+    // =================
     status.curPos[jcenter] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
-    //CINFO("cpL=" << cpL << " cpR=" << cpR);
-    //CINFO("curPosBase=" << status.curPos[Joint::JCount] << " old=" << bodyCenterOld);
-
-    Point bodyVelosity = status.curPos[jcenter] - bodyCenterOld;
-    if (!env.edges->interaction(*this, bodyVelosity))
-    {
-        /// TODO:
-    }
-
-    //Point LEdge{ std::min(cpL.x, cpR.x) - params.trackHeight,
-    //             std::min(cpL.y, cpR.y) - params.trackWidth / 2 };
-    //Point REdge{ std::max(cpL.x, cpR.x) + params.trackHeight,
-    //             std::max(cpL.y, cpR.y) + params.trackWidth / 2 };
-
-    //const Point LBorder{ (-1. + Tank::minFrameMove), (-1. + Tank::minFrameMove) };
-    //const Point RBorder{ (+1. - Tank::minFrameMove), (+1. - Tank::minFrameMove) };
-
+    // =================
+    feedback.currVelAcc(jointsCount(), status.curPos);
+    // =================
+    env.edges->interaction(center, normal, tan_angle);
+    // =================
     if (ba::all_of_equal(status.shifts, 0.))
     {
         for (muscle_t m = 0; m < musclesCount(); ++m)
             muscleDriveStop(m);
         status.moveEnd = true;
     }
-
     for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle)
         status.shifts[muscle] = 0.;
 }

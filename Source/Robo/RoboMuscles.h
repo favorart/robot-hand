@@ -1,10 +1,9 @@
-﻿#include "StdAfx.h"
+﻿#pragma once
+
+//#include "Robo.h"
 #include "Hand.h"
 #include "Tank.h"
 
-#ifndef  _ROBO_MUSCLES_H_
-#define  _ROBO_MUSCLES_H_
-//------------------------------------------------------------------------------
 namespace Robo {
 namespace NewHand {
 tstring muscleHelp(Hand::Muscle muscle);
@@ -17,6 +16,4 @@ tstring muscleHelp(Tank::Muscle muscle);
 tstring muscleName(Tank::Muscle muscle);
 tstring jointName(Tank::Joint joint);
 }
-//------------------------------------------------------------------------------
 }
-#endif // _ROBO_MUSCLES_H_
