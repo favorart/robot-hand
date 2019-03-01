@@ -16,22 +16,47 @@ using namespace RoboMoves;
 //------------------------------------------------------------------------------
 /* normal */
 LONG Tx_norm (double logic_x)
-{ return static_cast<LONG>(MARGIN + ( 0.5) * (logic_x + 1.) * (WindowSize ()->x - 2. * MARGIN)); }
+{ return MARGIN + static_cast<LONG>((logic_x + 1) * (WindowSize ()->x - 2 * MARGIN)) / 2; }
 LONG Ty_norm (double logic_y)
-{ return static_cast<LONG>(MARGIN + (-0.5) * (logic_y - 1.) * (WindowSize ()->y - 2. * MARGIN)); }
+{ return MARGIN - static_cast<LONG>((logic_y - 1) * (WindowSize ()->y - 2 * MARGIN)) / 2; }
 
 /* zoom */
 LONG Tx_zoom (double logic_x)
-{ return static_cast<LONG>(MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize ()->x - 2. * MARGIN)); }
+{ return MARGIN + static_cast<LONG>((logic_x + 0.5) * (WindowSize ()->x - 2 * MARGIN)); }
 LONG Ty_zoom (double logic_y)
-{ return static_cast<LONG>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize ()->y - 2. * MARGIN)); }
+{ return MARGIN - static_cast<LONG>((logic_y - 0.0) * (WindowSize ()->y - 2 * MARGIN)); }
+
+Point windowCenter{ 0., 0. };
+double currWheelSize = 0.;
+/*
+*    viewRect
+*    *-----------------------------------------------------------------------*
+*    |                       ^                                               |
+*    |                       | d_up                                          |
+*    |        zoomedRect     v                                               |
+*    |      *-----------------------------------------*                      |
+*    |d_left|                                         |       d_right        |
+*    |<---->|                mousePos                 |<-------------------->|
+*    |      |                    +                    |                      |
+*    |      |                                         |                      |
+*    |      |                                         |                      |
+*    |      *-----------------------------------------*                      |
+*    |                       ^                                               |
+*    |                       |                                               |
+*    |                       |                                               |
+*    |                       | d_down                                        |
+*    |                       |                                               |
+*    |                       v                                               |
+*    *-----------------------------------------------------------------------*
+*
+*    The origin of rects is the upper left corner.
+*/
 
 /* wheel */
 LONG Tx_wheel (double logic_x)
-{ return static_cast<LONG>(MARGIN + ( 1.) * (logic_x + 0.5) * (WindowSize()->x - 2. * MARGIN)); }
+{ return MARGIN + static_cast<LONG>((logic_x + (1. - windowCenter.x) ) * (WindowSize()->x - 2 * MARGIN) / (2. - currWheelSize)); }
 LONG Ty_wheel (double logic_y)
-{ return static_cast<LONG>(MARGIN + (-1.) * (logic_y - 0.0) * (WindowSize()->y - 2. * MARGIN)); }
-
+{ return MARGIN - static_cast<LONG>((logic_y - (1. + windowCenter.y) ) * (WindowSize()->y - 2 * MARGIN) / (2. - currWheelSize)); }
 
 LONG Tx(double logic_x)
 {
@@ -71,16 +96,16 @@ Point LogicCoords (PPOINT coord)
   switch (MyWindowData::zoom)
   {
   case MyWindowData::Zoom::NONE:
-      p.x = ((coord->x - MARGIN) / (( 0.5) * (WindowSize()->x - 2. * MARGIN))) - 1.;
-      p.y = ((coord->y - MARGIN) / ((-0.5) * (WindowSize()->y - 2. * MARGIN))) + 1.;
+      p.x = +2. * (coord->x - MARGIN) / (WindowSize()->x - 2 * MARGIN) - 1.;
+      p.y = -2. * (coord->y - MARGIN) / (WindowSize()->y - 2 * MARGIN) + 1.;
       break;
   case MyWindowData::Zoom::STATIC:
-      p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize()->x - 2. * MARGIN))) - 0.5;
-      p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize()->y - 2. * MARGIN))) + 0.0;
+      p.x = +1. * (coord->x - MARGIN) / (WindowSize()->x - 2 * MARGIN) - 0.5;
+      p.y = -1. * (coord->y - MARGIN) / (WindowSize()->y - 2 * MARGIN) + 0.0;
       break;
   case MyWindowData::Zoom::WHEEL:
-      p.x = ((coord->x - MARGIN) / (( 1.0) * (WindowSize()->x - 2. * MARGIN))) - 0.5;
-      p.y = ((coord->y - MARGIN) / ((-1.0) * (WindowSize()->y - 2. * MARGIN))) + 0.0;
+      p.x = +((2. - currWheelSize) * (coord->x - MARGIN)) / (WindowSize()->x - 2 * MARGIN) - (1. - windowCenter.x);
+      p.y = -((2. - currWheelSize) * (coord->y - MARGIN)) / (WindowSize()->y - 2 * MARGIN) + (1. + windowCenter.y);
       break;
   default: CERROR(_T("Invalid zoom"));
   }
@@ -788,6 +813,26 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
+    case 'k': /* wheel zoom */
+    {
+        //========================================
+        MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::WHEEL) ?
+            MyWindowData::Zoom::WHEEL : MyWindowData::Zoom::NONE;
+        //----------------------------------------
+        windowCenter = { 0., 0. }; currWheelSize = 0.;
+        //----------------------------------------
+        wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
+    }
+
+    case 'l': /* vacant */
+    {
+        break;
+    }
+
     case 'h': /* show|hide uncovered */
     {
         //========================================
@@ -906,111 +951,45 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
 
 }
 //-------------------------------------------------------------------------------
-/*!
-*
-*   \param[in]  viewRect    rectangle of the viewed area
-*   \param[in]  zoomFactor  factor of zoom relative to viewRect, ex 1.1
-*   \param[in]  mousePos    position of the mouse
-*   \param[out] zoomedRect  viexRect after zoom
-*
-*    A little schema:
-*
-*    viewRect
-*    *-----------------------------------------------------------------------*
-*    |                       ^                                               |
-*    |                       | d_up                                          |
-*    |        zoomedRect     v                                               |
-*    |      *-----------------------------------------*                      |
-*    |d_left|                                         |       d_right        |
-*    |<---->|                mousePos                 |<-------------------->|
-*    |      |                    +                    |                      |
-*    |      |                                         |                      |
-*    |      |                                         |                      |
-*    |      *-----------------------------------------*                      |
-*    |                       ^                                               |
-*    |                       |                                               |
-*    |                       |                                               |
-*    |                       | d_down                                        |
-*    |                       |                                               |
-*    |                       v                                               |
-*    *-----------------------------------------------------------------------*
-*
-*    dX = d_left + d_right
-*    dY = d_up + d_down
-*
-*    The origin of rects is the upper left corner.
-*/
-void zoomArea(IN Point &zoomCenter, IN double zoomFactor, OUT RECT &zoomedRect)
-{
-    double view_left = -1., view_right = 1., view_top = 1., view_bottom = -1.;
-    /*
-    *    First, find differences of size between zoomed rect and original rect
-    *    Here, 1 / zoomFactor is used, because computations are made relative to the
-    *    original view area, not the final rect):
-    */
-    double dX = 2. /*width(viewRect)*/ * (1. - 1. / zoomFactor);
-    double dY = 2. /*height(viewRect)*/ * (1. - 1. / zoomFactor);
-
-    /*
-    *    Second, find d_* using the position of the mouse.
-    *    pX = position of the mouse along X axis, relative to viewRect (percentage)
-    *    pY = position of the mouse along Y axis, relative to viewRect (percentage)
-    *    The value of d_right and d_down is not computed because is not directly needed
-    *    in the final result.
-    */
-    
-    double pX = (zoomCenter.x - view_left) / 2. /*width(viewRect)*/;
-    double pY = (zoomCenter.y - view_top) / 2. /*height(viewRect)*/;
-
-    double d_left = pX * dX;
-    double d_up = pY * dY;
-
-    /* Third and last, compute the output rect */
-    zoomedRect.left = Tx(view_left + d_left);
-    zoomedRect.top = Ty(view_top + d_up);
-    zoomedRect.right = Tx(view_right - dX);
-    zoomedRect.bottom = Ty(view_bottom - dY);
-}
-
-// That's it!
-// For your problem, you need to separate the view(your window) 
-// from the scene(objects that are drawed).
-// You should have a function drawing a part of(or all) the scene :
-
-// void drawScene(RECT viewArea);
-// //and a function zooming an area(using the algorithm presented before) :
-// RECT zoomArea(RECT rectToZoom, Point zoomCenter, double factor);
-// // Now, your callback is a lot more simpler :
-
-void onWindowMsWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
+void onWindowMsMove(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM LParam)
 {
     POINT pos;
-    if (!GetCursorPos(&pos))
+    if (!GetCursorPos(&pos) || !ScreenToClient(hWnd, &pos) || !inside(&wd.canvas.myRect, &pos))
         return;
 
-    Point mousePos = LogicCoords(&pos);
-    Point mousePosRelative;
+    Point mouse = LogicCoords(&pos);
+    auto s = tstring{ mouse };// +_T("  ");
+    SendMessage(wd.canvas.hLabTest, WM_SETTEXT, NULL,
+                reinterpret_cast<WPARAM>(s.c_str()));
+}
+//-------------------------------------------------------------------------------
+void onWindowMsWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
+{
+    if (wd.zoom != MyWindowData::Zoom::WHEEL)
+        return;
+    //========================================
+    POINT pos;
+    if (!GetCursorPos(&pos) || !ScreenToClient(hWnd, &pos) || !inside(&wd.canvas.myRect, &pos))
+        return;
+    Point mouse = LogicCoords(&pos);
+    //----------------------------------------
+    currWheelSize += 1. / (GET_WHEEL_DELTA_WPARAM(WParam) / 5);
+    currWheelSize = (currWheelSize < 0.) ? 0. : currWheelSize;
+    currWheelSize = (currWheelSize > 1.) ? 1. : currWheelSize;
+    //----------------------------------------
+    const auto c = currWheelSize;
+    windowCenter = mouse;
+    windowCenter.x = (0. > windowCenter.x) ? 0. : windowCenter.x;
+    windowCenter.y = (-c > windowCenter.y) ? -c : windowCenter.y;
+    windowCenter.x = (+c < windowCenter.x) ? +c : windowCenter.x;
+    windowCenter.y = (0. < windowCenter.y) ? 0. : windowCenter.y;
 
-    // Get the position of the mouse relative to the window (in percent)
-    mousePosRelative.x = mousePos.x / 2. /*double(Window.GetClientWidth())*/;
-    mousePosRelative.y = mousePos.y / 2. /*double(Window.GetClientHeight())*/;
-
-    // // Get Mouse position in scene coordinates and not window coordinates.
-    // // viewArea is in scene coordinates
-    // // window = your window or your draw information on the scene
-    // // The following assumes that you're using a scene with X left-to-right and Y top-to-bottom.
-    // double XMouse = window.viewArea.width * mousePosRelative.x + window.viewArea.upperleft.X;
-    // double YMouse = window.viewArea.height * mousePosRelative.y + window.viewArea.upperleft.Y;
-    // 
-    // // Zoom parameters
-    // double zFactor = 0.1 * GET_WHEEL_DELTA_WPARAM(WParam);
-    // 
-    // RECT viewArea = getViewArea(); // or something like this
-    // Point zCenter(XMouse, YMouse);
-    // 
-    // // Zoom
-    // RECT zoomedRect = zoomArea(viewArea, zCenter, zFactor);
-    // drawScene(zoomedRect);
+    tcout << currWheelSize << ' ' << mouse << ' ' << windowCenter << std::endl;
+    //----------------------------------------
+    wd.canvas.hStaticBitmapChanged = true;
+    wd.canvas.hDynamicBitmapChanged = true;
+    //========================================
+    InvalidateRect(hWnd, &wd.canvas.myRect, FALSE);
 }
 //-------------------------------------------------------------------------------
 tstring   OpenFileDialog (HWND hWnd)

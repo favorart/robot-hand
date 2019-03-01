@@ -24,7 +24,7 @@ public:
 class EnvEdgesTank : public EnvEdges
 {
 protected:
-    Robo::Mobile::Tank& const tank_;
+    Robo::Mobile::Tank& tank_;
     const distance_t backpath_ratio_{ 50 };
     const distance_t backpath_angle_{ 25 };
     bool border() const;
@@ -37,7 +37,7 @@ public:
 class EnvEdgesHand : public EnvEdges
 {
 protected:
-    Robo::NewHand::Hand& const hand_;
+    Robo::NewHand::Hand& hand_;
     const distance_t backpath_ratio_{ 20 };
     bool full_opened(joint_t) const;
     bool full_closed(joint_t) const;

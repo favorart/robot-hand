@@ -128,6 +128,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
       break;
     }
 
+    case WM_MOUSEMOVE:
+    {
+        //=======================
+        onWindowMsMove(hWnd, *wd, wParam, lParam);
+        //=======================
+        break;
+    }
+
     case WM_MOUSEWHEEL:
     {
         //=======================

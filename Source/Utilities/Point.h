@@ -56,7 +56,7 @@ public:
     operator tstring() const
     {
         tstringstream ss;
-        ss << _T("pt<x=") << x << _T(", y=") << y << _T(">");
+        ss << std::setprecision(3) << _T("pt<x=") << x << _T(", y=") << y << _T(">");
         return ss.str();
     }
     void Point::save(tptree &node) const;

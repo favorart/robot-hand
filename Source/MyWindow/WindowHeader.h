@@ -5,10 +5,9 @@
 
 #include <commdlg.h>
 //--------------------------------------------------------------------------------
-#define   SCALE      1/100
-#define   MARGIN     10
-#define   WIDTH      950
-#define   HIGHT      600
+#define   MARGIN     10L
+#define   WIDTH      950L
+#define   HIGHT      600L
 
 #define  WM_USER_TIMER  WM_USER+3
 #define  WM_USER_STORE  WM_USER+4
@@ -88,6 +87,7 @@ void onWindowStoreSz (HWND hWnd, MyWindowData &wd);
 void onWindowMouse   (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lParam);
 void onWindowChar    (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam);
 void onWindowKeyDown (HWND hWnd, MyWindowData &wd, WPARAM wParam);
+void onWindowMsMove  (HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM LParam);
 void onWindowMsWheel (HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam);
 //-------------------------------------------------------------------------------
 inline LONG width(PRECT rect)

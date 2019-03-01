@@ -54,7 +54,7 @@
     "storeRnormal": 0.000,
     "uncoveredRzoomed": 0.005,
     "uncoveredRnormal": 0.000,
-    "centerAxes": false,
+    "centerAxes": true,
     "targetLines": true,
     "targetPoints": true,
     "targetRadius": 0.007,
