@@ -30,7 +30,7 @@ bool Robo::EnvEdgesTank::border() const
 
 void Robo::EnvEdgesTank::interaction(const Point &center, const Point &moved, double tan_angle)
 {
-    if (tank_.moveEnd())
+    if (!used_ || tank_.moveEnd())
         return;
 
     const bool moves0 = (tank_.status.musclesMove[0] > 0 || tank_.status.musclesMove[1] > 0);
@@ -38,27 +38,23 @@ void Robo::EnvEdgesTank::interaction(const Point &center, const Point &moved, do
 
     if ((moves0 || moves1) && border())
     {
-        moved_ = moved * 50;
-        offset_ = tan_angle * 10;
-        
-        const joint_t jcenter = joint_t(Tank::Joint::Center);
-        const joint_t l_track = (tank_.params.jointsUsed[0] == Tank::Joint::LTrack) ? 0 : 1;
-        const joint_t r_track = (tank_.params.jointsUsed[0] == Tank::Joint::RTrack) ? 0 : 1;
-
-        Point &cpL{ tank_.status.curPos[l_track] };
-        Point &cpR{ tank_.status.curPos[r_track] };
-
-        if (fabs(offset_) > 0)
+        if (fabs(tan_angle) > 0)
         {
-            cpL.rotate_radians(center, -std::atan(offset_));
-            cpR.rotate_radians(center, +std::atan(offset_));
+            const joint_t l_track = (tank_.params.jointsUsed[0] == Tank::Joint::LTrack) ? 0 : 1;
+            const joint_t r_track = (tank_.params.jointsUsed[0] == Tank::Joint::RTrack) ? 0 : 1;
+            Point &cpL{ tank_.status.curPos[l_track] };
+            Point &cpR{ tank_.status.curPos[r_track] };
+            cpL.rotate_radians(center, -std::atan(tan_angle * backpath_angle_));
+            cpR.rotate_radians(center, +std::atan(tan_angle * backpath_angle_));
         }
         else
         {
-            cpL -= moved_;
-            cpR -= moved_;
+            tank_.status.curPos[0] -= moved * backpath_ratio_;
+            tank_.status.curPos[1] -= moved * backpath_ratio_;
         }
-        tank_.status.curPos[jcenter] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
+
+        const joint_t jcenter = joint_t(Tank::Joint::Center);
+        tank_.status.curPos[jcenter] = (tank_.status.curPos[0] + tank_.status.curPos[1]) / 2.; // mid point
 
         for (muscle_t m = 0 ; m < tank_.muscles; ++m)
         {
@@ -87,7 +83,7 @@ bool Robo::EnvEdgesHand::border(joint_t joint) const
 
 void Robo::EnvEdgesHand::interaction()
 {
-    if (hand_.moveEnd())
+    if (!used_ || hand_.moveEnd())
         return;
 
     for (joint_t joint = 0; joint < hand_.jointsCount(); ++joint)
@@ -103,11 +99,12 @@ void Robo::EnvEdgesHand::interaction()
         if (hand_.status.lastsMove[mo] > 0 || hand_.status.lastsStop[mo] > 0) hand_.muscleDriveFrame(mo);
         if (hand_.status.lastsMove[mc] > 0 || hand_.status.lastsStop[mc] > 0) hand_.muscleDriveFrame(mc);
 
-        offset_ = /*-*/(hand_.status.shifts[mc] - hand_.status.shifts[mo]) * (hand_.muscleMaxLasts(mc) / 20);
-        offset_ = (0.0 > (hand_.angles[joint] + offset_)) ? (0.0 - hand_.angles[joint]) : offset_;
-        offset_ = (mAn < (hand_.angles[joint] + offset_)) ? (mAn - hand_.angles[joint]) : offset_;
+        distance_t offset;
+        offset = /*-*/(hand_.status.shifts[mc] - hand_.status.shifts[mo]) * (hand_.muscleMaxLasts(mc) / backpath_ratio_);
+        offset = (0.0 > (hand_.angles[joint] + offset)) ? (0.0 - hand_.angles[joint]) : offset;
+        offset = (mAn < (hand_.angles[joint] + offset)) ? (mAn - hand_.angles[joint]) : offset;
 
-        hand_.jointMove(joint, offset_);
+        hand_.jointMove(joint, offset);
 
         for (muscle_t m : { mo, mc })
         {

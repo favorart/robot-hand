@@ -2,6 +2,7 @@
   "robo": {
     "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
+    "edges": true,
     "joints": [
       {
         "name": "RTrack",
@@ -58,8 +59,7 @@
     "targetPoints": true,
     "targetRadius": 0.007,
     "skipShowFrames": 15,
-    "animation": true,
-    "edges": true
+    "animation": true
   },
   "lm_config": ".\\Resource\\Tour-tank.txt",
   "precision": 1.5,   "#precision": "mm",

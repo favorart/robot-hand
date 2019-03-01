@@ -91,7 +91,7 @@ protected:
     void jointMove(joint_t, double offset);
         
 public:
-    Hand(const Point &base, const JointsInputsPtrs &joints);
+    Hand(const Point &base, const JointsInputsPtrs &joints, bool edges=true);
 
     frames_t muscleMaxLasts(muscle_t) const;
     frames_t muscleMaxLasts(const Control&) const;

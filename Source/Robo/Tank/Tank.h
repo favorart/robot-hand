@@ -68,7 +68,7 @@ protected:
     void realMove();
     
 public:
-    Tank(const Point &baseCenter, const JointsInputsPtrs &joints);
+    Tank(const Point &baseCenter, const JointsInputsPtrs &joints, bool edges=true);
 
     frames_t muscleMaxLasts(muscle_t muscle) const;
     frames_t muscleMaxLasts(const Robo::Control &control) const;

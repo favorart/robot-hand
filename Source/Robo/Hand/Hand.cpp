@@ -85,8 +85,8 @@ void Hand::realMove()
     status.shifts.fill(0);
 }
 //--------------------------------------------------------------------------------
-Hand::Hand(const Point &base, const JointsInputsPtrs &joints) :
-    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>(*this)),
+Hand::Hand(const Point &base, const JointsInputsPtrs &joints, bool edges) :
+    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>(*this, edges)),
     params(joints, *this)
 {
     if (!joints.size() || joints.size() > Hand::joints)
@@ -233,6 +233,7 @@ std::shared_ptr<RoboI> Hand::make(const tstring &type, tptree &node)
         robo_joints.push_back(ji);
     }
     robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
-    return std::make_shared<Hand>(robo_base, robo_joints);
+    bool edges = node.get_optional<bool>(_T("edges")).get_value_or(true);
+    return std::make_shared<Hand>(robo_base, robo_joints, edges);
 }
 

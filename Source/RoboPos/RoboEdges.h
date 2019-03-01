@@ -10,11 +10,12 @@ namespace Robo {
 class EnvEdges
 {
 protected:
-    const distance_t borders_[2] = { (-1. + RoboI::minFrameMove), (+1. - RoboI::minFrameMove) };
-    distance_t offset_{};
-    frames_t damping_{ 2 };
-    frames_t lasts_{};
+    bool used_{ true };
+    const frames_t damping_{ 2 };
+    const distance_t borders_[2] = { (-1. + RoboI::minFrameMove),
+                                     (+1. - RoboI::minFrameMove) };
 public:
+    EnvEdges(bool used) : used_(used) {}
     virtual ~EnvEdges() {}
     virtual void interaction() = 0;
     virtual void interaction(const Point&, const Point&, double) = 0;
@@ -23,12 +24,12 @@ public:
 class EnvEdgesTank : public EnvEdges
 {
 protected:
-    Robo::Mobile::Tank &tank_;
-    Point moved_{};
-    frames_t max_lasts_{};
+    Robo::Mobile::Tank& const tank_;
+    const distance_t backpath_ratio_{ 50 };
+    const distance_t backpath_angle_{ 25 };
     bool border() const;
 public:
-    EnvEdgesTank(Robo::Mobile::Tank &tank) : max_lasts_(2 * tank.feedback.visitedRarity), tank_(tank) {}
+    EnvEdgesTank(Robo::Mobile::Tank &tank, bool used) : EnvEdges(used), tank_(tank) {}
     void interaction() {}
     void interaction(const Point&, const Point&, double);
 };
@@ -36,12 +37,13 @@ public:
 class EnvEdgesHand : public EnvEdges
 {
 protected:
-    Robo::NewHand::Hand &hand_;
+    Robo::NewHand::Hand& const hand_;
+    const distance_t backpath_ratio_{ 20 };
     bool full_opened(joint_t) const;
     bool full_closed(joint_t) const;
     bool border(joint_t) const;
 public:
-    EnvEdgesHand(Robo::NewHand::Hand &hand) : hand_(hand) {}
+    EnvEdgesHand(Robo::NewHand::Hand &hand, bool used) : EnvEdges(used), hand_(hand) {}
     void interaction();
     void interaction(const Point&, const Point&, double) {}
 };

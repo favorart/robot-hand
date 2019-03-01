@@ -31,8 +31,8 @@ frames_t Tank::muscleMaxLasts(muscle_t muscle) const
 const Point& Tank::position() const
 { return status.curPos[jointsCount()]; }
 //--------------------------------------------------------------------------------
-Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
-    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>(*this)),
+Tank::Tank(const Point &base, const JointsInputsPtrs &joints, bool edges) :
+    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>(*this, edges)),
     params(joints, *this)
 {
     if (!joints.size() || joints.size() > jointsCount())
@@ -307,6 +307,7 @@ std::shared_ptr<RoboI> Tank::make(const tstring &type, tptree &node)
         robo_joints.push_back(ji);
     }
     robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
-    return std::make_shared<Tank>(robo_base, robo_joints);
+    bool edges = node.get_optional<bool>(_T("edges")).get_value_or(true);
+    return std::make_shared<Tank>(robo_base, robo_joints, edges);
 }
 
