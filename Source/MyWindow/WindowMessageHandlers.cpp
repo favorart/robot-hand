@@ -14,49 +14,17 @@ using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
-/* normal */
-LONG Tx_norm (double logic_x)
-{ return MARGIN + static_cast<LONG>((logic_x + 1) * (WindowSize ()->x - 2 * MARGIN)) / 2; }
-LONG Ty_norm (double logic_y)
-{ return MARGIN - static_cast<LONG>((logic_y - 1) * (WindowSize ()->y - 2 * MARGIN)) / 2; }
+static Point windowCenter{ 0., 0. };
+static double currWheelSize = 0.;
 
-/* zoom */
-LONG Tx_zoom (double logic_x)
-{ return MARGIN + static_cast<LONG>((logic_x + 0.5) * (WindowSize ()->x - 2 * MARGIN)); }
-LONG Ty_zoom (double logic_y)
-{ return MARGIN - static_cast<LONG>((logic_y - 0.0) * (WindowSize ()->y - 2 * MARGIN)); }
+LONG Tx_norm(double logic_x) { return MARGIN + static_cast<LONG>((logic_x + 1) * (WindowSize()->x - 2 * MARGIN)) / 2; }
+LONG Ty_norm(double logic_y) { return MARGIN - static_cast<LONG>((logic_y - 1) * (WindowSize()->y - 2 * MARGIN)) / 2; }
 
-Point windowCenter{ 0., 0. };
-double currWheelSize = 0.;
-/*
-*    viewRect
-*    *-----------------------------------------------------------------------*
-*    |                       ^                                               |
-*    |                       | d_up                                          |
-*    |        zoomedRect     v                                               |
-*    |      *-----------------------------------------*                      |
-*    |d_left|                                         |       d_right        |
-*    |<---->|                mousePos                 |<-------------------->|
-*    |      |                    +                    |                      |
-*    |      |                                         |                      |
-*    |      |                                         |                      |
-*    |      *-----------------------------------------*                      |
-*    |                       ^                                               |
-*    |                       |                                               |
-*    |                       |                                               |
-*    |                       | d_down                                        |
-*    |                       |                                               |
-*    |                       v                                               |
-*    *-----------------------------------------------------------------------*
-*
-*    The origin of rects is the upper left corner.
-*/
+LONG Tx_zoom(double logic_x) { return Tx_norm((logic_x + 0.0) * 2.); }
+LONG Ty_zoom(double logic_y) { return Ty_norm((logic_y + 0.5) * 2.); }
 
-/* wheel */
-LONG Tx_wheel (double logic_x)
-{ return MARGIN + static_cast<LONG>((logic_x + (1. - windowCenter.x) ) * (WindowSize()->x - 2 * MARGIN) / (2. - currWheelSize)); }
-LONG Ty_wheel (double logic_y)
-{ return MARGIN - static_cast<LONG>((logic_y - (1. + windowCenter.y) ) * (WindowSize()->y - 2 * MARGIN) / (2. - currWheelSize)); }
+LONG Tx_wheel(double logic_x) { return Tx_norm((logic_x - windowCenter.x) * (1. + currWheelSize)); }
+LONG Ty_wheel(double logic_y) { return Ty_norm((logic_y - windowCenter.y) * (1. + currWheelSize)); }
 
 LONG Tx(double logic_x)
 {
@@ -89,27 +57,35 @@ LONG Ty(double logic_y)
     }
 }
 
-// наоборот: координаты Windows -> логические координаты
-Point LogicCoords (PPOINT coord)
+Point LogicCoordsNorm(PPOINT coord)
 {
-  Point p;
-  switch (MyWindowData::zoom)
-  {
-  case MyWindowData::Zoom::NONE:
-      p.x = +2. * (coord->x - MARGIN) / (WindowSize()->x - 2 * MARGIN) - 1.;
-      p.y = -2. * (coord->y - MARGIN) / (WindowSize()->y - 2 * MARGIN) + 1.;
-      break;
-  case MyWindowData::Zoom::STATIC:
-      p.x = +1. * (coord->x - MARGIN) / (WindowSize()->x - 2 * MARGIN) - 0.5;
-      p.y = -1. * (coord->y - MARGIN) / (WindowSize()->y - 2 * MARGIN) + 0.0;
-      break;
-  case MyWindowData::Zoom::WHEEL:
-      p.x = +((2. - currWheelSize) * (coord->x - MARGIN)) / (WindowSize()->x - 2 * MARGIN) - (1. - windowCenter.x);
-      p.y = -((2. - currWheelSize) * (coord->y - MARGIN)) / (WindowSize()->y - 2 * MARGIN) + (1. + windowCenter.y);
-      break;
-  default: CERROR(_T("Invalid zoom"));
-  }
-  return p;
+    Point p;
+    p.x = +2. * (coord->x - MARGIN) / (WindowSize()->x - 2 * MARGIN) - 1.;
+    p.y = -2. * (coord->y - MARGIN) / (WindowSize()->y - 2 * MARGIN) + 1.;
+    return p;
+}
+Point LogicCoords(PPOINT coord)
+{
+    Point p;
+    switch (MyWindowData::zoom)
+    {
+    case MyWindowData::Zoom::NONE:
+        p = LogicCoordsNorm(coord);
+        break;
+    case MyWindowData::Zoom::STATIC:
+        p = LogicCoordsNorm(coord);
+        p.x = p.x / 2 - 0.0;
+        p.y = p.y / 2 - 0.5;
+        break;
+    case MyWindowData::Zoom::WHEEL:
+        p = LogicCoordsNorm(coord);
+        p.x = p.x / (1. + currWheelSize) + windowCenter.x;
+        p.y = p.y / (1. + currWheelSize) + windowCenter.y;
+        break;
+    default:
+        CERROR(_T("Invalid zoom"));
+    }
+    return p;
 }
 //-------------------------------------------------------------------------------
 tstring getJointsHelpString(const Robo::RoboI& robo)
@@ -973,18 +949,17 @@ void onWindowMsWheel(HWND hWnd, MyWindowData &wd, WPARAM WParam, LPARAM LParam)
         return;
     Point mouse = LogicCoords(&pos);
     //----------------------------------------
-    currWheelSize += 1. / (GET_WHEEL_DELTA_WPARAM(WParam) / 5);
+    currWheelSize += 1. / (GET_WHEEL_DELTA_WPARAM(WParam) / 10);
     currWheelSize = (currWheelSize < 0.) ? 0. : currWheelSize;
-    currWheelSize = (currWheelSize > 1.) ? 1. : currWheelSize;
+    currWheelSize = (currWheelSize > 4.) ? 4. : currWheelSize;
     //----------------------------------------
-    const auto c = currWheelSize;
+    const auto c = currWheelSize / 2;
     windowCenter = mouse;
-    windowCenter.x = (0. > windowCenter.x) ? 0. : windowCenter.x;
+    windowCenter.x = (-c > windowCenter.x) ? -c : windowCenter.x;
     windowCenter.y = (-c > windowCenter.y) ? -c : windowCenter.y;
     windowCenter.x = (+c < windowCenter.x) ? +c : windowCenter.x;
-    windowCenter.y = (0. < windowCenter.y) ? 0. : windowCenter.y;
-
-    tcout << currWheelSize << ' ' << mouse << ' ' << windowCenter << std::endl;
+    windowCenter.y = (+c < windowCenter.y) ? +c : windowCenter.y;
+    //tcout << currWheelSize << ' ' << mouse << ' ' << windowCenter << std::endl;
     //----------------------------------------
     wd.canvas.hStaticBitmapChanged = true;
     wd.canvas.hDynamicBitmapChanged = true;
