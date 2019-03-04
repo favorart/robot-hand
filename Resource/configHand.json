@@ -66,7 +66,7 @@
       }
     ]
   },
-  "#target": {
+  "target": {
     "type": "PolyT",
     "polygon": [
       [ -0.41, -0.85 ],
@@ -93,7 +93,7 @@
 
     "precision": 0.0042
   },
-  "target": {
+  "#target": {
     "type": "RecT",
     "rectangle": [
       [ -0.41, -0.85 ],

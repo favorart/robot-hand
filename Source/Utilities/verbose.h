@@ -35,7 +35,7 @@ constexpr int LV_CALERT = 5;
                                                  << std::endl << last_err           \
                                                  << std::endl;                      \
                                                                                     \
-                                           if (title != _T("WARNING"))              \
+                                           if (LV >= LV_CERROR)                     \
                                            {                                        \
                                               tstringstream ss;                     \
                                               ss << message  << std::endl           \

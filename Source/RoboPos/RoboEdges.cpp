@@ -75,10 +75,13 @@ bool Robo::EnvEdgesHand::full_closed(joint_t joint) const
 
 bool Robo::EnvEdgesHand::border(joint_t joint) const
 {
-    return ((hand_.status.curPos[joint].x - hand_.params.jointRadius) > borders_[1] ||
-            (hand_.status.curPos[joint].y - hand_.params.jointRadius) > borders_[1] ||
-            (hand_.status.curPos[joint].x + hand_.params.jointRadius) < borders_[0] ||
-            (hand_.status.curPos[joint].y + hand_.params.jointRadius) < borders_[0]);
+    for (joint_t j = 0; j <= joint; ++j)
+        if ((hand_.status.curPos[j].x + hand_.params.jointRadius) > borders_[1] ||
+            (hand_.status.curPos[j].y + hand_.params.jointRadius) > borders_[1] ||
+            (hand_.status.curPos[j].x - hand_.params.jointRadius) < borders_[0] ||
+            (hand_.status.curPos[j].y - hand_.params.jointRadius) < borders_[0])
+            return true;
+    return false;
 }
 
 void Robo::EnvEdgesHand::interaction()

@@ -44,8 +44,8 @@
       [ -0.41, -0.03 ],
       [ -0.41, -0.85 ]
     ],    "#rectangle": "full round of points!",
-    "hn_aims": 20,
-    "vn_aims": 20,
+    "hn_aims": 30,
+    "vn_aims": 30,
     "precision": 0.0042
   },
   "env": {
