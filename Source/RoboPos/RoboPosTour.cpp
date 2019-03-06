@@ -434,9 +434,10 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     TourI(store, robo, config, next_joint),
     _target(target),
     _target_contain(target_contain),
-    _approx(Approx(_store.size(), _max_n_controls,
-                   /*noize*/[](size_t) { return 0.00000000001; },
-                   /*sizing*/[]() { return 1.01; })),
+    _approx(std::make_unique<Approx>(
+        _store.size(), _max_n_controls,
+        /*noize*/[](size_t) { return 0.00000000001; },
+        /*sizing*/[]() { return 1.01; })),
     _b_predict(false),
     _b_checking(false)
 {
@@ -457,9 +458,9 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     GET_OPTS(_config, _lasts_step_on_target, target);
     GET_OPTS(_config, _lasts_step_n, target);
 
-    if (_b_predict && !_approx.constructed())
+    if (_b_predict && !_approx->constructed())
         //  FILTERING !!!!!!!
-        _approx.constructXY(store);
+        _approx->constructXY(store);
 }
 
 //------------------------------------------------------------------------------
@@ -689,7 +690,7 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
     //----------------------------------------------
     if (_b_predict)
     {
-        pred_end = _approx.predict(controling);
+        pred_end = _approx->predict(controling);
         if (_b_checking)
         {
             _robo.move(controling);

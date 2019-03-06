@@ -138,7 +138,7 @@ public:
     void setChecking(bool check) { _b_checking = check; }
 
 protected:
-    Approx &_approx;                      ///< интерполяция функции(x,y) остановки по управлениям мускулов
+    std::unique_ptr<Approx> _approx{};    ///< интерполяция функции(x,y) остановки по управлениям мускулов
     bool _b_predict{};                    ///< использование интерполяции для предсказания места остановки
     bool _b_checking{};                   ///< проверка предсказаний основных направлений
     TargetBorders _target_borders{};      ///< границы длительности мускуов, в которые помещается мишень

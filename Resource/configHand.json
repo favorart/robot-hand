@@ -2,7 +2,7 @@
   "robo": {
     "type": "Hand-v4",
     "base": [ 0.75, 0.25 ],
-    "edges": true,
+    "edges": false,
     "joints": [
       {
         "name": "Wrist",
