@@ -8,7 +8,7 @@ using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
-void create_actuators_vector(std::vector<Actuator> &v, const Control &c, muscle_t n)
+void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, IN muscle_t n)
 {
     v.resize(n);
     for (auto &a : c)
@@ -25,7 +25,7 @@ void create_actuators_vector(std::vector<Actuator> &v, const Control &c, muscle_
 
 const int _max_n_controls = 20;
 //------------------------------------------------------------------------------
-void layout_controls(std::vector<Actuator> &v, const Control &c, muscle_t n)
+void layout_controls(OUT std::vector<Actuator> &v, IN const Control &c, IN muscle_t n)
 {
     if (c.size() > _max_n_controls)
         CERROR("layout_controls: controls " << c.size() << " is too long " << _max_n_controls);

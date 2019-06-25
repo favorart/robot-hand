@@ -361,24 +361,22 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
     /*  Создание ещё одного теневого контекста для отрисовки неизменной
      *  и (в некоторых случаях ресурсоёмкой) части картинки единожды.
      */
-    if ( !wd.canvas.hStaticDC )
+    if (!wd.canvas.hStaticDC)
     {
       wd.canvas.hStaticDC = CreateCompatibleDC (hdc);
-      if ( !wd.canvas.hStaticDC ) CERROR("!hStaticDC");
+      if (!wd.canvas.hStaticDC)
+          CERROR("!hStaticDC");
     }
-
     /* Удаляем старый объект */
-    if ( wd.canvas.hStaticBitmap )
+    if (!wd.canvas.hStaticBitmap)
     {
-      DeleteObject (wd.canvas.hStaticBitmap);
-      wd.canvas.hStaticBitmap = NULL;
+        /* Создаём новый растровый холст */
+        wd.canvas.hStaticBitmap = CreateCompatibleBitmap(hdc, myRect.right - myRect.left,
+                                                              myRect.bottom - myRect.top);
+        if (!wd.canvas.hStaticBitmap)
+            CERROR("!hStaticBitmap");
+        SelectObject(wd.canvas.hStaticDC, wd.canvas.hStaticBitmap);
     }
-    /* Создаём новый растровый холст */
-    wd.canvas.hStaticBitmap = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
-                                                           myRect.bottom - myRect.top);
-    if ( !wd.canvas.hStaticBitmap ) CERROR("!hStaticBitmap");
-    SelectObject (wd.canvas.hStaticDC, wd.canvas.hStaticBitmap);
-
     /* Рисуем всё заново */
     //======================================
     /* Закраска фона рабочей области */
@@ -396,13 +394,14 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
   }
   //-------------------------------------
   /* Создание теневого контекста для двойной буфферизации */
-  HDC   hCmpDC = CreateCompatibleDC (hdc);
-  if ( !hCmpDC ) CERROR("!hCmpDC");
-
-  HBITMAP hBmp = CreateCompatibleBitmap (hdc, myRect.right  - myRect.left,
-                                              myRect.bottom - myRect.top);
-  if ( !hBmp ) CERROR("!hBmp");
-  SelectObject (hCmpDC, hBmp);
+  HDC hCmpDC = CreateCompatibleDC(hdc);
+  if (!hCmpDC)
+      CERROR("!hCmpDC");
+  HBITMAP hBmp = CreateCompatibleBitmap(hdc, myRect.right  - myRect.left,
+                                             myRect.bottom - myRect.top);
+  if (!hBmp)
+      CERROR("!hBmp");
+  SelectObject(hCmpDC, hBmp);
   //-------------------------------------
   if ( !wd.testing )
   {

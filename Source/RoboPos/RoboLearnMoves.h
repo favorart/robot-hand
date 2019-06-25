@@ -117,6 +117,9 @@ class LearnMoves
         //&LearnMoves::rundownFull
     };
 
+    tstring _fn_config;
+    void read_config();
+
 public:
     LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
                IN double precision_mm, IN const tstring &fn_config);

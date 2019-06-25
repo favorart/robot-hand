@@ -41384,7 +41384,7 @@ double *roots_to_r8poly ( int n, double x[] )
 }
 //****************************************************************************80
 
-int s_len_trim ( string s )
+int s_len_trim (string s)
 
 //****************************************************************************80
 //
@@ -41412,14 +41412,14 @@ int s_len_trim ( string s )
 //    If S_LEN_TRIM is 0, then the string is entirely blank.
 //
 {
-  size_t n = s.length ( );
+  auto n = s.length();
   while ( 0 < n )
   {
     if ( s[n-1] != ' ' )
-      return n;
+      return int(n);
     --n;
   }
-  return n;
+  return int(n);
 }
 //****************************************************************************80
 

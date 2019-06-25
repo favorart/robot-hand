@@ -44,8 +44,8 @@
       [ -0.41, -0.03 ],
       [ -0.41, -0.85 ]
     ],    "#rectangle": "full round of points!",
-    "hn_aims": 30,
-    "vn_aims": 30,
+    "hn_aims": 20, "#hn_aims": 30,
+    "vn_aims": 20, "#vn_aims": 30,
     "precision": 0.0042
   },
   "env": {
@@ -63,7 +63,7 @@
   },
   "lm_config": ".\\Resource\\Tour-tank.txt",
   "precision": 1.5,   "#precision": "mm",
-  "redirect": false,
+  "redirect": true,
 
   "#LV_OUTALL": 0,
   "#LV_CDEBUG": 1,
@@ -71,5 +71,5 @@
   "#LV_CWARN": 3,
   "#LV_CERROR": 4,
   "#LV_CALERT": 5,
-  "verbose": 1
+  "verbose": 2
 }

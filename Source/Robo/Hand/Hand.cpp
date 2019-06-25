@@ -207,7 +207,7 @@ void Hand::getWorkSpace(OUT Trajectory &workSpace)
         auto it = std::find(used.begin(), used.end(), muscle);
         if (it != used.end())
         {
-            muscle_t m = (it - used.begin());
+            auto m = static_cast<muscle_t>(it - used.begin());
             Control control{ { m, 0, muscleMaxLasts(m) } };
             //CINFO(control);
             move(control);
@@ -236,4 +236,3 @@ std::shared_ptr<RoboI> Hand::make(const tstring &type, tptree &node)
     bool edges = node.get_optional<bool>(_T("edges")).get_value_or(true);
     return std::make_shared<Hand>(robo_base, robo_joints, edges);
 }
-

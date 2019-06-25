@@ -20,12 +20,17 @@ using namespace RoboMoves;
 //------------------------------------------------------------------------------
 RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
                                 IN double precision_mm, IN const tstring &fn_config) :
-    _store(store), _robo(robo), _target(target)//, _precision(precision_mm * TourI::divToMiliMeters)
+    _store(store), _robo(robo), _target(target), _fn_config(fn_config) //, _precision(precision_mm * TourI::divToMiliMeters)
 {
     _robo.reset();
     _base_pos = _robo.position();
-    
-    tfstream fin = Utils::utf8_stream(fn_config, std::ios::in);
+    read_config();
+}
+
+//------------------------------------------------------------------------------
+void RoboPos::LearnMoves::read_config()
+{
+    tfstream fin = Utils::utf8_stream(_fn_config, std::ios::in);
     if (!fin.is_open())
         throw std::runtime_error("LM: config is not open");
     pt::read_ini(fin, _config);
@@ -60,6 +65,7 @@ void RoboPos::LearnMoves::load(tptree &node)
 //------------------------------------------------------------------------------
 std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 {
+    read_config();
     std::shared_ptr<TourI> pTour;
     if (stage == 1)
     {

@@ -425,7 +425,7 @@ size_t LearnMoves::rundownFull(IN const Point &aim, OUT Point &robo_position)
             {
                 velosity = velosity_new;
                 for (auto &l : lasts_changes)
-                { l = boost::math::sign(l) * velosity; }
+                { l = static_cast<int>(boost::math::sign(l) * velosity); }
             }
             // -----------------------------------------------
             rundownNextControl(controls, lasts_changes, velosity);

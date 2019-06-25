@@ -45,7 +45,7 @@ inline bool isFileExists(const TCHAR *fileName)
 inline SIZE rectTextSize(HDC hdc, const tstring &s)
 { 
     SIZE sz{};
-    if (!GetTextExtentPoint32(hdc, s.c_str(), s.length(), &sz))
+    if (!GetTextExtentPoint32(hdc, s.c_str(), static_cast<int>(s.length()), &sz))
         throw std::runtime_error("!GetTextExtentPoint32A");
     return sz;
 }

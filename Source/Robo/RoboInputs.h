@@ -31,7 +31,7 @@ struct Robo::NewHand::Hand::JointInput : public Robo::JointInput
     double defaultPose{ 0. };
 
     JointInput() : Robo::JointInput() {}
-    JointInput(joint_t joint, const Point &openCoords, size_t maxMoveFrame, frames_t nMoveFrames,
+    JointInput(joint_t joint, const Point &openCoords, distance_t maxMoveFrame, frames_t nMoveFrames,
                double defPose, const MotionLaws::JointMotionLaw &frames, bool show) :
         Robo::JointInput(joint, frames, show, openCoords, nMoveFrames, maxMoveFrame),
         defaultPose(defPose)

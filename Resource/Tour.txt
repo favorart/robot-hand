@@ -64,7 +64,7 @@ lasts_step_braking_incr = 2
 lasts_step_on_target = 7
 ; step_distance = 0.025
 ; step_distance = 0.005            ; Желаемое расстояние между конеными точками чернового покрытия
-step_distance = 0.02
+step_distance = 0.025
 borders_side = 0.05
 
 [evo]

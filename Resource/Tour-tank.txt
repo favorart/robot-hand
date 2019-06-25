@@ -68,12 +68,12 @@ step_distance = 0.02
 borders_side = 0.05
 
 [evo]
-reached_dist = 0.009
+reached_dist = 0.05
 oppo_penalty = 0.5
-prev_dist_add = 0.00001
+prev_dist_add = 0.0001
 max_ncontrols = 8
-step_back = 100
-lasts_step = 50
+step_back = 150
+lasts_step = 80
 
 [evostep]
 reached_dist = 0.007
