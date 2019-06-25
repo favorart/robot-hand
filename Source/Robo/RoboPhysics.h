@@ -49,7 +49,7 @@ protected:
                 prevPos[joint] = curPos[joint];
             }
         }
-        Learn::State calc() const { return Learn::State{ Point{} }; }
+        //Learn::State calc() const { return Learn::State{ Point{} }; }
     };
     FeedBack feedback;
 
