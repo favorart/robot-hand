@@ -314,3 +314,6 @@ libs/Shark-3.1.0/**
 *.res
 
 enc_temp_folder/*
+*.plt
+*.dat
+
