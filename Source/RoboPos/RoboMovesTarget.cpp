@@ -12,6 +12,9 @@ void TargetI::save(tptree &root) const
     //node.put(_T("max"), _max);
     //node.put(_T("thickness"), _thickness);
     node.put(_T("precision"), _precision);
+    node.put(_T("drawLines"), _internalLines);
+    node.put(_T("drawPoints"), _internalPoints);
+    node.put(_T("drawRadius"), _internalPointsRadius);
     root.add_child(_T("target"), node);
 }
 void TargetI::load(tptree &root)
@@ -22,6 +25,9 @@ void TargetI::load(tptree &root)
     //_max.load(node.get_child(_T("max")));
     //_thickness = node.get<double>(_T("thickness"));
     _precision = node.get<double>(_T("precision"));
+    _internalLines = node.get<bool>(_T("drawLines"));
+    _internalPoints = node.get<bool>(_T("drawPoints"));
+    _internalPointsRadius = node.get_optional<double>(_T("drawRadius")).value_or(0.007);
 }
 //------------------------------------------------------------------------------
 void  RecTarget::generate ()
@@ -38,10 +44,7 @@ void  RecTarget::generate ()
   set_thickness(std::max(r_step, c_step));
 }
 
-void  RecTarget::draw(HDC hdc, HPEN hPen,
-                      bool internalLines,
-                      bool internalPoints,
-                      double internalPointsRadius) const
+void  RecTarget::draw(HDC hdc, HPEN hPen) const
 {
 #ifdef MY_WINDOW
     double lft = min().x - Utils::EPSILONT;
@@ -55,7 +58,7 @@ void  RecTarget::draw(HDC hdc, HPEN hPen,
     drawMyFigure(hdc, _center, (rgh - lft) + c, (top - btm) + r,
                  0./*angle*/, MyFigure::Rectangle, hPen);
     //-----------------------------------------------------------------
-    if (internalLines)
+    if (_internalLines)
     {
         for (auto i = 1U; i < _n_cols; ++i)
             drawLine(hdc, { lft + i * c - c / 2., top + r / 2. },
@@ -66,10 +69,10 @@ void  RecTarget::draw(HDC hdc, HPEN hPen,
                           { rgh + c / 2., btm + i * r - r / 2. }, hPen);
     }
     //-----------------------------------------------------------------
-    if (internalPoints)
+    if (_internalPoints)
     {
         for (auto p : _coords)
-            drawCircle(hdc, p, internalPointsRadius, hPen);
+            drawCircle(hdc, p, _internalPointsRadius, hPen);
     }
 #endif // MY_WINDOW
 }
@@ -153,10 +156,7 @@ void PolyTarget::generate()
 bool PolyTarget::contain(const Point &p) const
 { return bg::within(p, _polygon)/*insidePolygon(_polygon.outer(), p)*/; }
 
-void PolyTarget::draw(HDC hdc, HPEN hPen,
-                      bool internalLines,
-                      bool internalPoints,
-                      double internalPointsRadius) const
+void PolyTarget::draw(HDC hdc, HPEN hPen) const
 {
 #ifdef MY_WINDOW
     double lft = min().x - Utils::EPSILONT;
@@ -169,7 +169,7 @@ void PolyTarget::draw(HDC hdc, HPEN hPen,
 
     drawMyFigure(hdc, _polygon.outer(), MyFigure::Polygon, hPen);
     //-----------------------------------------------------------------
-    if (internalLines)
+    if (_internalLines)
     {
         for (auto i = 1U; i < _n_cols; ++i)
             drawLine(hdc, { lft + i * c - c / 2., top + r / 2. },
@@ -180,10 +180,10 @@ void PolyTarget::draw(HDC hdc, HPEN hPen,
                           { rgh + c / 2., btm + i * r - r / 2. }, hPen);
     }
     //-----------------------------------------------------------------
-    if (internalPoints)
+    if (_internalPoints)
     {
         for (auto p : _coords)
-            drawCircle(hdc, p, internalPointsRadius, hPen);
+            drawCircle(hdc, p, _internalPointsRadius, hPen);
     }
 #endif // MY_WINDOW
 }
@@ -193,8 +193,8 @@ void PolyTarget::save(tptree &root) const
     TargetI::save(root);
     auto &node = root.get_child_optional(_T("target")).get_value_or(root);
     node.put(_T("type"), PolyTarget::name());
-    node.put<unsigned>(_T("hn_aims"), _n_cols);
-    node.put<unsigned>(_T("vn_aims"), _n_rows);
+    node.put<size_t>(_T("hn_aims"), _n_cols);
+    node.put<size_t>(_T("vn_aims"), _n_rows);
 
     tptree polygon;
     for (auto &p : _polygon.outer())
@@ -213,8 +213,8 @@ void PolyTarget::load(tptree &root)
     //if (type != RecTarget::name())
     //    CERROR("PolyTarget: Invalid load");
 
-    _n_cols = node.get<unsigned>(_T("hn_aims"));
-    _n_rows = node.get<unsigned>(_T("vn_aims"));
+    _n_cols = node.get<size_t>(_T("hn_aims"));
+    _n_rows = node.get<size_t>(_T("vn_aims"));
 
     auto &polygon = node.get_child(_T("polygon"));
     for (tptree::value_type &v : node.get_child(_T("polygon")))

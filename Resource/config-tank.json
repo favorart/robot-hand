@@ -2,20 +2,22 @@
   "robo": {
     "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
-    "edges": true,
+    "enviroment": 32, "#enviroment": "MUTIAL_BLOCKING(1)|MUTIAL_DYNAMICS(2)|MOMENTUM_CHANGES(4)|SYSTEMATIC_CHANGES(8)|START_FRICTION(16)|EDGES(32)",
     "joints": [
       {
         "name": "RTrack",
         "joint": 1,
         "show": true,
         "base": [ 0.05, 0.10 ],
-        "nMoveFrames": 160,
-        "maxMoveFrame": 0.1,
         "motionLaw": {
           "name": "STAB",
           "type": 3,
-          "stopD": 0.07,
-          "param": "0.25"
+          "dStableRatio": 0.25,
+          "dInertiaRatio": 0.07,
+          "#stFrictRatio": 0.01,
+          "nMoveFrames": 150,
+          "dMoveDistance": 0.35, "#dMoveDistance": "max distance you can replace in one time",
+          "param" : "0.25"
         }
       },
       {
@@ -23,13 +25,33 @@
         "joint": 0,
         "show": true,
         "base": [ 0.15, 0.10 ],
-        "nMoveFrames": 160,
-        "maxMoveFrame": 0.1, "#maxMoveFrame": "max distance you can replace in one time",
         "motionLaw": {
           "name": "STAB",
           "type": 3,
-          "stopD": 0.07,
+          "dStableRatio": 0.25,
+          "dInertiaRatio": 0.07,
+          "#stFrictRatio": 0.01,
+          "nMoveFrames": 150,
+          "dMoveDistance": 0.35,
           "param": "0.25"
+        },
+        "#motionLaw1": {
+          "moveDistance": 0.1,
+          "nMoveFrames": 160,
+          "name": "STAB",
+          "type": 3,
+          "param": "0.55",
+          "inertiaRatio": 0.35,
+          "stFrictRatio": 0.01
+        },
+        "#motionLaw2": {
+          "moveDistance": 0.1,
+          "nMoveFrames": 160,
+          "name": "CONAC",
+          "type": 3,
+          "param": "",
+          "inertiaRatio": 0.35,
+          "stFrictRatio": 0.01
         }
       }
     ]
@@ -46,30 +68,33 @@
     ],    "#rectangle": "full round of points!",
     "hn_aims": 20, "#hn_aims": 30,
     "vn_aims": 20, "#vn_aims": 30,
+    "drawLines": true,
+    "drawPoints": true,
+    "drawRadius": 0.007,
     "precision": 0.0042
   },
-  "env": {
-    "dbRadius": 0.01,
-    "storeRzoomed": 0.003,
-    "storeRnormal": 0.000,
+  "canvas": {
+    "radiusDB": 0.01,
+    "radiusDBzoom": 0.003,
+    "radiusDBnorm": 0.000,
     "uncoveredRzoomed": 0.005,
     "uncoveredRnormal": 0.000,
-    "centerAxes": true,
-    "targetLines": true,
-    "targetPoints": true,
-    "targetRadius": 0.007,
-    "skipShowFrames": 15,
-    "animation": true
+    "centerAxes": false,
+    "animation": true,
+    "skipShowFrames": 170
   },
   "lm_config": ".\\Resource\\Tour-tank.txt",
   "precision": 1.5,   "#precision": "mm",
-  "redirect": true,
-
+  "redirect": false,
+    
+  "saveFormat": 1, "#saveFormat": "none(0)|txt(1)|bin(2)",
+  "#startUpLoad": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
+  
   "#LV_OUTALL": 0,
   "#LV_CDEBUG": 1,
   "#LV_CINFO": 2,
   "#LV_CWARN": 3,
   "#LV_CERROR": 4,
   "#LV_CALERT": 5,
-  "verbose": 2
+  "verbose": 1
 }

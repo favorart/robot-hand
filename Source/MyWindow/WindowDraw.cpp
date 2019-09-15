@@ -138,6 +138,24 @@ void  drawTrajectory(HDC hdc, const Robo::Trajectory &trajectory, HPEN hPen)
 }
 
 //------------------------------------------------------------------------------
+void  drawStateTrajectory(HDC hdc, const Robo::StateTrajectory &trajectory, HPEN hPen)
+{
+    if (!trajectory.empty())
+    {
+        HPEN hPen_old = (HPEN)SelectObject(hdc, hPen);
+        //------------------------------------------------------------------
+        const Point &p = trajectory.front().spec();
+        MoveToEx(hdc, Tx(p.x), Ty(p.y), NULL);
+
+        for (const auto &state : trajectory)
+        { LineTo(hdc, Tx(state.spec().x), Ty(state.spec().y)); }
+        //------------------------------------------------------------------
+        // отменяем ручку
+        SelectObject(hdc, hPen_old);
+    }
+}
+
+//------------------------------------------------------------------------------
 void  drawMyFigure(HDC hdc, const Point &center, double w, double h, double angle, MyFigure figure, HPEN hPen)
 {
     HPEN hPen_old = (HPEN)SelectObject(hdc, hPen);

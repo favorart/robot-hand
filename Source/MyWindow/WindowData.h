@@ -53,49 +53,43 @@ struct MyWindowData
         size_t store_size{ 0 };
 
         std::list<std::shared_ptr<RoboMoves::Record>> pointsDB{};
-        std::list<std::shared_ptr<Robo::Trajectory>>   trajsDB{};
+        //std::list<std::shared_ptr<Robo::Trajectory>> trajsDB{};
         // ---------------------------------
-        Robo::Trajectories testingTrajsList{};
-        bool               testingTrajsShow{ false };
+        Robo::StateTrajectories testingTrajsList{};
+        bool testingTrajsShow{ false };
         // ---------------------------------
         std::vector<Point/*Robo::Learn::State*/> uncoveredPointsList{};
         bool uncoveredPointsShow{ true };
         // --------------------------------
         bool   centerAxes{ false };
-        bool   targetLines{ true };
-        bool   targetPoints{ true };
-        double targetRadius{ 0.0007 };
-        double uncoveredRzoomed{ 0.005 };
-        double uncoveredRnormal{ 0.000 };
-        double storeRzoomed{ 0.003 };
-        double storeRnormal{ 0.000 };
-        double dbRadius{ 0.01 };
+        double uncoveredRadiusZoomed{ 0.005 };
+        double uncoveredRadiusNormal{ 0.000 };
+        double radiusDBzoom{ 0.003 };
+        double radiusDBnorm{ 0.000 };
+        double radiusDB{ 0.01 };
         // --------------------------------
         CGradient cGradient{ CGradient::Longz };
         // --------------------------------
     } canvas;
 
-    /// Show frames trajectory
     class TrajectoryFrames
     {
         bool show_ = false;
         bool animation_ = true;
-        size_t skip_show_frames_ = 15U;
-        size_t controls_curr_ = 0;
+        Robo::frames_t skip_show_frames_ = 170;
+        Robo::frames_t controls_curr_ = 0;
         Robo::Control controls_{};
         Point base_pos_{};
-
     public:
-        size_t skipShowFrames() const { return skip_show_frames_; }
+        Robo::frames_t skipShowFrames() const { return skip_show_frames_; }
         bool show() const { return show_; }
         bool animation() const { return animation_; }
         void setAnim(bool animation) { animation_ = animation; }
-        void setSkipShowFrames(size_t ssf) { skip_show_frames_ = ssf; }
+        void setSkipShowFrames(Robo::frames_t ssf) { skip_show_frames_ = ssf; }
         void clear();
-        void step(RoboMoves::Store &store, Robo::RoboI &robo, const Robo::Control &controls);
-        void step(RoboMoves::Store &store, Robo::RoboI &robo);
-    };
-    TrajectoryFrames trajFrames;
+        void step(RoboMoves::Store&, Robo::RoboI&, const Robo::Control&);
+        void step(RoboMoves::Store&, Robo::RoboI&);
+    } trajFrames; ///< show frames trajectory
     //Robo::frames_t frames = 0; ///< Global App Time (to show animation)
     // ---------------------------------
     bool testing = false;
@@ -103,7 +97,7 @@ struct MyWindowData
     // ---------------------------------
     std::shared_ptr<TargetI> pTarget;
     std::shared_ptr<Robo::RoboI> pRobo;
-    std::shared_ptr<Robo::RoboI> pRoboClone; ///< For the !weather! testing
+    //std::shared_ptr<Robo::RoboI> pRoboClone; ///< For the !weather! testing <<< TODO !!
     std::shared_ptr<RoboMoves::Store> pStore;
     std::shared_ptr<RoboPos::LearnMoves> pLM;
     // ---------------------------------
@@ -128,10 +122,11 @@ struct MyWindowData
     void save(const tstring &fn_db) const;
     void load(const tstring &fn_db);
     // ---------------------------------
-    // DEBUG --- RM !!!
+#ifdef DEBUG_RM
     static std::list<Point> goals;
     static std::list<Point> predicts;
     static std::list<Point> reals;
+#endif
     tstring _config;
     tstring _lm_config;
     // ---------------------------------
@@ -140,8 +135,12 @@ struct MyWindowData
     // ---------------------------------
     void read_config(IN const tstring &filename);
     void write_config(IN const tstring &filename) const;
+    void write_canvas(tptree&) const;
+    void read_canvas(tptree&);
     // ---------------------------------
-    int storeSaveFormat = 1;
+    tstring storeLoad{ false };
+    int storeSaveFormat{ 1 /*TXT*/ };
+    bool redirect{ false };
 };
 //-------------------------------------------------------------------------------
 template<typename Function, typename... Args>

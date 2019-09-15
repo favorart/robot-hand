@@ -2,77 +2,68 @@
 
 #ifndef  _MOTION_LAWS_H_
 #define  _MOTION_LAWS_H_
-//------------------------------------------------------------------------------
+
 namespace Robo {
 namespace MotionLaws {
-
+//------------------------------------------------------------------------------
+extern constexpr double Epsilont = Utils::EPSILONT;
 using IterVecDoubles = std::vector<double>::iterator;
 //------------------------------------------------------------------------------
 /*  Здесь указан интерфейс, в котором эмулятор руки принимает закон движения мускула.
  *  Открывающий и закрывающий мускулы одного сустава получают одинаковую разбивку по
  *  кадрам и одинаковые граничные условия.
  */
-class JointMoveLawI
+struct JointMoveLawI
 {
-public:
-    // --------------------------------
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const = 0;
-
-    template <typename ForwardIterator>
-    /* virtual */ void  generate(ForwardIterator first, size_t frames_count,
-                                 double left_border, double right_border) const = 0;
 };
-
-class JointStopLawI
+struct JointStopLawI
 {
-public:
-    // --------------------------------
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border,
                            double max_velosity) const = 0;
-
-    template <typename ForwardIterator>
-    /* virtual */ void  generate(ForwardIterator first, size_t frames_count,
-                                 double left_border, double right_border,
-                                 double max_velosity) const = 0;
+};
+//------------------------------------------------------------------------------
+enum MLaw : uint8_t
+{
+    INVALID = 0,
+    SLOW = 1,
+    FAST = 2,
+    STAB = 3,
+    CONAC = 4,
+    MANGO = 5,
+    _COUNT_ = 6
 };
 
+inline tstring name(MLaw ml)
+{
+    if (ml == INVALID || ml >= _COUNT_)
+        throw std::logic_error{ "Invalid Hand law" };
+    tstring data[] = { _T(""), _T("SLOW"), _T("FAST"), _T("STAB"), _T("CONAC"), _T("MANGO") };
+    return data[ml];
+}
 //------------------------------------------------------------------------------
 struct JointMotionLaw
 {
     std::shared_ptr<JointMoveLawI> moveLaw;
     std::shared_ptr<JointStopLawI> stopLaw;
 
-    double stopDistanceRatio{ 0.55 }; // 55% от общего пробега
-    uint8_t type{ 0xFF };
-    tstring typeName{};
+    MLaw type{ INVALID };
+    size_t nMoveFrames{};
+    double dMoveDistance{};
+    double dInertiaRatio{ 0.35 }; // 35% от общего пробега
+    double dStableRatio{ 0.55 }; // 55% от общего пробега
     tstring param{};
 
-    JointMotionLaw(JointMoveLawI *pMoveLaw, JointStopLawI *pStopLaw) :
-        moveLaw(pMoveLaw), stopLaw(pStopLaw)
-    {}
-    JointMotionLaw(JointMoveLawI *pMoveLaw, JointStopLawI *pStopLaw,
-                   tstring typeName, uint8_t type, tstring param) :
-        moveLaw(pMoveLaw), stopLaw(pStopLaw),
-        typeName(typeName), type(type), param(param)
-    {}
-    void save(tptree &root) const
-    {
-        root.put(_T("type"), type);
-        root.put(_T("name"), typeName);
-        root.put(_T("param"), param);
-        root.put<double>(_T("stopD"), stopDistanceRatio);
-    }
-    //void load(tptree &root)
-    //{
-    //    //assert(root.size() == 4);
-    //    auto type = static_cast<Robo::MotionLaws::HandMLaw>(root.get<uint8_t>(_T("type")));
-    //    auto param = root.get<tstring>(_T("param"));
-    //    //typeName = root.get<tstring>(_T("name"));
-    //    Robo::MotionLaws::getHandMLaw(type, param);
-    //    stopDistanceRatio = root.get<double>(_T("stopD"));
-    //}
+    JointMotionLaw() {}
+    JointMotionLaw(MLaw ml, size_t nMoveFrames, double dMoveDistance, 
+                   double dInertiaRatio, tstring param = _T(""));
+    void init();
+    void save(tptree &root) const;
+    void load(tptree &root);
+    friend tostream& operator<<(tostream&, const JointMotionLaw&);
+    friend std::ostream& operator<<(std::ostream&, const JointMotionLaw&);
 };
 
 //------------------------------------------------------------------------------
@@ -87,20 +78,17 @@ class ContinuousAcceleration : public JointMoveLawI
      *      . . .
      */
 public:
-    // --------------------------------
-    // template <typename ForwardIterator>
-    virtual void  generate(IterVecDoubles first, size_t frames_count,
+    virtual void generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const
     {
-        IterVecDoubles  iter = first;
-        size_t  n = (frames_count - 1U);
+        IterVecDoubles iter = first;
+        size_t n = (frames_count - 1U);
         double a = left_border, b = right_border;
         // --------------------------------
-        double  norm_sum = 0.;
-
+        double norm_sum = 0.;
         for (size_t i = 0U; i <= n; ++i)
         { /* diff velosity on start and end */
-            *iter = (1. - cos(i * M_PI / n)) * 0.5;
+            *iter = std::max(Epsilont, (1. - cos(i * M_PI / n)) * 0.5);
             /* calc normalization */
             norm_sum += *iter;
             ++iter;
@@ -126,27 +114,25 @@ class ContinuousDeceleration : public JointStopLawI
      *       . . .
      */
 public:
-    // --------------------------------
-    // template <typename ForwardIterator>
     virtual void generate(IterVecDoubles first, size_t frames_count,
                           double left_border, double right_border,
                           double max_velosity) const
     {
-        IterVecDoubles  iter = first;
-        size_t  n = (frames_count - 1U);
+        IterVecDoubles iter = first;
+        size_t n = (frames_count - 1U);
         if (frames_count <= 1)
         {
             *first = right_border * 3 / 2;
             return;
         }
         double a = left_border, b = right_border, v = max_velosity;
-        //------------------------------------------------------
-        double  norm_sum = 0.;
+        // --------------------------------
+        double norm_sum = 0.;
         for (size_t i = 0U; i <= n; ++i)
         {
             /* diff velosity on start and end */
-            double  d = static_cast<double> (i) / n;
-            *iter = (1. - cos((d + 1.) * M_PI)) * 0.5;
+            double d = static_cast<double> (i) / n;
+            *iter = std::max(Epsilont, (1. - cos((d + 1.) * M_PI)) * 0.5);
             /* calc normalization */
             norm_sum += *iter;
             ++iter;
@@ -158,7 +144,7 @@ public:
             if (*first > v)  *first = v;
             ++first;
         }
-        //------------------------------------------------------
+        // --------------------------------
     }
 };
 //------------------------------------------------------------------------------

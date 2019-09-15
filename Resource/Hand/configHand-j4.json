@@ -54,7 +54,7 @@
         "show": false,
         "base": [ 0.75, 0.25 ],
         "maxAngle": 40,
-        "maxMoveFrames": 600,
+        "maxMoveFrames": 200,
         "defPoseRatio": 0.0,
         "motionLaw": {
           "name": "CONAC",

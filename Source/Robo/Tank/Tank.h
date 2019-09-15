@@ -7,13 +7,13 @@ class EnvEdgesTank;
 namespace Mobile {
 
 #define TANK_VER 2
-//#define TANK_DEBUG
+#define TANK_DEBUG
 
-//------------------------------------------------------------------------------
 class Tank : public RoboPhysics
 {
 public:
-    enum class Muscle : uint8_t
+    struct JointInput;
+    enum /*class*/ Muscle : uint8_t
     {
         LTrackFrw = 0, // Frw = forward
         LTrackBck = 1, // Bck = backward
@@ -22,7 +22,7 @@ public:
         MCount = 4,
         MInvalid = 5
     };
-    enum class Joint : uint8_t
+    enum /*class*/ Joint : uint8_t
     {
         LTrack = 0,
         RTrack = 1,
@@ -40,8 +40,6 @@ public:
     { return (muscle >= muscles) ? Tank::Muscle::MInvalid : params.musclesUsed[muscle]; }
     Tank::Joint  J(joint_t joint) const
     { return (joint >= joints) ? Tank::Joint::JInvalid : params.jointsUsed[joint]; }
-
-    struct JointInput;
 
 protected:
     static const size_t muscles = (size_t)(Tank::Muscle::MCount);
@@ -68,13 +66,14 @@ protected:
     void realMove();
     
 public:
-    Tank(const Point &baseCenter, const JointsInputsPtrs &joints, bool edges=true);
+    Tank(const Point &baseCenter, const JointsInputsPtrs &joints);
 
     frames_t muscleMaxLasts(muscle_t muscle) const;
     frames_t muscleMaxLasts(const Robo::Control &control) const;
 
     void getWorkSpace(OUT Trajectory &workSpace);
     void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
+    int specPoint() const { return static_cast<int>(Joint::Center); }
     
     void resetJoint(IN joint_t);
     void setJoints(IN const Robo::JointsOpenPercent&);
@@ -89,5 +88,3 @@ public:
 
 }
 }
-//------------------------------------------------------------------------------
-

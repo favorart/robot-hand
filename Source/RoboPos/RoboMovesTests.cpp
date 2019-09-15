@@ -59,7 +59,7 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
         {
             for (frames_t last_i = lasts_min; last_i < robo.muscleMaxLasts(muscle_i); last_i += lasts_step)
             {
-                robo.move(Control{ { muscle_i, 0, last_i } });
+                robo.move(Control{ { muscle_i, 0, last_i } }, LastsInfinity);
                 store.insert(Record(robo.position(), base, robo.position(),
                                     { muscle_i }, { 0 }, { last_i }, 1U, robo.trajectory()));
 
@@ -74,10 +74,10 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
 
                     for (frames_t last_j = lasts_min; last_j < robo.muscleMaxLasts(muscle_j); last_j += lasts_step)
                     {
-                        Trajectory::iterator tail_j = robo.traj().end();
+                        /*Trajectory::iterator*/auto tail_j = robo.traj().end();
                         --tail_j;
 
-                        robo.move(Control{ { muscle_j, 0, last_j } });
+                        robo.move(Control{ { muscle_j, 0, last_j } }, LastsInfinity);
                         store.insert(Record(robo.position(), base, robo.position(),
                                             { muscle_i, muscle_j }, { 0, last_i }, { last_i, last_j },  2U, robo.trajectory()));
 
@@ -93,10 +93,10 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
 
                             for (frames_t last_k = lasts_min; last_k < robo.muscleMaxLasts(muscle_k); last_k += lasts_step)
                             {
-                                Trajectory::iterator tail_k = robo.traj().end();
+                                /*Trajectory::iterator*/auto tail_k = robo.traj().end();
                                 --tail_k;
 
-                                robo.move(Control{ { muscle_k, 0, last_j } });
+                                robo.move(Control{ { muscle_k, 0, last_j } }, LastsInfinity);
                                 store.insert(Record(robo.position(), base, robo.position(),
                                                     /* muscle */ { muscle_i, muscle_j, muscle_k },
                                                     /* start  */ { 0, last_i, last_i + last_j },

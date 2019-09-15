@@ -1,39 +1,36 @@
 ﻿{
   "robo": {
     "type": "Hand-v4",
-    "base": [ 0.75, 0.25 ],
-    "enviroment": 32, "#enviroment": "MUTIAL_BLOCKING(1)|MUTIAL_DYNAMICS(2)|MOMENTUM_CHANGES(4)|SYSTEMATIC_CHANGES(8)|START_FRICTION(16)|EDGES(32)",
+    "base": [ 0.70, 0.20 ],
+    "edges": false,
     "joints": [
       {
         "name": "Wrist",
         "joint": 0,
         "defPoseRatio": 0.0,
         "show": false,
-        "base": [ -0.75, 1.05 ],
+        "base": [ -0.42, 1.02 ],
+        "maxMoveFrame": 1.74533, "#maxAngle": "radians = 100 degrees",
+        "nMoveFrames": 250,
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
-          "param": 0,
-          "nMoveFrames": 250,
-          "dMoveDistance": 1.74533, "#maxAngle": "radians = 0-100 degrees",
-          "dInertiaRatio": 0.55,          
-          "dStableRatio": 0.55
+          "#stopD": 0.55,
+          "param": ""
         }
       },
       {
         "name": "Elbow",
         "joint": 1,
-        "defPoseRatio": 70.0,
+        "defPoseRatio": 0.0,
         "show": true,
-        "base": [ -0.70, 1.00 ],
+        "base": [ -0.40, 1.00 ],
+        "nMoveFrames": 350,
+        "maxMoveFrame": 2.3562, "#maxAngle": "radians = 135 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
-          "param": 0,
-          "nMoveFrames": 350,
-          "dMoveDistance": 2.3562, "#maxAngle": "radians = 0-135 degrees",
-          "dInertiaRatio": 0.31,          
-          "dStableRatio": 0.55
+          "param": ""
         }
       },
       {
@@ -41,31 +38,27 @@
         "joint": 2,
         "defPoseRatio": 0.0,
         "show": true,
-        "base": [ 0.10, 0.85 ],
+        "base": [ 0.20, 0.65 ],
+        "nMoveFrames": 470,
+        "maxMoveFrame": 1.8326, "#maxAngle": "radians = 105 degrees",
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
-          "param": 0,
-          "nMoveFrames": 470,
-          "dMoveDistance": 1.8326, "#maxAngle": "radians = 0-105 degrees",
-          "dInertiaRatio": 0.35,          
-          "dStableRatio": 0.55
+          "param": ""
         }
       },
       {
         "name": "Clvcl",
         "joint": 3,
-        "defPoseRatio": 50.0,
-        "show": false,
-        "base": [ 0.75, 0.25 ],
+        "defPoseRatio": 100.0,
+        "show": true,
+        "base": [ 0.70, 0.20 ],
+        "nMoveFrames": 300,
+        "maxMoveFrame": 0.25,
         "motionLaw": {
           "name": "CONAC",
           "type": 4,
-          "param": 0,
-          "nMoveFrames": 400,
-          "dMoveDistance": 0.1,
-          "dInertiaRatio": 0.55,          
-          "dStableRatio": 0.55
+          "param": ""
         }
       }
     ]
@@ -95,10 +88,6 @@
     "hn_aims": 20,
     "vn_aims": 20,
 
-    "drawLines": true,
-    "drawPoints": true,
-    "drawRadius": 0.007,
-
     "precision": 0.0042
   },
   "target": {
@@ -120,27 +109,26 @@
     "top": -0.03,
     "bottom": -0.85,
 
-    "drawLines": true,
-    "drawPoints": true,
-    "drawRadius": 0.007,
-
     "precision": 0.0042
   },
-  "canvas": {
-    "radiusDB": 0.01,
-    "radiusDBzoom": 0.003,
-    "radiusDBnorm": 0.000,
+  "env": {
+    "dbRadius": 0.01,
+    "storeRzoomed": 0.003,
+    "storeRnormal": 0.000,
     "uncoveredRzoomed": 0.005,
     "uncoveredRnormal": 0.000,
     "centerAxes": false,
-    "animation": true,
-    "skipShowFrames": 5
+    "targetLines": true,
+    "targetPoints": true,
+    "targetRadius": 0.007,
+    "skipShowFrames": 15,
+    "animation": true
   },
-  "precision": 1.5, "#precision": "mm",
   "lm_config": ".\\Resource\\Tour.txt",
+  "precision": 1.5, "#precision": "mm",
   "redirect": false,
-  "saveFormat": 1, "#saveFormat": "none(0)|txt(1)|bin(2)",
-  "#startUpLoad": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
+  "#pickup": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
+  "store_save_load_format": 1,                        "#none": 0, "#txt": 1, "#bin": 2,
 
   "#LV_OUTALL": 0,
   "#LV_CDEBUG": 1,

@@ -14,12 +14,14 @@ int64_t getStrategy(const Robo::Control &controls);
 
 class Record
 {
+    using Traj = Robo::StateTrajectory;
+    using Control = Robo::Control;
     Point aim_{}; // TODO: ??? REMOVE
     Point move_begin_{}, move_final_{};
-    Robo::Control    control_{};
-    Robo::Trajectory visited_{};
+    Control control_{};
+    Traj visited_{};
 
-    int64_t _strategy{-1};
+    int64_t _strategy{-1}; ///< набор зайствованных мускулов в управлении
     Robo::frames_t _lasts_step{};
     mutable double _error_distance{0.};
     
@@ -61,20 +63,14 @@ public:
            IN const frames_array     &starts,
            IN const frames_array     &lasts,
            IN size_t                  controls_count,
-           IN const Robo::Trajectory &visited);
+           IN const Traj             &visited);
 
     Record(IN const Point            &aim,
            IN const Point            &move_begin,
            IN const Point            &move_final,
-           IN const Robo::Control    &controls,
-           IN const Robo::Trajectory &visited);
-
-    Record(IN const Point            &aim,
-           IN const Point            &move_begin,
-           IN const Point            &move_final,
-           IN const Robo::Control    &controls,
-           IN const Robo::Trajectory &visited,
-           IN Robo::frames_t lasts_step);
+           IN const Control          &controls,
+           IN const Traj             &visited,
+           IN Robo::frames_t lasts_step=Robo::LastsInfinity);
     // ----------------------------------------
     bool  operator== (const Record &rec) const
     { return (this == &rec) || (control_ == rec.control_); }
@@ -92,20 +88,20 @@ public:
     /* Microsoft specific: C++ properties */
     __declspec(property(get = getAim))       const Point&            aim;
     __declspec(property(get = getHit))       const Point&            hit;
-    __declspec(property(get = getVisited))   const Robo::Trajectory& trajectory;
-    __declspec(property(get = getControls))  const Robo::Control&    controls;
-    __declspec(property(get = getNControls)) size_t                n_controls;
+    __declspec(property(get = getVisited))   const Traj&      trajectory;
+    __declspec(property(get = getControls))  const Control&     controls;
+    __declspec(property(get = getNControls)) size_t           n_controls;
 
     // ----------------------------------------
     const Point&            getAim() const { return aim_; }
     const Point&            getHit() const { return move_final_; }
-    const Robo::Trajectory& getVisited() const { return visited_; }
+    const Traj&             getVisited() const { return visited_; }
     size_t                  getNControls() const { return control_.size(); }
-    const Robo::Control&    getControls() const { return control_; }
+    const Control&          getControls() const { return control_; }
 
     void updateErrDistance(const Point &hit) { _error_distance = boost_distance(aim, hit); }
-    void updateTraj(SimTime sim_time) const { _update_traj = sim_time; }
-    void updateAim(const Point &aim) { aim_ = aim; }
+    void updateTimeTraj(SimTime sim_time) const { _update_traj = sim_time; }
+    void updateTimeAim(const Point &aim) { aim_ = aim; }
     // ----------------------------------------
     void clear();
     // ----------------------------------------

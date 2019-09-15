@@ -73,6 +73,7 @@
     <ClCompile Include="Source\RoboPos\RoboPosRundown.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosTourEvo.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosWeightedMean.cpp" />
+    <ClCompile Include="Source\Robo\RoboMotionLaws.cpp" />
     <ClCompile Include="Source\Robo\RoboMuscles.cpp" />
     <ClCompile Include="Source\Robo\RoboPhysics.cpp" />
     <ClCompile Include="Source\Utilities\Console.cpp" />

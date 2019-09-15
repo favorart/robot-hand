@@ -183,10 +183,7 @@ void  onPaintStaticBckGrnd(HDC hdc, MyWindowData &wd)
         drawDecardsCoordinates(hdc);
     else
         drawCoordinates(hdc, wd.canvas.pLetters->show);
-    wd.pTarget->draw(hdc, wd.canvas.hPen_grn,
-                     wd.canvas.targetLines,
-                     wd.canvas.targetPoints,
-                     wd.canvas.targetRadius);
+    wd.pTarget->draw(hdc, wd.canvas.hPen_grn);
 }
 void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
@@ -212,8 +209,8 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
         frames_t robot_max_lasts = musclesMaxLasts(*wd.pRobo);
         //robot_max_lasts = (Robo::LastsInfinity == robot_max_lasts) ? Robo::LastsInfinity : (robot_max_lasts * wd.pRobo->musclesCount());
 
-        auto sR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.storeRzoomed : wd.canvas.storeRnormal;
-        auto uR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.uncoveredRzoomed : wd.canvas.uncoveredRnormal;
+        auto sR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.radiusDBzoom : wd.canvas.radiusDBnorm;
+        auto uR = (MyWindowData::zoom == MyWindowData::Zoom::STATIC) ? wd.canvas.uncoveredRadiusZoomed : wd.canvas.uncoveredRadiusNormal;
 
         WorkerThreadRunTask(wd, _T(" *** drawing ***  "),
                             [hdc](const Store &store, CGradient cGrad, frames_t maxLasts, double sR,
@@ -244,19 +241,19 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
         wd.pRobo->draw(hdc, wd.canvas.hPen_red, wd.canvas.hBrush_white);
 
         if (wd.trajFrames.show())
-            drawTrajectory(hdc, wd.pRobo->trajectory(), wd.canvas.hPen_orng);
+            drawStateTrajectory(hdc, wd.pRobo->trajectory(), wd.canvas.hPen_orng);
         // --------------------------------------------------------------
         if (wd.canvas.testingTrajsShow && !wd.canvas.testingTrajsList.empty())
         {
             for (auto &t : wd.canvas.testingTrajsList)
-                drawTrajectory(hdc, t, wd.canvas.hPen_blue);
+                drawStateTrajectory(hdc, t, wd.canvas.hPen_blue);
         }
         // ----- Отрисовка точек БД -------------------------------------
         if (!wd.canvas.pointsDB.empty())
         {
             HPEN hPen_old = (HPEN)SelectObject(hdc, wd.canvas.hPen_cian);
             for (auto &p : wd.canvas.pointsDB)
-                drawCircle(hdc, p->hit, wd.canvas.dbRadius);
+                drawCircle(hdc, p->hit, wd.canvas.radiusDB);
             SelectObject(hdc, hPen_old);
         }
         // --------------------------------------------------------------
@@ -291,15 +288,15 @@ void  onShowDBPoints(MyWindowData &wd)
   if ( !wd.testing )
   {
     wd.canvas.pointsDB.clear ();
-    wd.canvas.testingTrajsList.clear ();
+    //wd.canvas.testingTrajsList.clear ();
     wd.pStore->adjacencyPoints (wd.canvas.pointsDB, wd.mouse.aim, wd.search.radius);
   }
 }
 void  onShowDBTrajes(MyWindowData &wd)
 {
     wd.trajFrames.clear();
-    for (auto &rec : wd.canvas.pointsDB)
-    { wd.canvas.trajsDB.push_back(std::make_shared<Trajectory>(rec->trajectory)); }
+    //for (auto &rec : wd.canvas.pointsDB)
+    //{ wd.canvas.trajsDB.push_back(std::make_shared<StateTrajectory>(rec->trajectory)); }
 }
 //-------------------------------------------------------------------------------
 void  onWindowTimer(MyWindowData &wd)
@@ -321,7 +318,7 @@ void  onWindowTimer(MyWindowData &wd)
         // анимация ручного управления
         if (!wd.pRobo->moveEnd())
             wd.canvas.hDynamicBitmapChanged = true;        
-        for(auto i = 0u; i < wd.pRobo->getVisitedRarity(); ++i)
+        for(auto i = 0u; i < 1/*wd.pRobo->getVisitedRarity()*/; ++i)
             wd.pRobo->step();
     }
 }
@@ -358,11 +355,12 @@ bool  repeatRoboMove(MyWindowData &wd)
 bool  makeRoboMove(MyWindowData &wd)
 {
     wd.trajFrames.clear();
-    wd.canvas.testingTrajsList.clear();
+    //wd.canvas.testingTrajsList.clear();
     // -------------------------------------------------
     if (!repeatRoboMove(wd))
     {
         const Point &aim = wd.mouse.aim;
+        // if (!wd.pLM) wd.pLM = std::make_shared<RoboPos::LearnMoves>(*wd.pStore, *wd.pRobo, *wd.pTarget, wd._lm_config); //??
         wd.pLM->testStage3(aim);
         // -------------------------------------------------
         if (0 /* Around Trajectories !!! */)
@@ -424,9 +422,6 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (!pTarget) throw std::runtime_error("read_config: incorrect class TargetI version");
 
         GET_OPT(root, storeSaveFormat);
-
-        // -------------------------------------------------------------------------
-        bool redirect = false;
         GET_OPT(root, redirect);
         if (redirect)
         {
@@ -435,11 +430,10 @@ void MyWindowData::read_config(IN const tstring &filename)
                 throw std::runtime_error("read_config: invalid IO stream redirect freopen");
         }
 
-        tstring pickup;
-        GET_OPT(root, pickup);
-        if (pickup.length())
+        storeLoad = root.get_optional<tstring>(_T("startUpLoad")).get_value_or(_T(""));
+        if (storeLoad.length())
         {
-            pStore->pick_up(pickup, pRobo, Store::Format(storeSaveFormat));
+            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat));
         }
         // -------------------------------------------------------------------------
 
@@ -448,24 +442,8 @@ void MyWindowData::read_config(IN const tstring &filename)
             throw std::runtime_error("read_config: incorrect precision");
 
         _lm_config = root.get<tstring>(_T("lm_config"));
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, _lm_config);
-
-        unsigned skip_show_frames = root.get_optional<unsigned>(_T("env.skipShowFrames")).get_value_or(15);
-        trajFrames.setSkipShowFrames(skip_show_frames);
-
-        bool animation = root.get_optional<bool>(_T("env.animation")).get_value_or(true);
-        trajFrames.setAnim(animation);
-
-        canvas.centerAxes = root.get_optional<bool>(_T("env.centerAxes")).get_value_or(true);
-        canvas.targetLines = root.get_optional<bool>(_T("env.targetLines")).get_value_or(true);
-        canvas.targetPoints = root.get_optional<bool>(_T("env.targetPoints")).get_value_or(true);
-        canvas.targetRadius = root.get_optional<double>(_T("env.targetRadius")).get_value_or(0.007);
-
-        canvas.uncoveredRzoomed = root.get_optional<double>(_T("env.uncoveredRzoomed")).get_value_or(0.005);
-        canvas.uncoveredRnormal = root.get_optional<double>(_T("env.uncoveredRnormal")).get_value_or(0.000);
-        canvas.storeRzoomed = root.get_optional<double>(_T("env.storeRzoomed")).get_value_or(0.003);
-        canvas.storeRnormal = root.get_optional<double>(_T("env.storeRnormal")).get_value_or(0.000);
-        canvas.dbRadius = root.get_optional<double>(_T("env.dbRadius")).get_value_or(0.01);
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, _lm_config); // ????
+        read_canvas(root);
 
         LV_CLEVEL = root.get_optional<int>(_T("verbose")).get_value_or(1);
     }
@@ -475,6 +453,33 @@ void MyWindowData::read_config(IN const tstring &filename)
         std::exit(1);
     }
 }
+void MyWindowData::read_canvas(tptree &root)
+{
+    auto node = root.get_child(_T("canvas"));
+    canvas.radiusDB = node.get_optional<double>(_T("radiusDB")).get_value_or(0.01);
+    canvas.radiusDBzoom = node.get_optional<double>(_T("radiusDBzoom")).get_value_or(0.000);
+    canvas.radiusDBnorm = node.get_optional<double>(_T("radiusDBnorm")).get_value_or(0.003);
+    canvas.uncoveredRadiusZoomed = node.get_optional<double>(_T("uncoveredRzoomed")).get_value_or(0.005);
+    canvas.uncoveredRadiusNormal = node.get_optional<double>(_T("uncoveredRnormal")).get_value_or(0.000);
+
+    canvas.centerAxes = node.get_optional<bool>(_T("centerAxes")).get_value_or(true);
+
+    trajFrames.setAnim(node.get_optional<bool>(_T("animation")).get_value_or(true));
+    trajFrames.setSkipShowFrames(node.get_optional<frames_t>(_T("skipShowFrames")).get_value_or(15));
+}
+void MyWindowData::write_canvas(tptree &root) const
+{
+    tptree node;
+    node.put(_T("radiusDB"), canvas.radiusDB);
+    node.put(_T("radiusDBzoom"), canvas.radiusDBzoom);
+    node.put(_T("radiusDBnorm"), canvas.radiusDBnorm);
+    node.put(_T("uncoveredRzoomed"), canvas.uncoveredRadiusZoomed);
+    node.put(_T("uncoveredRnormal"), canvas.uncoveredRadiusNormal);
+    node.put(_T("centerAxes"), canvas.centerAxes);
+    node.put(_T("animation"), trajFrames.animation());
+    node.put(_T("skipShowFrames"), trajFrames.skipShowFrames());
+    root.put_child(_T("canvas"), node);
+}
 #include "RoboPosTour.h"
 void MyWindowData::write_config(IN const tstring &filename) const
 {
@@ -483,29 +488,18 @@ void MyWindowData::write_config(IN const tstring &filename) const
         tptree root;
         pRobo->save(root);
         pTarget->save(root);
-        
-        tptree env;
-        env.put<unsigned>(_T("skipShowFrames"), unsigned(trajFrames.skipShowFrames()));
-        env.put<bool>(_T("animation"), trajFrames.animation());
-        env.put<bool>(_T("centerAxes"), canvas.centerAxes);
-        env.put<bool>(_T("targetLines"), canvas.targetLines);
-        env.put<bool>(_T("targetPoints"), canvas.targetPoints);
-        env.put<double>(_T("targetRadius"), canvas.targetRadius);
-        env.put<double>(_T("uncoveredRzoomed"), canvas.uncoveredRzoomed);
-        env.put<double>(_T("uncoveredRnormal"), canvas.uncoveredRnormal);
-        env.put<double>(_T("storeRzoomed"), canvas.storeRzoomed);
-        env.put<double>(_T("storeRnormal"), canvas.storeRnormal);
-        env.put<double>(_T("dbRadius"), canvas.dbRadius);
-        root.put_child(_T("env"), env);
+
+        write_canvas(root);
 
         double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
-        root.put<double>(_T("precision"), precision_mm);
-        root.put<tstring>(_T("lm_config"), _lm_config);
-        root.put<int>(_T("storeSaveFormat"), storeSaveFormat);
-        root.put<int>(_T("verbose"), LV_CLEVEL);
-        //root.put<bool>(_T("redirect"), redirect);
-        //root.put<tstring>(_T("pickup"), pickup);
-        //root.put<tstring>(_T("lm_config"), fn_config);
+        root.put(_T("precision"), precision_mm);
+        root.put(_T("lm_config"), _lm_config);
+        
+        root.put(_T("verbose"), LV_CLEVEL);
+        root.put(_T("redirect"), redirect);
+        root.put(_T("saveFormat"), storeSaveFormat);
+        root.put(_T("#saveFormat"), _T("none(0)|txt(1)|bin(2)"));
+        root.put(_T("startUpLoad"), storeLoad/*_T("Hand-v4-robo-moves-2018.10.23-16.55.bin")*/);
 
         tfstream fout = Utils::utf8_stream(filename, std::ios::out);
         if (!fout.is_open())

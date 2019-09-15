@@ -11,7 +11,7 @@ RoboMoves::Record::Record(IN const Point         &aim,
                           IN const frames_array  &starts,
                           IN const frames_array  &lasts,
                           IN size_t               controls_count,
-                          IN const Trajectory    &visited) :
+                          IN const Traj          &visited) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited),
     _strategy(getStrategy(controls)),
     _lasts_step(0)
@@ -26,11 +26,12 @@ RoboMoves::Record::Record(IN const Point         &aim,
     updateErrDistance(move_final);
 }
 
-RoboMoves::Record::Record(IN const Point            &aim,
-                          IN const Point            &move_begin,
-                          IN const Point            &move_final,
-                          IN const Robo::Control    &controls,
-                          IN const Robo::Trajectory &visited) :
+RoboMoves::Record::Record(IN const Point   &aim,
+                          IN const Point   &move_begin,
+                          IN const Point   &move_final,
+                          IN const Control &controls,
+                          IN const Traj    &visited,
+                          IN Robo::frames_t lasts_step) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final),
     control_(controls), visited_(visited), _lasts_step(0),
     _strategy(getStrategy(controls)),
@@ -38,23 +39,12 @@ RoboMoves::Record::Record(IN const Point            &aim,
 {
     if (!visited_.size())
         throw std::logic_error("Record: Incorrect trajectory");
-
-    //if (!control_.validateMusclesTimes())
-    //    throw std::logic_error("Record: Invalid control");
-    updateErrDistance(move_final_);
-}
-
-RoboMoves::Record::Record(IN const Point            &aim,
-                          IN const Point            &move_begin,
-                          IN const Point            &move_final,
-                          IN const Robo::Control    &controls,
-                          IN const Robo::Trajectory &visited,
-                          IN Robo::frames_t lasts_step) :
-    Record(aim, move_begin, move_final, controls, visited)
-{
     _lasts_step = lasts_step;
     if (!_lasts_step)
         throw std::logic_error("Record: Incorrect lasts_step");
+    //if (!control_.validateMusclesTimes())
+    //    throw std::logic_error("Record: Invalid control");
+    updateErrDistance(move_final_);
 }
 //---------------------------------------------------------
 void RoboMoves::Record::clear()
@@ -94,7 +84,7 @@ distance_t RoboMoves::Record::ratioDistanceByTrajectory() const
 {
     distance_t visited_distance = 0;
     for (auto curr = visited_.begin(), next = std::next(curr); next != visited_.end(); curr = next, ++next)
-        visited_distance += bg::distance(*curr, *next);
+        visited_distance += bg::distance(curr->spec(), next->spec());
     /* длина траектории по сравнениею с дистанцией */
     return (visited_distance > 0) ? (bg::distance(aim_, move_begin_) / visited_distance) : 1.;
 }
@@ -104,8 +94,8 @@ distance_t RoboMoves::Record::ratioTrajectoryDivirgence() const
     Line line{ move_begin_, aim };
     distance_t max_divirgence = 0.;
     /* max. отклонение от кратчайшего пути - прямой */
-    br::for_each(visited_, [&line, &max_divirgence](const Point &p) {
-        distance_t d = bg::distance(p, line);
+    br::for_each(visited_, [&line, &max_divirgence](const auto &state) {
+        distance_t d = bg::distance(state.spec(), line);
         if (max_divirgence < d)
             max_divirgence = d;
     });
@@ -149,8 +139,8 @@ distance_t RoboMoves::Record::ratioTrajectoryBrakes() const
          next != visited_.end();
          prev = curr, curr = next, ++next)
     {
-        auto a = angle_degrees(*prev, *curr, *next);
-        if (a < 120 || a > 240 || bg::distance(*curr, *next) < small)
+        auto a = angle_degrees(prev->spec(), curr->spec(), next->spec());
+        if (a < 120 || a > 240 || bg::distance(curr->spec(), next->spec()) < small)
             ++count;
     }
     return distance_t(1) / count;
@@ -163,33 +153,33 @@ tostream& RoboMoves::operator<<(tostream &s, const RoboMoves::Record &rec)
     s << rec.move_final_ << std::endl;
     s << rec.control_ << std::endl;
     s << rec.visited_.size() << _T(' ');
-    for (auto p : rec.visited_)
-        s << p << _T(' ');
-    s << std::endl << std::endl;
-    s << rec._lasts_step;
-    // s << (_update_time - std::time(NULL)) << _update_traj;
-    ////s << _error_distance;
+    //for (auto p : rec.visited_)
+    //    s << p << _T(' ');
+    //s << (_update_time - std::time(NULL)) << _T(' ') << _update_traj  << std::endl;
+    //s << _error_distance << std::endl;
+    s << rec._lasts_step << std::endl;
+    s << std::endl;
     return s;
 }
 tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
 {
-    size_t sz;
     s >> rec.aim_;
     s >> rec.move_begin_;
     s >> rec.move_final_;
     s >> rec.control_;
+    size_t sz;
     s >> sz;
-    for (auto i : boost::irange<size_t>(0, sz))
-    {
-        Point p;
-        s >> p;
-        rec.visited_.push_back(p);
-    }
+    //for (auto i : boost::irange<size_t>(0, sz))
+    //{
+    //    Point p;
+    //    s >> p;
+    //    rec.visited_.push_back(p);
+    //}
+    //s >> _update_time >> _update_traj;
+    //_update_time += std::time(NULL);
+    //s >> _error_distance;
     s >> rec._lasts_step;
-    // s >> _update_time >> _update_traj;
-    // _update_time += std::time(NULL);
     rec.updateErrDistance(rec.move_final_);
-    ////s >> _error_distance;
     return s;
 }
 //------------------------------------------------------------------------------

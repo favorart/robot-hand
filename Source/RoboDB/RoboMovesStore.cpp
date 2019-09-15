@@ -85,11 +85,11 @@ void RoboMoves::Store::insert(const Record &rec)
         boost::lock_guard<boost::mutex> lock(_store_mutex);
         // ==============================
         auto status = _store.insert(rec);
-        status.first->updateTraj(_trajectories_enumerate);
+        status.first->updateTimeTraj(_trajectories_enumerate);
         // ==============================
         if (status.second)
             for (const auto &p : rec.trajectory)
-                _inverse.push_back({ &p, &(*status.first) });
+                _inverse.push_back({ &p.spec(), &(*status.first) });
     }
     catch (const std::exception &e)
     {
@@ -162,7 +162,7 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
 
         for (const auto &rec : _store)
             for (const auto &p : rec.trajectory)
-                _inverse.push_back({ &p, &rec });
+                _inverse.push_back({ &p.spec(), &rec });
 
         CINFO("loaded '" << filename << "' store " << size() << " inverse " << _inverse.size());
         // --- header ---

@@ -10,34 +10,32 @@ class ContinuousAccelerationThenStabilization : public JointMoveLawI
      *  Затем скорость движения руки стабилизируется до полного раскрытия.
      *  ...
      */
-    double  AccelerationLong;
+    double accelerationLong_;
 public:
     // --------------------------------
-    ContinuousAccelerationThenStabilization(double AccelerationLong = 0.45)
+    ContinuousAccelerationThenStabilization(double dStableRatio = 0.45)
     {
-        if (1. >= AccelerationLong && AccelerationLong >= 0.)
-        { this->AccelerationLong = AccelerationLong; }
+        if (0. > dStableRatio || dStableRatio > 1.)
+            throw std::logic_error{ "Invalid Hand law" };
+        accelerationLong_ = 1. - dStableRatio;
     }
-    // --------------------------------
-    // template <typename ForwardIterator>
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const
     {
         IterVecDoubles iter = first;
         // --------------------------------
         size_t  n = frames_count;
-        size_t  m = static_cast<size_t> (frames_count * AccelerationLong);
+        size_t  m = static_cast<size_t> (frames_count * accelerationLong_);
         double  a = left_border,
                 b = right_border;
         // --------------------------------
-        double  norm_sum = 0.;
+        double norm_sum = 0.;
         for (size_t i = 0U; i <= m; ++i)
         {
             /* diff velosity on start and end */
             double d = (1. - cos(i * M_PI / m)) * 0.5;
-            /* calculating a normalization */
-            norm_sum += d;
-            *iter = d;
+            *iter = std::max(d, Epsilont);
+            norm_sum += *iter; /* calculating a normalization */
             ++iter;
         }
         for (size_t i = (m + 1U); i < n; ++i)
@@ -67,8 +65,6 @@ class ContinuousFastAcceleration : public JointMoveLawI
      *  где i меняется [0, n-1]. . .
      */
 public:
-    // --------------------------------
-    // template <typename ForwardIterator>
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const
     {
@@ -77,12 +73,11 @@ public:
         double  a = left_border,
                 b = right_border;
         // --------------------------------
-        double  norm_sum = 0.;
-        *iter = Utils::EPSILONT;
+        double norm_sum = 0.;
         for (size_t i = 1U; i <= n; ++i)
         {
             double d = (log(double(i) / n + 2.)) * 0.2;
-            *iter = (d > 0) ? d : Utils::EPSILONT;
+            *iter = std::max(d, Epsilont);
             norm_sum += *iter;
             ++iter;
         }
@@ -102,8 +97,6 @@ class ContinuousSlowAcceleration : public JointMoveLawI
      *  где i меняется [0, n-1]. . .
      */
 public:
-    // --------------------------------
-    // template <typename ForwardIterator>
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const
     {
@@ -111,11 +104,11 @@ public:
         size_t  n = (frames_count - 1U);
         double  a = left_border, b = right_border;
         // --------------------------------
-        double  norm_sum = 0.;
-        *iter = Utils::EPSILONT;
+        double norm_sum = 0.;
         for (size_t i = 1U; i <= n; ++i)
         {
-            *iter = (exp(double(i) / (n - 1) - 1.2) * 2. - 0.6);
+            double d = (exp(double(i) / (n - 1) - 1.2) * 2. - 0.6);
+            *iter = std::max(d, Epsilont);
             norm_sum += *iter;
             ++iter;
         }
@@ -140,7 +133,6 @@ class PhisicalAcceleration
     double  JountMass;     /* Масса сочленения */
     double  JountFriction; /* Трение в сочленении */
 public:
-    // template <typename ForwardIterator>
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const
     {}
@@ -177,7 +169,6 @@ public:
     // --------------------------------
     MangoAcceleration(const tstring &filename) : filename(filename) {}
     // --------------------------------
-    // template <typename ForwardIterator>
     virtual void  generate(IterVecDoubles first, size_t frames_count,
                            double left_border, double right_border) const
     {
@@ -227,7 +218,6 @@ class MangoDeceleration : public JointStopLawI
 public:
     MangoDeceleration(const tstring &filename) : filename(filename) {}
     // --------------------------------
-    // template <typename ForwardIterator>
     virtual void generate(IterVecDoubles first, size_t frames_count,
                           double left_border, double right_border,
                           double max_velosity) const
@@ -274,64 +264,6 @@ public:
         /// TODO: Mango::generate() outputAngles(filename, angles);
     }
 };
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-enum class HandMLaw : uint8_t
-{
-    INVALID  = 0,
-    SLOW     = 1,
-    FAST     = 2,
-    STAB     = 3,
-    CONAC    = 4,
-    MANGO    = 5,
-    _COUNT_  = 6
-};
-//------------------------------------------------------------------------------
-/* MotionLaw picker */
-inline JointMotionLaw getHandMLaw(IN HandMLaw type, IN const tstring &param=_T(""))
-{
-    switch (type)
-    {
-    case HandMLaw::SLOW:
-    {
-        return { new ContinuousSlowAcceleration(),
-                 new ContinuousDeceleration(), _T("SLOW"),
-                 static_cast<uint8_t>(HandMLaw::SLOW), _T("") };
-    }
-    case HandMLaw::FAST:
-    {
-        return { new ContinuousFastAcceleration(),
-                 new ContinuousDeceleration(), _T("FAST"),
-                 static_cast<uint8_t>(HandMLaw::FAST), _T("") };
-    }
-    case HandMLaw::STAB:
-    {
-        double accLong = std::stod(param, NULL);
-        accLong = accLong ? accLong : 0.25;
-        accLong = std::min(accLong, 0.01);
-        accLong = std::max(accLong, 0.90);
-        return { new ContinuousAccelerationThenStabilization(accLong),
-                 new ContinuousDeceleration(), _T("STAB"), 
-                 static_cast<uint8_t>(HandMLaw::STAB), param };
-    }
-    case HandMLaw::CONAC:
-    {
-        return { new ContinuousAcceleration(),
-                 new ContinuousDeceleration(), _T("CONAC"), 
-                 static_cast<uint8_t>(HandMLaw::CONAC), _T("") };
-    }
-    case HandMLaw::MANGO:
-    {
-        tstring mangoMove = _T("Resource/Hand/") + param + _T("MoveFrames.txt");
-        tstring mangoStop = _T("Resource/Hand/") + param + _T("StopFrames.txt");
-        return { new MangoAcceleration(mangoMove),
-                 new MangoDeceleration(mangoStop), _T("MANGO"),
-                 static_cast<uint8_t>(HandMLaw::MANGO), param };
-    }
-    default:
-        throw std::exception{ "Invalid Hand law" };
-    }
-}
 //------------------------------------------------------------------------------
 }
 }

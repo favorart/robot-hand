@@ -5,6 +5,7 @@
 #include "RoboMuscles.h"
 #include "RoboInputs.h"
 #include "RoboEdges.h"
+#include "RoboPhysicsStatus.h"
 #include "Hand.h"
 
 using namespace Robo;
@@ -31,15 +32,15 @@ frames_t Hand::muscleMaxLasts(muscle_t muscle) const
 //--------------------------------------------------------------------------------
 void Hand::jointMove(joint_t joint_move, double offset)
 {
-    if (!offset) return;
-    const Point &base = physics.jointsBases[jointsCount()]; // jointsOpenCoords
-    const Point &prev = (joint_move + 1 == jointsCount()) ? base : status.curPos[joint_move + 1];
+    if (fabs(offset) < RoboI::minFrameMove)
+        return;
+    const Point &prev = (joint_move + 1 == jointsCount()) ? basePos(jointsCount()) : currPos(joint_move + 1);
     for (joint_t j = joint_move + 1; j > 0; --j)
     {
         if (J(joint_move) == Joint::Clvcl)
-            status.curPos[j - 1].x -= offset;
+            currPos(j - 1).x -= offset;
         else
-            status.curPos[j - 1].rotate_radians(prev, offset);
+            currPos(j - 1).rotate_radians(prev, offset);
     }
     angles[joint_move] += offset;
 }
@@ -53,40 +54,35 @@ void Hand::realMove()
         const auto mo = muscleByJoint(j, true);
         const auto mc = muscleByJoint(j, false);
         // =================
-        const double Frame = (status.shifts[mc] - status.shifts[mo]);
-        if (!Frame) continue;
+        double offset = -(status->shifts[mc] - status->shifts[mo]) + Imoment(j);
+        if (fabs(offset) < RoboI::minFrameMove)
+            continue;
         // =================
         const double mAn = maxJointAngle(j);
         // =================
-        double offset = -Frame;
         offset = (0.0 > (angles[j] + offset)) ? (0.0 - angles[j]) : offset;
         offset = (mAn < (angles[j] + offset)) ? (mAn - angles[j]) : offset;
         // =================
         jointMove(j, offset);
         // =================
-        if (!offset && status.shifts[mc] && status.shifts[mo])
-        {
-            // ??? turn off mutual BLOCKing
-        }
-        if (offset) move = true;
+        if (fabs(offset) >= RoboI::minFrameMove)
+            move = true;
     }
     // =================
-    feedback.currVelAcc(jointsCount(), status.curPos);
-    // =================
-    env.edges->interaction();
+    env->edges->interaction(getEnvCond() & EDGES);
     // =================
     if (!move)
     {
         for (muscle_t m = 0; m < musclesCount(); ++m)
             muscleDriveStop(m);
-        status.moveEnd = true;
+        status->moveEnd = true;
     }
     // =================
-    status.shifts.fill(0);
+    status->shifts.fill(0);
 }
 //--------------------------------------------------------------------------------
-Hand::Hand(const Point &base, const JointsInputsPtrs &joints, bool edges) :
-    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>(*this, edges)),
+Hand::Hand(const Point &base, const JointsInputsPtrs &joints) :
+    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>(*this, 20, 2)),
     params(joints, *this)
 {
     if (!joints.size() || joints.size() > Hand::joints)
@@ -112,9 +108,9 @@ Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
         auto pHJIn = dynamic_cast<const Hand::JointInput*>(j_in.get());
         Hand::Joint joint = pHJIn->Joint();
 
-        maxAngles[j] = j_in->maxMoveFrame;
-        nStopFrames[j] = static_cast<frames_t>(j_in->nMoveFrames * j_in->frames.stopDistanceRatio);
-        nMoveFrames[j] = j_in->nMoveFrames;
+        maxAngles[j] = j_in->frames.dMoveDistance;
+        nStopFrames[j] = static_cast<frames_t>(j_in->frames.nMoveFrames * j_in->frames.dInertiaRatio);
+        nMoveFrames[j] = j_in->frames.nMoveFrames;
         defOpen[j] = pHJIn->defaultPose;
 
         jointsUsed[j++] = joint;
@@ -137,10 +133,10 @@ void Hand::setJoints(const JointsOpenPercent &percents)
     for (const auto &jr : percents)
     {
         joint_t joint = jr.first;
-        double ratio = jr.second / 100.;
+        double ratio = jr.second / 100.; //%
         
         if (ratio > 1. || ratio < 0.)
-            throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100");
+            throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100%");
 
         double angle = ratio * maxJointAngle(joint);
         jointMove(joint, (angle - angles[joint]));
@@ -153,19 +149,18 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     HPEN   hPen_old = (HPEN)SelectObject(hdc, hPen);
     HBRUSH hBrush_old = (HBRUSH)SelectObject(hdc, hBrush);
     //------------------------------------------------------------------
-    Point base = physics.jointsBases[jointsCount()];
+    const Point &base = basePos(jointsCount());
 
     MoveToEx (hdc, Tx(1.00),   Ty(base.y + params.sectionWidth), NULL);
     LineTo   (hdc, Tx(base.x), Ty(base.y + params.sectionWidth));
 
     MoveToEx (hdc, Tx(1.00),   Ty(base.y - params.sectionWidth), NULL);
     LineTo   (hdc, Tx(base.x), Ty(base.y - params.sectionWidth));
-
     //------------------------------------------------------------------
     for (joint_t joint = 0; joint < jointsCount(); ++joint)
     {
-        const Point &B = status.curPos[joint];
-        const Point &A = ((joint + 1) == jointsCount()) ? base : status.curPos[joint + 1];
+        const Point &B = status->currPos[joint];
+        const Point &A = ((joint + 1) == jointsCount()) ? base : status->currPos[joint + 1];
 
         double sw = params.sectionWidth / boost_distance(A, B);
 
@@ -178,11 +173,9 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
         MoveToEx (hdc, Tx(dn_c.x), Ty(dn_c.y), NULL);
         LineTo   (hdc, Tx(dn_n.x), Ty(dn_n.y));
 
-        drawCircle(hdc, status.curPos[joint], (J(joint) == Joint::Wrist) ? params.palmRadius : params.jointRadius);
+        drawCircle(hdc, B, (J(joint) == Joint::Wrist) ? params.palmRadius : params.jointRadius);
     }
-
     drawCircle(hdc, base, params.jointRadius);
-
     //------------------------------------------------------------------
     // отменяем ручку
     SelectObject(hdc, hPen_old);
@@ -194,13 +187,13 @@ void Hand::getWorkSpace(OUT Trajectory &workSpace)
 {
     for (joint_t joint = 0; joint < jointsCount(); ++joint)
         setJoints({ { joint , 0. } });
-
-    // TODO: for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle) {}
     Muscle sequence[] = {
-        Muscle::ClvclOpn, Muscle::ShldrCls, Muscle::ClvclCls,
+        Muscle::ClvclCls, Muscle::ShldrCls, Muscle::ClvclOpn,
         Muscle::ElbowCls, Muscle::WristCls, Muscle::ShldrOpn,
         Muscle::ElbowOpn, Muscle::WristOpn
     };
+    Control controls;
+    frames_t prev = 0;
     for (Muscle muscle : sequence)
     {
         auto &used = params.musclesUsed;
@@ -208,12 +201,15 @@ void Hand::getWorkSpace(OUT Trajectory &workSpace)
         if (it != used.end())
         {
             auto m = static_cast<muscle_t>(it - used.begin());
-            Control control{ { m, 0, muscleMaxLasts(m) } };
-            //CINFO(control);
-            move(control);
-            workSpace = trajectory();
+            controls.append({ m, prev, muscleMaxLasts(m) });
+            prev += muscleMaxLasts(m);
         }
     }
+    CINFO("Workspace:" << controls);
+    move(controls, LastsInfinity);
+    std::transform(trajectory().begin(), trajectory().end(),
+                   std::back_inserter(workSpace),
+                   [](const auto &state) { return state.spec(); });
     reset();
 }
 //--------------------------------------------------------------------------------
@@ -233,6 +229,9 @@ std::shared_ptr<RoboI> Hand::make(const tstring &type, tptree &node)
         robo_joints.push_back(ji);
     }
     robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
-    bool edges = node.get_optional<bool>(_T("edges")).get_value_or(true);
-    return std::make_shared<Hand>(robo_base, robo_joints, edges);
+    auto r = std::make_shared<Hand>(robo_base, robo_joints);
+
+    auto enviroment = node.get_optional<short>(_T("enviroment")).get_value_or(0);
+    r->setEnvCond(static_cast<Enviroment>(enviroment)); // <KZLM!
+    return r;
 }

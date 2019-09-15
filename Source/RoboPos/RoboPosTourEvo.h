@@ -14,7 +14,7 @@ protected:
     /*const*/ double _reached_dist = 0.000005;
     /*const*/ double _oppo_penalty = 0.5;
     /*const*/ double _prev_dist_add = Robo::RoboI::minFrameMove;
-    /*const*/ Point _base_pos{};
+    /*const*/ Robo::State _base_pos{};
     
     const Robo::muscle_t _n_muscles = 0;
     const Robo::muscle_t _n_acts = 0;

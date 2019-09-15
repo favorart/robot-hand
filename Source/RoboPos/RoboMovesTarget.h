@@ -29,10 +29,7 @@ public:
 
     virtual bool contain(const Point &p) const
     { return (p.x >= min().x && p.x <= max().x && p.y >= min().y && p.y <= max().y); }
-    virtual void draw(HDC hdc, HPEN hPen,
-                      bool internalLines,
-                      bool internalPoints,
-                      double internalPointsRadius) const = 0;
+    virtual void draw(HDC hdc, HPEN hPen) const = 0;
 
     virtual void save(tptree&) const;
     virtual void load(tptree&);
@@ -70,6 +67,8 @@ protected:
     vec_t _coords{}; ///< main content
     double _thickness{}; ///< max(ширина строки, ширина столбца)
     double _precision{ 0.004 };
+    bool _internalLines{}, _internalPoints{};
+    double _internalPointsRadius{};
 
     virtual void generate() = 0;
     void set_thickness(double d) { _thickness = d; }
@@ -101,13 +100,10 @@ public:
   RecTarget (size_t n_rows, size_t n_cols, double lft, double rgh, double top, double btm):
       RecTarget(n_rows, n_cols, { lft, btm }, { rgh, top })
   {}
-  void  draw (HDC hdc, HPEN hPen,
-              bool internalLines,
-              bool internalPoints,
-              double internalPointsRadius) const;
+  void  draw (HDC hdc, HPEN hPen) const override;
 
-  void save(tptree&) const;
-  void load(tptree&);
+  void save(tptree&) const override;
+  void load(tptree&) override;
 };
 //------------------------------------------------------------------------------
 class PolyTarget : public TargetI
@@ -128,14 +124,11 @@ public:
     PolyTarget(const Poly &polygon, size_t n_rows, size_t n_cols, const Point &min, const Point &max) :
         TargetI(polygon.outer()), _n_rows(n_rows), _n_cols(n_cols), _polygon(polygon)
     { generate(); }
-    bool contain(const Point &p) const;
-    void draw(HDC hdc, HPEN hPen,
-              bool internalLines,
-              bool internalPoints,
-              double internalPointsRadius) const;
+    bool contain(const Point &p) const override;
+    void draw(HDC hdc, HPEN hPen) const override;
 
-    void save(tptree&) const;
-    void load(tptree&);
+    void save(tptree&) const override;
+    void load(tptree&) override;
 
 protected:
     Poly _polygon;              ///< outer polygon vertices

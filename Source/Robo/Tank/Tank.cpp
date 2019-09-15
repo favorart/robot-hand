@@ -5,10 +5,12 @@
 #include "RoboMuscles.h"
 #include "RoboInputs.h"
 #include "RoboEdges.h"
+#include "RoboPhysicsStatus.h"
 #include "Tank.h"
 
 using namespace Robo;
 using namespace Mobile;
+double betw;
 //--------------------------------------------------------------------------------
 frames_t Tank::muscleMaxLasts(const Control &control) const
 {
@@ -29,15 +31,18 @@ frames_t Tank::muscleMaxLasts(muscle_t muscle) const
 }
 //--------------------------------------------------------------------------------
 const Point& Tank::position() const
-{ return status.curPos[jointsCount()]; }
+{ return status->currPos[Center]; }
 //--------------------------------------------------------------------------------
-Tank::Tank(const Point &base, const JointsInputsPtrs &joints, bool edges) :
-    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>(*this, edges)),
+Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
+    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>(*this, 10/*%*/, 1.5)),
     params(joints, *this)
 {
+    if (params.jointsUsed[0] != Joint::LTrack || params.jointsUsed[1] != Joint::RTrack)
+        throw std::logic_error("Invalid tracks numeration");
     if (!joints.size() || joints.size() > jointsCount())
         throw std::logic_error("Incorrect joints count");
     //reset();
+    betw = boost_distance(currPos(LTrack), currPos(RTrack));
 }
 //--------------------------------------------------------------------------------
 Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
@@ -50,13 +55,13 @@ Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
     jointsUsed.fill(Tank::Joint::JInvalid);
 
     const auto &front = *joint_inputs.front();
-    auto maxMoveFrame = front.maxMoveFrame;
-    assert(maxMoveFrame > RoboI::minFrameMove);
+    auto dMoveDistance = front.frames.dMoveDistance;
+    assert(dMoveDistance > RoboI::minFrameMove);
 
-    frames_t nMoveFrames = front.nMoveFrames;
+    auto nMoveFrames = front.frames.nMoveFrames;
     assert(nMoveFrames > 0);
 
-    frames_t nStopFrames = static_cast<frames_t>(nMoveFrames * front.frames.stopDistanceRatio + 2);
+    frames_t nStopFrames = static_cast<frames_t>(front.frames.nMoveFrames * front.frames.dInertiaRatio + 2);
     assert(nStopFrames > 0);
 
     muscle_t m = 0;
@@ -65,11 +70,10 @@ Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
     {
         if (!j_in->show)
             continue;
-
         //assert(jointsBases[joint] < Point(1., 1.));
-        assert(maxMoveFrame == j_in->maxMoveFrame);
-        assert(nMoveFrames == j_in->nMoveFrames);
-        assert(nStopFrames == static_cast<frames_t>(nMoveFrames * j_in->frames.stopDistanceRatio) + 2);
+        assert(dMoveDistance == j_in->frames.dMoveDistance);
+        assert(nMoveFrames == j_in->frames.nMoveFrames);
+        assert(nStopFrames == static_cast<frames_t>(j_in->frames.nMoveFrames * j_in->frames.dInertiaRatio) + 2);
 
         auto pTJIn = dynamic_cast<const Tank::JointInput*>(j_in.get());
         Tank::Joint joint = pTJIn->Joint();
@@ -86,61 +90,50 @@ void Tank::realMove()
     r1_ = r2_ = 0;
     center_ = { 0.,0. };
 #endif // TANK_DEBUG
-
-    const joint_t jcenter = joint_t(Joint::Center);
-    const joint_t l_track = (params.jointsUsed[0] == Joint::LTrack) ? 0 : 1;
-    const joint_t r_track = (params.jointsUsed[0] == Joint::RTrack) ? 0 : 1;
-
-    const muscle_t mlf = muscleByJoint(l_track, true);
-    const muscle_t mlb = muscleByJoint(l_track, false);
-    const muscle_t mrf = muscleByJoint(r_track, true);
-    const muscle_t mrb = muscleByJoint(r_track, false);
-
-    const double shiftL = (status.shifts[mlf] - status.shifts[mlb]);
-    const double shiftR = (status.shifts[mrf] - status.shifts[mrb]);
-
-    Point &cpL{ status.curPos[l_track] };
-    Point &cpR{ status.curPos[r_track] };
-    const double between = boost_distance(cpL, cpR);
+    const distance_t shiftL = (status->shifts[LTrackFrw] - status->shifts[LTrackBck]) - Imoment(RTrack);
+    const distance_t shiftR = (status->shifts[RTrackFrw] - status->shifts[RTrackBck]) - Imoment(LTrack);
+    const distance_t between = boost_distance(currPos(LTrack), currPos(RTrack));
+    if (betw != between)
+        CDEBUG("betw1" << std::setprecision(6) << betw << " " << std::setprecision(6) << between);
 
     if (std::isnan(shiftL) || std::isinf(shiftL) ||
         std::isnan(shiftR) || std::isinf(shiftR))
-    {
         CERROR("shift NAN");
-        std::getchar();
-        std::exit(1);
-    }
 
-    const Point bodyCenterOld = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
-    Point center{}, normal{};
-    double tan_angle = 0., radius = 0.;
+    Point center{}, normal{}; // tmp vars
+    distance_t tan_angle = 0., radius = 0.;
 
     if (fabs(fabs(shiftL) - fabs(shiftR)) < RoboI::minFrameMove)
     {
+        // если гусеницы имеют одинаковое смещение по модулю
         if (boost::math::sign(shiftL) != boost::math::sign(shiftR))
         {
-            cpL.rotate_radians(bodyCenterOld, std::atan(shiftL / between));
-            cpR.rotate_radians(bodyCenterOld, std::atan(shiftL / between));
+            Point bodyCenterOld = currPos(Center);
+            // если гусеницы крутятся в разные стороны - разворот на месте
+            currPos(LTrack).rotate_radians(bodyCenterOld, std::atan(shiftL / between));
+            currPos(RTrack).rotate_radians(bodyCenterOld, std::atan(shiftL / between));
+            CDEBUG("1");
         }
         else
         {
             const auto shift = (shiftL + shiftR) / 2;
-            // нормаль
-            normal = cpL - cpR;
+            // гусеницы крутятся в одну сторону - движение по прямой
+            normal = currPos(LTrack) - currPos(RTrack); // нормаль
             normal = { -normal.y, normal.x };
-            normal /= normal.norm2();
-            normal *= shift;
+            normal /= normal.norm2(); // единичная нормаль
+            normal *= shift; // движение по прямой, длина
             //CDEBUG(normal);
+            CDEBUG("2");
         }
     }
     else if (fabs(shiftL) > fabs(shiftR))
     {
         tan_angle = (shiftL - shiftR) / between;
-        if (fabs(tan_angle) > 0.)
+        if (fabs(tan_angle) > 0./*eps?*/)
         {
             radius = fabs(shiftR / tan_angle);
-            center = alongLineAtDistance(cpR, cpL, radius);
-
+            center = alongLineAtDistance(currPos(RTrack), currPos(LTrack), radius);
+            CDEBUG("3");
 #ifdef TANK_DEBUG
             r1_ = radius;
             r2_ = (shiftL / tan_angle);
@@ -150,21 +143,22 @@ void Tank::realMove()
         else
         {
             // нормаль
-            normal = cpL - cpR;
+            normal = currPos(LTrack) - currPos(RTrack);
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
             assert(shiftL == shiftR);
             normal *= shiftL;
+            CDEBUG("4");
         }
     }
     else if (fabs(shiftL) < fabs(shiftR))
     {
         tan_angle = (shiftR - shiftL) / between;
-        if (fabs(tan_angle) > 0.)
+        if (fabs(tan_angle) > 0./*eps?*/)
         {
             radius = fabs(shiftL / tan_angle);
-            center = alongLineAtDistance(cpL, cpR, radius);
-
+            center = alongLineAtDistance(currPos(LTrack), currPos(RTrack), radius);
+            CDEBUG("5");
 #ifdef TANK_DEBUG
             r1_ = radius;
             r2_ = (shiftR / tan_angle);
@@ -174,54 +168,49 @@ void Tank::realMove()
         else
         {
             // нормаль
-            normal = cpL - cpR;
+            normal = currPos(LTrack) - currPos(RTrack);
             normal = { -normal.y, normal.x };
             normal /= normal.norm2();
             assert(shiftL == shiftR);
             normal *= shiftL;
+            CDEBUG("6");
         }
     }
-    else
-    {
-        CERROR("Tank ELSE");
-        std::getchar();
-        std::exit(1);
-    }
+    else CERROR("Tank ELSE");
 
-    //CINFO("cpL=" << cpL << " cpR=" << cpR);
-    if (fabs(tan_angle) > 0)
+    if (fabs(tan_angle) > 0./*eps?*/)
     {
-        cpL.rotate_radians(center, +std::atan(tan_angle));
-        cpR.rotate_radians(center, -std::atan(tan_angle));
+        currPos(LTrack).rotate_radians(center, +std::atan(tan_angle));
+        currPos(RTrack).rotate_radians(center, -std::atan(tan_angle));
     }
     else
     {
-        cpL += normal;
-        cpR += normal;
+        currPos(LTrack) += normal;
+        currPos(RTrack) += normal;
     }
+    if (betw != boost_distance(currPos(LTrack), currPos(RTrack)))
+        CDEBUG("betw2" << std::setprecision(6) << betw << " " << std::setprecision(6) << boost_distance(currPos(LTrack), currPos(RTrack)));
     // =================
-    status.curPos[jcenter] = { (cpL.x + cpR.x) / 2., (cpL.y + cpR.y) / 2. };
+    currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2.;
     // =================
-    feedback.currVelAcc(jointsCount(), status.curPos);
+    env->edges->interaction(getEnvCond() & EDGES, center, normal, tan_angle);
     // =================
-    env.edges->interaction(center, normal, tan_angle);
-    // =================
-    if (ba::all_of_equal(status.shifts, 0.))
+    if (ba::all_of_equal(status->shifts, 0.))
     {
         for (muscle_t m = 0; m < musclesCount(); ++m)
             muscleDriveStop(m);
-        status.moveEnd = true;
+        status->moveEnd = true;
     }
     for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle)
-        status.shifts[muscle] = 0.;
+        status->shifts[muscle] = 0.;
 }
 //--------------------------------------------------------------------------------
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 {
 #ifdef MY_WINDOW
-    const Point &L = status.curPos[int(Joint::LTrack)];
-    const Point &R = status.curPos[int(Joint::RTrack)];
-    Point centerBody = status.curPos[int(Joint::Center)];
+    const Point &L = status->currPos[LTrack];
+    const Point &R = status->currPos[RTrack];
+    const Point &centerBody = status->currPos[Center];
     //------------------------------------------------------------------
     double phy = L.angle(R);
     // Body
@@ -229,7 +218,7 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     drawMyFigure(hdc, centerBody, bodyWidth, params.bodyHeight, phy, MyFigure::Rectangle, hPen);
     // Tracks
     for (joint_t j = 0; j < jointsCount(); ++j)
-        drawMyFigure(hdc, status.curPos[j], params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
+        drawMyFigure(hdc, status->currPos[j], params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
     // Center
     drawCircle(hdc, centerBody, params.centerRadius);
     // Front
@@ -283,11 +272,11 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
     for (const auto &jr : percents)
     {
         joint_t joint = jr.first;
-        status.curPos[joint] = physics.jointsBases[joint];
+        currPos(joint) = basePos(joint);
         /* =2.8 ~distance from up-left to down-right canvas-corner */
-        status.shifts[joint] = (2.8 * jr.second / 100.);
+        status->shifts[joint] = (2.8 * jr.second / 100./*%*/);
     }
-    status.curPos[jointsCount()] = (status.curPos[0] + status.curPos[1]) / 2;
+    currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2;
     //realMove();
 }
 //--------------------------------------------------------------------------------
@@ -307,7 +296,10 @@ std::shared_ptr<RoboI> Tank::make(const tstring &type, tptree &node)
         robo_joints.push_back(ji);
     }
     robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
-    bool edges = node.get_optional<bool>(_T("edges")).get_value_or(true);
-    return std::make_shared<Tank>(robo_base, robo_joints, edges);
+    auto r = std::make_shared<Tank>(robo_base, robo_joints);
+
+    auto enviroment = node.get_optional<short>(_T("enviroment")).get_value_or(0);
+    r->setEnvCond(static_cast<Enviroment>(enviroment));
+    return r;
 }
 

@@ -14,6 +14,9 @@ extern const HPEN defaultPen;
 void drawTrajectory(HDC hdc, const Robo::Trajectory &trajectory, HPEN hPen= defaultPen);
 
 //------------------------------------------------------------------------------
+void drawStateTrajectory(HDC hdc, const Robo::StateTrajectory &trajectory, HPEN hPen = defaultPen);
+
+//------------------------------------------------------------------------------
 void drawLine(HDC hdc, const Point &s, const Point &e, HPEN hPen=defaultPen);
 
 //------------------------------------------------------------------------------
