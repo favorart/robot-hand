@@ -85,7 +85,7 @@ namespace rl {
                     public:
                         using param_type = PARAM;
 
-                        double position,speed;
+                        double position, speed;
 
                         Phase(void) {}
                         Phase(const Phase& copy) : position(copy.position), speed(copy.speed) {}
@@ -317,8 +317,6 @@ namespace rl {
                                     << "set output \"" << numbered_prefix << ".png\";" << std::endl
                                     << "set term png enhanced size 600,400;"<< std::endl
                                     << "splot '-' using 1:2:3:4 with pm3d notitle;" << std::endl;
-
-
 
                                 Qdata(file,q,policy,points_per_side,true);
                                 file.close();

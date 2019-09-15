@@ -46,56 +46,66 @@ std::istream& operator>>(std::istream& is, gsl_matrix*& m);
 
 // GSL serialization
 
-inline std::ostream& operator<<(std::ostream& os, const gsl_vector* v) {
-  os << "[ " << v->size
-     << " :";
-  for(unsigned int i=0;i<v->size;++i)
-    os << " " << gsl_vector_get(v,i);
-  os << "]";
-    
-  return os;
+inline std::ostream& operator<<(std::ostream &os, const gsl_vector *v)
+{
+    os << "[ " << v->size
+        << " :";
+    for (unsigned i = 0; i < v->size; ++i)
+        os << " " << gsl_vector_get(v, i);
+    os << "]";
+    return os;
 }
 
-inline std::istream& operator>>(std::istream& is, gsl_vector*& v) {
-  char c;
-  double value;
-  unsigned int i,size;
-  is >> c >> size >> c;
-  gsl_vector_free(v);
-  v = gsl_vector_alloc(size);
-  for(i=0;i<size;++i) {
-    is >> value;
-    gsl_vector_set(v,i,value);
-  }
-  is >> c ;
-  return is;
+inline std::istream& operator>>(std::istream &is, gsl_vector *&v)
+{
+    char c;
+    size_t size;
+    is >> c/*[*/ >> size >> c/*:*/;
+    //gsl_vector_free(v);
+    //v = gsl_vector_alloc(size);
+    if (!v) v = gsl_vector_alloc(size);
+    if (size != v->size)
+        throw rl::exception::BadVectorSize{ v->size, size, " file input" };
+    for (unsigned i = 0; i < size; ++i)
+    {
+        double value;
+        is >> value;
+        gsl_vector_set(v, i, value);
+    }
+    is >> c/*]*/;
+    return is;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const gsl_matrix* m) {
-  unsigned int i,j;
-  os << "[ " << m->size1 << 'x' <<  m->size2
-     << " :";
-  for(i=0;i<m->size1;++i)
-    for(j=0;j<m->size2;++j)
-      os << " " << gsl_matrix_get(m,i,j);
-  os << "]";
-  return os;
+inline std::ostream& operator<<(std::ostream& os, const gsl_matrix* m)
+{
+    os << "[ " << m->size1 << 'x' << m->size2
+        << " :";
+    for (unsigned i = 0; i < m->size1; ++i)
+        for (unsigned j = 0; j < m->size2; ++j)
+            os << " " << gsl_matrix_get(m, i, j);
+    os << "]";
+    return os;
 }
 
-inline std::istream& operator>>(std::istream& is, gsl_matrix*& m) {
-  char c;
-  double value;
-  unsigned int i,j,size1,size2;
-  is >> c >> size1 >> c >> size2 >> c;
-  gsl_matrix_free(m);
-  m = gsl_matrix_alloc(size1,size2);
-  for(i=0;i<size1;++i) 
-    for(j=0;j<size2;++j) {
-      is >> value;
-      gsl_matrix_set(m,i,j,value);
-  }
-  is >> c ;
-  return is;
+inline std::istream& operator>>(std::istream& is, gsl_matrix*& m)
+{
+    char c;
+    size_t size1, size2;
+    is >> c/*[*/ >> size1 >> c/*x*/ >> size2 >> c/*:*/;
+    //gsl_matrix_free(m);
+    //m = gsl_matrix_alloc(size1,size2);
+    if (!m) m = gsl_matrix_alloc(size1, size2);
+    if (size1 != m->size1 || size2 != m->size2)
+        throw rl::exception::BadMatrixDim{ size1,  m->size1, size2, m->size2, " file input" };
+    for (unsigned i = 0; i < size1; ++i)
+        for (unsigned j = 0; j < size2; ++j)
+        {
+            double value;
+            is >> value;
+            gsl_matrix_set(m, i, j, value);
+        }
+    is >> c/*]*/;
+    return is;
 }
 
 

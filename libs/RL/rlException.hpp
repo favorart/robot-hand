@@ -65,36 +65,52 @@ namespace rl {
      * 
      */
     class BadVectorSize : public Any {
-    private:
-
-      std::string error(int actual_size,
-			int expected_size) {
-	std::ostringstream ostr;
-	
-	ostr << "Bad vector size : gsl_vector of size" << expected_size
-	     << " expected while size " << actual_size
-	     << " is received : ";
-	return ostr.str();
-      }
+        static std::string error(size_t actual_size, size_t expected_size)
+        {
+            std::ostringstream ostr;
+            ostr << "Bad vector size : gsl_vector of size" << expected_size
+                << " expected while size " << actual_size
+                << " is received : ";
+            return ostr.str();
+        }
 
     public:
-      
-      BadVectorSize(int actual_size,
-		    int expected_size,
-		    std::string comment) 
+      BadVectorSize(size_t actual_size, size_t expected_size,
+                    std::string comment) 
 	: Any(error(actual_size,expected_size)+comment) {}
+    };
+
+    /**
+     * @short Problem with gsl matrix dimension.
+     *
+     */
+    class BadMatrixDim : public Any {
+        static std::string error(size_t actual_size1, size_t expected_size1,
+                          size_t actual_size2, size_t expected_size2)
+        {
+            std::ostringstream ostr;
+            ostr << "Bad matrix dimension : gsl_matrix of"
+                << " size1=" << expected_size1 << "Xsize2=" << expected_size2
+                << " expected while size1=" << actual_size1 << "Xsize2=" << actual_size2
+                << " is received : ";
+            return ostr.str();
+        }
+    public:
+        BadMatrixDim(size_t actual_size1, size_t expected_size1,
+                     size_t actual_size2, size_t expected_size2,
+                     std::string comment)
+            : Any(error(actual_size1, expected_size1, actual_size2, expected_size2) + comment)
+        {}
     };
 
     class NotPositiveDefiniteMatrix : public Any {
     public:
-      
       NotPositiveDefiniteMatrix(std::string comment) 
 	: Any(std::string("A positive definite matrix is required : ")+comment) {}
     };
 
     class NullVectorPtr : public Any {
     public:
-      
       NullVectorPtr(std::string comment) 
 	: Any(std::string("Got a gsl_vector*=NULL : ")+comment) {}
     };

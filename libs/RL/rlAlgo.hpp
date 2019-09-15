@@ -41,217 +41,231 @@
 
 namespace rl {
 
-  template<typename ITERATOR,
-	   typename fctEVAL>
-  auto min(const fctEVAL& f,
-	   const ITERATOR& begin, 
-	   const ITERATOR& end)
+template <
+    typename ITERATOR,
+    typename fctEVAL>
+auto min(const fctEVAL& f,
+         const ITERATOR& begin,
+         const ITERATOR& end)
     -> decltype(f(*begin))
-  { 
+{
     ITERATOR iter = begin;
-    auto m     = f(*iter);
-    for(++iter;iter!=end;++iter) {
-      auto  v = f(*iter);
-      if(v < m)
-	m = v;
+    auto m = f(*iter);
+    for (++iter; iter != end; ++iter)
+    {
+        auto  v = f(*iter);
+        if (v < m)
+            m = v;
     }
     return m;
-  }
+}
 
-  template<typename ITERATOR,
-	   typename fctEVAL>
-  auto max(const fctEVAL& f,
-	   const ITERATOR& begin, 
-	   const ITERATOR& end)
+template <
+    typename ITERATOR,
+    typename fctEVAL>
+auto max(const fctEVAL& f,
+         const ITERATOR& begin,
+         const ITERATOR& end)
     -> decltype(f(*begin))
-  { 
+{
     ITERATOR iter = begin;
-    auto m     = f(*iter);
-    for(++iter;iter!=end;++iter) {
-      auto  v = f(*iter);
-      if(v > m)
-	m = v;
+    auto m = f(*iter);
+    for (++iter; iter != end; ++iter)
+    {
+        auto  v = f(*iter);
+        if (v > m)
+            m = v;
     }
     return m;
-  }
+}
 
-  template<typename ITERATOR,
-	   typename fctEVAL>
-  auto range(const fctEVAL& f,
-	   const ITERATOR& begin, 
-	   const ITERATOR& end)
-    -> std::pair<decltype(f(*begin)),
-		 decltype(f(*begin))>
-  { 
+template <
+    typename ITERATOR,
+    typename fctEVAL>
+auto range(const fctEVAL& f,
+           const ITERATOR& begin,
+           const ITERATOR& end)
+    -> std::pair<decltype(f(*begin)), decltype(f(*begin))>
+{
     ITERATOR iter = begin;
-    auto min   = f(*iter);
-    auto max   = min;
-    for(++iter;iter!=end;++iter) {
-      auto  v = f(*iter);
-      if(v > max)
-	max = v;
-      else if(v < min)
-	min = v;
+    auto min = f(*iter);
+    auto max = min;
+    for (++iter; iter != end; ++iter)
+    {
+        auto  v = f(*iter);
+        if (v > max)
+            max = v;
+        else if (v < min)
+            min = v;
     }
-    return {min,max};
-  }
+    return { min, max };
+}
 
-  template<typename ITERATOR,
-	   typename fctEVAL>
-  auto argmax(const fctEVAL& f,
-	      const ITERATOR& begin, 
-	      const ITERATOR& end)
-    -> std::pair<decltype(*begin),
-		 decltype(f(*begin))> 
-{ 
+template <
+    typename ITERATOR,
+    typename fctEVAL>
+auto argmax(const fctEVAL& f,
+            const ITERATOR& begin,
+            const ITERATOR& end)
+    -> std::pair<decltype(*begin), decltype(f(*begin))>
+{
     ITERATOR iter = begin;
     auto arg_max = *iter;
-    auto max     = f(*iter);
-    for(++iter;iter!=end;++iter) {
-      auto a = *iter;
-      auto v = f(a);
-      if(v > max) {
-	max = v;
-	arg_max = a;
-      }
+    auto max = f(*iter);
+    for (++iter; iter != end; ++iter)
+    {
+        auto a = *iter;
+        auto v = f(a);
+        if (v > max)
+        {
+            max = v;
+            arg_max = a;
+        }
     }
-    return {arg_max,max};
-  }
+    return { arg_max, max };
+}
 
-  template<typename ITERATOR,
-	   typename fctEVAL>
-  auto argmin(const fctEVAL& f,
-	      const ITERATOR& begin, 
-	      const ITERATOR& end)
-    -> std::pair<decltype(*begin),
-		 decltype(f(*begin))> 
-{ 
+template <
+    typename ITERATOR,
+    typename fctEVAL>
+auto argmin(const fctEVAL& f,
+            const ITERATOR& begin,
+            const ITERATOR& end)
+    -> std::pair<decltype(*begin), decltype(f(*begin))>
+{
     ITERATOR iter = begin;
     auto arg_min = *iter;
-    auto min     = f(*iter);
-    for(++iter;iter!=end;++iter) {
-      auto  a = *iter;
-      auto  v = f(a);
-      if(v < min) {
-	min = v;
-	arg_min = a;
-      }
+    auto min = f(*iter);
+    for (++iter; iter != end; ++iter)
+    {
+        auto  a = *iter;
+        auto  v = f(a);
+        if (v < min)
+        {
+            min = v;
+            arg_min = a;
+        }
     }
-    return {arg_min,min};
-  }
-  
-    /**
-     * Builds an iterator of value type T. It requires the type T to be castable in int type,
-     * the associated int values being contiguous.
-     */
-  template<typename T>
-  class enumerator : public std::iterator<std::random_access_iterator_tag,T> {
-  private:
+    return { arg_min,min };
+}
+
+/**
+ * Builds an iterator of value type T. It requires the type T to be castable in int type,
+ * the associated int values being contiguous.
+ */
+template <typename T>
+class enumerator : public std::iterator<std::random_access_iterator_tag, T>
+{
+private:
     int j;
-  public:
+public:
     enumerator() : j(0) {}
     enumerator(const enumerator& cp) : j(cp.j) {}
     enumerator(T i) : j(static_cast<int>(i)) {}
-    enumerator<T>& operator=(T i) {j=static_cast<int>(i); return *this;}
-    enumerator<T>& operator=(const enumerator<T>& cp) {j=cp.j; return *this;}
-    enumerator<T>& operator++() {++j; return *this;}
-    enumerator<T>& operator--() {--j; return *this;}
-    enumerator<T>& operator+=(int diff) {j+=diff; return *this;}
-    enumerator<T>& operator-=(int diff) {j-=diff; return *this;}
-    enumerator<T> operator++(int) {enumerator<T> res = *this; ++*this; return res;}
-    enumerator<T> operator--(int) {enumerator<T> res = *this; --*this; return res;}
-    int operator-(const enumerator<T>& i) const {return j - i.j;}
-    enumerator<T> operator+(int i) const {
-        auto cpy =  *this;
+    enumerator<T>& operator=(T i) { j = static_cast<int>(i); return *this; }
+    enumerator<T>& operator=(const enumerator<T>& cp) { j = cp.j; return *this; }
+    enumerator<T>& operator++() { ++j; return *this; }
+    enumerator<T>& operator--() { --j; return *this; }
+    enumerator<T>& operator+=(int diff) { j += diff; return *this; }
+    enumerator<T>& operator-=(int diff) { j -= diff; return *this; }
+    enumerator<T> operator++(int) { enumerator<T> res = *this; ++*this; return res; }
+    enumerator<T> operator--(int) { enumerator<T> res = *this; --*this; return res; }
+    int operator-(const enumerator<T>& i) const { return j - i.j; }
+    enumerator<T> operator+(int i) const
+    {
+        auto cpy = *this;
         cpy.j += i;
         return cpy;
     }
-    enumerator<T> operator-(int i) const {
-        return (*this)+(-i);
+    enumerator<T> operator-(int i) const
+    {
+        return (*this) + (-i);
     }
- 
-    T operator*() const {return static_cast<T>(j);}
-    bool operator==(const enumerator<T>& i) const {return j == i.j;}
-    bool operator!=(const enumerator<T>& i) const {return j != i.j;}
-  };
+    T operator*() const { return static_cast<T>(j); }
+    bool operator==(const enumerator<T>& i) const { return j == i.j; }
+    bool operator!=(const enumerator<T>& i) const { return j != i.j; }
+};
 
-  namespace random {
-
-    
-    /**
-     * @return A random value according to the histogram represented
-     * by f(x), for x in [begin,end[.
-     */
-    template<typename ITERATOR,
-        typename fctEVAL,
-        typename RANDOM_DEVICE>
-            auto density(const fctEVAL& f,
-                    const ITERATOR& begin, const ITERATOR& end,
-                    RANDOM_DEVICE& rd) 
-            -> decltype(*begin) {
-                auto size = end-begin;
-                std::vector<double> fvalues(size);
-                auto iter = begin;
-                auto fvaluesiter = fvalues.begin();
-                for(; iter != end; ++iter, ++fvaluesiter)
-                    *fvaluesiter = f(*iter);
-                std::discrete_distribution<decltype(end - begin)> d(fvalues.begin(), fvalues.end());
-                return *(begin + d(rd));
-
-            }
-
-    /**
-     * @return true with a probability proba
-     */
-
-    template<typename ITERATOR,
-	     typename fctEVAL,
-         typename RANDOM_DEVICE>
-    auto softmax(const fctEVAL& f,
-		 double temperature,
-		 const ITERATOR& begin, const ITERATOR& end, 
-         RANDOM_DEVICE& rd) 
-      -> decltype(*begin) {
-
-          std::map<const decltype(*begin), double> f_values;
-          double fmax = std::numeric_limits<double>::lowest();
-          for(auto it = begin; it != end; ++it) {
-              f_values[*it] = f(*it);
-              fmax = std::max(fmax, f_values[*it]);
-          }
-
-          auto shifted_exp_values = [&temperature, &f_values, &fmax](const decltype(*begin)& a) -> double {
-            return exp((f_values[a] - fmax)/temperature);
-          };
-
-      return rl::random::density(shifted_exp_values, begin,end, rd);
-    }
-  }
-
-
-  namespace sa {
-    
-    template <typename S, typename A>
-    struct Pair {
-      S s;
-      A a;
-    };
-    
-    template <typename S, typename A>
-    Pair<S,A> pair(const S& s, const A& a) {return {s,a};}
-    
-
-    namespace gsl {
-      // This rewrites q(theta,s,a) as v(theta,(s,a)).
-      template<typename S, typename A, typename REWARD, typename Q>
-      auto vparam_of_qparam(const Q& q) -> std::function<REWARD (const gsl_vector*,const Pair<S,A>&)> {
-	return [&q](const gsl_vector* theta, const Pair<S,A>& sa) -> REWARD {return q(theta,sa.s,sa.a);};
-      }
-      // This rewrites grad_q(theta,grad,s,a) as v(theta,grad,(s,a)).
-      template<typename S, typename A, typename REWARD, typename Q>
-      auto gradvparam_of_gradqparam(const Q& gq) -> std::function<void (const gsl_vector*,gsl_vector*,Pair<S,A>)> {
-	return [&gq](const gsl_vector* theta, gsl_vector* grad, const Pair<S,A>& sa) -> void {gq(theta,grad,sa.s,sa.a);};
-      }
-    }
-  }
+namespace random {
+/**
+ * @return A random value according to the histogram represented
+ * by f(x), for x in [begin,end[.
+ */
+template <
+    typename ITERATOR,
+    typename fctEVAL,
+    typename RANDOM_DEVICE>
+auto density(const fctEVAL& f,
+             const ITERATOR& begin, const ITERATOR& end,
+             RANDOM_DEVICE& rd)
+    -> decltype(*begin)
+{
+    auto size = end - begin;
+    std::vector<double> fvalues(size);
+    auto iter = begin;
+    auto fvaluesiter = fvalues.begin();
+    for (; iter != end; ++iter, ++fvaluesiter)
+        *fvaluesiter = f(*iter);
+    std::discrete_distribution<decltype(end - begin)> d(fvalues.begin(), fvalues.end());
+    return *(begin + d(rd));
 }
+
+/**
+ * @return true with a probability proba
+ */
+template <
+    typename ITERATOR,
+    typename fctEVAL,
+    typename RANDOM_DEVICE>
+auto softmax(const fctEVAL& f,
+             double temperature,
+             const ITERATOR& begin, const ITERATOR& end,
+             RANDOM_DEVICE& rd)
+    -> decltype(*begin)
+{
+    std::map<const decltype(*begin), double> f_values;
+    double fmax = std::numeric_limits<double>::lowest();
+    for (auto it = begin; it != end; ++it)
+    {
+        f_values[*it] = f(*it);
+        fmax = std::max(fmax, f_values[*it]);
+    }
+    auto shifted_exp_values = [&temperature, &f_values, &fmax](const decltype(*begin)& a) -> double {
+        return exp((f_values[a] - fmax) / temperature);
+    };
+    return rl::random::density(shifted_exp_values, begin, end, rd);
+}
+} // random
+
+
+namespace sa {
+template <typename S, typename A>
+struct Pair
+{
+    S s;
+    A a;
+};
+
+template <typename S, typename A>
+Pair<S, A> pair(const S& s, const A& a) { return { s,a }; }
+
+
+namespace gsl {
+
+// This rewrites q(theta,s,a) as v(theta,(s,a)).
+template<typename S, typename A, typename REWARD, typename Q>
+auto vparam_of_qparam(const Q& q) -> std::function<REWARD(const gsl_vector*, const Pair<S, A>&)>
+{
+    return [&q](const gsl_vector* theta, const Pair<S, A>& sa) -> REWARD { return q(theta, sa.s, sa.a); };
+}
+
+// This rewrites grad_q(theta,grad,s,a) as v(theta,grad,(s,a)).
+template<typename S, typename A, typename REWARD, typename Q>
+auto gradvparam_of_gradqparam(const Q& gq) -> std::function<void(const gsl_vector*, gsl_vector*, Pair<S, A>)>
+{
+    return [&gq](const gsl_vector* theta, gsl_vector* grad, const Pair<S, A>& sa) -> void { gq(theta, grad, sa.s, sa.a); };
+}
+
+} // gsl
+} // sa
+} // rl

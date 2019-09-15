@@ -60,27 +60,23 @@ namespace rl {
                         : Any(std::string("Bad state found : ")+comment) {} 
             };
 
-
             // Inverted pendulum parameters
             class DefaultParam {
                 public:
                     // This is the amplitude of the noise (relative) applied to the action.
-                    inline static double actionNoise(void)        {return 0.20;}
+                    inline static double actionNoise()     { return 0.20; }
                     // This is the noise of angle perturbation from the equilibrium state at initialization.
-                    inline static double angleInitNoise(void)     {return 1e-3;}
+                    inline static double angleInitNoise()  { return 1e-3; }
                     // This is the noise of speed perturbation from the equilibrium state at initialization.
-                    inline static double speedInitNoise(void)    {return 1e-3;}
-
+                    inline static double speedInitNoise()  { return 1e-3; }
             };
 
             // This is the phase space
             template<typename PARAM>
                 class Phase {
                     public:
-
                         typedef PARAM param_type;
-
-                        double angle,speed;
+                        double angle = 0., speed = 0.;
 
                         Phase(void) {}
                         Phase(const Phase<param_type>& copy) : angle(copy.angle), speed(copy.speed) {}
@@ -89,7 +85,7 @@ namespace rl {
                         Phase<param_type>& operator=(const Phase<param_type>& copy) {
                             if(this != &copy) {
                                 angle = copy.angle;
-                                speed    = copy.speed;
+                                speed = copy.speed;
                             }
                             return *this;
                         }
@@ -119,9 +115,7 @@ namespace rl {
             template<typename INVERTED_PENDULUM_PARAM,
                 typename RANDOM_GENERATOR>
                     class Simulator {
-
                         public:
-
                             using param_type = INVERTED_PENDULUM_PARAM;
 
                             using       phase_type = Phase<param_type>;
@@ -190,7 +184,7 @@ namespace rl {
                                 aa *= Param::strength();
 
                                 cphi = cos(current_state.angle);
-                                acc = ( Param::g()*sin(current_state.angle) 
+                                acc = (Param::g() * sin(current_state.angle) 
                                         - .5*Param::aml()*sin(2*current_state.angle)*current_state.speed*current_state.speed 
                                         - Param::a()*cphi*aa )
                                     / ( 4*Param::l()/3.0 - Param::aml()*cphi*cphi );
