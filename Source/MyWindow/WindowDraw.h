@@ -9,35 +9,28 @@
 void drawDecardsCoordinates(HDC hdc);
 void drawCoordinates(HDC hdc, bool show_marks);
 
+extern const HPEN defaultPen;
 //------------------------------------------------------------------------------
-void drawTrajectory(HDC hdc, const Robo::Trajectory &trajectory, HPEN hPen);
-inline void drawTrajectory(HDC hdc, const Robo::Trajectory &trajectory)
-{ drawTrajectory(hdc, trajectory, (HPEN)GetStockObject(BLACK_PEN)); }
+void drawTrajectory(HDC hdc, const Robo::Trajectory &trajectory, HPEN hPen= defaultPen);
 
 //------------------------------------------------------------------------------
-void drawLine(HDC hdc, const Point &s, const Point &e, HPEN hPen);
-inline void drawLine(HDC hdc, const Point &s, const Point &e)
-{ drawLine(hdc, s, e, (HPEN)GetStockObject(BLACK_PEN)); }
+void drawLine(HDC hdc, const Point &s, const Point &e, HPEN hPen=defaultPen);
 
 //------------------------------------------------------------------------------
-void  drawCross(HDC hdc, const Point &center, double radius, HPEN hPen);
-inline void drawLine(HDC hdc, const Point &center, double radius)
-{ drawCross(hdc, center, radius, (HPEN)GetStockObject(BLACK_PEN)); }
+void drawCross(HDC hdc, const Point &center, double radius, HPEN hPen=defaultPen);
 
 //------------------------------------------------------------------------------
-void drawCircle(HDC hdc, const Point &center, double radius, HPEN hPen);
-inline void drawCircle(HDC hdc, const Point &center, double radius)
-{ drawCircle(hdc, center, radius, (HPEN)GetStockObject(BLACK_PEN)); }
+void drawCircle(HDC hdc, const Point &center, double radius, HPEN hPen=defaultPen);
 
 //------------------------------------------------------------------------------
 enum class MyFigure : uint8_t { EmptyFig = 0, Ellipse = 1, Rectangle, Triangle, Polygon, _Last_ };
-void drawMyFigure(HDC hdc, const Point &center, double w, double h, double angle, MyFigure figure, HPEN hPen);
+void drawMyFigure(HDC hdc, const Point &center, double w, double h, double angle, MyFigure figure, HPEN hPen=defaultPen);
 
 //------------------------------------------------------------------------------
 template <template <typename, typename> class Container,
     typename Value = Point,
     typename Allocator = std::allocator<Point> >
-void drawMyFigure(HDC hdc, const Container<Value, Allocator> &container, MyFigure figure, HPEN hPen)
+void drawMyFigure(HDC hdc, const Container<Value, Allocator> &container, MyFigure figure, HPEN hPen=defaultPen)
 {
     if (figure >= MyFigure::_Last_)
         throw std::logic_error("drawMyFigure: Invalid figure=" + std::to_string(int(figure)));
@@ -71,7 +64,7 @@ public:
     GradPens(const GradPens&) = delete;
     GradPens(GradPens&&) = default;
     HPEN operator()(Robo::frames_t longz) const;
-    void shuffleGradient() { std::random_shuffle(_gradientPens.begin(), _gradientPens.end()); }
+    void shuffleGradient();
     void restoreGradient();
     void setColors(color_interval_t colors, size_t gradations = 15);
     ~GradPens()

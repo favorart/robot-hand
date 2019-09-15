@@ -1,17 +1,18 @@
 #pragma once
-#include "StdAfx.h"
 
 #ifndef   _DIR_P_H_
 #define   _DIR_P_H_
 
+#ifdef MDIR_OLD
 #include "WindowHeader.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
+#endif // MDIR_OLD
 #include "Robo.h"
 
 //------------------------------------------------------------------------------
-namespace RoboPos
-{
+
+namespace RoboPos {
 class DirectionPredictor
 {
 #ifdef MDIR_OLD
@@ -42,11 +43,12 @@ public:
     DirectionPredictor(IN Robo::RoboI &robo);
     Point predict(IN Robo::Control controls);
 #endif // MDIR_OLD
+
 public:
     DirectionPredictor(IN Robo::RoboI &robo) {}
     Point predict(IN Robo::Control controls) { return {}; }
 };
-};
-//------------------------------------------------------------------------------
+} // namespace RoboPos
 
+//------------------------------------------------------------------------------
 #endif // _DIR_P_H_

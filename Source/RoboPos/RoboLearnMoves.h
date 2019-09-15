@@ -34,18 +34,19 @@ class LearnMoves
 {
     static const Robo::frames_t lasts_min = 1;
 
+    const TargetI &_target;
     RoboMoves::Store &_store;
     Robo::RoboI &_robo;
     Point _base_pos{};
 
-    const TargetI &_target;
     size_t _complexity = 0;  ///< Подсчёт сложности
-    tptree _config;
+    tptree _config{};
 
     bool use_weighted_mean{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
     size_t _tries = 0;
+    size_t _random_try = 0;
 
     std::shared_ptr<TourI> makeTour(int stage);
     //=============================================
@@ -121,8 +122,8 @@ class LearnMoves
     void read_config();
 
 public:
-    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
-               IN double precision_mm, IN const tstring &fn_config);
+    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, 
+               IN const TargetI &target, IN const tstring &fn_config);
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
     //---------------------------------------------

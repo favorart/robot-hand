@@ -1,6 +1,6 @@
 ﻿#include "StdAfx.h"
 #include "RoboMuscles.h"
-
+#include "RoboMotionLaws.h"
 
 //--------------------------------------------------------------------------------
 tstring Robo::NewHand::muscleHelp(Hand::Muscle muscle)

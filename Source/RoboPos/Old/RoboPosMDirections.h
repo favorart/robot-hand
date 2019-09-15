@@ -9,6 +9,7 @@
 
 //------------------------------------------------------------------------------
 namespace RoboPos {
+
 class MainDirections
 {
 #ifdef MDIR_OLD
@@ -54,6 +55,7 @@ public:
     Point predict(Robo::muscle_t muscle, Robo::frames_t last) { return {}; }
     friend RoboPos::MainDirections MainDirectionsFactory(IN Robo::RoboI&) { return {}; }
 };
-}
+} // namespace RoboPos
+
 //------------------------------------------------------------------------------
 #endif // _DIRECT_PREDICT_H_

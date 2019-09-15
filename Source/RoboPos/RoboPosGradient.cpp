@@ -1,4 +1,5 @@
 ﻿#include "StdAfx.h"
+
 #include "Robo.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
@@ -263,7 +264,9 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double d_
                                               IN const Control &lower_controls,
                                               IN const Control &upper_controls,
                                               OUT      Control &controls)
-{}
+{
+
+}
 
 //------------------------------------------------------------------------------
 size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)

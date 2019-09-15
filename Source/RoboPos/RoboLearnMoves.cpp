@@ -18,9 +18,9 @@ using namespace RoboMoves;
 #endif
 
 //------------------------------------------------------------------------------
-RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN const TargetI &target,
-                                IN double precision_mm, IN const tstring &fn_config) :
-    _store(store), _robo(robo), _target(target), _fn_config(fn_config) //, _precision(precision_mm * TourI::divToMiliMeters)
+RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, 
+                                IN const TargetI &target, IN const tstring &fn_config) :
+    _store(store), _robo(robo), _target(target), _fn_config(fn_config)
 {
     _robo.reset();
     _base_pos = _robo.position();
@@ -44,7 +44,7 @@ void RoboPos::LearnMoves::save(tptree &node) const
     node.add_child(_T("LearnMoves"), lm);
     lm.put(_T("tries"), unsigned(_tries));
     //lm.put(_T("LearnMoves.tries_break"), tries_break);
-    //lm.put(_T("LearnMoves.random_try"), random_try);
+    lm.put(_T("LearnMoves.random_try"), _random_try);
     lm.put(_T("side"), side3);
     lm.put(_T("side_decrease_step"), side_decrease_step);
     lm.put(_T("use_weighted_mean"), use_weighted_mean);
@@ -56,7 +56,7 @@ void RoboPos::LearnMoves::load(tptree &node)
     //assert(node.size() == 6);
     _tries = node.get_optional<unsigned>(_T("tries")).get_value_or(4);
     //tries_break = node.get_optional<unsigned>(_T("tries_break"));
-    //random_try = node.get_optional<unsigned>(_T("random_try"));
+    _random_try = node.get_optional<unsigned>(_T("random_try")).get_value_or(3);
     side3 = node.get<double>(_T("side"), 0.1);
     side_decrease_step = node.get<double>(_T("side_decrease_step"), 0.01);
     use_weighted_mean = node.get<bool>(_T("use_weighted_mean"), true);
@@ -201,7 +201,8 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             ++count;
             Point pt;
             // -------------------------------------------------
-            if (!(tries % 3)) pt = *it;
+            if (!(tries % _random_try))
+                pt = *it;
             else
             {
                 ++count_random;

@@ -141,7 +141,7 @@ struct MyWindowData
     void read_config(IN const tstring &filename);
     void write_config(IN const tstring &filename) const;
     // ---------------------------------
-    int store_save_load_format = 1;
+    int storeSaveFormat = 1;
 };
 //-------------------------------------------------------------------------------
 template<typename Function, typename... Args>

@@ -108,7 +108,7 @@ public:
     void constructXY(const Container<Value, Allocator> &container)
     {
         int i = 0;
-        for (const Record &rec : container)
+        for (const Value &rec : container)
         {
             _mX.row(i) = convertToRow(rec.controls);
             _mY.row(i) = Eigen::Vector2d(rec.hit.x, rec.hit.y);

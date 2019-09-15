@@ -5,9 +5,9 @@
 
 #include <commdlg.h>
 //--------------------------------------------------------------------------------
-#define   MARGIN     10L
-#define   WIDTH      950L
-#define   HIGHT      600L
+constexpr LONG  myMARGIN = 10L;
+constexpr LONG  myWIDTH  = 950L;
+constexpr LONG  myHIGHT  = 600L;
 
 #define  WM_USER_TIMER  WM_USER+3
 #define  WM_USER_STORE  WM_USER+4

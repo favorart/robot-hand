@@ -142,12 +142,12 @@ MyWindowData::~MyWindowData()
 void MyWindowData::save(const tstring &filename) const
 {
     //write_config(filename);
-    pStore->dump_off(filename, *pRobo, Store::Format(store_save_load_format));
+    pStore->dump_off(filename, *pRobo, Store::Format(storeSaveFormat));
 }
 void MyWindowData::load(const tstring &filename)
 {
     read_config(filename);
-    pStore->pick_up(filename, pRobo, Store::Format(store_save_load_format));
+    pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat));
 }
 //-------------------------------------------------------------------------------
 RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
@@ -423,7 +423,7 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (!pRobo) throw std::runtime_error("read_config: incorrect class RoboI version");
         if (!pTarget) throw std::runtime_error("read_config: incorrect class TargetI version");
 
-        GET_OPT(root, store_save_load_format);
+        GET_OPT(root, storeSaveFormat);
 
         // -------------------------------------------------------------------------
         bool redirect = false;
@@ -439,7 +439,7 @@ void MyWindowData::read_config(IN const tstring &filename)
         GET_OPT(root, pickup);
         if (pickup.length())
         {
-            pStore->pick_up(pickup, pRobo, Store::Format(store_save_load_format));
+            pStore->pick_up(pickup, pRobo, Store::Format(storeSaveFormat));
         }
         // -------------------------------------------------------------------------
 
@@ -448,7 +448,7 @@ void MyWindowData::read_config(IN const tstring &filename)
             throw std::runtime_error("read_config: incorrect precision");
 
         _lm_config = root.get<tstring>(_T("lm_config"));
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, precision_mm, _lm_config);
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, _lm_config);
 
         unsigned skip_show_frames = root.get_optional<unsigned>(_T("env.skipShowFrames")).get_value_or(15);
         trajFrames.setSkipShowFrames(skip_show_frames);
@@ -501,7 +501,7 @@ void MyWindowData::write_config(IN const tstring &filename) const
         double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
         root.put<double>(_T("precision"), precision_mm);
         root.put<tstring>(_T("lm_config"), _lm_config);
-        root.put<int>(_T("store_save_load_format"), store_save_load_format);
+        root.put<int>(_T("storeSaveFormat"), storeSaveFormat);
         root.put<int>(_T("verbose"), LV_CLEVEL);
         //root.put<bool>(_T("redirect"), redirect);
         //root.put<tstring>(_T("pickup"), pickup);

@@ -1,8 +1,10 @@
 ﻿#include "Robo.h"
 #include "RoboControl.h"
 
+using namespace std;
+using namespace Robo;
 
-const double Robo::RoboI::minFrameMove = Utils::EPSILONT;
+constexpr double Robo::RoboI::minFrameMove = 1e-10;// Utils::EPSILONT;
 //---------------------------------------------------------
 bool Robo::Actuator::intersect(const Robo::Actuator &a) const
 {
@@ -300,6 +302,7 @@ tostream& Robo::operator<<(tostream &s, const Robo::Control &controls)
     s << _T("]");
     return s;
 }
+
 //---------------------------------------------------------
 tistream& Robo::operator>>(tistream &s, Robo::Control &controls)
 {
@@ -314,6 +317,7 @@ tistream& Robo::operator>>(tistream &s, Robo::Control &controls)
     s >> ConfirmInput(_T("]"));
     return s;
 }
+
 //---------------------------------------------------------
 std::ostream& Robo::Control::stream(std::ostream &s) const
 {
@@ -326,4 +330,3 @@ std::ostream& Robo::Control::stream(std::ostream &s) const
     s << "]";
     return s;
 }
-//---------------------------------------------------------

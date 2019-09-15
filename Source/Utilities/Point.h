@@ -6,6 +6,8 @@
 class Point
 {
 public:
+    static unsigned w;
+    static unsigned prec;
     using value_type = double;
 
     Point() : x_(0.), y_(0.) {}
@@ -79,6 +81,8 @@ public:
     //-------------------------------------------------------------------------------
     friend tostream& operator<<(tostream &s, const Point &p);
     friend tistream& operator>>(tistream &s, Point &p);
+    friend std::ostream& operator<<(std::ostream &s, const Point &p);
+    friend std::istream& operator>>(std::istream &s, Point &p);
 
 private:
     Point::value_type x_, y_;

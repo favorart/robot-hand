@@ -77,8 +77,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 
     case WM_GETMINMAXINFO:
     {
-      ((MINMAXINFO*)lParam)->ptMinTrackSize.x = WIDTH;
-      ((MINMAXINFO*)lParam)->ptMinTrackSize.y = HIGHT;
+      ((MINMAXINFO*)lParam)->ptMinTrackSize.x = myWIDTH;
+      ((MINMAXINFO*)lParam)->ptMinTrackSize.y = myHIGHT;
       break;
     }
 
@@ -151,6 +151,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
   catch (const std::exception &e)
   {
     SHOW_CERROR(e.what());
+    wd->pRobo->reset();
     InvalidateRect(hWnd, &wd->canvas.myRect, FALSE);
   }
 

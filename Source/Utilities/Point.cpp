@@ -136,6 +136,18 @@ tostream& operator<<(tostream &s, const Point &p)
 { return s << _T('(') << p.x_ << _T(", ") << p.y_ << _T(')'); }
 tistream& operator>>(tistream &s, Point &p)
 { return s >> ConfirmInput(_T("(")) >> p.x_ >> ConfirmInput(_T(", ")) >> p.y_ >> ConfirmInput(_T(")")); }
+
+unsigned Point::w = 10;
+unsigned Point::prec = 6;
+
+std::ostream& operator<<(std::ostream &s, const Point &p)
+{
+    return s << '('
+        << std::setw(Point::w) << std::setprecision(Point::prec) << p.x_ << ", "
+        << std::setw(Point::w) << std::setprecision(Point::prec) << p.y_ << ')';
+}
+std::istream& operator>>(std::istream &s, Point &p)
+{ return s >> p.x_ >> p.y_; }
 //--------------------------------------------------------------------------------
 void Point::save(tptree &node) const
 {

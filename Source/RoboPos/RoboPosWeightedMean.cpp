@@ -19,7 +19,7 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
         sum_range_distances += boost_distance(aim, pRec->hit);
         mid_hit += pRec->hit;
     }
-    mid_hit /= range.size();
+    mid_hit /= static_cast<distance_t>(range.size());
     // -----------------------------------------------
     //CDEBUG("weightedMeanControls start");
     std::vector<double> lasts(_robo.musclesCount(), 0.);
@@ -109,7 +109,7 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     _store.adjacencyPoints(range, aim, side3);
 
     ClosestPredicate cp(aim);
-    auto it_min = boost::range::min_element(range, cp);
+    auto it_min = std::min_element(range.begin(), range.end(), cp);
     if (it_min == range.end())
         return false;
 

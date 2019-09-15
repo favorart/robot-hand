@@ -1,11 +1,10 @@
 ﻿#pragma once
 
-
-namespace Utils
-{
-//-------------------------------------------------------------------------------
-const double EPSILONT        = 1e-6;
-const double EPSILONT_VISUAL = 1e-2;
+//#include <numeric>
+namespace Utils {
+//constexpr double EPSILONT      = std::numeric_limits<double>::min * 10;
+constexpr double EPSILONT        = 1e-7;
+constexpr double EPSILONT_VISUAL = 1e-2;
 
 //-------------------------------------------------------------------------------
 template <typename Integer>
@@ -30,6 +29,8 @@ tfstream utf8_stream(const tstring &fn, int mode);
 //-------------------------------------------------------------------------------
 tstring uni(const std::string&);
 tstring uni(const std::wstring&);
+
+std::string ununi(const tstring& s);
 //-------------------------------------------------------------------------------
 tstring format(const TCHAR *fmt, ...);
 //-------------------------------------------------------------------------------

@@ -15,8 +15,8 @@ class TourI::AvgLastsIncrement
 
     MusclesAvgLasts _avg_lasts_specs;
     std::vector<Data> _avg_lasts_steps;
-    unsigned _range_n;
-    unsigned _range_len;
+    frames_t _range_n;
+    frames_t _range_len;
 
     //std::vector<Robo::frames_t> avg_speed_on_start_for_muscle;
     //std::vector<Robo::frames_t> avg_speed_changes_for_muscle;
@@ -25,7 +25,7 @@ class TourI::AvgLastsIncrement
 public:
     AvgLastsIncrement(muscle_t n_muscles,
                       frames_t max_lasts,
-                      unsigned n,
+                      frames_t n,
                       frames_t incr_init,
                       frames_t incr_step,
                       frames_t brake_init,
@@ -34,7 +34,7 @@ public:
         AvgLastsIncrement(n_muscles, max_lasts, n, LastsIncrs{ incr_init, incr_step, brake_init, brake_incr, on_target })
     {}
     AvgLastsIncrement(muscle_t n_muscles, frames_t max_lasts,
-                      unsigned n, LastsIncrs increments) :
+                      frames_t n, LastsIncrs increments) :
         _range_len(max_lasts / n), _range_n(n)
     {
         _avg_lasts_specs.resize(n_muscles);
@@ -49,7 +49,7 @@ public:
         const Data *data;
         if (li == LI_STEP)
         {
-            unsigned range = a.lasts / _range_len;
+            frames_t range = a.lasts / _range_len;
             data = &_avg_lasts_steps[a.muscle * _range_n + range];
         }
         else
@@ -63,7 +63,7 @@ public:
         Data *data;
         if (li == LI_STEP)
         {
-            unsigned range = a.lasts / _range_len;
+            frames_t range = a.lasts / _range_len;
             data = &_avg_lasts_steps[a.muscle * _range_n + range];
         }
         else

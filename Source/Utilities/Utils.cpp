@@ -98,6 +98,14 @@ tstring Utils::uni(const std::wstring& s)
     return ws2s(s);
 #endif
 }
+std::string Utils::ununi(const tstring& s)
+{
+#if !defined(UNICODE) || !defined(_UNICODE)
+    return s;
+#else
+    return ws2s(s);
+#endif
+}
 //------------------------------------------------------------------------------
 tstring Utils::format(const TCHAR *fmt, ...)
 {
@@ -138,7 +146,7 @@ tstring getLastErrorString()
                                       FORMAT_MESSAGE_FROM_SYSTEM,
                                       NULL,
                                       error,
-                                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                      MAKELANGID(LANG_SYSTEM_DEFAULT/*LANG_NEUTRAL*/, SUBLANG_DEFAULT),
                                       (LPTSTR)&lpMsgBuf,
                                       0, NULL);
         if (bufLen > 1)

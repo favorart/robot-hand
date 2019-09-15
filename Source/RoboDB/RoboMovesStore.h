@@ -41,7 +41,7 @@ namespace RoboMoves
     { return (bg::distance(_aim, a) < bg::distance(_aim, b)); }
   };
   //------------------------------------------------------------------------------
-  class  ControlHasher : std::unary_function<const Robo::Control&, size_t>
+  class  ControlHasher //: std::unary_function<const Robo::Control&, size_t>
   {
   public:
     std::size_t operator()(const Robo::Control &controls) const
@@ -138,7 +138,7 @@ namespace RoboMoves
     { ar & _store; }
 
   public:
-    enum class Format { NONE = 0, TXT = (1 << 0), BIN = (1 << 1) };
+    enum class Format { NONE = 0, TXT = 1, BIN = (1 << 1) };
 
     Store() = default;
     Store(Store&&) = delete;

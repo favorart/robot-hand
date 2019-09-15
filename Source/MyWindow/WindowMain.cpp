@@ -50,7 +50,7 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
                         _T("robot-moves"),          // Текст заголовка 
                         WS_OVERLAPPEDWINDOW,        // Стиль окна                                              
                         0, 0,                       // Позиция левого верхнего угла   
-                        WIDTH, HIGHT,               // Ширина и высота окна     
+                        myWIDTH, myHIGHT,           // Ширина и высота окна     
                         (HWND) NULL,                // Указатель на родительское окно NULL     
                         (HMENU) NULL,               // Используется меню класса окна               
                         (HINSTANCE) hInstance,      // Указатель на текущее приложение

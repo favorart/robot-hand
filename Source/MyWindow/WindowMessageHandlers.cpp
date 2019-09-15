@@ -9,6 +9,7 @@
 #include "RoboPosApprox.h"
 #include "RoboMuscles.h"
 
+//#include "RoboRL.h"
 
 using namespace Robo;
 using namespace RoboPos;
@@ -17,8 +18,8 @@ using namespace RoboMoves;
 static Point windowCenter{ 0., 0. };
 static double currWheelSize = 0.;
 
-LONG Tx_norm(double logic_x) { return MARGIN + static_cast<LONG>((logic_x + 1) * (WindowSize()->x - 2 * MARGIN)) / 2; }
-LONG Ty_norm(double logic_y) { return MARGIN - static_cast<LONG>((logic_y - 1) * (WindowSize()->y - 2 * MARGIN)) / 2; }
+LONG Tx_norm(double logic_x) { return myMARGIN + static_cast<LONG>((logic_x + 1) * (WindowSize()->x - 2 * myMARGIN)) / 2; }
+LONG Ty_norm(double logic_y) { return myMARGIN - static_cast<LONG>((logic_y - 1) * (WindowSize()->y - 2 * myMARGIN)) / 2; }
 
 LONG Tx_zoom(double logic_x) { return Tx_norm((logic_x + 0.0) * 2.); }
 LONG Ty_zoom(double logic_y) { return Ty_norm((logic_y + 0.5) * 2.); }
@@ -60,8 +61,8 @@ LONG Ty(double logic_y)
 Point LogicCoordsNorm(PPOINT coord)
 {
     Point p;
-    p.x = +2. * (coord->x - MARGIN) / (WindowSize()->x - 2 * MARGIN) - 1.;
-    p.y = -2. * (coord->y - MARGIN) / (WindowSize()->y - 2 * MARGIN) + 1.;
+    p.x = +2. * (coord->x - myMARGIN) / (WindowSize()->x - 2 * myMARGIN) - 1.;
+    p.y = -2. * (coord->y - myMARGIN) / (WindowSize()->y - 2 * myMARGIN) + 1.;
     return p;
 }
 Point LogicCoords(PPOINT coord)
@@ -260,7 +261,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
   {
       WorkerThreadRunTask(wd, _T("  *** loading ***  "),
                           [](MyWindowData &wd, const tstring &filename) {
-                              wd.pStore->pick_up(filename, wd.pRobo, Store::Format(wd.store_save_load_format));
+                              wd.pStore->pick_up(filename, wd.pRobo, Store::Format(wd.storeSaveFormat));
                               /// wd.load(filename); TODO:
                           }, std::ref(wd), wd.currFileName);
       WorkerThreadTryJoin(wd);
@@ -369,6 +370,7 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
     }
     /* Удаляем старый объект */
     if (!wd.canvas.hStaticBitmap)
+        DeleteObject(wd.canvas.hStaticBitmap);
     {
         /* Создаём новый растровый холст */
         wd.canvas.hStaticBitmap = CreateCompatibleBitmap(hdc, myRect.right - myRect.left,
@@ -805,6 +807,8 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
 
     case 'l': /* vacant */
     {
+        //----------------------------------------
+        //----------------------------------------
         break;
     }
 
@@ -843,10 +847,11 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         wd.mouse.click = false;
         wd.trajFrames.clear();
 
-        wd.canvas.testingTrajsList.clear();
+        //wd.canvas.testingTrajsList.clear();
         wd.canvas.uncoveredPointsList.clear();
         wd.canvas.pointsDB.clear();
-        wd.canvas.trajsDB.clear();
+        //wd.canvas.trajsDB.clear();
+        wd.canvas.workingSpaceTraj.clear();
 
         /* Setting the Label's text */
         SendMessage(wd.canvas.hLabMAim,  /* Label   */
@@ -884,7 +889,7 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
                     //    store.dump_off(DefaultName);
                     //    store.clear();
                     //}
-                    store.pick_up(FileName, wd.pRobo, Store::Format(wd.store_save_load_format));
+                    store.pick_up(FileName, wd.pRobo, Store::Format(wd.storeSaveFormat));
                 }, std::ref(*wd.pStore), std::ref(wd));
                 WorkerThreadTryJoin(wd);
                 wd.currFileName = FileName;
@@ -902,7 +907,7 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
             {
                 WorkerThreadRunTask(wd, _T("  *** saving ***  "),
                                     [](const RoboMoves::Store &store, MyWindowData &wd) {
-                    store.dump_off(wd.getCurrFileName(), *wd.pRobo, Store::Format(wd.store_save_load_format)); // ??? wd->save();
+                    store.dump_off(wd.getCurrFileName(), *wd.pRobo, Store::Format(wd.storeSaveFormat)); // ??? wd->save();
                 }, std::ref(*wd.pStore), std::ref(wd));
                 WorkerThreadTryJoin(wd);
             }
@@ -914,7 +919,7 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
         if (GetAsyncKeyState(VK_CONTROL))
         {
             //========================================
-            wd.pStore->dump_off(wd.getCurrFileName(), *wd.pRobo, Store::Format(wd.store_save_load_format)); // ??? wd.save();
+            wd.pStore->dump_off(wd.getCurrFileName(), *wd.pRobo, Store::Format(wd.storeSaveFormat)); // ??? wd.save();
             //========================================
         }
         break;

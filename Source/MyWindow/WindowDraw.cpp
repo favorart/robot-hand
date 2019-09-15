@@ -1,5 +1,7 @@
 ﻿#include "WindowDraw.h"
+#include <random>
 
+const HPEN defaultPen = (HPEN)GetStockObject(BLACK_PEN);
 //------------------------------------------------------------------------------
 void  drawDecardsCoordinates(HDC hdc)
 {
@@ -316,6 +318,15 @@ HPEN genStoreGradientPen(size_t longs)
 //}
 
 //------------------------------------------------------------------------------
+void GradPens::shuffleGradient()
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    //std::random_shuffle(_gradientPens.begin(), _gradientPens.end());
+    std::shuffle(_gradientPens.begin(), _gradientPens.end(), gen);
+}
+
+//------------------------------------------------------------------------------
 void GradPens::restoreGradient()
 {
     color_gradient_t _gradient;
@@ -361,5 +372,3 @@ HPEN GradPens::operator()(Robo::frames_t longz) const
     }
     return _gradientPens[i];
 }
-
-//------------------------------------------------------------------------------
