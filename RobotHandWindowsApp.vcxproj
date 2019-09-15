@@ -28,19 +28,44 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\EigenSerializePlugin.h" />
+    <ClInclude Include="libs\RL\rl-boyan-chain.hpp" />
+    <ClInclude Include="libs\RL\rl-cliff-walking.hpp" />
+    <ClInclude Include="libs\RL\rl-garnet.hpp" />
+    <ClInclude Include="libs\RL\rl-inverted-pendulum.hpp" />
+    <ClInclude Include="libs\RL\rl-mountain-car.hpp" />
+    <ClInclude Include="libs\RL\rl.hpp" />
+    <ClInclude Include="libs\RL\rlActorCritic.hpp" />
+    <ClInclude Include="libs\RL\rlAlgo.hpp" />
+    <ClInclude Include="libs\RL\rlConcept.hpp" />
+    <ClInclude Include="libs\RL\rlEpisode.hpp" />
+    <ClInclude Include="libs\RL\rlException.hpp" />
+    <ClInclude Include="libs\RL\rlKTD.hpp" />
+    <ClInclude Include="libs\RL\rlLSTD.hpp" />
+    <ClInclude Include="libs\RL\rlMLP.hpp" />
+    <ClInclude Include="libs\RL\rlOffPAPI.hpp" />
+    <ClInclude Include="libs\RL\rlPolicy.hpp" />
+    <ClInclude Include="libs\RL\rlQLearning.hpp" />
+    <ClInclude Include="libs\RL\rlSARSA.hpp" />
+    <ClInclude Include="libs\RL\rlTD.hpp" />
+    <ClInclude Include="libs\RL\rlTraits.hpp" />
+    <ClInclude Include="libs\RL\rlTypes.hpp" />
     <ClInclude Include="Resource\resource.h" />
+    <ClInclude Include="Source\RoboPos\gradient.h" />
     <ClInclude Include="Source\RoboPos\Old\RoboPosMDirections.h" />
     <ClInclude Include="Source\RoboPos\Old\RoboPosMDirections_Old.h" />
     <ClInclude Include="Source\RoboPos\RoboLearnMoves.h" />
     <ClInclude Include="Source\RoboDB\RoboMovesRecord.h" />
     <ClInclude Include="Source\RoboDB\RoboMovesStore.h" />
     <ClInclude Include="Source\RoboPos\RoboMovesTarget.h" />
+    <ClInclude Include="Source\RoboPos\RoboRL.h" />
+    <ClInclude Include="Source\RoboPos\RoboRLSim.h" />
     <ClInclude Include="Source\RoboPos\TourAdaptiveLasts.h" />
     <ClInclude Include="Source\Robo\Hand\Hand.h" />
     <ClInclude Include="Source\Robo\Hand\HandMotionLaws.h" />
     <ClInclude Include="Source\RoboPos\RoboPosApprox.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourEvo.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourNoRec.h" />
+    <ClInclude Include="Source\Robo\RoboEnviroment.h" />
     <ClInclude Include="Source\Robo\RoboInputs.h" />
     <ClInclude Include="Source\Robo\RoboMuscles.h" />
     <ClInclude Include="Source\MyWindow\WindowDraw.h" />
@@ -53,14 +78,17 @@
     <ClInclude Include="Source\RoboPos\RoboEdges.h" />
     <ClInclude Include="Source\Robo\RoboMotionLaws.h" />
     <ClInclude Include="Source\Robo\RoboPhysics.h" />
+    <ClInclude Include="Source\Robo\RoboPhysicsStatus.h" />
     <ClInclude Include="Source\StdAfx.h" />
     <ClInclude Include="Source\Robo\Tank\Tank.h" />
+    <ClInclude Include="Source\Test\Test.h" />
     <ClInclude Include="Source\Utilities\Point.h" />
     <ClInclude Include="Source\Utilities\PointAdapter.h" />
     <ClInclude Include="Source\Utilities\Utils.h" />
     <ClInclude Include="Source\Utilities\verbose.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\RoboPos\gradient.cpp" />
     <ClCompile Include="Source\RoboPos\Old\RoboPosMDirections.cpp" />
     <ClCompile Include="Source\RoboPos\Old\RoboPosMDirections_Old.cpp" />
     <ClCompile Include="Source\RoboPos\Old\RoboPosTourNoRec.cpp" />
@@ -68,6 +96,13 @@
     <ClCompile Include="Source\RoboDB\RoboMovesRecord.cpp" />
     <ClCompile Include="Source\RoboDB\RoboMovesStore.cpp" />
     <ClCompile Include="Source\RoboPos\RoboMovesTarget.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboRL.cpp" />
+    <ClCompile Include="Source\RoboPos\RoboRLSim.cpp">
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">stdcpp14</LanguageStandard>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">Use</PrecompiledHeader>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">HAS_GSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Source\Robo\Hand\Hand.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosApprox.cpp" />
     <ClCompile Include="Source\RoboPos\RoboPosRundown.cpp" />
@@ -76,6 +111,7 @@
     <ClCompile Include="Source\Robo\RoboMotionLaws.cpp" />
     <ClCompile Include="Source\Robo\RoboMuscles.cpp" />
     <ClCompile Include="Source\Robo\RoboPhysics.cpp" />
+    <ClCompile Include="Source\Test\Test.cpp" />
     <ClCompile Include="Source\Utilities\Console.cpp" />
     <ClCompile Include="Source\MyWindow\WindowDraw.cpp" />
     <ClCompile Include="Source\MyWindow\WindowDrawLetters.cpp" />

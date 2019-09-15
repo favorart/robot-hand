@@ -338,6 +338,16 @@ frames_t RoboPhysics::move(IN const Control &controls, IN frames_t max_frames)
     return move(max_frames);
 }
 //--------------------------------------------------------------------------------
+frames_t RoboPhysics::move(IN const BitsControl<musclesMaxCount + 1> &controls, IN frames_t max_frames)
+{
+    for (const auto &bits : controls)
+    {
+        step(bits);
+        boost::this_thread::interruption_point();
+    }
+    return move(max_frames);
+}
+//--------------------------------------------------------------------------------
 void RoboPhysics::reset()
 {
     _reset();
@@ -387,7 +397,7 @@ RoboPhysics::EnvPhyState::EnvPhyState(const Point &base, const JointsInputsPtrs 
         framesStop[j][nStopFrames - 1] = 0.;
 #ifdef DEBUG_RM
         {
-            //printEnviroment(conditions);
+            printEnviroment(conditions);
             std::cout << std::endl;
 
             std::stringstream ss;
@@ -492,21 +502,6 @@ joint_t RoboPhysics::jointsCount() const { return status->jointsCount; }
 //void RoboPhysics::setVisitedRarity(unsigned rarity) { env->visitedRarity = rarity; }
 Point RoboPhysics::_base() const { return status->basePos[jointsCount()/*base_center*/]; }
 //--------------------------------------------------------------------------------
-void RoboPhysics::getCurrState(State &o) const
-{
-    o.special_no = specPoint();
-    o.positions.resize(jointsCount());
-    o.velosities.resize(jointsCount());
-    o.accelerations.resize(jointsCount());
-    for (joint_t j = 0; j < jointsCount(); ++j)
-    {
-        o.positions[j] = status->currPos[j];
-        o.velosities[j] = status->currPos[j] - status->prevPos[j];
-        o.accelerations[j] = o.velosities[j] - status->prevVel[j];
-    }
-}
-void RoboPhysics::currState(State &state) const
-{ return status->getCurState(state, specPoint()); }
 bool RoboPhysics::moveEnd() const { return status->moveEnd; }
 const Point& RoboPhysics::position() const { return status->currPos[0]; }
 const Point& RoboPhysics::jointPos(IN joint_t joint) const
@@ -548,6 +543,22 @@ distance_t RoboPhysics::Imoment(joint_t j) const
     return Imoment;
 }
 //--------------------------------------------------------------------------------
+#include "RoboRLSim.h"
+void RoboPhysics::getCurrState(rl_problem::ObservationRobo &o) const
+{
+    o.special_no = specPoint();
+    o.positions.resize(jointsCount());
+    o.velosities.resize(jointsCount());
+    o.accelerations.resize(jointsCount());
+    for (joint_t j = 0; j < jointsCount(); ++j)
+    {
+        o.positions[j] = status->currPos[j];
+        o.velosities[j] = status->currPos[j] - status->prevPos[j];
+        o.accelerations[j] = o.velosities[j] - status->prevVel[j];
+    }
+}
+void RoboPhysics::currState(State &state) const
+{ return status->getCurState(state, specPoint()); }
 
 #ifdef DEBUG_RM
 frames_t RoboPhysics::muscleStatus(muscle_t m) const

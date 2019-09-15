@@ -9,7 +9,7 @@
 #include "RoboPosApprox.h"
 #include "RoboMuscles.h"
 
-//#include "RoboRL.h"
+#include "RoboRL.h"
 
 using namespace Robo;
 using namespace RoboPos;
@@ -808,6 +808,24 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     case 'l': /* vacant */
     {
         //----------------------------------------
+        if (1)//!wd.testing)
+        {
+            wd.canvas.testingTrajsShow = true;
+            wd.canvas.testingTrajsList.clear();
+            //----------------------------------------
+            wd.canvas.hStaticBitmapChanged = true;
+            wd.canvas.hDynamicBitmapChanged = true;
+
+            WorkerThreadRunTask(wd, _T("\n *** RL test ***  "),
+                                rl_problem::RoboRL,
+                                std::ref(*wd.pRobo),
+                                std::ref(*wd.pStore),
+                                std::ref(*wd.pTarget),
+                                std::ref(wd.canvas.testingTrajsList));
+            //rl_problem::RoboRL(*wd.pRobo, *wd.pStore, *wd.pTarget, wd.canvas.testingTrajsList);
+            if (WorkerThreadTryJoin(wd))
+                InvalidateRect(hWnd, &myRect, TRUE);
+        }
         //----------------------------------------
         break;
     }

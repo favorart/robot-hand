@@ -145,6 +145,7 @@ public:
 
     virtual frames_t move(IN frames_t max_frames = LastsInfinity) = 0;
     virtual frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames = LastsInfinity) = 0;
+    virtual frames_t move(IN const BitsControl<musclesMaxCount + 1>&, IN frames_t max_frames = LastsInfinity) = 0;
 
     virtual void step() = 0;
     virtual void step(IN const Robo::Control &control) = 0;
@@ -164,7 +165,7 @@ public:
     virtual const Point& jointPos(joint_t) const = 0;
     virtual const StateTrajectory& trajectory() const { return _trajectory; };
     virtual void currState(State&) const = 0;
-    virtual void getCurrState(State&) const = 0;
+    virtual void getCurrState(rl_problem::ObservationRobo &o) const = 0;
 
     //----------------------------------------------------
     virtual void setTrajectorySave(bool save) { _trajectory_save = save; };

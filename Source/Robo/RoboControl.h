@@ -159,9 +159,9 @@ public:
                     unsigned min_n_moves = 1,
                     unsigned max_n_moves = 3,
                     bool simul = true);
-
-    std::vector<Actuator> v() const { return std::vector<Actuator>(this->begin(), this->end()); }
-    std::vector<Actuator> align() const;
+    //----------------------------------------------------
+    std::vector<Actuator> v() const { return std::vector<Actuator>(begin(),end()); }
+    std::vector<Actuator> align() const; // <<<< TODO:
     //----------------------------------------------------
     friend tostream& operator<<(tostream&, const Control&);
     friend tistream& operator>>(tistream&, Control&);
@@ -180,8 +180,78 @@ public:
     //-------------------------------------------------------------------------------
     static Control EmptyMove() { return Control{}; }
 };
+//-------------------------------------------------------------------------------
+template <size_t N>
+class BitsControl
+{
+public:
+    using Bitwise = std::bitset<N>;
+    using Episode = std::vector<Bitwise>;
+protected:
+    Episode episode{};
+public:
+    BitsControl() {}
+    BitsControl(Robo::frames_t episode_length) : episode(episode_length, Bitwise{}) {}
+    BitsControl(const Episode &episode) : episode(episode) {}
+    //-------------------------------------------------------------------------------
+    using iterator = typename Episode::iterator;
+    using const_iterator = typename Episode::const_iterator;
+
+    iterator       begin()       { return std::begin(episode); }
+    const_iterator begin() const { return std::begin(episode); }
+    iterator       end()         { return std::begin(episode) + episode.size(); } // ?? std::advance()
+    const_iterator end()   const { return std::begin(episode) + episode.size(); } // ?? std::advance()
+    //-------------------------------------------------------------------------------
+    Bitwise& operator[](Robo::frames_t frame)
+    {
+        if (frame < episode.size())
+            return episode[frame];
+        CERROR("BitsControl: invalid index");
+    }
+    const Bitwise& operator[](Robo::frames_t frame) const { return (*this)[frame]; }
+    //-------------------------------------------------------------------------------
+    bool validate() /*nothrow*/ const
+    { return (episode.size() > 0 && episode.front() != 0 && episode.back() != 0); }
+    void validated() /*!throw*/ const
+    { if (!validate()) throw std::logic_error("BitsControl not validated"); }
+    //-------------------------------------------------------------------------------
+    friend BitsControl operator&(const BitsControl &l, const BitsControl &r)
+    {
+        BitsControl res;
+        res.episode.reserve(std::max(l.size(), r.size()));
+
+        for (const auto &pair : boost::combine(l, r))
+        {
+            const Robo::bitwise &il, &il;
+            std::tie(il, il) = pair;
+            res.episode.push_back(il & ir);
+        }
+        return res;
+    }
+    friend BitsControl operator|(const BitsControl &l, const BitsControl &r)
+    {
+        BitsControl res;
+        res.episode.reserve(std::max(l.size(), r.size()));
+
+        for (const auto &pair : boost::combine(l, r))
+        {
+            const Robo::bitwise &il, &il;
+            std::tie(il, il) = pair;
+            res.episode.push_back(il | ir);
+        }
+        return res;
+    }
+    //friend BitsControl operator||(const BitsControl &l, const BitsControl &r, frames_t particle=10) // prefix??
+    //{
+    //    BitsControl res;
+    //    return res;
+    //}
+    //-------------------------------------------------------------------------------
+    static BitsControl EmptyMove() { return BitsControl{}; }
+};
 }
 //-------------------------------------------------------------------------------
 BOOST_CLASS_VERSION(Robo::Actuator, 2)
 BOOST_CLASS_VERSION(Robo::Control, 2)
+//BOOST_CLASS_VERSION(Robo::BitsControl, 1)
 //-------------------------------------------------------------------------------

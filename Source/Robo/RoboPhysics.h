@@ -45,6 +45,7 @@ public:
     frames_t move(IN const bitset_t &muscles, IN frames_t lasts, IN frames_t max_frames) override;
     frames_t move(IN frames_t max_frames) override;
     frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames) override;
+    frames_t move(IN const BitsControl<musclesMaxCount + 1> &controls, IN frames_t max_frames) override;
 
     void step() override;
     void step(IN const Control &control) override;
@@ -63,7 +64,7 @@ public:
     const Point& jointPos(IN joint_t joint) const;
     StateTrajectory& traj() { return _trajectory; };
 
-    void getCurrState(State&) const override;
+    void getCurrState(rl_problem::ObservationRobo &o) const override;
     void currState(State&) const override;
     bool isCollision() const override;
     Enviroment getEnvCond() const override;

@@ -74,7 +74,7 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
 
                     for (frames_t last_j = lasts_min; last_j < robo.muscleMaxLasts(muscle_j); last_j += lasts_step)
                     {
-                        /*Trajectory::iterator*/auto tail_j = robo.traj().end();
+                        auto tail_j = robo.traj().end();
                         --tail_j;
 
                         robo.move(Control{ { muscle_j, 0, last_j } }, LastsInfinity);
@@ -93,7 +93,7 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
 
                             for (frames_t last_k = lasts_min; last_k < robo.muscleMaxLasts(muscle_k); last_k += lasts_step)
                             {
-                                /*Trajectory::iterator*/auto tail_k = robo.traj().end();
+                                auto tail_k = robo.traj().end();
                                 --tail_k;
 
                                 robo.move(Control{ { muscle_k, 0, last_j } }, LastsInfinity);

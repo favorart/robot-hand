@@ -1,5 +1,7 @@
 ﻿#include "StdAfx.h"
 
+//#include <Eigen/Eigen>
+
 #include "Robo.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
@@ -8,6 +10,245 @@
 using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
+
+//using d_vector = std::vector<double>;
+//
+//struct colvec {};
+//struct matrix {};
+//
+//struct normal
+//{
+//    double scale;
+//    double translate;
+//};
+//
+////Eigen::col
+//
+//colvec vec2colvec(d_vector &vec)
+//{
+//    int length = vec.size();
+//    colvec A(length);
+//    for (int i = 0; i < length; i++)
+//        A(i) = vec[i];
+//    return A;
+//}
+//
+//matrix vec2mat(vector<vector<double> >&vec)
+//{
+//    int col = vec.size();
+//    int row = vec[0].size();
+//
+//    matrix A(row, col);
+//    for (int i = 0; i < col; i++)
+//        for (int j = 0; j < row; j++)
+//            A(j, i) = vec[i][j];
+//    return A;
+//}
+//
+//
+//normal getScale(vector<double> &vec, double newmin, double newmax)
+//{
+//    double max, min;
+//    for (int i = 0; i < vec.size(); i++)
+//
+//        if (i == 0)
+//        {
+//            max = vec[i];
+//            min = vec[i];
+//        }
+//        else
+//        {
+//            if (vec[i] > max)
+//                max = vec[i];
+//            if (vec[i] < min)
+//                min = vec[i];
+//        }
+//    normal result;
+//    result.translate = (max - min) / 2 - max;
+//    result.scale = (max - min) / (newmax - newmin);
+//    return result;
+//}
+//
+//colvec BatchGradientDescent(vector<vector<double> >&vecX, vector<double>& vecY)
+//{
+//    int nfeatures = vecX.size() + 1;
+//    int nsamples = vecX[0].size();
+//    //add X0 = 1.
+//    vector<double> tempvec;
+//    for (int i = 0; i < vecX[0].size(); i++)
+//        tempvec.push_back(1.0);
+//
+//    vecX.insert(vecX.begin(), tempvec);
+//
+//    /*
+//    //try to normalize vecX
+//    //X0 should not be normalized.
+//    //first calculate the scale and translate
+//    vector<normal> nor;
+//    normal tpnor;
+//    tpnor.scale = 1.0;
+//    tpnor.translate = 0.0;
+//    nor.push_back(tpnor);
+//    for(int i = 1; i<nfeatures; i++) {
+//        tpnor = getScale(vecX[i], -1.0, 1.0);
+//        nor.push_back(tpnor);
+//    }
+//    //now do scale and translate
+//    for(int i=1; i<nfeatures; i++)
+//        for(int j=0; j<nsamples; j++){
+//            vecX[i][j] += nor[i].translate;
+//            vecX[i][j] /= nor[i].scale;
+//        }
+//      cout<<nor[1].translate<<", "<<nor[1].scale<<endl;
+//    */
+//
+//    //change vecX and vecY into matrix or vector
+//    colvec y = vec2colvec(vecY);
+//    matrix x = vec2mat(vecX);
+//    //set learning rate;
+//    double lrate = 0.0001;
+//    //build theta vector, and randomize initial values
+//    colvec theta(nfeatures);
+//    for (int i = 0; i < nfeatures; i++)
+//        theta(i) = 0.0;
+//    colvec thetatemp;
+//    int counter = 0;
+//    while (1)
+//    {
+//        rowvec thetaT = theta.t();
+//        colvec descent(nfeatures);
+//        for (int j = 0; j < nfeatures; j++)
+//        {
+//            double sum = 0.0;
+//            for (int i = 0; i < nsamples; i++)
+//            {
+//                rowvec xit = x.row(i);
+//                colvec xi = xit.t();
+//                double h = as_scalar(thetaT * xi);
+//                double errortemp = y(i) - h;
+//                errortemp *= xi(j);
+//                sum += errortemp;
+//            }
+//            sum *= lrate;
+//            descent(j) = sum;
+//        }
+//        thetatemp = theta + descent;
+//        cout << "************** round " << counter << endl << theta << endl;
+//
+//        int converge = 0;
+//        for (int i = 0; i < nfeatures; i++)
+//            if (fabs(theta(i) - thetatemp(i)) / theta(i) > 0.00001)
+//                break;
+//            else ++converge;
+//        if (converge == nfeatures || ++counter > 100000)
+//            return thetatemp;
+//        theta = thetatemp;
+//    }
+//}
+//
+//colvec StochasticGradientDescent(vector<vector<double> >&vecX, vector<double>& vecY)
+//{
+//    int nfeatures = vecX.size() + 1;
+//    int nsamples = vecX[0].size();
+//    //add X0 = 1.
+//    vector<double> tempvec;
+//    for (int i = 0; i < vecX[0].size(); i++)
+//        tempvec.push_back(1.0);
+//    vecX.insert(vecX.begin(), tempvec);
+//
+//    /*
+//    //try to normalize vecX
+//    //X0 should not be normalized
+//    //first calculate the scale and translate
+//    vector<normal> nor;
+//    normal tpnor;
+//    tpnor.scale = 1.0;
+//    tpnor.translate = 0.0;
+//    nor.push_back(tpnor);
+//    for(int i = 1; i<nfeatures; i++)
+//    {
+//        tpnor = getScale(vecX[i], -1.0, 1.0);
+//        nor.push_back(tpnor);
+//    }
+//    //now do scale and translate
+//    for(int i=1; i<nfeatures; i++){
+//        for(int j=0; j<nsamples; j++){
+//            vecX[i][j] += nor[i].translate;
+//            vecX[i][j] /= nor[i].scale;
+//        }
+//    }
+//      cout<<nor[1].translate<<", "<<nor[1].scale<<endl;
+//    */
+//
+//    //change vecX and vecY into matrix or vector
+//    colvec y = vec2colvec(vecY);
+//    matrix x = vec2mat(vecX);
+//
+//    //set learning rate
+//    double lrate = 0.0001;
+//    //build theta vector, and randomize initial values
+//    colvec theta(nfeatures);
+//    colvec thetatemp(nfeatures);
+//
+//    for (int i = 0; i < nfeatures; i++)
+//        theta(i) = 0.;
+//
+//    int counter = 0;
+//    while (1)
+//    {
+//        thetatemp = theta;
+//        colvec descent(nfeatures);
+//        for (int j = 0; j < nfeatures; j++)
+//        {
+//            int i = 0;
+//            for (i = 0; i < nsamples; i++)
+//            {
+//                double thetaj = theta(j);
+//                rowvec thetaT = theta.t();
+//                rowvec xit = x.row(i);
+//                colvec xi = xit.t();
+//                double h = as_scalar(thetaT * xi);
+//                double errortemp = y(i) - h;
+//                errortemp *= xi(j);
+//                theta(j) += lrate * errortemp;
+//                if (fabs(theta(j) - thetaj) / theta(j) <= 0.00001)
+//                    break;
+//            }
+//            cout << "j = " << j << ", i = " << i << endl;
+//        }
+//        cout << "************** round " << counter << endl << theta << endl;
+//
+//        int converge = 0;
+//        for (int i = 0; i < nfeatures; i++)
+//        {
+//            if (fabs(theta(i) - thetatemp(i)) / theta(i) > 0.00001)
+//                break;
+//            else ++converge;
+//        }
+//        if (converge == nfeatures || ++counter > 100000)
+//            return theta;
+//    }
+//}
+//
+//colvec NormalEquation(vector<vector<double> >&vecX, vector<double>& vecY)
+//{
+//    //add X0 = 1.
+//    vector<double> tempvec;
+//    for (int i = 0; i < vecX[0].size(); i++)
+//        tempvec.push_back(1.0);
+//    vecX.insert(vecX.begin(), tempvec);
+//    colvec y = vec2colvec(vecY);
+//    matrix x = vec2mat(vecX);
+//    matrix xT = x.t();
+//    matrix temp;
+//    temp = xT * x;
+//    temp = pinv(temp);
+//    colvec result = temp * xT * y;
+//    return result;
+//}
+
+//#include "dlib/optimization.h"
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, IN muscle_t n)
 {
