@@ -131,10 +131,16 @@ private:
 #define STRINGIFY(s) #s
 #define NORM_NAME(P) ((STRINGIFY(P)[0]=='_')?tstring(_T(STRINGIFY(P))).substr(1,strlen(STRINGIFY(P))-1):tstring(_T(STRINGIFY(P))))
 
-#define GET_OPTS(config, name, scope) name=config.get_optional<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)).get_value_or(name)
-#define GET_OPT(config, name)         name=config.get_optional<decltype(name)>(NORM_NAME(name)).get_value_or(name)
+#define CONF_GET_OPT_SCOPE_VAL(config, name, scope, val)  name=config.get_optional<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)).get_value_or(val)
+#define CONF_GET_OPT_VAL(config, name, val)               name=config.get_optional<decltype(name)>(NORM_NAME(name)).get_value_or(val)
 
-#define SET_OPTS(config, name, scope) config.put<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)))
-#define SET_OPT(config, name)         config.put<decltype(name)>(NORM_NAME(name))
+#define CONF_GET_OPT_SCOPE(config, name, scope)           name=config.get_optional<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name)).get_value_or(name)
+#define CONF_GET_OPT(config, name)                        name=config.get_optional<decltype(name)>(NORM_NAME(name)).get_value_or(name)
+
+#define CONF_GET_SCOPE(config, name, scope)               name=config.get<decltype(name)>(_T(STRINGIFY(scope) ".")+NORM_NAME(name))
+#define CONF_GET(config, name)                            name=config.get<decltype(name)>(NORM_NAME(name))
+
+#define CONF_PUT_SCOPE(config, name, scope)                    config.put(_T(STRINGIFY(scope) ".")+NORM_NAME(name), name)
+#define CONF_PUT(config, name)                                 config.put(NORM_NAME(name), name)
 //-------------------------------------------------------------------------------
 

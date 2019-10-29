@@ -217,6 +217,21 @@ void make_experiment(Simulator &simulator, Critic &critic, const Q &q, const V &
 }
 
 //------------------------------------------------------
+void startRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories &show_trajs)
+{
+    try
+    {
+        //----------------------------------------
+        RoboRL(robo, store, target, show_trajs);
+        //----------------------------------------
+    }
+    catch (boost::thread_interrupted&)
+    { CINFO("WorkingThread interrupted"); }
+    catch (const std::exception &e)
+    { SHOW_CERROR(e.what()); }
+}
+
+//------------------------------------------------------
 void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories &show_trajs)
 {
     std::random_device rd;
@@ -278,6 +293,9 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
                                        Q.paramUSE_LINEAR_EVALUATION,
                                        rand_gen);
 
+    // ==============================
+    boost::this_thread::interruption_point();
+    // ==============================
     double epsilont = 0.25; // Qfunction::paramEPSILONT;
     auto random_policy = rl::policy::random(rl::enumerator<A>(1), actionEnd, rand_gen);
     //auto learning_policy = rl::policy::epsilon_greedy(q, epsilont, actionBegin, actionEnd, rand_gen);
@@ -292,6 +310,9 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
             std::sample(actionBegin, actionEnd, &selected_value, 1, rand_gen);
             return selected_value;
         }
+        // ==============================
+        boost::this_thread::interruption_point();
+        // ==============================
         return rl::argmax(std::bind(q, s, std::placeholders::_1), actionBegin, actionEnd).first;
     };
 
@@ -382,9 +403,9 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
                         S next = simulator.sense();
                         A a_next = learning_policy(next); //(length < 10) ? random_policy(s) : learning_policy(s);
                         critic.learn(s, a, simulator.reward(), next, a_next);
-                        // -------------------------------------
+                        // ==============================
                         boost::this_thread::interruption_point();
-                        // -------------------------------------
+                        // ==============================
                         a = a_next;
                         s = next;
                     } while (length != Qfunction::MAX_EPISODE_DURATION);

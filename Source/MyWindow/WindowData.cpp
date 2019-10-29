@@ -84,19 +84,17 @@ void MyWindowData::TrajectoryFrames::clear()
 //-------------------------------------------------------------------------------
 MyWindowData::Zoom MyWindowData::zoom = MyWindowData::Zoom::NONE;
 //-------------------------------------------------------------------------------
-MyWindowData::MyWindowData(const tstring &config, const tstring &database) :
-    _config(config),
+MyWindowData::MyWindowData(const Utils::CArgs &args) :
+    testings{ args.tests },
+    _config_fn{ args.config },
+    _tests_fn{ args.testsfile },
+    _lm_conf_fn{ args.lm_config },
     pWorkerThread{ nullptr },
     pTarget{ nullptr },
     pStore{ std::make_shared<RoboMoves::Store>() }
 {
-    read_config(config);
-    currFileName =  currFileName;
-
-    if (database != _T(""))
-        currFileName = database;
-    else
-        currFileName = getCurrFileName();
+    read_config(_config_fn);
+    currFileName = (args.database.size() > 0) ? args.database : getCurrFileName();
 
     /* создаем ручки */
     canvas.hPen_grn  = CreatePen(PS_SOLID, 1, RGB(100, 180, 050));
@@ -188,7 +186,7 @@ void  onPaintStaticBckGrnd(HDC hdc, MyWindowData &wd)
 void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
 {
     {
-        /// TODO : REMOVE
+#ifdef DEBUG_SHOW_CONTRADICTION
         const double CircleRadius = 0.004;
 
         for (auto &pred : MyWindowData::goals)
@@ -199,6 +197,7 @@ void  onPaintStaticFigures(HDC hdc, MyWindowData &wd)
         
         for (auto &pred : MyWindowData::reals)
             drawCircle(hdc, pred, CircleRadius, wd.canvas.hPen_red);
+#endif
     }
     // --------------------------------------------------------------
     if (wd.canvas.workingSpaceShow)
@@ -421,8 +420,8 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (!pRobo) throw std::runtime_error("read_config: incorrect class RoboI version");
         if (!pTarget) throw std::runtime_error("read_config: incorrect class TargetI version");
 
-        GET_OPT(root, storeSaveFormat);
-        GET_OPT(root, redirect);
+        CONF_GET_OPT(root, storeSaveFormat);
+        CONF_GET_OPT(root, redirect);
         if (redirect)
         {
             auto stdout_filename = ("out-" + Utils::now() + ".txt");
@@ -441,8 +440,8 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (precision_mm <= 0)
             throw std::runtime_error("read_config: incorrect precision");
 
-        _lm_config = root.get<tstring>(_T("lm_config"));
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, _lm_config); // ????
+        _lm_conf_fn = root.get<tstring>(_T("lm_config"));
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, _lm_conf_fn); // ????
         read_canvas(root);
 
         LV_CLEVEL = root.get_optional<int>(_T("verbose")).get_value_or(1);
@@ -493,7 +492,7 @@ void MyWindowData::write_config(IN const tstring &filename) const
 
         double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
         root.put(_T("precision"), precision_mm);
-        root.put(_T("lm_config"), _lm_config);
+        root.put(_T("lm_config"), _lm_conf_fn);
         
         root.put(_T("verbose"), LV_CLEVEL);
         root.put(_T("redirect"), redirect);

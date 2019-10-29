@@ -72,8 +72,11 @@ public:
     bool moveEnd() const override;
     const Point& position() const override;
 
-    tstring getName() const override { return RoboPhysics::name(); };
+    tstring getName() const = 0; // override { return RoboPhysics::name(); };
     static tstring name() { return _T("RoboPhysics"); };
+
+    static const joint_t jointsAll = 0xFF;
+    void plotMotionLaws(const tstring &fn, joint_t joint) const;
 
 private:
     static pRoboI make(const tstring &type, tptree &node){ throw std::logic_error("Depricated"); };

@@ -10,6 +10,7 @@
 #include "RoboMuscles.h"
 
 #include "RoboRL.h"
+#include "Test/Test.h"
 
 using namespace Robo;
 using namespace RoboPos;
@@ -89,7 +90,7 @@ Point LogicCoords(PPOINT coord)
     return p;
 }
 //-------------------------------------------------------------------------------
-tstring getJointsHelpString(const Robo::RoboI& robo)
+tstring getMusclesHelpString(const Robo::RoboI& robo)
 {
     tstringstream ss;
     std::pair<TCHAR, TCHAR> buttons[] = { { 'A', 'Z' },{ 'S', 'X' },{ 'D', 'C' },{ 'F', 'V' } };
@@ -223,26 +224,33 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
   tstringstream ss;
   ss << _T ("  Клавиши управления:  \r\r") // "Enter - авто-тест  \r")
      << _T ("  Ctrl+O - OpenFile  |  Ctrl+S - SaveFile  |  Esc - выход  \r\r")
-     << _T ("  R - сбросить состояние руки  \r\r")
-     << getJointsHelpString(*wd.pRobo)
+     << getMusclesHelpString(*wd.pRobo)
      << _T ("  Повторное нажатие на кнопку во время движения  \r")
      << _T ("  останавливает соответствующее движение.  \r\r")
      << _T ("  Q - показать все конечные точки в БД  \r")
      << _T ("  W - нарисовать рабочую область руки  \r")
      << _T ("  E - прервать работу алгоритма  \r")
+     << _T ("  R - сбросить состояние руки  \r")
      << _T ("  T - нарисовать случайную траекторию  \r")
      << _T ("  Y - приблизить, показать только мишень  \r")
      << _T ("  U - посчитать непокрытые точки мишени  \r")
+     << _T ("  \r")
      << _T ("  H - показать  непокрытые точки мишени  \r")
      << _T ("  G - показать масштаб и размеры  \r")
-     << _T ("  J - сменить градиент точек БД  \r\r")
-     << _T ("  I - test approx  \r")
-     << _T ("  M - write config  \r")
-     << _T ("  N - read config  \r")
-     << _T ("  O - Random Test,   P - Cover Test  \r")
+     << _T ("  J - сменить градиент точек БД  \r")
+     << _T ("  \r")
+     << _T ("  I - test Approx   \r")
+     << _T ("  O - test Random   \r")
+     << _T ("  P - test Cover    \r")
+     << _T ("  L - test RL       \r")
+     << _T ("  B - test All!     \r")
+     << _T ("  \r")
+     << _T ("  M - config Write  \r")
+     << _T ("  N - config Read   \r")
      << _T ("  1 - STAGE,  2 - STAGE,  3 - STAGE  \r")
-     << _T ("  0 - free storage  \r\r")
-     << _T ("  \r\r");
+     << _T ("  \r")
+     << _T ("  BCKSP - clear storage  \r")
+     << _T ("  \r\r\r");
 
   // Setting the Label's text
   SendMessage (hLabHelp,         /* Label   */
@@ -268,6 +276,9 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
   }
 
   SendMessage(hWnd, WM_USER_STORE, NULL, NULL);
+  
+  if (wd.testings)
+      SendMessage(hWnd, WM_CHAR, 'b', NULL);
 }
 //------------------------------------------------------------------------------
 void onWindowSize (HWND hWnd, MyWindowData &wd)
@@ -536,6 +547,17 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
+    case 0x08: /* backspace - clear storage */
+    {
+        //========================================
+        wd.pStore->clear();
+        wd.canvas.hDynamicBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, TRUE);
+        break;
+    }
+
+
     case 'q': /* show storage end points */
     {
         //========================================
@@ -546,56 +568,6 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         wd.canvas.hDynamicBitmapChanged = true;
         //========================================
         InvalidateRect(hWnd, &myRect, FALSE);
-        break;
-    }
-
-    case 'i': /* test approx */
-    {
-        //========================================
-        //wd.pStore->near_passed_build_index();
-
-        WorkerThreadRunTask(wd, _T("\n *** approx ***  "), [](Store &store, RoboI &robo) {
-            for (int i = 1; i < 20; ++i)
-            {
-                tcout << i << _T(" approx sizing=") << i * 2 << std::endl;
-                Approx approx(store.size(), 8, Approx::noize, [i]() {return i * 2; });
-                approx.constructXY(store);
-                //tcout << _T("writing") << std::endl;
-                {
-                    //tfstream ofs("approx.txt", std::ios_base::out);
-                    //boost::archive::text_oarchive toa(ofs);
-                    //toa & approx;
-
-                    double sum_error = 0.;
-                    for (auto & rec : store)
-                    {
-                        Point pred = approx.predict(rec.controls);
-                        double err = boost_distance(rec.hit, pred);
-                        //ofs << pred << " " << rec.hit << " " << err << std::endl;
-                        sum_error += err;
-                    }
-                    //ofs << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
-                    std::cout << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
-
-                    for (auto i = 0; i < 1000; ++i)
-                    {
-                        Control c;
-                        c.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return robo.muscleMaxLasts(m); });
-
-                        robo.reset();
-                        robo.move(c);
-
-                        Point pred = approx.predict(c);
-                        double err = boost_distance(robo.position(), pred);
-                        //ofs << pred << " " << robo.position() << " " << err << std::endl;
-                        sum_error += err;
-                    }
-                    //ofs << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
-                    std::cout << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
-                }
-            }
-        }, std::ref(*wd.pStore), std::ref(*wd.pRobo));
-        //========================================
         break;
     }
     
@@ -616,7 +588,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'o': /* random test */
+    case 'o': /* test random */
     {
         //========================================
         const size_t tries = 3000;
@@ -628,7 +600,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'p': /* cover test */
+    case 'p': /* test cover */
     {
         //========================================
         WorkerThreadRunTask(wd, _T("\n *** cover test ***  "), testCover,
@@ -679,16 +651,22 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case '0': /* free storage */
+
+    case 'j': /* change color database points */
     {
         //========================================
-        wd.pStore->clear();
-        wd.canvas.hDynamicBitmapChanged = true;
+        wd.canvas.cGradient = CGradient(std::max(1/*not None*/, (int(wd.canvas.cGradient) + 1) % int(CGradient::_Last_)));
+        //----------------------------------------
+        tstring strGradient[] = { _T("cGradient::None"), _T("cGradient::Longz"), _T("cGradient::Dense"),
+                                  _T("cGradient::Strats"), _T("cGradient::_Last_") };
+        CDEBUG(strGradient[int(wd.canvas.cGradient)]);
+        //----------------------------------------
+        wd.canvas.hStaticBitmapChanged = true;
+        //wd.canvas.hDynamicBitmapChanged = true;
         //========================================
-        InvalidateRect(hWnd, &myRect, TRUE);
+        InvalidateRect(hWnd, &myRect, FALSE);
         break;
     }
-
 
     case 'u': /* calculate uncovered */
     {
@@ -749,7 +727,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //========================================
         MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::STATIC) ?
-            MyWindowData::Zoom::STATIC : MyWindowData::Zoom::NONE;
+                              MyWindowData::Zoom::STATIC : MyWindowData::Zoom::NONE;
         //----------------------------------------
         wd.canvas.hStaticBitmapChanged = true;
         wd.canvas.hDynamicBitmapChanged = true;
@@ -758,9 +736,25 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
+    case 'k': /* wheel zoom */
+    {
+        //========================================
+        MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::WHEEL) ?
+                              MyWindowData::Zoom::WHEEL : MyWindowData::Zoom::NONE;
+        //----------------------------------------
+        windowCenter = { 0., 0. }; currWheelSize = 0.;
+        //----------------------------------------
+        wd.canvas.hStaticBitmapChanged = true;
+        wd.canvas.hDynamicBitmapChanged = true;
+        //========================================
+        InvalidateRect(hWnd, &myRect, FALSE);
+        break;
+    }
+
+
     case 'n': /* read current wd config */
     {
-        wd.read_config(wd._config);
+        wd.read_config(wd._config_fn);
         break;
     }
 
@@ -774,38 +768,19 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         break;
     }
 
-    case 'j': /* change color database points */
+
+    case 'i': /* test approx */
     {
         //========================================
-        wd.canvas.cGradient = CGradient(std::max(1/*not None*/,(int(wd.canvas.cGradient) + 1) % int(CGradient::_Last_)));
-        //----------------------------------------
-        tstring strGradient[] = { _T("cGradient::None"), _T("cGradient::Longz"), _T("cGradient::Dense"), 
-                                  _T("cGradient::Strats"), _T("cGradient::_Last_") };
-        CDEBUG(strGradient[int(wd.canvas.cGradient)]);
-        //----------------------------------------
-        wd.canvas.hStaticBitmapChanged = true;
-        //wd.canvas.hDynamicBitmapChanged = true;
+        //wd.pStore->near_passed_build_index(); /// << TODO:
+        WorkerThreadRunTask(wd, _T("\n *** approx ***  "), 
+                            RoboPos::testApprox,
+                            std::ref(*wd.pStore), std::ref(*wd.pRobo));
         //========================================
-        InvalidateRect(hWnd, &myRect, FALSE);
         break;
     }
 
-    case 'k': /* wheel zoom */
-    {
-        //========================================
-        MyWindowData::zoom = (MyWindowData::zoom != MyWindowData::Zoom::WHEEL) ?
-            MyWindowData::Zoom::WHEEL : MyWindowData::Zoom::NONE;
-        //----------------------------------------
-        windowCenter = { 0., 0. }; currWheelSize = 0.;
-        //----------------------------------------
-        wd.canvas.hStaticBitmapChanged = true;
-        wd.canvas.hDynamicBitmapChanged = true;
-        //========================================
-        InvalidateRect(hWnd, &myRect, FALSE);
-        break;
-    }
-
-    case 'l': /* vacant */
+    case 'l': /* test RL */
     {
         //----------------------------------------
         if (1)//!wd.testing)
@@ -817,7 +792,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
             wd.canvas.hDynamicBitmapChanged = true;
 
             WorkerThreadRunTask(wd, _T("\n *** RL test ***  "),
-                                rl_problem::RoboRL,
+                                rl_problem::startRL,
                                 std::ref(*wd.pRobo),
                                 std::ref(*wd.pStore),
                                 std::ref(*wd.pTarget),
@@ -826,6 +801,27 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
             if (WorkerThreadTryJoin(wd))
                 InvalidateRect(hWnd, &myRect, TRUE);
         }
+        //----------------------------------------
+        break;
+    }
+
+    case 'b': /* test All! */
+    {
+        //----------------------------------------
+        WorkerThreadRunTask(wd, _T("  *** testAll ***  "), [](MyWindowData &wd) {
+            try
+            {
+                //----------------------------------------
+                test::Test mytests(wd._tests_fn);
+                //----------------------------------------
+            }
+            catch (boost::thread_interrupted&)
+            { CINFO("WorkingThread interrupted"); }
+            catch (const std::exception &e)
+            { SHOW_CERROR(e.what()); }
+            //----------------------------------------
+        }, std::ref(wd));
+        WorkerThreadTryJoin(wd);
         //----------------------------------------
         break;
     }

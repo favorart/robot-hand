@@ -1,8 +1,10 @@
 ﻿#include "StdAfx.h"
 #include "RoboLearnMoves.h"
 #include "RoboPhysics.h"
+#include "RoboPosApprox.h"
 
 using namespace Robo;
+using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
 void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
@@ -132,3 +134,63 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
 }
 
 //------------------------------------------------------------------------------
+void RoboPos::testApprox(Store &store, RoboI &robo)
+{
+    try
+    {
+        for (int i = 1; i < 20; ++i)
+        {
+            CDEBUG(i << _T(" approx sizing=") << i * 2);
+
+            Approx approx(store.size(), 8, Approx::noize, [i]() { return i * 2; });
+            approx.constructXY(store);
+            //tcout << _T("writing") << std::endl;
+            {
+                //tfstream ofs("approx.txt", std::ios_base::out);
+                //boost::archive::text_oarchive toa(ofs);
+                //toa & approx;
+
+                double sum_error = 0.;
+                for (auto & rec : store)
+                {
+                    Point pred = approx.predict(rec.controls);
+                    double err = boost_distance(rec.hit, pred);
+                    //ofs << pred << " " << rec.hit << " " << err << std::endl;
+                    sum_error += err;
+                    // ===================================
+                    boost::this_thread::interruption_point();
+                    // ===================================
+                }
+                //ofs << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
+                //std::cout << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
+                CDEBUG(std::endl << "sum_error=" << sum_error / store.size());
+
+                for (auto i = 0; i < 1000; ++i)
+                {
+                    Control c;
+                    c.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return robo.muscleMaxLasts(m); });
+
+                    robo.reset();
+                    robo.move(c);
+                    // ===================================
+                    boost::this_thread::interruption_point();
+                    // ===================================
+                    Point pred = approx.predict(c);
+                    double err = boost_distance(robo.position(), pred);
+                    //ofs << pred << " " << robo.position() << " " << err << std::endl;
+                    sum_error += err;
+                }
+                //ofs << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
+                //std::cout << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
+                CDEBUG(std::endl << "sum_error=" << sum_error / 1000);
+            }
+        }
+    }
+    catch (boost::thread_interrupted&)
+    { CINFO("WorkingThread interrupted"); }
+    catch (const std::exception &e)
+    { SHOW_CERROR(e.what()); }
+}
+
+//------------------------------------------------------------------------------
+

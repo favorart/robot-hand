@@ -193,7 +193,7 @@ void Tank::realMove()
     // =================
     currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2.;
     // =================
-    env->edges->interaction(getEnvCond() & EDGES, center, normal, tan_angle);
+    env->edges->interaction(containE(getEnvCond(), Enviroment::EDGES), center, normal, tan_angle);
     // =================
     if (ba::all_of_equal(status->shifts, 0.))
     {

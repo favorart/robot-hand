@@ -15,6 +15,9 @@ class LearnMoves;
 }
 class TargetI;
 class CanvasScaleLetters;
+namespace Utils {
+struct CArgs;
+}
 
 //-------------------------------------------------------------------------------
 struct MyWindowData
@@ -122,15 +125,17 @@ struct MyWindowData
     void save(const tstring &fn_db) const;
     void load(const tstring &fn_db);
     // ---------------------------------
-#ifdef DEBUG_RM
+#ifdef DEBUG_SHOW_CONTRADICTION
     static std::list<Point> goals;
     static std::list<Point> predicts;
     static std::list<Point> reals;
 #endif
-    tstring _config;
-    tstring _lm_config;
+    bool testings{ false };
+    tstring _config_fn{};
+    tstring _tests_fn{};
+    tstring _lm_conf_fn{};
     // ---------------------------------
-    MyWindowData(const tstring &config, const tstring &database);
+    MyWindowData(const Utils::CArgs&);
     ~MyWindowData();
     // ---------------------------------
     void read_config(IN const tstring &filename);
@@ -176,7 +181,5 @@ void  onShowDBTrajes (MyWindowData &wd);
 //-------------------------------------------------------------------------------
 bool  repeatRoboMove(MyWindowData &wd);
 bool  makeRoboMove(MyWindowData &wd);
-//-------------------------------------------------------------------------------
-tstring getJointsHelp (const Robo::RoboI& robo);
 //-------------------------------------------------------------------------------
 #endif // _WINDOW_DATA_H_

@@ -2,6 +2,8 @@
 #include "HandMotionLaws.h"
 #include "RoboEdges.h"
 #include "RoboPhysicsStatus.h"
+#include "RoboEnviroment.h"
+#include "RoboMuscles.h"
 
 using namespace Robo;
 //--------------------------------------------------------------------------------
@@ -75,7 +77,7 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
         auto last = status->lastsMove[muscle] - 1;
         const auto &frames = env->framesMove[joint];
         //------------------------------------------------
-        if (env->conditions & START_FRICTION)
+        if (containE(getEnvCond(), ENV::START_FRICTION))
         {
             if (last <= env->st_friction_n_frames)
             {
@@ -110,12 +112,12 @@ SkipFrameVal:;
     status->prevFrame[muscle] = Frame;
 
     // --- WIND ----------------------------------
-    if ((env->conditions & WINDY) && status->lastsMove[muscle] == 1)
+    if (containE(getEnvCond(), ENV::WINDY) && status->lastsMove[muscle] == 1)
     {
         Frame = Utils::random(RoboI::minFrameMove, maxFrame);
     }
     // --- MOMENTUM CHANGES ----------------------
-    if (env->conditions & MOMENTUM_CHANGES)
+    if (containE(getEnvCond(), ENV::MOMENTUM_CHANGES))
     {
         // TODO: several frames <<<
         Frame = Utils::random(RoboI::minFrameMove, maxFrame);
@@ -378,30 +380,30 @@ RoboPhysics::EnvPhyState::EnvPhyState(const Point &base, const JointsInputsPtrs 
         if (!j_in->show)
             continue;
 
-        auto law = j_in->frames;
+        laws[j] = j_in->frames;
         
-        auto nMoveFrames = law.nMoveFrames;
-        auto nStopFrames = static_cast<frames_t>(nMoveFrames * law.dInertiaRatio) + 2;
+        auto nMoveFrames = laws[j].nMoveFrames;
+        auto nStopFrames = static_cast<frames_t>(nMoveFrames * laws[j].dInertiaRatio) + 2;
         
         framesMove[j].resize(nMoveFrames);
         framesStop[j].resize(nStopFrames);
 
-        law.moveLaw->generate(framesMove[j].begin(), nMoveFrames,
-                              RoboI::minFrameMove, law.dMoveDistance);
+        laws[j].moveLaw->generate(framesMove[j].begin(), nMoveFrames,
+                                  RoboI::minFrameMove, laws[j].dMoveDistance);
 
         double maxVelosity = *boost::max_element(framesMove[j]);
-        law.stopLaw->generate(framesStop[j].begin(), nStopFrames - 1,
-                              RoboI::minFrameMove, law.dMoveDistance * law.dInertiaRatio,
-                              maxVelosity);
+        laws[j].stopLaw->generate(framesStop[j].begin(), nStopFrames - 1,
+                                  RoboI::minFrameMove, laws[j].dMoveDistance * laws[j].dInertiaRatio,
+                                  maxVelosity);
         /* last frame must be 0 to deadend */
         framesStop[j][nStopFrames - 1] = 0.;
 #ifdef DEBUG_RM
         {
-            printEnviroment(conditions);
+            printEnumOneHot<Enviroment>(conditions, Robo::enviroment_outputs);
             std::cout << std::endl;
 
             std::stringstream ss;
-            ss << "motion-law-" << Utils::ununi(Robo::MotionLaws::name(law.type)) << "-" << int(j) << ".plt";
+            ss << "motion-law-" << Utils::ununi(Robo::MotionLaws::name(laws[j].type)) << "-" << int(j) << ".plt";
             std::cout << ss.str() << std::endl;
             // jointName(J(j))
             std::ofstream fout(ss.str());
@@ -519,13 +521,13 @@ distance_t RoboPhysics::Imoment(joint_t j) const
     const auto mo = muscleByJoint(j, true);
     const auto mc = muscleByJoint(j, false);
     // Добавить моменты инерции, для соседей
-    // Когда сочленение заблокировано (1,1) - перемещается, как монолит
-    // Иначе на него действуют остальные смещения
+    // Когда "сочленение заблокировано"=(1,1) - то перемещается, как "монолит",
+    // Иначе на него действуют смещения остальных сочленений
     distance_t Imoment = 0.;
-    if ((env->conditions & MUTIAL_DYNAMICS) &&
-        ((env->conditions & MUTIAL_BLOCKING) && // actuators mutual blocking
+    if (containE(getEnvCond(), ENV::MUTIAL_DYNAMICS) &&
+        containE(getEnvCond(), ENV::MUTIAL_BLOCKING) && // actuators mutual blocking
          !(status->shifts[mc] > RoboI::minFrameMove &&
-           fabs(status->shifts[mc] - status->shifts[mo]) < RoboI::minFrameMove)))
+           fabs(status->shifts[mc] - status->shifts[mo]) < RoboI::minFrameMove))//)
     {
         for (joint_t jj = j, gain = 4; jj > 0; --jj, gain <<= 1)
         {
@@ -571,3 +573,83 @@ TCHAR RoboPhysics::lastsStatusT(muscle_t m) const
         (status->lastsMove[m] > 0) ? 'm' : '0') : 's';
 }
 #endif // DEBUG_RM
+
+//--------------------------------------------------------------------------------
+void RoboPhysics::plotMotionLaws(const tstring &fn, joint_t joint) const
+{
+#ifdef DEBUG_PLOTTING
+    auto fname = Utils::ununi(fn);
+    //ss.str(""); // CLEAR ss
+    //std::system(("del " +).c_str());
+
+    std::ofstream fplot(fname + ".plt");
+    fplot << "set title 'Test Motion Laws " << Utils::ununi(getName()) << "' " << std::endl;  // plot title
+    fplot << "set xlabel 'Time' " << std::endl;                                               // x - axis label
+    fplot << "set ylabel 'Distance' " << std::endl;                                           // y - axis label
+    fplot << "set grid " << std::endl;
+    fplot << "set autoscale " << std::endl;
+    // labels
+    //ss << "set label \"boiling point\" at 10, 212 " << std::endl;
+
+    ////# key/legend
+    //ss << "set key top right " << std::endl;
+    //ss << "set key box " << std::endl;
+    //ss << "set key left bottom " << std::endl;
+    //ss << "set key bmargin " << std::endl;
+    //ss << "set key 0.01, 100 " << std::endl;
+    //ss << "set nokey" << std::endl; // no key
+    //// arrow
+    //ss << "set arrow from 1, 1 to 5, 10" << std::endl;
+
+    if (joint == jointsAll)
+    {
+        auto &robo = dynamic_cast<const RoboI&>(*this);
+        fplot << "plot '" << fname << ".dat' ";
+        for (joint_t j = 0; j < jointsCount(); ++j)
+        {
+            if (j > 0)
+                fplot << ", \\" << std::endl << "     '" << fname << ".dat' ";
+            fplot << " using 1:" << int(j+2) << " with lines ";
+            fplot << " title '" << Utils::ununi(Robo::getJointName(robo, j)) << "' ";
+        }
+        fplot << std::endl;
+
+        auto max_sz = env->nFramesAll(0);
+        for (joint_t j = 1; j < jointsCount(); ++j)
+            if (max_sz < env->nFramesAll(j))
+                max_sz = env->nFramesAll(j);
+
+        std::ofstream fdat(fname + ".dat");
+        for (frames_t x = 0; x < max_sz; ++x)
+        {
+            fdat << x << '\t';
+            for (joint_t j = 0; j < jointsCount(); ++j)
+            {
+                if (x < env->nFramesMove(j))
+                    fdat << env->framesMove[j][x];
+                else if (x < env->nFramesAll(j))
+                    fdat << env->framesStop[j][x - env->nFramesMove(j)];
+                else
+                    fdat << 0;
+                if (j+1 != jointsCount())
+                    fdat << '\t';
+            }
+            fdat << std::endl;
+        }
+    }
+    else // One joint
+    {
+        fplot << "plot '-'  using 1:2 with lines ";
+        auto &robo = dynamic_cast<const RoboI&>(*this);
+        fplot << " title '" << Utils::ununi(Robo::getJointName(robo, joint)) << "' ";
+        fplot << std::endl;
+        frames_t x = 0;
+        auto fprinter = [&fplot, &x](Robo::distance_t item) {
+            fplot << x++ << '\t' << item << std::endl;
+        };
+        br::for_each(env->framesMove[joint], fprinter);
+        br::for_each(env->framesStop[joint], fprinter);        
+    }
+#endif // DEBUG_PLOTTING
+}
+

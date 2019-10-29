@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "verbose.h"
 //#include <numeric>
 namespace Utils {
 //constexpr double EPSILONT      = std::numeric_limits<double>::min * 10;
@@ -35,6 +36,53 @@ std::string ununi(const tstring& s);
 tstring format(const TCHAR *fmt, ...);
 //-------------------------------------------------------------------------------
 std::string now();
+//-------------------------------------------------------------------------------
+struct CArgs
+{
+    bool tests{ false };
+    tstring config{ _T("") };
+    tstring database{ _T("") };
+    tstring testsfile{ _T("") };
+    tstring lm_config{ _T("") };
+};
+} // Utils
+
+//------------------------------------------------------
+using tseparator = boost::char_separator<TCHAR>;
+using ttokenizer = boost::tokenizer<boost::char_separator<TCHAR>, tstring::const_iterator, tstring>;
+//------------------------------------------------------
+template <typename Enum, size_t N = size_t(Enum::_LAST_)>
+Enum scanEnumOneHot(const tstring &buf, const std::array<const TCHAR*, N> &outputs)
+{
+    if (buf == outputs[0])
+        return Enum(0);
+    tseparator sep(_T("|"));
+    ttokenizer tokens(buf, sep);
+    uint64_t e = 0;
+    auto beg = std::cbegin(outputs);
+    beg++;
+    for (auto &tok : tokens)
+    {
+        auto it = std::find(beg, outputs.cend(), tok);
+        if (it == outputs.cend())
+            CERROR("Invalid " << typeid(Enum).name() << ' ' << tok << ' ' << std::distance(beg, it));
+        e |= (1ULL << std::distance(beg, it));
+        //tcout << *it << ' ' << int(e) << ' ';
+    }
+    return Enum(e);
+}
+//------------------------------------------------------
+template <typename Enum, size_t N = size_t(Enum::_LAST_)>
+void printEnumOneHot(Enum enum_val, const std::array<const TCHAR*, N> &outputs)
+{
+    if (enum_val == Enum(0))
+    {
+        tcout << outputs[0];
+        return;
+    }
+    for (uint64_t e = 1, i = 0; i < N; ++i, e <<= 1)
+        if (e & uint64_t(enum_val))
+            tcout << ((i == 1) ? _T("") : _T("|")) << outputs[i];
 }
 
 //-------------------------------------------------------------------------------

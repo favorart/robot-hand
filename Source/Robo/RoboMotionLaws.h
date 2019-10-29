@@ -43,6 +43,19 @@ inline tstring name(MLaw ml)
     tstring data[] = { _T(""), _T("SLOW"), _T("FAST"), _T("STAB"), _T("CONAC"), _T("MANGO") };
     return data[ml];
 }
+
+inline MLaw scanMLaw(const tstring &s)
+{    
+    if (s == _T("SLOW"))       return MLaw::SLOW;
+    else if (s == _T("FAST"))  return MLaw::FAST;
+    else if (s == _T("STAB"))  return MLaw::STAB;
+    else if (s == _T("CONAC")) return MLaw::CONAC;
+    else if (s == _T("MANGO")) return MLaw::MANGO;
+    else if (s != _T("INVALID"))
+        CERROR("Invalid scan MotionLaw");
+    return MLaw::INVALID;
+}
+
 //------------------------------------------------------------------------------
 struct JointMotionLaw
 {
@@ -161,7 +174,7 @@ public:
                            double left_border, double right_border) const {}
 };
 
-}
-}
+} // MotionLaws
+} // Robo
 //------------------------------------------------------------------------------
 #endif // _MOTION_LAWS_H_

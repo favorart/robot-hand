@@ -145,6 +145,7 @@ namespace bfs = boost::filesystem;
 //#include <boost/interprocess/sync/named_mutex.hpp>
 //#include <boost/interprocess/sync/scoped_lock.hpp>
 
+#ifdef WIN32
 /* Visual Leak Detector */
 //#include <vld.h>
 
@@ -153,6 +154,7 @@ namespace bfs = boost::filesystem;
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <tchar.h>
+#endif
 //-------------------------------------------------------------------------------
 #if defined(UNICODE) || defined(_UNICODE)
 #define tcin  std::wcin

@@ -8,6 +8,7 @@ class Point
 public:
     static unsigned w;
     static unsigned prec;
+    static const unsigned ndimensions = 2;
     using value_type = double;
 
     Point() : x_(0.), y_(0.) {}
@@ -83,6 +84,10 @@ public:
     friend tistream& operator>>(tistream &s, Point &p);
     friend std::ostream& operator<<(std::ostream &s, const Point &p);
     friend std::istream& operator>>(std::istream &s, Point &p);
+
+    //-------------------------------------------------------------------------------
+    Point::value_type& operator[](unsigned i);
+    const Point::value_type& operator[](unsigned i) const;
 
 private:
     Point::value_type x_, y_;

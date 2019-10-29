@@ -9,6 +9,12 @@ struct Robo::Mobile::Tank::JointInput : public Robo::JointInput
 {
     Tank::Joint Joint() const { return static_cast<Tank::Joint>(joint); }
     tstring name() const { return jointName(Joint()); }
+
+    JointInput() : Robo::JointInput() {}
+    JointInput(joint_t joint, bool show, const Point &openCoords,
+               const MotionLaws::JointMotionLaw &frames) :
+        Robo::JointInput(joint, show, openCoords, frames)
+    {}
     void save(tptree &node) const
     {
         Robo::JointInput::save(node);
@@ -30,9 +36,9 @@ struct Robo::NewHand::Hand::JointInput : public Robo::JointInput
     distance_t defaultPose{ 0. };
 
     JointInput() : Robo::JointInput() {}
-    JointInput(joint_t joint, const MotionLaws::JointMotionLaw &frames, bool show, 
-               const Point &openCoords, distance_t defPose) :
-        Robo::JointInput(joint, frames, show, openCoords), defaultPose(defPose)
+    JointInput(joint_t joint, bool show, const Point &openCoords,
+               const MotionLaws::JointMotionLaw &frames, distance_t defPose) :
+        Robo::JointInput(joint, show, openCoords, frames), defaultPose(defPose)
     {}
     void save(tptree &node) const
     {

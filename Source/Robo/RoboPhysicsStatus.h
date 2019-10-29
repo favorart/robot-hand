@@ -44,26 +44,31 @@ struct RoboPhysics::Status
 //--------------------------------------------------------------------------------
 struct RoboPhysics::EnvPhyState
 {
+    using MLaws = std::array<MotionLaws::JointMotionLaw, RoboPhysics::jointsMaxCount>;
     //frames_t visitedRarity{ 10 }; ///< писать в траекторию 1 раз в данное число тактов
-    Enviroment conditions{ NOTHING };
+    Robo::Enviroment conditions{ Robo::Enviroment::NOTHING }; ///< уловия внешней среды
     pEnvEdges edges; ///< удары и биение на самопересечениях и границах рабочей области
+    MLaws laws; ///< закон движения каждого сочленения
 
-    bool momentum_happened{ false };
-    frames_t momentum_n_start{ LastsInfinity };
-    frames_t momentum_n_frames{ 10 };
+    bool momentum_happened{ false }; ///< ???
+    frames_t momentum_n_start{ LastsInfinity }; ///< ???
+    frames_t momentum_n_frames{ 10 }; ///< ???
 
-    frames_t st_friction_n_frames{ 10 };
-    distance_t st_friction_big_frame{ RoboI::minFrameMove };
+    frames_t st_friction_n_frames{ 10 }; ///< ???
+    distance_t st_friction_big_frame{ RoboI::minFrameMove }; ///< ???
 
     // systematic_change = []() { изменить несколько рандомных кадров framesMove или framesStop };
 
     // --- велична перемещений в каждый кадр ---
     using JointFrames = std::array<std::vector<distance_t>, RoboI::jointsMaxCount>;
-    JointFrames framesMove{}; // при движении
-    JointFrames framesStop{}; // при остановке
+    JointFrames framesMove{}; ///< кадры при движении (дельта прироста)
+    JointFrames framesStop{}; ///< кадры при остановке (дельта прироста)
 
     EnvPhyState(const Point &base, const JointsInputsPtrs&, pEnvEdges);
     void reset();
+    frames_t nFramesAll(joint_t j) const { return (framesMove[j].size() + framesStop[j].size()); }
+    frames_t nFramesMove(joint_t j) const { return framesMove[j].size(); }
+    frames_t nFramesStop(joint_t j) const { return framesStop[j].size(); }
 };
 
 }

@@ -249,7 +249,7 @@ public:
     //-------------------------------------------------------------------------------
     static BitsControl EmptyMove() { return BitsControl{}; }
 };
-}
+} // namespace Robo
 //-------------------------------------------------------------------------------
 BOOST_CLASS_VERSION(Robo::Actuator, 2)
 BOOST_CLASS_VERSION(Robo::Control, 2)

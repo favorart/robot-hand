@@ -215,20 +215,20 @@ TourI::TourI(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const T
     _b_braking(false),
     _b_simul(true)
 {
-    GET_OPTS(_config, _b_simul, TourI);
-    GET_OPTS(_config, _b_starts, TourI);
-    GET_OPTS(_config, _b_braking, TourI);
-    GET_OPTS(_config, _step_distance, TourI);
+    CONF_GET_OPT_SCOPE(_config, _b_simul, TourI);
+    CONF_GET_OPT_SCOPE(_config, _b_starts, TourI);
+    CONF_GET_OPT_SCOPE(_config, _b_braking, TourI);
+    CONF_GET_OPT_SCOPE(_config, _step_distance, TourI);
 
-    GET_OPTS(_config, _lasts_step_increment_init, TourI);
-    GET_OPTS(_config, _lasts_step_increment, TourI);
-    GET_OPTS(_config, _lasts_step_braking_init, TourI);
-    GET_OPTS(_config, _lasts_step_braking_incr, TourI);
-    GET_OPTS(_config, _lasts_step_on_target, TourI);
-    GET_OPTS(_config, _lasts_step_n, TourI);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_increment_init, TourI);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_increment, TourI);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_braking_init, TourI);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_braking_incr, TourI);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_on_target, TourI);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_n, TourI);
 
     //tstring next_joint;
-    //GET_OPT(_config, next_joint, TourI);
+    //CONF_GET_OPT(_config, next_joint, TourI);
     //if      (next_joint == _T("reverse")) _next_joint = reverse;
     //else if (next_joint == _T("forward")) _next_joint = forward;    
     //else if (next_joint == _T("customs")) _next_joint = nj;
@@ -303,17 +303,17 @@ bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 TourWorkSpace::TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint) :
     TourI(store, robo, config, next_joint)
 {
-    GET_OPTS(_config, _b_simul, workspace);
-    GET_OPTS(_config, _b_starts, workspace);
-    GET_OPTS(_config, _b_braking, workspace);
-    GET_OPTS(_config, _step_distance, workspace);
+    CONF_GET_OPT_SCOPE(_config, _b_simul, workspace);
+    CONF_GET_OPT_SCOPE(_config, _b_starts, workspace);
+    CONF_GET_OPT_SCOPE(_config, _b_braking, workspace);
+    CONF_GET_OPT_SCOPE(_config, _step_distance, workspace);
 
-    GET_OPTS(_config, _lasts_step_increment_init, workspace);
-    GET_OPTS(_config, _lasts_step_increment, workspace);
-    GET_OPTS(_config, _lasts_step_braking_init, workspace);
-    GET_OPTS(_config, _lasts_step_braking_incr, workspace);
-    GET_OPTS(_config, _lasts_step_on_target, workspace);
-    GET_OPTS(_config, _lasts_step_n, workspace);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_increment_init, workspace);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_increment, workspace);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_braking_init, workspace);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_braking_incr, workspace);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_on_target, workspace);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_n, workspace);
 }
 
 //------------------------------------------------------------------------------
@@ -442,21 +442,21 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     _b_checking(false)
 {
     double borders_side;
-    GET_OPTS(_config, borders_side, target);
+    CONF_GET_OPT_SCOPE(_config, borders_side, target);
     defineTargetBorders(borders_side);
 
-    GET_OPTS(_config, _b_simul, target);
-    GET_OPTS(_config, _b_starts, target);
-    GET_OPTS(_config, _b_braking, target);
-    GET_OPTS(_config, _b_predict, target);
-    GET_OPTS(_config, _b_checking, target);
-    GET_OPTS(_config, _step_distance, target);
-    GET_OPTS(_config, _lasts_step_increment, target);
-    GET_OPTS(_config, _lasts_step_increment_init, target);
-    GET_OPTS(_config, _lasts_step_braking_init, target);
-    GET_OPTS(_config, _lasts_step_braking_incr, target);
-    GET_OPTS(_config, _lasts_step_on_target, target);
-    GET_OPTS(_config, _lasts_step_n, target);
+    CONF_GET_OPT_SCOPE(_config, _b_simul, target);
+    CONF_GET_OPT_SCOPE(_config, _b_starts, target);
+    CONF_GET_OPT_SCOPE(_config, _b_braking, target);
+    CONF_GET_OPT_SCOPE(_config, _b_predict, target);
+    CONF_GET_OPT_SCOPE(_config, _b_checking, target);
+    CONF_GET_OPT_SCOPE(_config, _step_distance, target);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_increment, target);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_increment_init, target);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_braking_init, target);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_braking_incr, target);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_on_target, target);
+    CONF_GET_OPT_SCOPE(_config, _lasts_step_n, target);
 
     if (_b_predict && !_approx->constructed())
         //  FILTERING !!!!!!!
@@ -653,9 +653,11 @@ bool TourTarget::runNestedForMuscle(IN joint_t joint, IN Control &controls, OUT 
 }
 
 //------------------------------------------------------------------------------
-#include "WindowData.h" /// !!! RM
+#ifdef DEBUG_SHOW_CONTRADICTION
+#include "WindowData.h"
 std::list<Point> MyWindowData::predicts = {};
 std::list<Point> MyWindowData::reals = {};
+#endif
 
 void Counters::fill(bool model, bool real, const Point &pos, const Point &pred)
 {
@@ -663,6 +665,7 @@ void Counters::fill(bool model, bool real, const Point &pos, const Point &pred)
     incr(model, real);
     auto d = boost_distance(pred, pos);
     avg_miss += d;
+#ifdef DEBUG_SHOW_CONTRADICTION
     if (d > 0.05)
     {
         MyWindowData::predicts.push_back(pred); // orange
@@ -671,6 +674,7 @@ void Counters::fill(bool model, bool real, const Point &pos, const Point &pred)
     if (d > 1.)
         CDEBUG("pos=" << pos << " pred=" << pred << " dist=" << boost_distance(pred, pos));
     // TOO::MUCH !!!
+#endif
 }
 
 //------------------------------------------------------------------------------

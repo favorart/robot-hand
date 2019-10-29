@@ -69,7 +69,7 @@ void Hand::realMove()
             move = true;
     }
     // =================
-    env->edges->interaction(getEnvCond() & EDGES);
+    env->edges->interaction(containE(getEnvCond(), ENV::EDGES));
     // =================
     if (!move)
     {

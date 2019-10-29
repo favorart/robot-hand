@@ -4,8 +4,6 @@
 #include "RoboEnviroment.h"
 #include "RoboMotionLaws.h"
 
-#define DEBUG_RM
-
 //-------------------------------------------------------------------------------
 namespace rl_problem {
 struct ObservationRobo;
@@ -64,7 +62,7 @@ struct JointInput
     bool operator<(const JointInput &ji) const { return (joint < ji.joint); }
 
     JointInput() = default;
-    JointInput(joint_t joint, const MotionLaws::JointMotionLaw &frames, bool show, const Point &base) :
+    JointInput(joint_t joint, bool show, const Point &base, const MotionLaws::JointMotionLaw &frames) :
         joint(joint), frames(frames), show(show), base(base)
     {}
     virtual ~JointInput() {}

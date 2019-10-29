@@ -157,7 +157,22 @@ void Point::save(tptree &node) const
 }
 void Point::load(tptree &node)
 {
-    assert(node.size() == 2);
+    assert(node.size() == Point::ndimensions);
     x = node.front().second.get_value<Point::value_type>();
     y = node.back().second.get_value<Point::value_type>();
 }
+//--------------------------------------------------------------------------------
+Point::value_type& Point::operator[](unsigned i)
+{
+    if (i > Point::ndimensions) CERROR("Invalid index")
+    else if (i == 0) return x_;
+    return y_;
+}
+const Point::value_type& Point::operator[](unsigned i) const
+{
+    if (i >= Point::ndimensions) CERROR("Invalid index")
+    else if (i == 0) return x_;
+    return y_;
+}
+//--------------------------------------------------------------------------------
+

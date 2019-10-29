@@ -16,4 +16,7 @@ tstring muscleHelp(Tank::Muscle muscle);
 tstring muscleName(Tank::Muscle muscle);
 tstring jointName(Tank::Joint joint);
 }
-}
+
+tstring getJointName(const Robo::RoboI&, Robo::joint_t);
+tstring getMuscleName(const Robo::RoboI&, Robo::muscle_t);
+} // Robo

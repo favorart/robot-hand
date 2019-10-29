@@ -3,8 +3,10 @@
 using namespace Robo;
 using namespace RoboPos;
 
-#include "WindowData.h" /// !!! RM
+#ifdef DEBUG_SHOW_CONTRADICTION
+#include "WindowData.h"
 std::list<Point> MyWindowData::goals;
+#endif
 
 namespace RoboPos
 {
@@ -138,7 +140,8 @@ public:
         }
         return true;
     }
-    // === REMOVE ===
+
+#ifdef DEBUG_SHOW_CONTRADICTION
     size_t size() const { return _goals.size(); }
     void show() const
     {
@@ -146,7 +149,7 @@ public:
         for (auto &goal : _goals)
             MyWindowData::goals.push_back(goal.avg_goals);
     }
-    // ==============
+#endif
     size_t stage() const { return _stage; }
     /// index of a sector of the target the point is belonged
     static size_t point_belongs_to_sector(const Point &aim, const Point &center, const int n_angles)
@@ -408,8 +411,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                               _T("  minutes:") << static_cast<double>(complexity()) / TourI::divToMinutes);
                     }
                     new_stage = true;
-
-                    runNestedPreMove(controls, 0, frames, goal.biggest(), pos);
+                    //runNestedPreMove(controls, 0, frames, goal.biggest(), pos);
                     //first_move==true??
                     continue;
                 }
@@ -436,7 +438,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                 best_d = prev_dist;
                 best_lasts = lasts;
             }
-        }
+        } // for muscle_t acts
 
         if (best_acts) /* if best_acts selected */
         {
@@ -585,7 +587,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
         boost::this_thread::interruption_point();
         //----------------------------------------------
         controls_prev = controls;
-    }
+    } // while !done
     CINFO("Evo: DONE");
     return true;
 }

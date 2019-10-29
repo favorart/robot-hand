@@ -40,26 +40,26 @@ void RoboPos::LearnMoves::read_config()
 //------------------------------------------------------------------------------
 void RoboPos::LearnMoves::save(tptree &node) const
 {
-    tptree lm;
-    node.add_child(_T("LearnMoves"), lm);
-    lm.put(_T("tries"), unsigned(_tries));
-    //lm.put(_T("LearnMoves.tries_break"), tries_break);
-    lm.put(_T("LearnMoves.random_try"), _random_try);
-    lm.put(_T("side"), side3);
-    lm.put(_T("side_decrease_step"), side_decrease_step);
-    lm.put(_T("use_weighted_mean"), use_weighted_mean);
+    tptree child;
+    node.add_child(_T("LearnMoves"), child);
+    CONF_PUT(child, _tries);
+    //CONF_PUT(child, tries_break);
+    CONF_PUT(child, _random_try);
+    CONF_PUT(child, side3);
+    CONF_PUT(child, side_decrease_step);
+    CONF_PUT(child, use_weighted_mean);
 }
 
 //------------------------------------------------------------------------------
 void RoboPos::LearnMoves::load(tptree &node)
 {
     //assert(node.size() == 6);
-    _tries = node.get_optional<unsigned>(_T("tries")).get_value_or(4);
-    //tries_break = node.get_optional<unsigned>(_T("tries_break"));
-    _random_try = node.get_optional<unsigned>(_T("random_try")).get_value_or(3);
-    side3 = node.get<double>(_T("side"), 0.1);
-    side_decrease_step = node.get<double>(_T("side_decrease_step"), 0.01);
-    use_weighted_mean = node.get<bool>(_T("use_weighted_mean"), true);
+    CONF_GET_OPT_VAL(node, _tries, 4);
+    //CONF_GET_OPT(node, tries_break);
+    CONF_GET_OPT_VAL(node, _random_try, 3);
+    CONF_GET_OPT_VAL(node, side3, 0.1);
+    CONF_GET_OPT_VAL(node, side_decrease_step, 0.01);
+    CONF_GET_OPT_VAL(node, use_weighted_mean, true);
 }
 
 //------------------------------------------------------------------------------

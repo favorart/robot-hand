@@ -58,8 +58,11 @@ tstring SaveFileDialog(HWND hWnd);
 tstring getCurrentTimeString (tstring format, std::time_t *the_time=NULL);
 tstring getWindowTitleString (HWND hWnd);
 //-------------------------------------------------------------------------------
+namespace Utils {
+struct CArgs;
+}
+void  getConsoleArguments(Utils::CArgs&);
 void  redirectConsoleIO ();
-void  getConsoleArguments (tstring &config, tstring &database);
 //-------------------------------------------------------------------------------
 struct MyWindowData;
 

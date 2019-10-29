@@ -15,8 +15,9 @@ namespace RoboPos
 class TourI;
 /* тестовые движения рукой */
 //------------------------------------------------------------------------------
-void  testRandom (RoboMoves::Store &store, Robo::RoboI &robo, size_t tries);
-void  testCover  (RoboMoves::Store &store, Robo::RoboPhysics &robo);
+void  testApprox (RoboMoves::Store&, Robo::RoboI&);
+void  testRandom (RoboMoves::Store&, Robo::RoboI&, size_t tries);
+void  testCover  (RoboMoves::Store&, Robo::RoboPhysics&);
 //------------------------------------------------------------------------------
 
 /*!  Количество точек, в окресности искомой точки.

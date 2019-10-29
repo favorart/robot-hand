@@ -77,3 +77,33 @@ tstring Robo::Mobile::jointName(Tank::Joint joint)
 }
 
 //--------------------------------------------------------------------------------
+tstring Robo::getJointName(const Robo::RoboI& robo, Robo::joint_t joint)
+{
+    if (typeid(robo) == typeid(Robo::NewHand::Hand))
+    {
+        auto &hand = dynamic_cast<const Robo::NewHand::Hand&>(robo);
+        return jointName(hand.J(joint));
+    }
+    else if (typeid(robo) == typeid(Robo::Mobile::Tank))
+    {
+        auto &tank = dynamic_cast<const Robo::Mobile::Tank&>(robo);
+        return jointName(tank.J(joint));
+    }
+    throw std::exception("Not Implemented");
+}
+tstring Robo::getMuscleName(const Robo::RoboI& robo, Robo::muscle_t m)
+{
+    if (typeid(robo) == typeid(Robo::NewHand::Hand))
+    {
+        auto &hand = dynamic_cast<const Robo::NewHand::Hand&>(robo);
+        return muscleName(hand.M(m));
+    }
+    else if (typeid(robo) == typeid(Robo::Mobile::Tank))
+    {
+        auto &tank = dynamic_cast<const Robo::Mobile::Tank&>(robo);
+        return muscleName(tank.M(m));
+    }
+    throw std::exception("Not Implemented");
+}
+//-------------------------------------------------------------------------------
+

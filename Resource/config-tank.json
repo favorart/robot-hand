@@ -12,11 +12,11 @@
         "motionLaw": {
           "name": "STAB",
           "type": 3,
-          "dStableRatio": 0.25,
-          "dInertiaRatio": 0.07,
-          "#stFrictRatio": 0.01,
           "nMoveFrames": 150,
           "dMoveDistance": 0.35, "#dMoveDistance": "max distance you can replace in one time",
+          "dInertiaRatio": 0.07,
+          "dStableRatio": 0.25,
+          "#stFrictRatio": 0.01,
           "param" : "0.25"
         }
       },
@@ -28,11 +28,11 @@
         "motionLaw": {
           "name": "STAB",
           "type": 3,
-          "dStableRatio": 0.25,
-          "dInertiaRatio": 0.07,
-          "#stFrictRatio": 0.01,
           "nMoveFrames": 150,
           "dMoveDistance": 0.35,
+          "dInertiaRatio": 0.07,
+          "dStableRatio": 0.25,
+          "#stFrictRatio": 0.01,
           "param": "0.25"
         },
         "#motionLaw1": {

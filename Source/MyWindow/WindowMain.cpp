@@ -1,4 +1,5 @@
 ﻿#include "StdAfx.h"
+#ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowData.h"
 
@@ -27,7 +28,6 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   { MessageBox (NULL, _T("Can't register window class."), _T("Error"), MB_OK);
     return 0;
   }
-  
   //=======================
   // Создаём дополнительное окно с коммандной строкой
   // Перенаправляем в неё стандартные потоки ввода/вывода
@@ -35,16 +35,15 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   // Изменяем заголовок консоли
   SetConsoleTitle(_T("cmd-robo-moves"));
   //=======================
-  tstring config, database;
+  Utils::CArgs args;
   // Получаем параметры командной строки
-  getConsoleArguments(config, database);
+  getConsoleArguments(args);
   //=======================
   std::srand(112); /// (unsigned int)clock());
   //=======================
   // Инициализируем пользовательские данные
-  MyWindowData wd(config, database);
+  MyWindowData wd(args);
   //=======================
-  
   // Создаем основное окно приложения
   hWnd = CreateWindow ( szClassName,                // Имя класса                    
                         _T("robot-moves"),          // Текст заголовка 
@@ -72,3 +71,26 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   }
   return int(lpMsg.wParam);
 }
+
+#else // !MY_WINDOW
+
+#include "Test/Test.h"
+
+int main(int argc, char **argv)
+{
+    Utils::CArgs args;
+    getConsoleArguments(args);
+    //=======================
+    std::srand(112); /// (unsigned int)clock());
+    //=======================
+    try
+    {
+        MyWindowData wd(args);
+        test::Test tests(wd._tests_fn);
+    }
+    catch (std::exception &e)
+    { CERROR_SHOW(e.what()); }
+    return 0;
+}
+
+#endif // !MY_WINDOW
