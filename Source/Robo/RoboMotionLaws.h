@@ -77,6 +77,8 @@ struct JointMotionLaw
     void load(tptree &root);
     friend tostream& operator<<(tostream&, const JointMotionLaw&);
     friend std::ostream& operator<<(std::ostream&, const JointMotionLaw&);
+    bool operator==(const JointMotionLaw &ml) const;
+    bool operator!=(const JointMotionLaw &ml) const { return !(*this == ml); }
 };
 
 //------------------------------------------------------------------------------

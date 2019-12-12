@@ -255,14 +255,12 @@ void  RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 }
 
 //------------------------------------------------------------------------------
-bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &controls, OUT Point &hit)
+Robo::distance_t RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &controls)
 {
-    bool res = false;
-    //ControlHasher ch; // ???
-    //size_t h = ch(controls);
     // -----------------------------------------------
     boost::this_thread::interruption_point();
     // -----------------------------------------------
+    Point hit;
     const Record *pRec = _store.exactRecordByControl(controls);
     if (pRec) // visited.find (h) != visited.end () )
     {
@@ -274,10 +272,9 @@ bool RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const Control &cont
     {
         _robo.reset();
         _robo.move(controls);
+        ++_complexity;
         hit = _robo.position();
-        Record rec(aim, _base_pos, hit, controls, _robo.trajectory());
-        _store.insert(rec);
-        res = true;
+        _store.insert(Record{ aim, _base_pos, hit, controls, _robo.trajectory() });
     }
-    return res;
+    return bg::distance(aim, hit);
 }

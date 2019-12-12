@@ -58,9 +58,7 @@ struct JointInput
     bool show = true;
     Point base{};
     size_t joint{}; // not in order of `joint_t`, but Type::Joints order
-
     bool operator<(const JointInput &ji) const { return (joint < ji.joint); }
-
     JointInput() = default;
     JointInput(joint_t joint, bool show, const Point &base, const MotionLaws::JointMotionLaw &frames) :
         joint(joint), frames(frames), show(show), base(base)
@@ -107,12 +105,12 @@ public:
     {
         //if (muscle >= musclesCount())
         //    throw std::exception{"Incorrect muscle"};
-        return ((muscle % 2) ? (muscle - 1): (muscle + 1));
+        return ((muscle % musclesPerJoint) ? (muscle - 1): (muscle + 1));
     }
     static muscle_t muscleByJoint(IN joint_t joint, IN bool open)
-    { return (joint * 2 + !open); }
+    { return (joint * musclesPerJoint + !open); }
     static joint_t  jointByMuscle(IN muscle_t muscle)
-    { return (muscle / 2); }
+    { return (muscle / musclesPerJoint); }
 
     //----------------------------------------------------
     RoboI(const JointsInputsPtrs &joint_inputs) : _joint_inputs(joint_inputs) {}

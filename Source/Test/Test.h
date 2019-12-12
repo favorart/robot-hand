@@ -49,6 +49,12 @@ constexpr TCHAR* LMToursOutputs[] = {
 };
 
 //------------------------------------------------------
+constexpr TCHAR* VerboseLevelOutputs[] = {
+    _T("COUTALL"), _T("CDEBUG"), _T("CINFO"), _T("CWARN"), _T("CERROR"), _T("CALERT")
+};
+int scanVerboseLevel(const tstring&);
+
+//------------------------------------------------------
 struct Params
 {
     RoboType          ROBO_TYPE{ RoboType::None };
@@ -75,6 +81,7 @@ struct Params
     tstring          LM_CONFIG_FN{};
     tstring          STORE_LOAD_FN{};
     tstring          GNUPLOT_PATH{};
+    int              VERBOSE_LEVEL{};
     
     void scanLaws(tptree&);
     void scan(tptree&);
@@ -89,8 +96,11 @@ public:
     Robo::pRoboI makeRobot();
     void restart();
 
+    tptree readTestsFile(const tstring &tests_file);
     void printConfig() const;
-    void plotRobotMotionLaw(Robo::RoboI&, const tstring &test_name);
+    static void plotStoreAdj(const RoboMoves::adjacency_ptrs_t& range, const Point &aim, const Point &hit);
+    void plotStoreState(const RoboMoves::Store&, const tstring &test_name);
+    void plotRobotMotionLaw(const Robo::RoboI&, const tstring &test_name);
 
     void printStat2(const RoboMoves::Store&, const Robo::RoboI&) const;
     void printStat1(const RoboMoves::Store&, const Robo::RoboI&) const;

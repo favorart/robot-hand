@@ -75,8 +75,7 @@ void RoboMoves::Store::draw(HDC hdc, double radius, const GetHPen &getPen) const
 //------------------------------------------------------------------------------
 void RoboMoves::Store::insert(const Record &rec)
 {
-    try
-    {
+    //try {
         /* Массив траекторий для каждой точки.
         *  Несколько вариантов одного и того же движения.
         *  Вверх класть более удачные движения, отн. кол-ва действий и точности попадания.
@@ -90,18 +89,13 @@ void RoboMoves::Store::insert(const Record &rec)
         if (status.second)
             for (const auto &p : rec.trajectory)
                 _inverse.push_back({ &p.spec(), &(*status.first) });
-    }
-    catch (const std::exception &e)
-    {
-        SHOW_CERROR(e.what());
-    }
+    //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
 //------------------------------------------------------------------------------
 void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo, Format format) const
 {
-    try
-    {
+    //try {
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::mutex> lock(_store_mutex);
 
@@ -113,7 +107,7 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
         {
             std::ofstream ofs(filename, std::ios_base::out);
             boost::archive::text_oarchive toa(ofs);
-            toa << root << this;
+            toa << root << *this;
         }
         else if (format == Format::BIN)
         {
@@ -121,14 +115,9 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
             boost::archive::binary_oarchive boa(ofs);
             boa << root << *this;
         }
-        else if (format != Format::NONE)
-            throw std::runtime_error("Invalid store format");
+        else CERROR("Invalid store format");
         CINFO("saved '" << filename << "' store " << size() << " inverse " << _inverse.size());
-    }
-    catch (const std::exception &e)
-    {
-        SHOW_CERROR(e.what());
-    }
+    //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
 //------------------------------------------------------------------------------
@@ -139,8 +128,7 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
 
     clear();
 
-    try
-    {
+    //try {
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::mutex> lock(_store_mutex);
 
@@ -150,6 +138,7 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
             std::ifstream ifs(filename, std::ios_base::in);
             boost::archive::text_iarchive tia(ifs);
             tia >> root >> *this;
+            //printTree(root, tcerr);
         }
         else if (format == Format::BIN)
         {
@@ -157,8 +146,7 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
             boost::archive::binary_iarchive bia(ifs);
             bia >> root >> *this;
         }
-        else if (format != Format::NONE)
-            throw std::runtime_error("Invalid store format");
+        else CERROR("Invalid store format");
 
         for (const auto &rec : _store)
             for (const auto &p : rec.trajectory)
@@ -173,33 +161,18 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
             CINFO("change robo from " << pRobo->getName() << " to " << pNewRobo->getName());
             pRobo = pNewRobo;
         }
-        // --------------
-    }
-    catch (const std::exception &e)
-    {
-        SHOW_CERROR(e.what());
-    }
+    //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
 //------------------------------------------------------------------------------
-bool RoboMoves::Store::near_passed_build_index()
+void RoboMoves::Store::near_passed_build_index()
 {
     if (_inverse_index_last == _inverse.size())
-        return true;
-
-    try
     {
         boost::lock_guard<boost::mutex> lock(_store_mutex);
-
         _inverse_kdtree.addPoints(_inverse_index_last, _inverse.size() - 1);
         CINFO("built " << _inverse.size() - _inverse_index_last);
         _inverse_index_last = _inverse.size();
-        return true;
-    }
-    catch (const std::exception &e)
-    {
-        SHOW_CERROR(e.what());
-        return false;
     }
 }
 

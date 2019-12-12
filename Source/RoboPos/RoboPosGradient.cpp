@@ -6,6 +6,7 @@
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
 #include "RoboLearnMoves.h"
+#include "Test/Test.h"
 
 using namespace Robo;
 using namespace RoboPos;
@@ -250,9 +251,13 @@ using namespace RoboMoves;
 //#include "dlib/optimization.h"
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, IN muscle_t n)
+
+/*!  схлопнуть управления в вектор, упорядоченный по номеру мускула,
+*    сливая управления для одного мускула(в разное время запуска), удлинняя длительности
+*/
+void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, IN const muscle_t n_muscles)
 {
-    v.resize(n);
+    v.resize(n_muscles);
     for (auto &a : c)
         if (v[a.muscle].muscle == MInvalid)
             v[a.muscle] = a;
@@ -263,28 +268,47 @@ void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, 
             v[a.muscle].lasts /= 2;
             v[a.muscle].start /= 2;
         }
+    //create_actuators_vector(inits, inits_controls, n_muscles);
+    //create_actuators_vector(lower, lower_controls, n_muscles);
+    //create_actuators_vector(upper, upper_controls, n_muscles);
+    //Control inits(inits_controls);
+    //const Control &lower = lower_controls;
+    //const Control &upper = upper_controls;
 }
 
-const int _max_n_controls = 20;
 //------------------------------------------------------------------------------
-void layout_controls(OUT std::vector<Actuator> &v, IN const Control &c, IN muscle_t n)
+/// расположить управления в вектор, упорядоченный по номеру мускула (НЕ сливая управления для одного мускула по длительности)
+void layout_controls(OUT std::vector<Actuator> &v, IN const Control &c, IN const muscle_t n_muscles)
 {
-    if (c.size() > _max_n_controls)
-        CERROR("layout_controls: controls " << c.size() << " is too long " << _max_n_controls);
-
-    v.resize(_max_n_controls);
+    v.resize(n_muscles);
     for (auto &a : c)
-        for (int j = a.muscle; v[j].muscle == MInvalid; j += n)
-        {
-            if (j > _max_n_controls)
-                CERROR("layout_controls: 20 < j=" << j);
-            v[j] = a;
-        }
+    {
+        muscle_t m = a.muscle;
+        while (v[m].muscle != MInvalid)
+            m += n_muscles;
+        v[m] = a;
+    }
 }
 
-
+void layout_controls_continue(std::vector<Actuator> &v, const size_t max_sz, const muscle_t n_muscles)
+{
+    v.resize(max_sz);
+    muscle_t m = 0;
+    frames_t last_start = 0;
+    for (auto &a : v)
+    {
+        if (a.muscle == MInvalid)
+        {
+            a.muscle = m % n_muscles;
+            a.start = last_start;
+            a.lasts = 0;
+        }
+        last_start = std::max(last_start, a.start + a.lasts);
+        ++m;
+    }
+}
 //------------------------------------------------------------------------------
-void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double delta,
+void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double delta/*distance(lo.hit, hi.hit)*/,
                                            IN const Control &inits_controls,
                                            IN const Control &lower_controls,
                                            IN const Control &upper_controls,
@@ -292,17 +316,127 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
 {
     const auto n_muscles = _robo.musclesCount();
     std::vector<Actuator> inits, lower, upper;
-
-    //create_actuators_vector(inits, inits_controls, n_muscles);
-    //create_actuators_vector(lower, lower_controls, n_muscles);
-    //create_actuators_vector(upper, upper_controls, n_muscles);
     layout_controls(inits, inits_controls, n_muscles);
     layout_controls(lower, lower_controls, n_muscles);
     layout_controls(upper, upper_controls, n_muscles);
 
-    //Control inits(inits_controls);
-    //const Control &lower = lower_controls;
-    //const Control &upper = upper_controls;
+    auto max_sz = std::max({ inits.size(), lower.size(), lower.size() });
+    layout_controls_continue(inits, max_sz, n_muscles);
+    layout_controls_continue(lower, max_sz, n_muscles);
+    layout_controls_continue(upper, max_sz, n_muscles);
+
+    const int int_normalizer = int(delta / _target.precision()); /* velosity */
+
+    for (muscle_t mo = 0; mo < max_sz; mo += RoboI::musclesPerJoint)
+    {
+        muscle_t mc = mo + 1;
+        //auto mo = RoboI::muscleByJoint(joint, true);
+        //auto mc = RoboI::muscleByJoint(joint, false);
+    
+        auto last_mo_i = (MInvalid != inits[mo].muscle) ? (inits[mo].lasts) : 0;
+        auto last_mo_l = (MInvalid != lower[mo].muscle) ? (lower[mo].lasts - last_mo_i) : 0;
+        auto last_mo_g = (MInvalid != upper[mo].muscle) ? (upper[mo].lasts - last_mo_i) : 0;
+    
+        auto last_mc_i = (MInvalid != inits[mc].muscle) ? (inits[mc].lasts) : 0;
+        auto last_mc_l = (MInvalid != lower[mc].muscle) ? (lower[mc].lasts - last_mc_i) : 0;
+        auto last_mc_g = (MInvalid != upper[mc].muscle) ? (upper[mc].lasts - last_mc_i) : 0;
+
+        // last_mo_l - дельта длительности работы открывающего мускула относительно данного управления - координаты hit < aim
+        // last_mo_g - дельта длительности работы открывающего мускула относительно данного управления - координаты hit > aim
+        // last_mc_l - дельта длительности работы ЗАКРЫВАЮЩЕГО мускула относительно данного управления - координаты hit < aim
+        // last_mc_g - дельта длительности работы ЗАКРЫВАЮЩЕГО мускула относительно данного управления - координаты hit > aim
+        
+        // -----------------------------------------------
+        int direction_o = 0;
+        int direction_c = 0;
+        if (last_mo_l/* > 0*/ || last_mo_g/* > 0*/)
+        {
+            double d = 0.;
+            if (last_mo_l + last_mo_g)
+            {
+                d = delta / (last_mo_l + last_mo_g);
+                //// direction_o = ((d_d * int_normalizer) / (last_mo_l + last_mo_g));
+                direction_o = int(d * int_normalizer);
+                //direction_o = int_normalizer / (last_mo_l + last_mo_g);
+            }
+            if (direction_o == 0)
+            {
+                // BACKWARD MOVEMENT
+                if (d < 0.)
+                { ++direction_c; /* = (direction_o) ? (direction_o + 1) : 50; */ }
+                else if (d > 0.)
+                { --direction_o; /* = (direction_c < 0) ? -1 : 1; */ }
+            }
+        }
+        
+        if (last_mc_l/* > 0 */|| last_mc_g /*> 0*/)
+        {
+            double  d = 0.;
+            if (last_mc_l + last_mc_g)
+            {
+                d = delta / (last_mc_l + last_mc_g);
+                // direction_c = ((d_d * int_normalizer) / (last_mc_l + last_mc_g));
+                direction_c = int(d * int_normalizer);
+                //direction_c = int_normalizer / (last_mc_l + last_mc_g);
+            }
+        
+            if (direction_c == 0)
+            {
+                // BACKWARD MOVEMENT
+                if (d < 0.)
+                { ++direction_o; /* = (direction_o) ? (direction_o + 1) : 50; */ }
+                else if (d > 0.)
+                { --direction_c; /* = (direction_c < 0) ? -1 : 1; */ }
+            }
+        }
+        
+        frames_t last_o = 0;
+        frames_t last_c = 0;
+        
+        if (direction_o < 0 || (direction_o >= 0 && last_mo_i > direction_o))
+        { last_o += (last_mo_i - direction_o); }
+        else if ((direction_o >= 0 && last_mo_i < direction_o))
+        {
+            last_o = 0;
+            last_c += direction_o;
+        }
+        
+        if (direction_c < 0 || (direction_c >= 0 && last_mc_i > direction_c))
+        { last_c += (last_mc_i - direction_c); }
+        else if ((direction_c >= 0 && last_mc_i <= direction_c))
+        {
+            last_c = 0;
+            last_o += direction_c;
+        }
+        
+        if (last_o != last_c)
+        {
+            frames_t start_o = std::min(0ULL, inits[mo].start - direction_o); //(last_o > last_c) ? 0U : (last_c + 1U);
+            frames_t start_c = std::min(0ULL, inits[mc].start - direction_c); //(last_o < last_c) ? 0U : (last_o + 1U);
+        
+            if (last_o) controls.append({ mo, start_o, last_o });
+            if (last_c) controls.append({ mc, start_c, last_c });
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double delta,
+                                              IN const Control &inits_controls,
+                                              IN const Control &lower_controls,
+                                              IN const Control &upper_controls,
+                                              OUT      Control &controls)
+{
+    const auto n_muscles = _robo.musclesCount();
+    std::vector<Actuator> inits, lower, upper;
+    layout_controls(inits, inits_controls, n_muscles);
+    layout_controls(lower, lower_controls, n_muscles);
+    layout_controls(upper, upper_controls, n_muscles);
+
+    auto max_sz = std::max({ inits.size(), lower.size(), lower.size() });
+    layout_controls_continue(inits, max_sz, n_muscles);
+    layout_controls_continue(lower, max_sz, n_muscles);
+    layout_controls_continue(upper, max_sz, n_muscles);
 
     if (getStrategy(lower_controls) != getStrategy(upper_controls))
         CWARN("incorrect strategies (lower=" << getStrategy(lower_controls) << " & upper=" << getStrategy(upper_controls) << " )");
@@ -311,16 +445,12 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
     if (getStrategy(inits_controls) != getStrategy(lower_controls))
         CWARN("incorrect strategies (inits=" << getStrategy(inits_controls) << " & lower=" << getStrategy(lower_controls) << " )");
 
-    //inits_controls
-
     //tcout << "delta=" << delta << std::endl;
     const double d = (delta / _target.precision()); /* velosity */
-    const int delta_normalized = int(d * 5);    
+    const int delta_normalized = int(d * 5);
 
     frames_t min_start = SIZE_MAX;
-    auto sz = std::max(lower_controls.size(), upper_controls.size());
-    sz = std::max(inits_controls.size(), sz);
-    for (muscle_t m = 0; m < sz/*n_muscles*/; ++m)
+    for (muscle_t m = 0; m < max_sz/*n_muscles*/; ++m)
     {
         frames_t start;
         int64_t lasts = 0;
@@ -329,7 +459,6 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
         //if (upper[m].muscle == inits[m].muscle && lower[m].muscle == inits[m].muscle)
         {
             start = (lower[m].start + inits[m].start + upper[m].start) / 3;
-
             int64_t denom = ((lower[m].lasts - inits[m].lasts) + (upper[m].lasts - inits[m].lasts));
             if (denom != 0)
                 lasts = delta_normalized / denom;
@@ -354,7 +483,6 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
         else if (upper[m].muscle != MInvalid && lower[m].muscle != MInvalid)
         {
             start = (lower[m].start + upper[m].start) / 3;
-        
             int64_t denom = (upper[m].lasts - lower[m].lasts) / 3;
             if (denom != 0)
                 lasts = delta_normalized / denom;
@@ -392,204 +520,72 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
     }
     for (auto &c : controls)
         c.start -= min_start;
-
-    //for (joint_t joint = 0; joint < _robo.jointsCount(); ++joint)
-    //{
-    //    auto mo = RoboI::muscleByJoint(joint, true);
-    //    auto mc = RoboI::muscleByJoint(joint, false);
-    //    
-    //    //auto it_mo_i = br::find(inits_controls, mo);
-    //    //auto it_mo_l = br::find(lower_controls, mo);
-    //    //auto it_mo_g = br::find(upper_controls, mo);
-    //    //
-    //    //auto it_mc_i = br::find(inits_controls, mc);
-    //    //auto it_mc_l = br::find(lower_controls, mc);
-    //    //auto it_mc_g = br::find(upper_controls, mc);
-    //    //
-    //    //int last_mo_i = (it_mo_i != inits_controls.end()) ? (it_mo_i->lasts) : 0U;
-    //    //int last_mo_l = (it_mo_l != lower_controls.end()) ? (it_mo_l->lasts - last_mo_i) : 0U;
-    //    //int last_mo_g = (it_mo_g != upper_controls.end()) ? (it_mo_g->lasts - last_mo_i) : 0U;
-    //    //
-    //    //int last_mc_i = (it_mc_i != inits_controls.end()) ? (it_mc_i->lasts) : 0U;
-    //    //int last_mc_l = (it_mc_l != lower_controls.end()) ? (it_mc_l->lasts - last_mc_i) : 0U;
-    //    //int last_mc_g = (it_mc_g != upper_controls.end()) ? (it_mc_g->lasts - last_mc_i) : 0U;
-    //
-    //    int last_mo_i = (MInvalid != inits[mo].muscle) ? (inits[mo].lasts) : 0;
-    //    int last_mo_l = (MInvalid != lower[mo].muscle) ? (lower[mo].lasts - last_mo_i) : 0;
-    //    int last_mo_g = (MInvalid != upper[mo].muscle) ? (upper[mo].lasts - last_mo_i) : 0;
-    //
-    //    int last_mc_i = (MInvalid != inits[mo].muscle) ? (inits[mo].lasts) : 0;
-    //    int last_mc_l = (MInvalid != lower[mo].muscle) ? (lower[mo].lasts - last_mc_i) : 0;
-    //    int last_mc_g = (MInvalid != upper[mo].muscle) ? (upper[mo].lasts - last_mc_i) : 0;
-    //    // -----------------------------------------------
-    //    int direction_o = 0;
-    //    int direction_c = 0;
-    //    // last_mo_l - дельта длительности работы открывающего мускула относительно данного управления - координаты hit < aim
-    //    // last_mo_g - дельта длительности работы открывающего мускула относительно данного управления - координаты hit > aim
-    //    // last_mc_l - дельта длительности работы ЗАКРЫВАЮЩЕГО мускула относительно данного управления - координаты hit < aim
-    //    // last_mc_g - дельта длительности работы ЗАКРЫВАЮЩЕГО мускула относительно данного управления - координаты hit > aim
-    //    if (last_mo_l/* > 0*/ || last_mo_g/* > 0*/)
-    //    {
-    //        double d = 0.;
-    //        if (last_mo_l + last_mo_g)
-    //        {
-    //            //d = delta / (last_mo_l + last_mo_g);
-    //            //// direction_o = ((d_d * int_normalizer) / (last_mo_l + last_mo_g));
-    //            //direction_o = int(d * int_normalizer);
-    //            direction_o = int_normalizer / (last_mo_l + last_mo_g);
-    //        }
-    //    
-    //        if (direction_o == 0)
-    //        {
-    //            // BACKWARD MOVEMENT
-    //            if (d < 0.)
-    //            { ++direction_c; /* = (direction_o) ? (direction_o + 1) : 50; */ }
-    //            else if (d > 0.)
-    //            { --direction_o; /* = (direction_c < 0) ? -1 : 1; */ }
-    //        }
-    //    }
-    //    
-    //    if (last_mc_l/* > 0 */|| last_mc_g /*> 0*/)
-    //    {
-    //        double  d = 0.;
-    //        if (last_mc_l + last_mc_g)
-    //        {
-    //            //d = delta / (last_mc_l + last_mc_g);
-    //            //// direction_c = ((d_d * int_normalizer) / (last_mc_l + last_mc_g));
-    //            //direction_c = int(d * int_normalizer);
-    //            direction_c = int_normalizer / (last_mc_l + last_mc_g);
-    //        }
-    //    
-    //        if (direction_c == 0)
-    //        {
-    //            // BACKWARD MOVEMENT
-    //            if (d < 0.)
-    //            { ++direction_o; /* = (direction_o) ? (direction_o + 1) : 50; */ }
-    //            else if (d > 0.)
-    //            { --direction_c; /* = (direction_c < 0) ? -1 : 1; */ }
-    //        }
-    //    }
-    //    
-    //    frames_t last_o = 0;
-    //    frames_t last_c = 0;
-    //    
-    //    if (direction_o < 0 || (direction_o >= 0 && last_mo_i > direction_o))
-    //    { last_o += (last_mo_i - direction_o); }
-    //    else if ((direction_o >= 0 && last_mo_i < direction_o))
-    //    {
-    //        last_o = 0U;
-    //        last_c += (last_mo_i + (direction_o - last_mo_i));
-    //    }
-    //    
-    //    if (direction_c < 0 || (direction_c >= 0 && last_mc_i > direction_c))
-    //    { last_c += (last_mc_i - direction_c); }
-    //    else if ((direction_c >= 0 && last_mc_i <= direction_c))
-    //    {
-    //        last_c = 0U;
-    //        last_o += (last_mc_i + (direction_c - last_mc_i));
-    //    }
-    //    
-    //    if (last_o != last_c)
-    //    {
-    //        frames_t start_o = (last_o > last_c) ? 0U : (last_c + 1U);
-    //        frames_t start_c = (last_o < last_c) ? 0U : (last_o + 1U);
-    //    
-    //        if (last_o) controls.append({ mo, start_o, last_o });
-    //        if (last_c) controls.append({ mc, start_c, last_c });
-    //    }
-    //}
-}
-
-void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double d_d,
-                                              IN const Control &inits_controls,
-                                              IN const Control &lower_controls,
-                                              IN const Control &upper_controls,
-                                              OUT      Control &controls)
-{
-
 }
 
 //------------------------------------------------------------------------------
 size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
 {
-    size_t gradient_complexity = 0U;
+    annealing = _target.thickness() / 2;
+    distance_t distance, new_distance;
+    new_distance = distance = bg::distance(_base_pos, aim);
     // -----------------------------------------------
-    _robo.reset();
-    Point base_pos = _robo.position();
-    Point pos; // hand_position
-    // -----------------------------------------------
-    distance_t distance = boost_distance(base_pos, aim),
-        new_distance = distance;
-    // -----------------------------------------------
-    int i = 0, n = sizeof(admixes) / sizeof(*admixes);
+    int i_admix = 0;
     do
     {
-        // -----------------------------------------------
         Record  rec;
         Control lower_controls, upper_controls;
-        distance_t delta; // distance betwiin points in function space
+        distance_t delta; // distance between points in function space
         if (!weightedMeanULAdjs(aim, &rec, lower_controls, upper_controls, delta))
         {
             CINFO("weightedMeanULAdjs FAIL");
             break;
         }
-        const Control &inits_controls = rec.controls;
-        // -----------------------------------------------
-        distance_t d = boost_distance(rec.hit, aim);
-        if (_target.precision() > d)
-        {
-            CINFO("precision " << _target.precision() << " reached " << d);
-            break;
-        }
-        // -----------------------------------------------
-        if (new_distance > d)
-        { new_distance = d; }
-        else
-        {
-            gradient_complexity += (this->*(admixes[i]))(aim, pos);
-            i = ++i % n;
-
-            d = bg::distance(pos, aim);
-            if (_target.precision() > d)
-            {
-                CINFO("precision " << _target.precision() << " reached " << d);
-                break;
-            }
-            else if (new_distance > d)
-                continue;
-        }
         // -----------------------------------------------
         Control controls;
         gradientControls(aim, delta,
-                         inits_controls,
+                         rec.controls/*inits*/,
                          lower_controls,
                          upper_controls,
                          controls);
         // -----------------------------------------------
-        if (actionRobo(aim, controls, pos))
-            ++gradient_complexity;
+        new_distance = actionRobo(aim, controls);
         // -----------------------------------------------
-        d = boost_distance(pos, aim);
-        // -----------------------------------------------
-        if (new_distance > d)
-        { new_distance = d; }
-        if (d > side3)
+        if (distance > new_distance)
         {
-            /* FAIL */
-            CINFO("gradientMethod_admixture FAIL d=" << d << " > side3=" << side3);
+            distance = new_distance;
+            annealing = distance * 5;
+            if (_target.precision() > distance)
+            {
+                CINFO(aim << _T(" reached"));
+                break;
+            }
+        }
+        else
+        {
+            CINFO(aim << " testStage3 FAIL");
             break;
         }
         // -----------------------------------------------
-        if (distance > new_distance)
-        { distance = new_distance; }
-        // -----------------------------------------------
-    } while (_target.precision() < distance);
+        if (distance <= new_distance) // если не приблизились основным алгоритмом
+        {
+            const int n_admixes = sizeof(admixes) / sizeof(*admixes);
+            new_distance = (this->*(admixes[i_admix]))(aim); // используем алгоритмы-примеси
+            i_admix = ++i_admix % n_admixes;
+
+            if (new_distance > (distance + side3))
+            {
+                CINFO("gradientMethod_admixture FAIL d=" << new_distance << " > side=" << distance);
+                break; /* FAIL */
+            }
+        }
+        CDEBUG(_T("prec: ") << distance);
+    } while (true);
     // -----------------------------------------------
-    CINFO(aim << _T(" precision: ") << distance << std::endl << 
-          _T("gradient admix complexity: ") << gradient_complexity << std::endl);
-    // -----------------------------------------------
-    return gradient_complexity;
+    CINFO(_T(" precision: ") << distance << std::endl);
+    // << _T("gradient admix complexity: ") << gradient_complexity << std::endl);
+    return _complexity;
 }
+
 //------------------------------------------------------------------------------
 const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptrs_t &range,
                                                           IN const Point            &aim,
@@ -597,28 +593,29 @@ const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptr
                                                           IN OUT   visited_t        *pVisited)
 {
     const Record *pRecMin = NULL;
-    // ------------------------
     size_t h;
-    double dm;
+    distance_t dm = DBL_MAX;
     RecordHasher rh;
-    // ------------------------
-    for ( const auto &pRec : range )
+
+    CINFO("aim " << aim);
+    for (const auto &pRec : range)
     {
         if (pVisited)
             h = rh(*pRec);
-        // ------------------------
-        double dr = boost_distance(pRec->hit, aim);
-        if ((!pVisited || pVisited->find(h) == pVisited->end())
-            && (!pHitPosPred || (*pHitPosPred) (*pRec, aim))
-            && (!pRecMin || dr < dm))
+
+        distance_t dr = bg::distance(pRec->hit, aim);
+        CINFO("hit " << pRec->hit);
+        if (   (!pVisited    || (pVisited->find(h) == pVisited->end()))
+            && (!pHitPosPred || (*pHitPosPred)(*pRec))
+            && (dr < dm))
         {
             pRecMin = pRec;
             dm = dr;
         }
     }
-    // ------------------------
     return pRecMin;
 }
+
 //------------------------------------------------------------------------------
 bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
                                                       OUT Record *pRecClose,
@@ -626,26 +623,32 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
                                                       OUT Record *pRecUpper,
                                                       IN OUT visited_t *pVisited)
 {
-    if (!pRecClose) return false;
-    // ------------------------------------------------
-    Point min(aim.x - side3, aim.y - side3),
-          max(aim.x + side3, aim.y + side3);
+    const Point min(aim.x - annealing, aim.y - annealing),
+                max(aim.x + annealing, aim.y + annealing);
     // ------------------------------------------------
     adjacency_ptrs_t range;
     _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     // ------------------------------------------------
-    HitPosRelToAim cmp_l = [](const Record &p, const Point &aim) { return  (p.hit.x < aim.x) && (p.hit.y < aim.y); };
-    HitPosRelToAim cmp_g = [](const Record &p, const Point &aim) { return  (p.hit.x > aim.x) && (p.hit.y > aim.y); };
-    // ------------------------------------------------
     const Record *pRec = gradientClothestRecord(range, aim, NULL, pVisited);
     if (!pRec) { return false; }
-
-    RecordHasher rh;
-    size_t h = rh(*pRec);
-    pVisited->insert(h);
+    // ------------------------------------------------
+    //HitPosRelToAim cmp_l = [aim](const Record &p) { return (p.hit.x < aim.x) && (p.hit.y < aim.y); };
+    //HitPosRelToAim cmp_g = [aim](const Record &p) { return (p.hit.x > aim.x) && (p.hit.y > aim.y); };
+    const Point ort = rotate(aim, pRec->hit, -90.);
+    HitPosRelToAim cmp_l = [aim, ort](const Record &p) { return (onLineSide(aim, ort, p.hit) == LineSide::Left); };
+    HitPosRelToAim cmp_g = [aim, ort](const Record &p) { return (onLineSide(aim, ort, p.hit) == LineSide::Right); };
+    // ------------------------------------------------
+    if (pVisited)
+    {
+        RecordHasher rh;
+        size_t h = rh(*pRec);
+        pVisited->insert(h);
+    }
+    else range.remove(pRec);
     // ===========
-    *pRecClose = *pRec;
+    *pRecClose = *pRec; 
     // ===========
+    //test::Test::plotStoreAdj(range, aim, pRec->hit);
     if (pRecLower && pRecUpper)
     {
         pRec = gradientClothestRecord(range, aim, &cmp_l, pVisited);
@@ -663,100 +666,55 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
     return true;
 }
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim, OUT Point &pos)
+distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
 {
-    size_t gradient_complexity = 0;
+    LearnMoves::visited_t visited;
+    distance_t distance, new_distance;
+    new_distance = distance = bg::distance(_base_pos, aim);
     // -----------------------------------------------
-    std::set<size_t> visited;
-    // -----------------------------------------------
-    double distance = boost_distance(_base_pos, aim);
-    double new_distance = 0.;
-    // -----------------------------------------------
-    _robo.reset();
     do
     {
-        Record  rec_close, rec_lower, rec_upper;
-        if (!gradientSomeClothestRecords(aim, &rec_close,
+        Record rec_close, rec_lower, rec_upper;
+        if (!gradientSomeClothestRecords(aim,
+                                         &rec_close,
                                          &rec_lower,
                                          &rec_upper,
                                          &visited))
-        { 
-            /* FAIL */
-            CINFO("gradientSomeClothestRecords FAIL");
-            break;
-        }
-        Point hit = rec_close.hit;
-
-        new_distance = boost_distance(hit, aim);
-        if (distance > new_distance)
-            distance = new_distance;
-
-        if (_target.precision() > new_distance)
         {
-            CINFO("precision " << _target.precision() << " reached " << new_distance);
-            break;
+            CINFO("gradientSomeClothestRecords FAIL");
+            break; /* FAIL */
         }
-
-        Control inits_controls{ rec_close.controls };
-        distance_t delta = boost_distance(rec_upper.hit, rec_lower.hit);
+        distance_t delta = bg::distance(rec_upper.hit, rec_lower.hit);
         // -----------------------------------------------
         Control controls;
         gradientControls(aim, delta,
-                         inits_controls,
+                         rec_close.controls/*inits*/,
                          rec_lower.controls,
                          rec_upper.controls,
                          controls);
         // -----------------------------------------------
-        if (actionRobo(aim, controls, hit))
-        { ++gradient_complexity; }
-        // -----------------------------------------------
-        double d = boost_distance(hit, aim);
-        // -----------------------------------------------
-        if (_target.precision() > d)
-        {
-            CINFO("precision " << _target.precision() << " reached " << d);
-            break;
-        }
-        // -----------------------------------------------
-        else if (new_distance > d)
-        { new_distance = d; }
-        // -----------------------------------------------
-        else
-        {
-            //visited.clear();
-            //rundownFull(aim, hit);
-            //
-            //d = boost_distance(hit, aim);
-            //if (_target.precision() > d)
-            //{
-            //    CINFO("precision " << _target.precision() << " reached " << d);
-            //    break;
-            //}
-            //else if (new_distance > d)
-            //{ continue; }
-            //else
-            {
-                /* FAIL */
-                CINFO("gradientMethod FAIL");
-                break;
-            } // end else
-        } // end else
+        new_distance = actionRobo(aim, controls);
         // -----------------------------------------------
         if (distance > new_distance)
+        {
             distance = new_distance;
-        // -----------------------------------------------
+            if (_target.precision() > new_distance)
+            {
+                CINFO(aim << " reached");
+                break;
+            }
+        }
+        else
+        {
+            CINFO("gradientMethod FAIL");
+            break; /* FAIL */
+        }
         CDEBUG(_T("prec: ") << distance);
-    } while (_target.precision() < distance);
+    } while (true);
     // -----------------------------------------------
-    CINFO(aim << _T(" precision: ") << distance << std::endl << 
-          _T("grad_complex ") << gradient_complexity << std::endl);
-    // -----------------------------------------------
-    //auto p = _store.getClosestPoint(aim, side3);
-    //if (!p.first)
-    //    throw std::runtime_error{ "gradientMethod_admixture: Empty adjacency" };
-    //pos = p.second.hit;
-
-    return gradient_complexity;
+    CINFO(_T("gradientMethod precision: ") << distance << std::endl);
+    // << _T("grad_complex ") << gradient_complexity << std::endl);
+    return distance;
 }
 //------------------------------------------------------------------------------
 

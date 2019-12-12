@@ -364,7 +364,7 @@ namespace RoboMoves
         return n_found;
     }
     /// Construct Inverse Index of all passed points
-    bool near_passed_build_index();
+    void near_passed_build_index();
     //------------------------------------------------------------------------------
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
     using MultiIndexMovesSqPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;

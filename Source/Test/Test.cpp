@@ -12,7 +12,52 @@ using namespace Robo::MotionLaws;
 using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------
+inline tstring unquote(const tstring &s)
+{ return (s.front() == _T('"')) ? s.substr(1, s.length() - 2) : s; };
+
+//------------------------------------------------------------------------------
+void printTree(const tptree &tree, tostream &out, const int level = 0)
+{
+    if (tree.empty())
+    {
+        out << "\"" << tree.data() << "\"";
+        return;
+    }
+    if (level)
+        out << std::endl;
+    auto indent = [](int level) {
+        return tstring(2 * level, _T(' '));
+    };
+    out << indent(level) << "{" << std::endl;
+    bool first = true;
+    for (const auto &child : tree)
+    {
+        if (!first) { out << ","; first = false; }
+        out << indent(level + 1) << _T("\"") << child.first << _T("\": ");
+        printTree(child.second, out, level + 1);
+        out << std::endl;
+    }
+    out << indent(level) << _T('}');
+}
+
+//------------------------------------------------------
 MLaw& operator++(MLaw &mlaw) { return (mlaw = static_cast<MLaw>(static_cast<int>(mlaw) + 1)); }
+
+//------------------------------------------------------
+int test::scanVerboseLevel(const tstring &str_level)
+{
+    int level = 0;
+    tstring buf{ unquote(str_level) };
+    boost::trim(buf);
+    for (auto &s : VerboseLevelOutputs)
+    {
+        if (buf == s)
+            return level;
+        ++level;
+    }
+    CERROR("Invalid Verbose Level!");
+    return 2;
+}
 
 //------------------------------------------------------
 using SetterF = std::function<void(const tstring&)>;
@@ -84,6 +129,8 @@ Point scanSubPoint(const tstring &buf)
 #define SCAN_ARR_CHECK(name)           if(i!=0&&i!=N_JOINTS)CERROR("Invalid "<<name<<' '<<i);min_i=std::min(i,min_i)
 #define SCAN_ARR_PARAM(name,param,f)   scanArrParam(root,buf,name,SCAN_ARR_FUNC_CALL(param,f))
 
+//------------------------------------------------------
+// Params
 //------------------------------------------------------
 void test::Params::scanLaws(tptree &root)
 {
@@ -176,10 +223,12 @@ void test::Params::scan(tptree &root)
     SCAN_PARAM(LM_SIDE,       std::stod);
     SCAN_PARAM(LM_SIDE_DECR,  std::stod);
     SCAN_PARAM2(LM_ADMIXES,   scanEnumOneHot<LMAdmix>, LMAdmixOutputs);
-
-    SCAN_PARAM(LM_CONFIG_FN,  [](auto&s){return s;});
+    
+    SCAN_PARAM(LM_CONFIG_FN,  [](auto&s){return unquote(s);});
     SCAN_PARAM(GNUPLOT_PATH,  [](auto&s){return s;});
-    SCAN_PARAM(STORE_LOAD_FN, [](auto&s){return s;});
+    SCAN_PARAM(STORE_LOAD_FN, [](auto&s){return unquote(s);});
+    SCAN_PARAM(VERBOSE_LEVEL, test::scanVerboseLevel);
+
     SCAN_PARAM(N_JOINTS,      std::stoi);
     SCAN_PARAM2(ROBO_TYPE,    scanEnumOneHot<RoboType>, RoboTypeOutputs);
     SCAN_PARAM2(ENVIROMENT,   scanEnumOneHot<Robo::Enviroment>, Robo::enviroment_outputs);
@@ -191,23 +240,13 @@ void test::Params::scan(tptree &root)
 }
 
 //------------------------------------------------------
-test::Test::Test(const tstring &testsfile)
-{    
-    //tptree root(tstring(std::istreambuf_iterator<wchar_t>(wifstream(testsfile)),
-    //                    std::istreambuf_iterator<wchar_t>()));
-    tptree root;
-    tfstream fin = Utils::utf8_stream(testsfile, std::ios::in);
-    if (!fin.is_open())
-        throw std::runtime_error("read_config: file is not exist");
-    pt::read_ini(fin, root);
-
-    tptree node = root.get_child(_T("common"));
-    params.scan(node);
-
+// Test
+//------------------------------------------------------
+test::Test::Test(const tstring &tests_file)
+{
+    tptree root = readTestsFile(tests_file);
     for (auto &test : root)
     {
-        if (test.first == _T("common"))
-            continue;
         tcout << "testing " << test.first << " .." << std::endl;
         params.scan(test.second);
         //restart();
@@ -216,7 +255,26 @@ test::Test::Test(const tstring &testsfile)
         // ==============================
         boost::this_thread::interruption_point();
         // ==============================
+        return;
     }
+}
+
+//------------------------------------------------------
+tptree test::Test::readTestsFile(const tstring &tests_file)
+{
+    tptree root;
+    //-------------------------------
+    tfstream fin = Utils::utf8_stream(tests_file, std::ios::in);
+    if (!fin.is_open())
+        throw std::runtime_error("read_config: file is not exist");
+    // ==============================
+    pt::read_ini(fin, root);
+    // ==============================
+    tptree node = root.get_child(_T("common"));
+    params.scan(node);
+    root.erase(_T("common"));
+    //-------------------------------
+    return root;
 }
 
 //------------------------------------------------------
@@ -297,7 +355,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     //pRobo->setEnvCond(params.ENVIROMENT);
 
     printConfig();
-    plotRobotMotionLaw(*pRobo, test_name);
+    //plotRobotMotionLaw(*pRobo, test_name);
 
     CINFO("Read Config LM...");
     LearnMoves lm(store, *pRobo, *pTarget, params.LM_CONFIG_FN);
@@ -326,7 +384,97 @@ void test::Test::testNFrames(const tstring &test_name)
 }
 
 //------------------------------------------------------
-void test::Test::plotRobotMotionLaw(Robo::RoboI &robo, const tstring &test_name)
+void test::Test::plotStoreAdj(const RoboMoves::adjacency_ptrs_t &range, const Point &aim, const Point &hit)
+{
+    std::ostringstream ss;
+    ss << "test-RANGE-" << aim << "-";
+    //ss << Utils::ununi(RoboTypeOutputs[static_cast<int>(params.ROBO_TYPE)]) << '-';
+    //for (auto &pji : params.JINPUTS)
+    //    ss << Utils::ununi(Robo::MotionLaws::name(pji->frames.type)) << '-';
+    ss << Utils::now() << ".plt";
+    //-------------------------
+    {
+        std::ofstream fplot(ss.str());
+        fplot << "set title 'RANGE end-points of moves' " << std::endl;
+
+        fplot << "set xlabel 'x' " << std::endl;
+        fplot << "set ylabel 'y' " << std::endl;
+        fplot << "set grid " << std::endl;
+        fplot << "set autoscale " << std::endl;
+        fplot << "set size ratio -1 " << std::endl;
+
+        fplot << "plot '1.dat'  using 1:2 with points , \\" << std::endl;
+        fplot << "     '2.dat'  using 1:2 with lines  , \\" << std::endl;
+        fplot << "     '3.dat'  using 1:2 with lines      " << std::endl;
+    }
+    {
+        std::ofstream fdat("1.dat");
+        for (auto &req : range)
+            fdat << req->hit.x << '\t' << req->hit.y << std::endl;
+        fdat << range.front()->aim.x << '\t' << range.front()->aim.y << std::endl;
+    }
+    {
+        std::ofstream fdat("2.dat");
+        fdat << hit.x << '\t' << hit.y << std::endl;
+        fdat << aim.x << '\t' << aim.y << std::endl;
+    }
+    {
+        std::ofstream fdat("3.dat");
+        Point ort = rotate(aim, hit, -90.);
+        fdat << ort.x << '\t' << ort.y << std::endl;
+        fdat << hit.x << '\t' << hit.y << std::endl;
+    }
+    //-------------------------
+#if !defined(GNUPLOT_SILENCE)
+    std::string filename = ss.str();
+    ss.str("");
+
+    ss << "\"start \"GNUPLOT\" \"C:\\Program Files (x86)\\gnuplot\\bin\\gnuplot.exe\"";
+    ss << " \"" << filename << "\" --persist\"" << std::endl;
+    //-------------------------
+    CDEBUG(Utils::uni(ss.str()));
+    std::system(ss.str().c_str());
+
+    //-------------------------
+#endif // !GNUPLOT_SILENCE
+}
+//------------------------------------------------------
+void test::Test::plotStoreState(const RoboMoves::Store &store, const tstring &test_name)
+{
+    std::ostringstream ss;
+    ss << "test-STORE-";
+    ss << Utils::ununi(test_name) << '-';
+    ss << Utils::ununi(RoboTypeOutputs[static_cast<int>(params.ROBO_TYPE)]) << '-';
+    for (auto &pji : params.JINPUTS)
+        ss << Utils::ununi(Robo::MotionLaws::name(pji->frames.type)) << '-';
+    ss << Utils::now();
+    ss << ".plt";
+    //-------------------------
+    std::ofstream fplot(ss.str());
+    fplot << "plot '-'  using 1:2 with points " << std::endl;
+    fplot << "set title 'Store end-points of moves' " << std::endl;
+    fplot << "set xlabel 'x' " << std::endl;
+    fplot << "set ylabel 'y' " << std::endl;
+    fplot << "set grid " << std::endl;
+    fplot << "set autoscale " << std::endl;
+    fplot << "set size ratio -1 " << std::endl;
+    for (auto &req : store)
+        fplot << req.aim.x << '\t' << req.aim.y << std::endl;
+    //-------------------------
+#if !defined(GNUPLOT_SILENCE)
+    std::string filename = ss.str();
+    ss.str("");
+
+    ss << "\"start \"GNUPLOT\" " << Utils::ununi(params.GNUPLOT_PATH);
+    ss << " \"" << filename << "\" --persist\"" << std::endl;
+    //-------------------------
+    CDEBUG(Utils::uni(ss.str()));
+    std::system(ss.str().c_str());
+    //-------------------------
+#endif // !GNUPLOT_SILENCE
+}
+//------------------------------------------------------
+void test::Test::plotRobotMotionLaw(const Robo::RoboI &robo, const tstring &test_name)
 {
     std::ostringstream ss;
     ss << "test-motion-law-";
@@ -334,9 +482,10 @@ void test::Test::plotRobotMotionLaw(Robo::RoboI &robo, const tstring &test_name)
     ss << Utils::ununi(robo.getName()) << '-';
     for (auto &pji : params.JINPUTS)
         ss << Utils::ununi(Robo::MotionLaws::name(pji->frames.type)) << '-';
-    ss << Utils::now(); /*append ext!*/
+    ss << Utils::now();
+    ss << ".plt";
     //-------------------------
-    RoboPhysics *rphy = dynamic_cast<RoboPhysics*>(&robo);    
+    auto *rphy = dynamic_cast<const RoboPhysics*>(&robo);
     rphy->plotMotionLaws(Utils::uni(ss.str()), RoboPhysics::jointsAll);
     //-------------------------
 #if !defined(GNUPLOT_SILENCE)
@@ -344,9 +493,9 @@ void test::Test::plotRobotMotionLaw(Robo::RoboI &robo, const tstring &test_name)
     ss.str("");
 
     ss << "\"start \"GNUPLOT\" " << Utils::ununi(params.GNUPLOT_PATH);
-    ss << " \"" << filename << ".plt\" --persist\"" << std::endl;
+    ss << '"' << filename << "\" --persist\"" << std::endl;
     //-------------------------
-    CINFO(Utils::uni(ss.str()));
+    CDEBUG(Utils::uni(ss.str()));
     std::system(ss.str().c_str());
     //-------------------------
 #endif // !GNUPLOT_SILENCE

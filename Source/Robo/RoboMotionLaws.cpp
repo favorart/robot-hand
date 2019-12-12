@@ -60,6 +60,19 @@ void Robo::MotionLaws::JointMotionLaw::init()
 }
 
 //--------------------------------------------------------------------------------
+bool Robo::MotionLaws::JointMotionLaw::operator==(const JointMotionLaw &ml) const
+{
+    if (this == &ml)
+        return true;
+    return (type == ml.type &&
+            nMoveFrames == ml.nMoveFrames &&
+            dMoveDistance == ml.dMoveDistance &&
+            dInertiaRatio == ml.dInertiaRatio &&
+            dStableRatio == ml.dStableRatio /*&&
+            param == ml.param*/);
+}
+
+//--------------------------------------------------------------------------------
 void Robo::MotionLaws::JointMotionLaw::save(tptree &ml) const
 {
     ml.put(_T("name"), MotionLaws::name(type));
@@ -119,7 +132,7 @@ void Robo::JointInput::save(tptree &root) const
     root.add_child(_T("base"), pbase);
 
     tptree ml;
-    frames.save(root);
+    frames.save(ml);
     root.add_child(_T("motionLaw"), ml);
 }
 

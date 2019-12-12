@@ -49,48 +49,43 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
     //CDEBUG("weightedMeanControls end");
 }
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::weightedMean(IN const Point &aim, OUT Point &hit)
+distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
 {
-    size_t w_means_complexity = 0;
-    // -----------------------------------------------
     auto p = _store.getClosestPoint(aim, side3);
     if (!p.first)
-        throw std::runtime_error{ "weightedMean: Empty adjacency" };
-    Point pos = p.second.hit;
+        CERROR("weightedMean: Empty adjacency");
     // -----------------------------------------------
-    double distance = boost_distance(aim, pos),
-      next_distance = distance;
-    // -----------------------------------------------
-    _robo.reset();
+    distance_t distance, next_distance;
+    next_distance = distance = bg::distance(aim, p.second.hit);
     do
     {
         if (next_distance < distance)
         {
             distance = next_distance;
-            hit = pos;
-
             if (_target.precision() > distance)
-            { break; }
+            {
+                CINFO(aim << " reached");
+                break;
+            }
         }
-        // -----------------------------------------------
+
         adjacency_ptrs_t range;
         _store.adjacencyByPBorders(range, aim, side3);
         if (range.empty())
-            break;
+            CERROR("weightedMean: Empty adjacency");
         // -----------------------------------------------
         side3 -= side_decrease_step;
         // -----------------------------------------------
         Control controls;
         weightedMeanControls(aim, range, controls, Point{});
-        // -----------------------------------------------
-        if (actionRobo(aim, controls, pos))
-            ++w_means_complexity;
-        // -----------------------------------------------
-        next_distance = boost_distance(pos, aim);
+        //============================
+        next_distance = actionRobo(aim, controls);
+        //============================
     } while (next_distance < distance);
-    // -----------------------------------------------
-    CINFO(_T("prec: ") << distance << std::endl << _T("w_means complexity: ") << w_means_complexity << std::endl);
-    return w_means_complexity;
+
+    CINFO(_T("weightedMean precision: ") << distance << std::endl);
+    // << _T("w_means complexity: ") << _complexity << std::endl);
+    return distance;
 }
 //------------------------------------------------------------------------------
 bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *pRec,

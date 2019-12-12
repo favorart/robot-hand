@@ -44,6 +44,7 @@ class LearnMoves
     tptree _config{};
 
     bool use_weighted_mean{};
+    Robo::distance_t annealing{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
     size_t _tries = 0;
@@ -51,7 +52,7 @@ class LearnMoves
 
     std::shared_ptr<TourI> makeTour(int stage);
     //=============================================
-    bool actionRobo(IN const Point &aim, IN const Robo::Control &controls, OUT Point &hit);
+    Robo::distance_t actionRobo(IN const Point &aim, IN const Robo::Control &controls);
     //---------------------------------------------
     bool defineDependenceOfMuscles() {}
     bool defineStaticalPeriodsinMuscles() {}
@@ -89,8 +90,8 @@ class LearnMoves
                              IN OUT std::vector<int> &lasts_changes,
                              IN OUT Robo::frames_t   &velosity);
     //---------------------------------------------
-    typedef std::function<bool(const RoboMoves::Record &rec, const Point &aim)> HitPosRelToAim;
-    typedef std::set<std::size_t> visited_t;
+    using HitPosRelToAim = std::function<bool(const RoboMoves::Record&)>;
+    using visited_t = std::set<std::size_t>;
     //---------------------------------------------
     const RoboMoves::Record*
     gradientClothestRecord(IN const RoboMoves::adjacency_ptrs_t &range,
@@ -106,17 +107,17 @@ class LearnMoves
                                 IN OUT visited_t      *pVisited = NULL);
     //=============================================
     /* Mixtures */
-    size_t weightedMean(IN const Point &aim, OUT Point &hit);
-    size_t rundownMDir(IN const Point &aim, OUT Point &hit);
-    size_t rundownFull(IN const Point &aim, OUT Point &hit);
-    size_t gradientMethod(IN const Point &aim, OUT Point &pos);
+    Robo::distance_t weightedMean   (IN const Point &aim);
+    Robo::distance_t rundownAllDirs (IN const Point &aim);
+    Robo::distance_t rundownMainDir (IN const Point &aim);
+    Robo::distance_t gradientMethod (IN const Point &aim);
 
-    using pAdmixMethod = size_t(LearnMoves::*)(const Point&, Point&);
+    using pAdmixMethod = Robo::distance_t(LearnMoves::*)(const Point&);
     const pAdmixMethod admixes[2] = {
         &LearnMoves::weightedMean,
         &LearnMoves::gradientMethod//,
-        //&LearnMoves::rundownMDir,
-        //&LearnMoves::rundownFull
+        //&LearnMoves::rundownMainDir,
+        //&LearnMoves::rundownAllDirs
     };
 
     tstring _fn_config;

@@ -11,27 +11,23 @@ bool RoboI::operator==(const RoboI &r) const
 {
     if (this == &r)
         return true;
-    bool res =
-        (getName() == r.getName()) &&
-        (_base() == r._base()) &&
-        (_joint_inputs.size() == r._joint_inputs.size());
-    if (res)
+    if (getName() == r.getName() && _base() == r._base())
     {
         auto it = _joint_inputs.begin();
         auto jt = r._joint_inputs.begin();
-        /*&& jt != r._joint_inputs.end()*/
-        while (it != _joint_inputs.end())
+        while (it != _joint_inputs.end() && jt != r._joint_inputs.end())
         {
-            if (*it != *jt)
-            {
-                res = false;
-                break;
-            }
+            if (!(**it).show) { ++it; continue; }
+            if (!(**jt).show) { ++jt; continue; }
+            if (it == _joint_inputs.end() || jt == r._joint_inputs.end()
+                || (**it).joint != (**jt).joint
+                || (**it).base != (**jt).base || (**it).frames != (**jt).frames)
+                return false;
             ++it;
             ++jt;
         }
     }
-    return res;
+    return true;
 }
 void RoboI::save(tptree &root) const
 {
@@ -397,7 +393,7 @@ RoboPhysics::EnvPhyState::EnvPhyState(const Point &base, const JointsInputsPtrs 
                                   maxVelosity);
         /* last frame must be 0 to deadend */
         framesStop[j][nStopFrames - 1] = 0.;
-#ifdef DEBUG_RM
+#ifdef DEBUG_PLOT_PHY_STATE
         {
             printEnumOneHot<Enviroment>(conditions, Robo::enviroment_outputs);
             std::cout << std::endl;
@@ -425,7 +421,7 @@ RoboPhysics::EnvPhyState::EnvPhyState(const Point &base, const JointsInputsPtrs 
 
             //std::system("\"C:\\Program Files (x86)\\gnuplot\\bin\\gnuplot\" \"motion-law.dat\" -presist");
         }
-#endif // DEBUG_RM
+#endif // DEBUG_PLOT_PHY_STATE
         ++j;
     }
 }
@@ -588,6 +584,7 @@ void RoboPhysics::plotMotionLaws(const tstring &fn, joint_t joint) const
     fplot << "set ylabel 'Distance' " << std::endl;                                           // y - axis label
     fplot << "set grid " << std::endl;
     fplot << "set autoscale " << std::endl;
+    fplot << "set size ratio -1 " << std::endl;
     // labels
     //ss << "set label \"boiling point\" at 10, 212 " << std::endl;
 

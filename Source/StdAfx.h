@@ -27,11 +27,12 @@
 #include <string>
 #include <bitset>
 #include <vector>
-#include <memory> // for std::allocator
+#include <random>
+#include <memory>
 #include <numeric>
 #include <utility>
 #include <fstream>
-#include <codecvt> // utf converter
+#include <codecvt> // utf8 converter
 #include <iostream>
 #include <iterator>
 #include <algorithm>

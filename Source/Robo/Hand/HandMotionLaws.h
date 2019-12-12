@@ -209,7 +209,7 @@ public:
             ++iter;
         }
         // --------------------------------
-        /// TODO: Mango::generate() outputAngles(filename, angles);
+        // Mango::generate() outputAngles(filename, angles);
     }
 };
 class MangoDeceleration : public JointStopLawI
@@ -261,7 +261,7 @@ public:
             ++iter;
         }
         //------------------------------------------------------
-        /// TODO: Mango::generate() outputAngles(filename, angles);
+        // Mango::generate() outputAngles(filename, angles);
     }
 };
 //------------------------------------------------------------------------------
