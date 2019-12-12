@@ -102,71 +102,71 @@ auto interaction(SIMULATOR& simulator,
  * @param a The action chosen by the policy, i.e. a = policy(s)
  * @return A s',a' pair, or raises an exception if a terminal transition is reached.
  */
-//template <
-//    typename SIMULATOR,
-//    typename POLICY,
-//    typename STATE,
-//    typename ACTION,
-//    typename SRS_CRITIC>
-//typename std::enable_if_t<rl::traits::is_srs_critic<SRS_CRITIC, STATE>::value, std::pair<STATE, ACTION>>
-//adaptation(SIMULATOR &simulator,
-//           const POLICY &policy,
-//           SRS_CRITIC &critic,
-//           const STATE &s,
-//           const ACTION &a)
-//{
-//    try
-//    {
-//        simulator.timeStep(a);
-//        auto next = simulator.sense();
-//        auto res = std::make_pair(next, policy(next));
-//        critic.learn(s, simulator.reward(), next);
-//        return res;
-//    }
-//    catch (rl::exception::Terminal& e)
-//    {
-//        critic.learn(s, simulator.reward());
-//        throw e;
-//    }
-//}
-//
-///**
-// * This triggers an interaction from a policy. From this transition, the critic
-// * learning occurs. This function is dedicated to be used with
-// * successive transitions, since it must be given (s,a) of the
-// * last transition performed, in order to avoid a useless call to  policy(s).
-// * The rl::exception::Terminal exception is raised in case of terminal transition.
-// * @param s The current state, i.e. s = simulator.sense()
-// * @param a The action chosen by the policy, i.e. a = policy(s)
-// * @return A s',a' pair, or raises an exception if a terminal transition is reached.
-// */
-//template <
-//    typename SIMULATOR,
-//    typename POLICY,
-//    typename STATE,
-//    typename ACTION,
-//    typename SARS_CRITIC>
-//typename std::enable_if_t<rl::traits::is_sars_critic<SARS_CRITIC, STATE, ACTION>::value, std::pair<STATE, ACTION>>
-//adaptation(SIMULATOR &simulator,
-//           const POLICY &policy,
-//           SARS_CRITIC &critic,
-//           const STATE &s,
-//           const ACTION &a)
-//{
-//    try
-//    {
-//        simulator.timeStep(a);
-//        auto next = simulator.sense();
-//        auto res = std::make_pair(next, policy(next));
-//        critic.learn(s, a, simulator.reward(), next);
-//        return res;
-//    }
-//    catch (rl::exception::Terminal& e)
-//    {
-//        critic.learn(s, a, simulator.reward());
-//        throw e;
-//    }
-//}
+template <
+    typename SIMULATOR,
+    typename POLICY,
+    typename STATE,
+    typename ACTION,
+    typename SRS_CRITIC>
+typename std::enable_if_t<rl::traits::is_srs_critic<SRS_CRITIC, STATE>::value, std::pair<STATE, ACTION>>
+adaptation(SIMULATOR &simulator,
+           const POLICY &policy,
+           SRS_CRITIC &critic,
+           const STATE &s,
+           const ACTION &a)
+{
+    try
+    {
+        simulator.timeStep(a);
+        auto next = simulator.sense();
+        auto res = std::make_pair(next, policy(next));
+        critic.learn(s, simulator.reward(), next);
+        return res;
+    }
+    catch (rl::exception::Terminal& e)
+    {
+        critic.learn(s, simulator.reward());
+        throw e;
+    }
+}
+
+/**
+ * This triggers an interaction from a policy. From this transition, the critic
+ * learning occurs. This function is dedicated to be used with
+ * successive transitions, since it must be given (s,a) of the
+ * last transition performed, in order to avoid a useless call to  policy(s).
+ * The rl::exception::Terminal exception is raised in case of terminal transition.
+ * @param s The current state, i.e. s = simulator.sense()
+ * @param a The action chosen by the policy, i.e. a = policy(s)
+ * @return A s',a' pair, or raises an exception if a terminal transition is reached.
+ */
+template <
+    typename SIMULATOR,
+    typename POLICY,
+    typename STATE,
+    typename ACTION,
+    typename SARS_CRITIC>
+typename std::enable_if_t<rl::traits::is_sars_critic<SARS_CRITIC, STATE, ACTION>::value, std::pair<STATE, ACTION>>
+adaptation(SIMULATOR &simulator,
+           const POLICY &policy,
+           SARS_CRITIC &critic,
+           const STATE &s,
+           const ACTION &a)
+{
+    try
+    {
+        simulator.timeStep(a);
+        auto next = simulator.sense();
+        auto res = std::make_pair(next, policy(next));
+        critic.learn(s, a, simulator.reward(), next);
+        return res;
+    }
+    catch (rl::exception::Terminal& e)
+    {
+        critic.learn(s, a, simulator.reward());
+        throw e;
+    }
+}
 
 /**
  * This triggers an interaction from a policy. From this transition, the critic
@@ -212,31 +212,31 @@ adaptation(SIMULATOR &simulator,
  * This triggers an interaction from a policy. From this transition, the critic
  * learning occurs. The rl::exception::Terminal exception is raised in case of terminal transition.
  */
-//template <
-//    typename SIMULATOR,
-//    typename POLICY,
-//    typename SARSA_CRITIC,
-//    typename fctMAKE_TRANSITION,
-//    typename fctMAKE_TERMINAL_TRANSITION>
-//void
-//adaptation(SIMULATOR &simulator,
-//           const POLICY &policy,
-//           SARSA_CRITIC &critic)
-//{
-//    auto s = simulator.sense();
-//    auto a = policy(s);
-//    try
-//    {
-//        simulator.timeStep(a);
-//        auto next = simulator.sense();
-//        critic.learn(s, a, simulator.reward(), next, policy(next));
-//    }
-//    catch (rl::exception::Terminal& e)
-//    {
-//        critic.learn(s, a, simulator.reward());
-//        throw e;
-//    }
-//}
+template <
+    typename SIMULATOR,
+    typename POLICY,
+    typename SARSA_CRITIC,
+    typename fctMAKE_TRANSITION,
+    typename fctMAKE_TERMINAL_TRANSITION>
+void
+adaptation(SIMULATOR &simulator,
+           const POLICY &policy,
+           SARSA_CRITIC &critic)
+{
+    auto s = simulator.sense();
+    auto a = policy(s);
+    try
+    {
+        simulator.timeStep(a);
+        auto next = simulator.sense();
+        critic.learn(s, a, simulator.reward(), next, policy(next));
+    }
+    catch (rl::exception::Terminal& e)
+    {
+        critic.learn(s, a, simulator.reward());
+        throw e;
+    }
+}
 
 /**
  * This runs an episode.
