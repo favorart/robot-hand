@@ -1,4 +1,44 @@
 ﻿#include "RoboMovesStore.h"
+#include "RoboPosApprox.h"
+
+
+//------------------------------------------------------------------------------
+std::pair<bool, RoboMoves::Record> RoboMoves::Store::getClosestPoint(IN const Point &aim, IN double side) const
+{
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    // -----------------------------------------------
+    const auto &indexP = _store.get<ByP>();
+    // -----------------------------------------------
+    auto itPL = indexP.lower_bound(boost::tuple<double, double>(aim.x - side, aim.y - side));
+    auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim.x + side, aim.y + side));
+    // -----------------------------------------------
+    ClosestPredicate cp(aim);
+    bool exist = (itPU != indexP.end() || itPL != indexP.end());
+    return (exist) ? std::make_pair(true, *std::min_element(itPL, itPU, cp)) : std::make_pair(false, Record{});
+}
+
+//------------------------------------------------------------------------------
+RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
+{
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    // -----------------------------------------------
+    const auto &indexP = _store.get<ByP>();
+    auto itPL = indexP.lower_bound(boost::tuple<double, double>(aim));
+    auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim));
+    // -----------------------------------------------
+    if (itPU == indexP.end() && itPL == indexP.end())
+    {
+        CERROR(" No closest point exists");
+    }
+    else if (itPU != indexP.end() && itPL != indexP.end())
+    {
+        ClosestPredicate cp(aim);
+        return (cp(*itPU, *itPL)) ? *itPU : *itPL;
+    }
+    else if (itPU != indexP.end())
+        return *itPU;
+    return *itPL;
+}
 
 //------------------------------------------------------------------------------
 size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double side,
@@ -175,4 +215,17 @@ void RoboMoves::Store::near_passed_build_index()
         _inverse_index_last = _inverse.size();
     }
 }
+
+//------------------------------------------------------------------------------
+RoboPos::Approx* RoboMoves::Store::approx() { return _approx.get(); }
+
+//------------------------------------------------------------------------------
+void RoboMoves::Store::construct_approx(size_t max_n_controls)
+{
+    _approx = std::make_unique<RoboPos::Approx>(
+        this->size(), max_n_controls,
+        /*noize*/[](size_t) { return 0.00000000001; },
+        /*sizing*/[]() { return 1.01; });
+}
+
 

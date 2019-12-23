@@ -9,6 +9,9 @@
 #include "WindowDraw.h"
 #endif // MY_WINDOW
 
+namespace RoboPos {
+class Approx;
+}
 namespace RoboMoves
 {
   struct ByX {}; ///< by x of hit
@@ -18,8 +21,6 @@ namespace RoboMoves
   struct ByC {}; ///< by controls
   struct ByL {}; ///< by trajectory length
   //struct ByD {}; ///< by distance
-
-  using distance_t = double;
 
   typedef std::list<Record>                   adjacency_t;
   typedef std::list<const Record*>            adjacency_ptrs_t;
@@ -81,19 +82,19 @@ namespace RoboMoves
                                       >,
                    ordered_non_unique < tag<ByP>,
                                         composite_key < Record,
-                                                        const_mem_fun<Record, double, &Record::hit_x >,
-                                                        const_mem_fun<Record, double, &Record::hit_y >
+                                                        const_mem_fun<Record, Robo::distance_t, &Record::hit_x >,
+                                                        const_mem_fun<Record, Robo::distance_t, &Record::hit_y >
                                                       >
                                       >,
                    ordered_non_unique < tag<ByA>,
                                         composite_key < Record,
-                                                        const_mem_fun<Record, double, &Record::aim_x >,
-                                                        const_mem_fun<Record, double, &Record::aim_y >
+                                                        const_mem_fun<Record, Robo::distance_t, &Record::aim_x >,
+                                                        const_mem_fun<Record, Robo::distance_t, &Record::aim_y >
                                                       >
                                       >,
-                   ordered_non_unique < tag<ByX>, const_mem_fun<Record, double, &Record::hit_x > >,
-                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, double, &Record::hit_y > >,
-                   ordered_non_unique < tag<ByL>, const_mem_fun<Record, double, &Record::distanceCovered > >
+                   ordered_non_unique < tag<ByX>, const_mem_fun<Record, Robo::distance_t, &Record::hit_x > >,
+                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, Robo::distance_t, &Record::hit_y > >,
+                   ordered_non_unique < tag<ByL>, const_mem_fun<Record, Robo::distance_t, &Record::distanceCovered > >
                    // , random_access      < > // доступ, как у вектору
                  >
     >;
@@ -104,6 +105,8 @@ namespace RoboMoves
     mutable boost::mutex _store_mutex{};
     InverseIndex _inverse{};
     size_t _inverse_index_last{ 0 };
+    /// интерполяция функции(x,y) остановки по управлениям мускулов
+    std::shared_ptr<RoboPos::Approx> _approx{};
 
     //==============================================================================
     SimTime _trajectories_enumerate{ 0 };
@@ -112,16 +115,16 @@ namespace RoboMoves
     inline size_t kdtree_get_point_count() const { return _inverse.size(); }
     
     /// \returns the dim-th component of the i-th point
-    inline distance_t kdtree_get_pt(const size_t i, int dim) const
-    { return (dim) ? _inverse[i].first->y : _inverse[i].first->x; }
+    inline Robo::distance_t kdtree_get_pt(const size_t i, int dim) const
+    { return (*_inverse[i].first)[i]; }
         
     /// Optional bounding-box computation: return false by default
     /// \return true if the BBOX was already computed (to avoid the redoing) and return it in "bb"
-    template<class BBOX>
+    template <class BBOX>
     bool kdtree_get_bbox(BBOX&/*bb*/) const { return false; }
     
     static const size_t KDTDim = 2;
-    using KDTDist = nanoflann::L2_Simple_Adaptor<distance_t, Store>;
+    using KDTDist = nanoflann::L2_Simple_Adaptor<Robo::distance_t, Store>;
     using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor<KDTDist, Store, KDTDim>;    
     using KDTree1 = nanoflann::KDTreeSingleIndexDynamicAdaptor_<KDTDist, Store, KDTDim, size_t>;
     using KDTreeBase = nanoflann::KDTreeBaseClass<KDTree1, KDTDist, Store, KDTDim, size_t>;
@@ -146,19 +149,8 @@ namespace RoboMoves
     Store(const tstring &filename, std::shared_ptr<Robo::RoboI> &r, Format f) : Store() { pick_up(filename, r, f); }
     //------------------------------------------------------------------------------
     /// \return the closest hit in a square adjacency of the aim point
-    std::pair<bool, Record> getClosestPoint(IN const Point &aim, IN double side) const
-    {
-      boost::lock_guard<boost::mutex> lock(_store_mutex);
-      // -----------------------------------------------
-      const auto &indexP = _store.get<ByP>();
-      // -----------------------------------------------
-      auto itPL = indexP.lower_bound(boost::tuple<double, double>(aim.x - side, aim.y - side));
-      auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim.x + side, aim.y + side));
-      // -----------------------------------------------
-      ClosestPredicate cp(aim);
-      bool exist = (itPL != itPU && itPL != indexP.end());
-      return (exist) ? std::make_pair(true, *std::min_element(itPL, itPU, cp)) : std::make_pair(false, Record{});
-    }
+    std::pair<bool, Record> getClosestPoint(IN const Point &aim, IN double side) const;
+    Record closestEndPoint(const Point &aim) const;
     //------------------------------------------------------------------------------
     using Mod = std::function<void(Record&)>;
     void replace(IN const Robo::Control &controls, IN const Mod &mod)
@@ -195,8 +187,7 @@ namespace RoboMoves
           && (max.x >= it->hit.x && max.y >= it->hit.y) )
             rangeInserter(range, *it);
       }
-
-      CINFO(" min=" << min << " max=" << max << " adjacency=" << range.size());
+      CINFO(" min=" << min << " max=" << max << " r=" << bg::distance(min, max)/2 << " adjacency=" << range.size());
       // -----------------------------------------------
       return range.size();
     }
@@ -223,7 +214,7 @@ namespace RoboMoves
             if (boost_distance(aim, it->hit) <= radius)
                 rangeInserter(range, *it);
 
-        CINFO(" aim " << aim << " r " << radius << " adjacency " << range.size());
+        CINFO(" aim=" << aim << " r=" << radius << " adj_n_points=" << range.size());
         // -----------------------------------------------
         return range.size();
     }
@@ -292,6 +283,10 @@ namespace RoboMoves
         const auto &index = _store.get<ByC>();
         // -----------------------------------------------
         auto equal = index.find(controls);
+        // -----------------------------------------------
+        tstring s = (equal != index.end()) ? tstring(equal->hit) : tstring(_T("-"));
+        CINFO(" exact c=" << controls << " p=" << s);
+        // -----------------------------------------------
         return  (equal != index.end()) ? (&(*equal)) : (nullptr);
     }
     //------------------------------------------------------------------------------
@@ -337,7 +332,7 @@ namespace RoboMoves
     void pick_up(const tstring &filename, std::shared_ptr<Robo::RoboI> &robo, Format format);
     //------------------------------------------------------------------------------
     template <class range_t>
-    size_t near_passed_points(OUT range_t &range, IN const Point &p, IN distance_t radius) const
+    size_t near_passed_points(OUT range_t &range, IN const Point &p, IN Robo::distance_t radius) const
     {
         static_assert (boost::is_same<range_t, adjacency_t>::value
                     || boost::is_same<range_t, adjacency_ptrs_t>::value
@@ -366,6 +361,9 @@ namespace RoboMoves
     /// Construct Inverse Index of all passed points
     void near_passed_build_index();
     //------------------------------------------------------------------------------
+    void construct_approx(size_t max_n_controls);
+    RoboPos::Approx* approx();
+    //------------------------------------------------------------------------------
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
     using MultiIndexMovesSqPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;
     /// iterators-pair using: for (auto it=ret.first; it!=ret.second; ++it) {}
@@ -389,7 +387,7 @@ namespace RoboMoves
         auto itPL = index.lower_bound(boost::tuple<double, double>(min));
         auto itPU = index.upper_bound(boost::tuple<double, double>(max));
         // -----------------------------------------------
-        CDEBUG(" min=" << min << " max=" << max << " adjacency" /*<< (itPU - itPL)*/);
+        CDEBUG(" min=" << min << " max=" << max << " r=" << bg::distance(min, max) / 2 << " adjacency" /*<< (itPU - itPL)*/);
         return std::make_pair(itPL, itPU);
     }
     // // get all points in round adjacency for the aim point
