@@ -23,8 +23,7 @@ struct Actuator
     Actuator(const Actuator&) = default;
     Actuator& operator=(const Actuator&) = default;
     //----------------------------------------------------
-    bool operator<  (const Actuator &a) const
-    { return (start < a.start && muscle != MInvalid) || (start == a.start && muscle < a.muscle); }
+    bool operator<  (const Actuator &a) const;
     bool operator>  (const Actuator &a) const
     { return !(*this < a) && !(*this == a); }
     bool operator<= (const Actuator &a) const
@@ -106,14 +105,21 @@ public:
     using iterator = std::array<Actuator, MAX_ACTUATORS>::iterator;
     using const_iterator = std::array<Actuator, MAX_ACTUATORS>::const_iterator;
 
-    auto begin()       -> decltype(boost::begin(actuators));
-    auto begin() const -> decltype(boost::begin(actuators));
-    auto   end()       -> decltype(boost::end(actuators));
-    auto   end() const -> decltype(boost::end(actuators));
+    auto  begin()       -> decltype(boost::begin(actuators));
+    auto  begin() const -> decltype(boost::begin(actuators));
+    auto    end()       -> decltype(boost::end(actuators));
+    auto    end() const -> decltype(boost::end(actuators));
+    auto rbegin()       -> decltype(boost::rbegin(actuators));
+    auto rbegin() const -> decltype(boost::rbegin(actuators));
+    auto   rend()       -> decltype(boost::rend(actuators));
+    auto   rend() const -> decltype(boost::rend(actuators));
     //----------------------------------------------------
     size_t size() const { return (actuals); }
     void append(const Actuator& a); // sorted
     void push_back(const Actuator& a) { append(a); }
+
+    void shorter (size_t index, frames_t velosity, bool infl_oppo_start = false, bool infl_oppo_lasts = false);
+    void longer  (size_t index, frames_t velosity, bool infl_oppo_start = false);
 
     void pop_back();
     void pop(size_t i) { remove(i); }

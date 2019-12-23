@@ -15,6 +15,12 @@ bool Robo::Actuator::intersect(const Robo::Actuator &a) const
 }
 
 //---------------------------------------------------------
+bool Robo::Actuator::operator<(const Actuator &a) const
+{
+    return (muscle < a.muscle) && (start < a.start); //(muscle != MInvalid)
+}
+
+//---------------------------------------------------------
 Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 {
     if (sz > MAX_ACTUATORS)
@@ -57,7 +63,8 @@ void Robo::Control::remove(size_t i)
 {
     if (!actuals)
         throw std::logic_error("remove: Controls are empty!");
-
+    if (i >= actuals)
+        CERROR("remove: Invalid index: " << i << " actuals=" << actuals);
     actuals--;
     for (size_t j = i; j < actuals; ++j)
         actuators[j] = actuators[j + 1];
@@ -93,9 +100,11 @@ void Robo::Control::removeStartPause()
 {
     Robo::frames_t start_time = actuators[0].start;
     if (start_time > 0)
+    {
         for (size_t i = 0; i < actuals; ++i)
             actuators[i].start -= start_time;
-    _validated = false;
+        _validated = false;
+    }
 }
 
 //----------------------------------------------------
@@ -172,8 +181,13 @@ std::vector<Robo::Actuator> Robo::Control::align() const
 //---------------------------------------------------------
 auto Robo::Control::begin()       -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
 auto Robo::Control::begin() const -> decltype(boost::begin(actuators)) { return boost::begin(actuators); }
-auto Robo::Control::end()         -> decltype(boost::end(actuators))   { return boost::begin(actuators) + actuals; } // ?? std::advance()
-auto Robo::Control::end()   const -> decltype(boost::end(actuators))   { return boost::begin(actuators) + actuals; } // ?? std::advance()
+auto Robo::Control::end()         -> decltype(boost::end(actuators))   { return boost::begin(actuators) + actuals; }
+auto Robo::Control::end()   const -> decltype(boost::end(actuators))   { return boost::begin(actuators) + actuals; }
+
+auto Robo::Control::rbegin()       -> decltype(boost::rbegin(actuators)) { return boost::rbegin(actuators); }
+auto Robo::Control::rbegin() const -> decltype(boost::rbegin(actuators)) { return boost::rbegin(actuators); }
+auto Robo::Control::rend()         -> decltype(boost::rend(actuators))   { auto it = boost::rbegin(actuators); boost::advance(it, actuals); return it; }
+auto Robo::Control::rend()   const -> decltype(boost::rend(actuators))   { auto it = boost::rbegin(actuators); boost::advance(it, actuals); return it; }
 
 //---------------------------------------------------------
 void Robo::Control::validated(Robo::muscle_t n_muscles) const
@@ -215,13 +229,55 @@ void Robo::Control::order(Robo::muscle_t n_muscles)
 {
     if (!validate(n_muscles))
     {
-        br::sort(actuators, [](auto &l, auto& r) {
-            if (!l.lasts) l.lasts = 1;
-            if (!r.lasts) r.lasts = 1;
-            return l < r;
-        });
+        br::for_each(actuators, [](auto &a) { if (!a.lasts) a.lasts = 1; });
+        br::sort(actuators);
     }
     removeStartPause();
+}
+
+//---------------------------------------------------------
+void Robo::Control::shorter(size_t index, frames_t velosity, bool infl_oppo_start, bool infl_oppo_lasts)
+{
+    muscle_t m = actuators[index].muscle;
+    bool removed = false;
+
+    if (actuators[index].lasts > velosity)
+        actuators[index].lasts -= velosity;
+    else
+    {
+        velosity -= actuators[index].lasts;
+        remove(index);
+        removed = true;
+    }
+
+    if (velosity && ((!removed && infl_oppo_start) || infl_oppo_lasts))
+    {
+        auto m_op = RoboI::muscleOpposite(m);
+        auto it_op = begin();
+        while ((it_op = std::find(it_op, end(), m_op)) != end())
+        {
+            if (infl_oppo_start && !removed && it_op->start > actuators[index].start)
+                it_op->start -= velosity;
+            if (infl_oppo_lasts)
+                longer(it_op - begin(), velosity);
+        }
+    }
+    //if (removed) --index;
+    //_validated = false;
+}
+
+//---------------------------------------------------------
+void Robo::Control::longer(size_t index, frames_t velosity, bool oppo_start)
+{
+    actuators[index].lasts += velosity;
+    if (oppo_start)
+    {
+        auto m_op = RoboI::muscleOpposite(actuators[index].muscle);
+        for (auto it_op = std::find(begin() + index, end(), m_op); it_op != end(); ++it_op)
+            if (it_op->start > actuators[index].start)
+                it_op->start += velosity;
+    }
+    //_validated = false;
 }
 
 //-------------------------------------------------------------------------------
