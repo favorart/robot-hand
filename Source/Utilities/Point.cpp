@@ -49,6 +49,7 @@ Point::value_type Point::angle(const Point &p) const
 LineSide onLineSide(const Point &from, const Point &to, const Point &pt)
 {
     Point::value_type d = (pt.x - from.x)*(to.y - from.y) - (pt.y - from.y)*(to.x - from.x);
+    //CDEBUG("LineSide=" << d);
     return (d == 0) ? LineSide::OnLine : ((d < 0) ? LineSide::Left : LineSide::Right);
     // To see whether points on the left side of the line are those with positive or negative values 
     // compute the value for d for a point you know is to the left of the line, such as(x1−1, y1)
@@ -162,13 +163,13 @@ void Point::load(tptree &node)
     y = node.back().second.get_value<Point::value_type>();
 }
 //--------------------------------------------------------------------------------
-Point::value_type& Point::operator[](unsigned i)
+Point::value_type& Point::operator[](size_t i)
 {
     if (i > Point::ndimensions) CERROR("Invalid index")
     else if (i == 0) return x_;
     return y_;
 }
-const Point::value_type& Point::operator[](unsigned i) const
+const Point::value_type& Point::operator[](size_t i) const
 {
     if (i >= Point::ndimensions) CERROR("Invalid index")
     else if (i == 0) return x_;

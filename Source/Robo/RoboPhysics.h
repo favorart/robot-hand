@@ -34,6 +34,7 @@ protected:
     Point& currPos(joint_t);
 
 public:
+    static const frames_t LastsTooLong = 10000;
     RoboPhysics(const Point &base /*Clavicle|Center*/,
                 const JointsInputsPtrs &joint_inputs,
                 pEnvEdges eiges);

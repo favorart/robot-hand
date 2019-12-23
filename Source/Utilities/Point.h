@@ -86,8 +86,8 @@ public:
     friend std::istream& operator>>(std::istream &s, Point &p);
 
     //-------------------------------------------------------------------------------
-    Point::value_type& operator[](unsigned i);
-    const Point::value_type& operator[](unsigned i) const;
+    Point::value_type& operator[](size_t i);
+    const Point::value_type& operator[](size_t i) const;
 
 private:
     Point::value_type x_, y_;

@@ -495,7 +495,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                     controls[i - 1].lasts -= std::min(_step_back, controls[i - 1].lasts);
                     step_back_count++;
 
-                    if (controls[i - 1].lasts > too_long)
+                    if (controls[i - 1].lasts > TourI::too_long)
                         throw std::logic_error("too_long");                
                 }
             }
@@ -785,7 +785,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t joint, Control &controls,
                         controls.pop(i - 1);
                         popped = true;
                     }
-                    else if (controls[i - 1].lasts > too_long)
+                    else if (controls[i - 1].lasts > TourI::too_long)
                         throw std::logic_error("too_long");
                 }
                 lasts = (controls[controls.size() - 1].start + controls[controls.size() - 1].lasts);

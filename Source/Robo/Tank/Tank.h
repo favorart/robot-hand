@@ -31,15 +31,10 @@ public:
         JInvalid = 3
     };
 
-    Tank::Muscle MofJ(Tank::Joint joint, bool open) const
-    { return Tank::Muscle(size_t(joint) * 2 + !open); }
-    Tank::Joint  JofM(Tank::Muscle muscle) const
-    { return Tank::Joint(size_t(muscle) / 2); }
-
-    Tank::Muscle M(muscle_t muscle) const
-    { return (muscle >= muscles) ? Tank::Muscle::MInvalid : params.musclesUsed[muscle]; }
-    Tank::Joint  J(joint_t joint) const
-    { return (joint >= joints) ? Tank::Joint::JInvalid : params.jointsUsed[joint]; }
+    Tank::Muscle MofJ(Tank::Joint j, bool frwd) const { return Tank::Muscle(muscle_t(j) * musclesPerJoint + !frwd); }
+    Tank::Joint  JofM(Tank::Muscle m)           const { return Tank::Joint(joint_t(m) / musclesPerJoint); }
+    Tank::Muscle M(muscle_t m) const { return (m >= muscles) ? Tank::Muscle::MInvalid : params.musclesUsed[m]; }
+    Tank::Joint  J(joint_t j)  const { return (j >= joints)   ? Tank::Joint::JInvalid  : params.jointsUsed[j]; }
 
 protected:
     static const size_t muscles = (size_t)(Tank::Muscle::MCount);
@@ -86,5 +81,5 @@ public:
     friend class Robo::EnvEdgesTank;
 };
 
-}
-}
+} // end namespace Mobile
+} // end namespace Robo

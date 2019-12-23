@@ -37,23 +37,10 @@ public:
         JInvalid  = 5
     };
 
-    Hand::Muscle MofJ(Joint joint, bool open) const
-    { return Hand::Muscle(uint8_t(joint) * 2 + !open); }
-    Hand::Joint  JofM(Muscle muscle) const
-    { return Hand::Joint(uint8_t(muscle) / 2); }
-
-    Hand::Muscle M(muscle_t muscle) const
-    {
-        if (muscle >= musclesCount())
-            return Hand::Muscle::MInvalid;
-        return params.musclesUsed[muscle];
-    }
-    Hand::Joint  J(joint_t joint) const
-    {
-        if (joint >= jointsCount())
-            return Hand::Joint::JInvalid;
-        return params.jointsUsed[joint];
-    }
+    Hand::Muscle MofJ(Joint j, bool frwd) const { return Hand::Muscle(muscle_t(j) * musclesPerJoint + !frwd); }
+    Hand::Joint  JofM(Muscle m)           const { return Hand::Joint(joint_t(m) / musclesPerJoint); }
+    Hand::Muscle M(muscle_t m) const { return (m >= musclesCount()) ? Hand::Muscle::MInvalid : params.musclesUsed[m]; }
+    Hand::Joint  J(joint_t j)  const { return (j >= jointsCount())  ? Hand::Joint::JInvalid  : params.jointsUsed[j]; }
     
 protected:
     static const size_t joints = (size_t)(Hand::Joint::JCount);

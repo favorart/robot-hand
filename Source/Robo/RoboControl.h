@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 namespace Robo
 {
@@ -24,7 +24,7 @@ struct Actuator
     Actuator& operator=(const Actuator&) = default;
     //----------------------------------------------------
     bool operator<  (const Actuator &a) const
-    { return (start < a.start) || (start == a.start && muscle < a.muscle); }
+    { return (start < a.start && muscle != MInvalid) || (start == a.start && muscle < a.muscle); }
     bool operator>  (const Actuator &a) const
     { return !(*this < a) && !(*this == a); }
     bool operator<= (const Actuator &a) const
@@ -149,6 +149,7 @@ public:
     //----------------------------------------------------
     void removeStartPause();
     bool intersectMusclesOpposites() const;
+    void order(Robo::muscle_t n_muscles) /*nothrow*/;
     bool validate(Robo::muscle_t n_muscles) /*nothrow*/ const;
     void validated(Robo::muscle_t n_muscles) /*!throw*/ const;
     //----------------------------------------------------
@@ -181,6 +182,12 @@ public:
     static Control EmptyMove() { return Control{}; }
 };
 //-------------------------------------------------------------------------------
+
+/**  матрица: 
+*         строки - битовые входы приводов,
+*         столбцы - такты по времени работы робота.
+*    параметр N - число доступных приводов.
+*/
 template <size_t N>
 class BitsControl
 {

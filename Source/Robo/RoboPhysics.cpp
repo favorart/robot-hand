@@ -326,12 +326,14 @@ frames_t RoboPhysics::move(IN const Control &controls, IN frames_t max_frames)
 {
     controls.validated(musclesCount());
     CDEBUG("C:" << controls);
-    for (auto &c : controls) // starts all moves
+    for (auto &a : controls) // starts all moves
     {
+        if (a.lasts > RoboPhysics::LastsTooLong)
+            CERROR(" move lasts too long ");
         //CDEBUG("c:" << c);
-        while (c.start > _frame)
+        while (a.start > _frame)
             step();
-        step(c.muscle, c.lasts);
+        step(a.muscle, a.lasts);
     }
     return move(max_frames);
 }

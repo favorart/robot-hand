@@ -210,6 +210,20 @@ bool Robo::Control::validate(Robo::muscle_t n_muscles) const
     return _validated = (actuals > 0 && ba::none_of(*this, is_invalid));
 }
 
+//---------------------------------------------------------
+void Robo::Control::order(Robo::muscle_t n_muscles)
+{
+    if (!validate(n_muscles))
+    {
+        br::sort(actuators, [](auto &l, auto& r) {
+            if (!l.lasts) l.lasts = 1;
+            if (!r.lasts) r.lasts = 1;
+            return l < r;
+        });
+    }
+    removeStartPause();
+}
+
 //-------------------------------------------------------------------------------
 Robo::Control Robo::operator+(const Robo::Control &cl, const Robo::Control &cr)
 {
