@@ -10,7 +10,30 @@ using SimTime = uint64_t;
 typedef std::vector<Robo::frames_t>   frames_array;
 typedef std::vector<Robo::muscle_t>  muscles_array;
 
-int64_t getStrategy(const Robo::Control &controls);
+#define  CHECK_BIT(var,pos)   ((var)&(1<<(pos)))
+#define  BITSINBYTE           8
+
+class Strategy
+{
+    Robo::muscle_t _nmuscles{};
+    using Value = uint64_t;
+    Value _number{};
+    static const size_t NPOS = (sizeof(_number)*BITSINBYTE);
+    Value check_chunk(size_t pos) const;
+    size_t nchunks() const { return (NPOS / _nmuscles); }
+public:
+    auto number() const { return _number; }
+    Strategy(Robo::muscle_t nmuscles) : _nmuscles(nmuscles) {}
+    Strategy(const Strategy&) = default;
+    Strategy(Strategy&&) = default;
+    Strategy& operator=(const Strategy&) = default;
+    bool operator==(const Strategy&) const;
+    bool operator!=(const Strategy&s) const { return !(*this == s); }
+    bool almost_eq(const Strategy&) const;
+    static Strategy get(const Robo::Control&);
+    static Strategy get(const Robo::Control&, Robo::muscle_t nmuscles);
+    static Strategy empty() { return Strategy(0); }
+};
 
 class Record
 {
@@ -21,7 +44,7 @@ class Record
     Control control_{};
     Traj visited_{};
 
-    int64_t _strategy{-1}; ///< набор зайствованных мускулов в управлении
+    Strategy _strategy{-1}; ///< набор зайствованных мускулов в управлении
     Robo::frames_t _lasts_step{};
     mutable double _error_distance{0.};
     
@@ -123,7 +146,7 @@ struct RecordHasher
 {
     size_t operator()(const Record& rec) const { return PointHasher{}(rec.hit); }
 };
-}
+} // end RoboMoves
 //------------------------------------------------------------------------------
 BOOST_CLASS_VERSION (RoboMoves::Record, 2)
 //------------------------------------------------------------------------------

@@ -166,8 +166,8 @@ RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
         gradPens.setColors({ RGB(0,255,0), RGB(255,0,0) }, RoboI::musclesMaxCount * n_controls);
         gradPens.shuffleGradient();
         return [&gradPens](const Record &rec) {
-            auto n_strat = RoboMoves::getStrategy(rec.controls);
-            return gradPens(frames_t(n_strat));
+            auto strategy = RoboMoves::Strategy::get(rec.controls);
+            return gradPens(frames_t(strategy.number()));
         };
     }
     //case CGradient::None:

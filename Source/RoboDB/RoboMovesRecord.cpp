@@ -13,7 +13,7 @@ RoboMoves::Record::Record(IN const Point         &aim,
                           IN size_t               controls_count,
                           IN const Traj          &visited) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final), visited_(visited),
-    _strategy(getStrategy(controls)),
+    _strategy(Strategy::get(controls)),
     _lasts_step(0)
 {
     if (!visited_.size())
@@ -34,7 +34,7 @@ RoboMoves::Record::Record(IN const Point   &aim,
                           IN Robo::frames_t lasts_step) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final),
     control_(controls), visited_(visited), _lasts_step(0),
-    _strategy(getStrategy(controls)),
+    _strategy(Strategy::get(controls)),
     _update_time(std::time(NULL)), _update_traj(0)
 {
     if (!visited_.size())
@@ -55,7 +55,7 @@ void RoboMoves::Record::clear()
     control_.clear();
     visited_.clear();
 
-    _strategy = -1;
+    _strategy = Strategy::empty();
     _lasts_step = 0;
     _error_distance = 0.;
     _update_time = 0;
@@ -183,14 +183,60 @@ tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
     return s;
 }
 //------------------------------------------------------------------------------
-int64_t RoboMoves::getStrategy(const Robo::Control &controls)
+/// 
+Strategy RoboMoves::Strategy::get(const Robo::Control &controls)
 {
-    const auto k = int(std::ceil(std::log2(RoboI::musclesMaxCount))); // k = 3 = log2(8)
-    if (controls.size() > 20) // 64 / 3 ~ 21
-        CERROR("Too long control=" << controls.size() << " >20");
-    int64_t n_strat = 0;
-    int i = 0;
-    for (auto &a : controls)
-        n_strat += (int64_t(a.muscle) << (k*i++));
-    return n_strat;
+    // int(std::ceil(std::log2(RoboI::musclesMaxCount))); //=3=log2(8)
+    //if (controls.size() > NPOS / n_muscles_bits) // 64/8 ~ 8
+    //    CERROR("Too long control=" << controls.size() << " >" << NPOS / n_muscles_bits);
+    return Strategy::get(controls, RoboI::musclesMaxCount);
 }
+//------------------------------------------------------------------------------
+/// 
+Strategy RoboMoves::Strategy::get(const Robo::Control &controls, muscle_t nmuscles)
+{
+    if (controls.size() > NPOS / nmuscles)
+        CERROR("Too long control=" << controls.size() << " >" << NPOS / nmuscles);
+
+    int pos = 0;
+    Strategy strategy(nmuscles);
+    for (auto &a : controls)
+        strategy._number |= (Strategy::Value(a.muscle) << (nmuscles * pos++));
+    return strategy;
+}
+
+//------------------------------------------------------------------------------
+RoboMoves::Strategy::Value RoboMoves::Strategy::check_chunk(size_t pos) const
+{
+    Value chunk = ((1 << _nmuscles) - 1) << (pos * _nmuscles);
+    return (chunk & _number) >> (pos * _nmuscles);
+}
+
+//------------------------------------------------------------------------------
+bool RoboMoves::Strategy::operator==(const RoboMoves::Strategy &s) const
+{
+    if (!_number || !s._number)
+        return true;
+    for (size_t pos = 0; pos < nchunks(); ++pos)
+        if (check_chunk(pos) != s.check_chunk(pos))
+            return false;
+    return true;
+}
+
+//------------------------------------------------------------------------------
+bool RoboMoves::Strategy::almost_eq(const RoboMoves::Strategy &s) const
+{
+    if (!_number || !s._number)
+        return true;
+    for (size_t lpos = 0, rpos = 0; lpos < nchunks() || rpos < nchunks(); ++lpos, ++rpos)
+    {
+        auto chunk1 = check_chunk(lpos);
+        auto chunk2 = s.check_chunk(rpos);
+        while (chunk1 == 0 && lpos < nchunks()) chunk1 = check_chunk(++lpos);
+        while (chunk2 == 0 && rpos < nchunks()) chunk2 = s.check_chunk(++rpos);
+        if (chunk1 != chunk2)
+            return false;
+    }
+    return true;
+}
+
