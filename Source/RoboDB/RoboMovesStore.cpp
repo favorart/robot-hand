@@ -3,6 +3,27 @@
 
 
 //------------------------------------------------------------------------------
+void RoboMoves::Store::replace(IN const Robo::Control &controls, IN const RoboMoves::Store::Mod &mod)
+{
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    // -----------------------------------------------
+    auto it = _store.get<ByC>().find(controls);
+    _store.get<ByC>().modify(it, mod);
+}
+
+//------------------------------------------------------------------------------
+void RoboMoves::Store::clear()
+{
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    _store.clear();
+    _inverse.clear();
+    for (size_t i = 0; i < _inverse_kdtree.getAllIndices().size(); ++i)
+        _inverse_kdtree.removePoint(i);
+    _inverse_index_last = 0;
+    CINFO(" store clear");
+}
+
+//------------------------------------------------------------------------------
 std::pair<bool, RoboMoves::Record> RoboMoves::Store::getClosestPoint(IN const Point &aim, IN double side) const
 {
     boost::lock_guard<boost::mutex> lock(_store_mutex);
@@ -12,9 +33,11 @@ std::pair<bool, RoboMoves::Record> RoboMoves::Store::getClosestPoint(IN const Po
     auto itPL = indexP.lower_bound(boost::tuple<double, double>(aim.x - side, aim.y - side));
     auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim.x + side, aim.y + side));
     // -----------------------------------------------
-    ClosestPredicate cp(aim);
-    bool exist = (itPU != indexP.end() || itPL != indexP.end());
-    return (exist) ? std::make_pair(true, *std::min_element(itPL, itPU, cp)) : std::make_pair(false, Record{});
+    const bool exist = (itPU != indexP.end() || itPL != indexP.end());
+    const Record &rec = (exist) ? *std::min_element(itPL, itPU, ClosestPredicate(aim)) : Record{};
+    if (exist)
+        CINFO(" aim=" << aim << " hit=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
+    return std::make_pair(exist, rec);
 }
 
 //------------------------------------------------------------------------------
@@ -32,12 +55,37 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
     }
     else if (itPU != indexP.end() && itPL != indexP.end())
     {
-        ClosestPredicate cp(aim);
-        return (cp(*itPU, *itPL)) ? *itPU : *itPL;
+        const Record &rec = (ClosestPredicate(aim)(*itPU, *itPL)) ? *itPU : *itPL;
+        CINFO(" aim=" << aim << " PU=" << itPU->hit << " PL=" << itPL->hit << " d=" << bg::distance(rec.hit, aim));
+        return rec;
     }
     else if (itPU != indexP.end())
-        return *itPU;
-    return *itPL;
+    {
+        const Record &rec = *itPU;
+        CINFO(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
+        return rec;
+    }
+    //else if (itPL != indexP.end())
+    {
+        const Record &rec = *itPL;
+        CINFO(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
+        return rec;
+    }
+}
+
+//------------------------------------------------------------------------------
+const RoboMoves::Record* RoboMoves::Store::exactRecordByControl(IN const Robo::Control &controls) const
+{
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    // -----------------------------------------------
+    const auto &index = _store.get<ByC>();
+    // -----------------------------------------------
+    auto equal = index.find(controls);
+    bool exist = (equal != index.end());
+    // -----------------------------------------------
+    CINFO(" exact c=" << controls << " p=" << tstring{ (exist) ? tstring(equal->hit) : tstring(_T("-")) });
+    // -----------------------------------------------
+    return (exist) ? (&(*equal)) : (nullptr);
 }
 
 //------------------------------------------------------------------------------
@@ -220,12 +268,18 @@ void RoboMoves::Store::near_passed_build_index()
 RoboPos::Approx* RoboMoves::Store::approx() { return _approx.get(); }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::construct_approx(size_t max_n_controls)
+void RoboMoves::Store::construct_approx(size_t max_n_controls, RoboMoves::ApproxFilter &filter)
 {
-    _approx = std::make_unique<RoboPos::Approx>(
-        this->size(), max_n_controls,
-        /*noize*/[](size_t) { return 0.00000000001; },
-        /*sizing*/[]() { return 1.01; });
+    if (!approx())
+    {
+        _approx = std::make_unique<RoboPos::Approx>(
+            this->size(),
+            max_n_controls,
+            /*noize*/[](size_t) { return 0.00000000001; },
+            /*sizing*/[]() { return 1.01; });
+    }
+    if (!approx()->constructed())
+        approx()->constructXY(filter); // filtering
 }
 
 

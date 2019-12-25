@@ -1,12 +1,42 @@
-﻿#include "Robo.h"
-#include "RoboMovesStore.h"
-#include "RoboPosApprox.h"
-
+﻿#include "RoboPosApprox.h"
+#include "RoboMovesRecord.h"
 
 using namespace Eigen;
 using namespace RoboPos;
 using namespace Robo;
 
+//------------------------------------------------------------------------------
+RoboPos::Approx::Approx(size_t store_size, size_t max_n_controls, Noize noize, Sizing sizing) :
+    _max_n_controls(max_n_controls),
+    _mX(store_size, Approx::control_size * _max_n_controls),
+    _mY(store_size, Approx::point_size),
+    _mQ(store_size, Approx::point_size),
+    _vNorm(store_size),
+    _vK(store_size),
+    _nmX(Approx::control_size * _max_n_controls, store_size),
+    _noize(noize), _sizing(sizing)
+{}
+
+//------------------------------------------------------------------------------
+RoboPos::Approx::Approx(Eigen::MatrixXd &X, Eigen::MatrixXd &Y) :
+    _max_n_controls(X.cols() / Approx::control_size),
+    _mX(X),
+    _mY(Y),
+    _mQ(X.rows(), Approx::point_size),
+    _vNorm(X.rows()),
+    _vK(X.rows()),
+    _nmX(Approx::control_size * _max_n_controls, X.rows()),
+    _noize(noize), _sizing(sizing)
+{
+    if ((X.cols() % Approx::control_size) > 0 ||
+        X.rows() != Y.rows() ||
+        Y.cols() != Approx::point_size)
+        throw std::runtime_error{ "Invalid Controls Matrix" };
+    constructXY();
+}
+
+
+//------------------------------------------------------------------------------
 VectorXd RoboPos::Approx::convertToRow(const Robo::Control &controls) const
 {
     if (controls.size() > _max_n_controls)
@@ -48,19 +78,15 @@ VectorXd RoboPos::Approx::convertToRow(const Robo::Control &controls) const
     return res;
 }
 
-void RoboPos::Approx::constructXY(const RoboMoves::Store &store)
+//------------------------------------------------------------------------------
+void RoboPos::Approx::insert(const Robo::Control &controls, Point hit, size_t index)
 {
-    int i = 0;
-    for (auto &rec : store)
-    {
-        _mX.row(i) = convertToRow(rec.controls);
-        _mY.row(i) = Eigen::Vector2d(rec.hit.x, rec.hit.y);
-        ++i;
-    }
-    constructXY();
+    _mX.row(index) = convertToRow(controls);
+    _mY.row(index) = Vector2d(hit.x, hit.y);
 }
 
 
+//------------------------------------------------------------------------------
 Eigen::MatrixXd RoboPos::Approx::calcKFunction(Eigen::MatrixXd &X) const
 {
     VectorXd vK = X.colwise().squaredNorm();
@@ -102,6 +128,7 @@ Eigen::MatrixXd RoboPos::Approx::calcKFunction(Eigen::MatrixXd &X) const
     return mD;
 }
 
+//------------------------------------------------------------------------------
 void RoboPos::Approx::constructXY()
 {
     if (!_mX.rows() || !_mX.cols() || !_mY.rows() || !_mY.cols())
@@ -135,6 +162,8 @@ void RoboPos::Approx::constructXY()
     _train = false;
 }
 
+
+//------------------------------------------------------------------------------
 Eigen::MatrixXd RoboPos::Approx::predict(Eigen::MatrixXd &X) const
 {
     if (!_constructed)
@@ -155,7 +184,7 @@ Eigen::MatrixXd RoboPos::Approx::predict(Eigen::MatrixXd &X) const
     return mA;
 }
 
-
+//------------------------------------------------------------------------------
 Point RoboPos::Approx::predict(Eigen::VectorXd &v) const
 {
     MatrixXd mX(1, v.size());
@@ -167,12 +196,15 @@ Point RoboPos::Approx::predict(Eigen::VectorXd &v) const
     return Point{ mA(0,0), mA(0,1) };
 }
 
+//------------------------------------------------------------------------------
 Point RoboPos::Approx::predict(const Robo::Control &controls) const
 {
     VectorXd x = convertToRow(controls);
     return predict(x);
 }
 
+
+//------------------------------------------------------------------------------
 bool RoboPos::Approx::clarify(const Robo::Control &controls, Point hit)
 {
     VectorXd x = convertToRow(controls);
@@ -180,6 +212,7 @@ bool RoboPos::Approx::clarify(const Robo::Control &controls, Point hit)
     return clarify(x, y);
 }
 
+//------------------------------------------------------------------------------
 bool RoboPos::Approx::clarify(const Eigen::VectorXd &x, const Eigen::Vector2d &y)
 {
     /// ??? https://www.encyclopediaofmath.org/index.php/Sequential_approximation

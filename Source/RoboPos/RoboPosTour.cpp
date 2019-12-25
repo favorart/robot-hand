@@ -454,11 +454,14 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
     CONF_GET_OPT_SCOPE(_config, _lasts_step_on_target, target);
     CONF_GET_OPT_SCOPE(_config, _lasts_step_n, target);
 
-    if (_b_predict && (!store.approx() || !store.approx()->constructed()))
+    if (_b_predict)
     {
-        store.construct_approx(_max_n_controls);
-        //  FILTERING !!!!!!!
-        store.approx()->constructXY(store);
+        CINFO("Construct Approx...");
+        auto it = store.begin(), it_end = store.end();
+        RoboMoves::ApproxFilter next = [&it, &it_end]() -> const Record* {
+            return ((it++ != it_end) ? &(*it) : nullptr);
+        };
+        store.construct_approx(_max_n_controls, next);
     }
 }
 

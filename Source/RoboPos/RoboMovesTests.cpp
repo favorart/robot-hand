@@ -143,7 +143,7 @@ void RoboPos::testApprox(Store &store, RoboI &robo)
             CDEBUG(i << _T(" approx sizing=") << i * 2);
 
             Approx approx(store.size(), 8, Approx::noize, [i]() { return i * 2; });
-            approx.constructXY(store);
+            approx.constructXY(store.begin(), store.end());
             //tcout << _T("writing") << std::endl;
             {
                 //tfstream ofs("approx.txt", std::ios_base::out);

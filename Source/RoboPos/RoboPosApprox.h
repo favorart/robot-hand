@@ -6,11 +6,11 @@
 #include "EigenSerializePlugin.h"
 
 #include "Robo.h"
-#include "RoboMovesStore.h"
+#include "RoboControl.h"
 
 
-namespace RoboPos
-{
+namespace RoboPos {
+//------------------------------------------------------------------------------
 /// Аппроксимирующая функция - точка остановы по управлениям
 /// http://www.machinelearning.ru/wiki/index.php?title=Обучение_с_учителем._Многомерная_интерполяции_и_аппроксимация._Обобщение_на_основе_теории_случайных_функций._Вариант_точного_решения.
 class Approx
@@ -48,45 +48,27 @@ class Approx
 
     void constructXY();
 public:
-    bool constructed() const { return _constructed; }
+    using Noize = std::function<double(size_t)>;
+    using Sizing = std::function<double()>;
     /// Calibrating factor (greater is more precise)
     static double sizing() { return 4.; }
     /// Шум - этот коэффициент сообщает, насколько можно доверять управлению с номером i
     static double noize(size_t i = 0) { return 0.00000001; }
 
-    Approx() = delete;
     /// Construct from store
-    Approx(size_t store_size, size_t max_n_controls,
-           std::function<double(size_t)> noize = Approx::noize,
-           std::function<double()> sizing = Approx::sizing) :
-        _max_n_controls(max_n_controls),
-        _mX(store_size, Approx::control_size * _max_n_controls),
-        _mY(store_size, Approx::point_size),
-        _mQ(store_size, Approx::point_size),
-        _vNorm(store_size),
-        _vK(store_size),
-        _nmX(Approx::control_size * _max_n_controls, store_size),
-        _noize(noize), _sizing(sizing)
-    {}
+    Approx(size_t store_size, size_t max_n_controls, 
+           Noize noize = Approx::noize,
+           Sizing sizing = Approx::sizing);
     /// Construct from converted matrices
-    Approx(Eigen::MatrixXd &X, Eigen::MatrixXd &Y) :
-        _max_n_controls(X.cols() / Approx::control_size),
-        _mX(X),
-        _mY(Y),
-        _mQ(X.rows(), Approx::point_size),
-        _vNorm(X.rows()),
-        _vK(X.rows()),
-        _nmX(Approx::control_size * _max_n_controls, X.rows()),
-        _noize(noize), _sizing(sizing)
-    { 
-        if ((X.cols() % Approx::control_size) > 0 || 
-             X.rows() != Y.rows() ||
-             Y.cols() != Approx::point_size)
-            throw std::runtime_error{ "Invalid Controls Matrix" };
-        constructXY();
-    }
+    Approx(Eigen::MatrixXd &X, Eigen::MatrixXd &Y);
+
+    /// If predictor is configurated
+    bool constructed() const { return _constructed; }
     /// Convert a raw controls of RoboI to an aligned row of doubles
     Eigen::VectorXd convertToRow(const Robo::Control&) const;
+    /// Apply aligned row in currect index
+    void insert(const Robo::Control&, Point, size_t index);
+
     /// Predict the end-point for a pack of controls at once
     /// \param[in]  XTest  matrix of aligned rows of doubles
     /// \return matrix, each row is a point (x,y)
@@ -95,30 +77,38 @@ public:
     Point predict(Eigen::VectorXd&) const;
     /// Predict the end-point for a raw control
     Point predict(const Robo::Control&) const;
+
     /// Exact interpolation by one more point
     bool  clarify(const Robo::Control&, Point);
     /// Exact interpolation by one more point converted
     bool  clarify(const Eigen::VectorXd&, const Eigen::Vector2d&);
-    /// Construct the train data from the Store
-    void constructXY(const RoboMoves::Store&);
+
     /// Construct the train data from any iterable container
-    template <template <typename, typename> class Container,
-        typename Value = Record,
-        typename Allocator = std::allocator<Value> >
-    void constructXY(const Container<Value, Allocator> &container)
+    template <typename Iterator>
+    void  constructXY(const Iterator begin, const Iterator end)
     {
         int i = 0;
-        for (const Value &rec : container)
+        for (Iterator it = begin; it != end; ++it, ++i)
+            insert(it->controls, it->hit, i);
+        constructXY();
+    }
+    /// Construct the train data from any source, with filtering
+    template <typename ApproxFilter>
+    void  constructXY(ApproxFilter &next)
+    {
+        for (size_t i = 0; true; ++i)
         {
-            _mX.row(i) = convertToRow(rec.controls);
-            _mY.row(i) = Eigen::Vector2d(rec.hit.x, rec.hit.y);
-            ++i;
+            auto res = next();
+            if (!res)
+                break;
+            insert(res->controls, res->hit, i);
         }
         constructXY();
     }
+
     /// save/load
     template <class Archive>
     void serialize(Archive &ar, unsigned version)
     { ar & _mX & _mY & _mq & _max_controls_count; }
 };
-}
+} // RoboPos

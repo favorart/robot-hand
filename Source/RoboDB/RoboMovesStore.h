@@ -12,6 +12,7 @@
 namespace RoboPos {
 class Approx;
 }
+
 namespace RoboMoves
 {
   struct ByX {}; ///< by x of hit
@@ -25,6 +26,8 @@ namespace RoboMoves
   typedef std::list<Record>                   adjacency_t;
   typedef std::list<const Record*>            adjacency_ptrs_t;
   typedef std::list<std::shared_ptr<Record>>  adjacency_sh_ptrs_t;
+
+  using ApproxFilter = std::function<const Record*()>;
   //------------------------------------------------------------------------------
   class  ClosestPredicate
   {
@@ -86,15 +89,15 @@ namespace RoboMoves
                                                         const_mem_fun<Record, Robo::distance_t, &Record::hit_y >
                                                       >
                                       >,
-                   ordered_non_unique < tag<ByA>,
-                                        composite_key < Record,
-                                                        const_mem_fun<Record, Robo::distance_t, &Record::aim_x >,
-                                                        const_mem_fun<Record, Robo::distance_t, &Record::aim_y >
-                                                      >
-                                      >,
+                   //ordered_non_unique < tag<ByA>,
+                   //                     composite_key < Record,
+                   //                                     const_mem_fun<Record, Robo::distance_t, &Record::aim_x >,
+                   //                                     const_mem_fun<Record, Robo::distance_t, &Record::aim_y >
+                   //                                   >
+                   //                   >,
+                   //ordered_non_unique < tag<ByL>, const_mem_fun<Record, Robo::distance_t, &Record::distanceCovered > >,
                    ordered_non_unique < tag<ByX>, const_mem_fun<Record, Robo::distance_t, &Record::hit_x > >,
-                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, Robo::distance_t, &Record::hit_y > >,
-                   ordered_non_unique < tag<ByL>, const_mem_fun<Record, Robo::distance_t, &Record::distanceCovered > >
+                   ordered_non_unique < tag<ByY>, const_mem_fun<Record, Robo::distance_t, &Record::hit_y > >
                    // , random_access      < > // доступ, как у вектору
                  >
     >;
@@ -153,13 +156,7 @@ namespace RoboMoves
     Record closestEndPoint(const Point &aim) const;
     //------------------------------------------------------------------------------
     using Mod = std::function<void(Record&)>;
-    void replace(IN const Robo::Control &controls, IN const Mod &mod)
-    {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
-        // -----------------------------------------------
-        auto it = _store.get<ByC>().find(controls);
-        _store.get<ByC>().modify(it, mod);
-    }
+    void replace(IN const Robo::Control &controls, IN const Mod &mod);
     //------------------------------------------------------------------------------
     /* прямоугольная окрестность точки */
     template <class range_t, class index_t>
@@ -276,19 +273,7 @@ namespace RoboMoves
                                 OUT std::pair<Record, Record> &x_pair,
                                 OUT std::pair<Record, Record> &y_pair) const;
     //------------------------------------------------------------------------------
-    const Record* exactRecordByControl(IN const Robo::Control &controls) const
-    {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
-        // -----------------------------------------------
-        const auto &index = _store.get<ByC>();
-        // -----------------------------------------------
-        auto equal = index.find(controls);
-        // -----------------------------------------------
-        tstring s = (equal != index.end()) ? tstring(equal->hit) : tstring(_T("-"));
-        CINFO(" exact c=" << controls << " p=" << s);
-        // -----------------------------------------------
-        return  (equal != index.end()) ? (&(*equal)) : (nullptr);
-    }
+    const Record* exactRecordByControl(IN const Robo::Control &controls) const;
     //------------------------------------------------------------------------------
     template <class range_t>
     size_t findEndPoint(OUT range_t &range, IN const Point &aim) const
@@ -361,7 +346,7 @@ namespace RoboMoves
     /// Construct Inverse Index of all passed points
     void near_passed_build_index();
     //------------------------------------------------------------------------------
-    void construct_approx(size_t max_n_controls);
+    void construct_approx(size_t max_n_controls, ApproxFilter &filter);
     RoboPos::Approx* approx();
     //------------------------------------------------------------------------------
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
@@ -409,16 +394,7 @@ namespace RoboMoves
     auto  end()       -> decltype(_store.end()) { return _store.end (); }
     auto  end() const -> decltype(_store.end()) { return _store.end (); }
     //------------------------------------------------------------------------------
-    void  clear()
-    {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
-        _store.clear();
-        _inverse.clear();
-        for (size_t i = 0; i < _inverse_kdtree.getAllIndices().size(); ++i)
-            _inverse_kdtree.removePoint(i);
-        _inverse_index_last = 0;
-        CINFO(" store clear");
-    }
+    void  clear();
     bool  empty() const
     {
         // boost::lock_guard<boost::mutex>  lock(_store_mutex);
