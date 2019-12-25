@@ -55,7 +55,7 @@ void RoboMoves::Record::clear()
     control_.clear();
     visited_.clear();
 
-    _strategy = Strategy::empty();
+    _strategy = Strategy::getEmpty();
     _lasts_step = 0;
     _error_distance = 0.;
     _update_time = 0;

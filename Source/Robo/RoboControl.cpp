@@ -254,10 +254,10 @@ void Robo::Control::shorter(size_t index, frames_t velosity, bool infl_oppo_star
     {
         auto m_op = RoboI::muscleOpposite(m);
         auto it_op = begin();
-        while ((it_op = std::find(it_op, end(), m_op)) != end())
+        while ((it_op = std::find(++it_op, end(), m_op)) != end())
         {
             if (infl_oppo_start && !removed && it_op->start > actuators[index].start)
-                it_op->start -= velosity;
+                it_op->start -= std::min(it_op->start, velosity);
             if (infl_oppo_lasts)
                 longer(it_op - begin(), velosity);
         }

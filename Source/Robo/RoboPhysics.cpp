@@ -330,6 +330,8 @@ frames_t RoboPhysics::move(IN const Control &controls, IN frames_t max_frames)
     {
         if (a.lasts > RoboPhysics::LastsTooLong)
             CERROR(" move lasts too long ");
+        if (a.start > RoboPhysics::LastsTooLong)
+            CERROR(" move start too long ");
         //CDEBUG("c:" << c);
         while (a.start > _frame)
             step();

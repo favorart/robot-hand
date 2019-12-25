@@ -24,15 +24,15 @@ class Strategy
 public:
     auto number() const { return _number; }
     Strategy(Robo::muscle_t nmuscles) : _nmuscles(nmuscles) {}
-    Strategy(const Strategy&) = default;
     Strategy(Strategy&&) = default;
+    Strategy(const Strategy&) = default;
     Strategy& operator=(const Strategy&) = default;
     bool operator==(const Strategy&) const;
     bool operator!=(const Strategy&s) const { return !(*this == s); }
     bool almost_eq(const Strategy&) const;
     static Strategy get(const Robo::Control&);
     static Strategy get(const Robo::Control&, Robo::muscle_t nmuscles);
-    static Strategy empty() { return Strategy(0); }
+    static Strategy getEmpty() { return Strategy(0); }
 };
 
 class Record
