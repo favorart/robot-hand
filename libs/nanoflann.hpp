@@ -136,72 +136,61 @@ namespace nanoflann
 	/** @addtogroup result_sets_grp Result set classes
 	  *  @{ */
 	template <typename DistanceType, typename IndexType = size_t, typename CountType = size_t>
-	class KNNResultSet
-	{
-		IndexType * indices;
-		DistanceType* dists;
-		CountType capacity;
-		CountType count;
-
-	public:
-		inline KNNResultSet(CountType capacity_) : indices(0), dists(0), capacity(capacity_), count(0)
-		{
-		}
-
-		inline void init(IndexType* indices_, DistanceType* dists_)
-		{
-			indices = indices_;
-			dists = dists_;
-			count = 0;
+    class KNNResultSet
+    {
+        IndexType * indices;
+        DistanceType* dists;
+        CountType capacity;
+        CountType count;
+    public:
+        KNNResultSet(CountType capacity_) 
+            : indices(0), dists(0), capacity(capacity_), count(0)
+        {}
+        void init(IndexType* indices_, DistanceType* dists_)
+        {
+            indices = indices_;
+            dists = dists_;
+            count = 0;
             if (capacity)
-                dists[capacity-1] = (std::numeric_limits<DistanceType>::max)();
-		}
-
-		inline CountType size() const
-		{
-			return count;
-		}
-
-		inline bool full() const
-		{
-			return count == capacity;
-		}
-
-
-                /**
-                 * Called during search to add an element matching the criteria.
-                 * @return true if the search should be continued, false if the results are sufficient
-                 */
-                inline bool addPoint(DistanceType dist, IndexType index)
-		{
-			CountType i;
-			for (i = count; i > 0; --i) {
+                dists[capacity - 1] = (std::numeric_limits<DistanceType>::max)();
+        }
+        CountType size() const { return count; }
+        bool full() const { return count == capacity; }
+        /**
+         * Called during search to add an element matching the criteria.
+         * @return true if the search should be continued, false if the results are sufficient
+         */
+        bool addPoint(DistanceType dist, IndexType index)
+        {
+            CountType i;
+            for (i = count; i > 0; --i)
+            {
 #ifdef NANOFLANN_FIRST_MATCH   // If defined and two points have the same distance, the one with the lowest-index will be returned first.
-				if ( (dists[i-1] > dist) || ((dist == dists[i-1]) && (indices[i-1] > index)) ) {
+                if ((dists[i - 1] > dist) || ((dist == dists[i - 1]) && (indices[i - 1] > index)))
+                {
 #else
-				if (dists[i-1] > dist) {
+                if (dists[i - 1] > dist)
+                {
 #endif
-					if (i < capacity) {
-						dists[i] = dists[i-1];
-						indices[i] = indices[i-1];
-					}
-				}
-				else break;
-			}
-			if (i < capacity) {
-				dists[i] = dist;
-				indices[i] = index;
-			}
-			if (count < capacity) count++;
+                    if (i < capacity)
+                    {
+                        dists[i] = dists[i - 1];
+                        indices[i] = indices[i - 1];
+                    }
+                }
+                else break;
+            }
+            if (i < capacity)
+            {
+                dists[i] = dist;
+                indices[i] = index;
+            }
+            if (count < capacity) count++;
 
-                        // tell caller that the search shall continue
-                        return true;
-		}
-
-		inline DistanceType worstDist() const
-		{
-			return dists[capacity-1];
-		}
+            // tell caller that the search shall continue
+            return true;
+        }
+        DistanceType worstDist() const { return dists[capacity-1]; }
 	};
 
 	/** operator "<" for std::sort() */
@@ -209,9 +198,7 @@ namespace nanoflann
 	{
 		/** PairType will be typically: std::pair<IndexType,DistanceType> */
 		template <typename PairType>
-		inline bool operator()(const PairType &p1, const PairType &p2) const {
-			return p1.second < p2.second;
-		}
+		bool operator()(const PairType &p1, const PairType &p2) const { return p1.second < p2.second; }
 	};
 
 	/**
@@ -222,33 +209,28 @@ namespace nanoflann
 	{
 	public:
 		const DistanceType radius;
-
 		std::vector<std::pair<IndexType, DistanceType> > &m_indices_dists;
 
-		inline RadiusResultSet(DistanceType radius_, std::vector<std::pair<IndexType,DistanceType> > &indices_dists) : radius(radius_), m_indices_dists(indices_dists)
+		RadiusResultSet(DistanceType radius_, std::vector<std::pair<IndexType,DistanceType> > &indices_dists) 
+            : radius(radius_), m_indices_dists(indices_dists)
 		{
 			init();
 		}
-
-		inline void init() { clear(); }
-		inline void clear() { m_indices_dists.clear(); }
-
-		inline size_t size() const { return m_indices_dists.size(); }
-
-		inline bool full() const { return true; }
-
-                /**
-                 * Called during search to add an element matching the criteria.
-                 * @return true if the search should be continued, false if the results are sufficient
-                 */
-                inline bool addPoint(DistanceType dist, IndexType index)
+		void init() { clear(); }
+		void clear() { m_indices_dists.clear(); }
+		size_t size() const { return m_indices_dists.size(); }
+		bool full() const { return true; }
+        /**
+         * Called during search to add an element matching the criteria.
+         * @return true if the search should be continued, false if the results are sufficient
+         */
+        bool addPoint(DistanceType dist, IndexType index)
 		{
 			if (dist < radius)
 				m_indices_dists.push_back(std::make_pair(index, dist));
                         return true;
 		}
-
-		inline DistanceType worstDist() const { return radius; }
+        DistanceType worstDist() const { return radius; }
 
 		/**
 		 * Find the worst result (furtherest neighbor) without copying or sorting
@@ -262,8 +244,6 @@ namespace nanoflann
 		   return *it;
 		}
 	};
-
-
 	/** @} */
 
 
@@ -292,7 +272,6 @@ namespace nanoflann
 		}
 	}
 
-
 	template<typename T>
 	void load_value(FILE* stream, std::vector<T>& value)
 	{
@@ -312,10 +291,8 @@ namespace nanoflann
 
 	/** @addtogroup metric_grp Metric (distance) classes
 	  * @{ */
-
-	struct Metric
-	{
-	};
+    struct Metric
+    {};
 
 	/** Manhattan distance functor (generic version, optimized for high-dimensionality data sets).
 	  *  Corresponding distance traits: nanoflann::metric_L1
@@ -330,9 +307,9 @@ namespace nanoflann
 
 		const DataSource &data_source;
 
-		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
-
-		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
+		L1_Adaptor(const DataSource &_data_source) : data_source(_data_source)
+        {}
+        DistanceType evalMetric(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
 		{
 			DistanceType result = DistanceType();
 			const T* last = a + size;
@@ -357,12 +334,8 @@ namespace nanoflann
 			}
 			return result;
 		}
-
 		template <typename U, typename V>
-		inline DistanceType accum_dist(const U a, const V b, int ) const
-		{
-			return std::abs(a-b);
-		}
+        DistanceType accum_dist(const U a, const V b, int ) const { return std::abs(a-b); }
 	};
 
 	/** Squared Euclidean distance functor (generic version, optimized for high-dimensionality data sets).
@@ -378,9 +351,9 @@ namespace nanoflann
 
 		const DataSource &data_source;
 
-		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source) { }
-
-		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
+		L2_Adaptor(const DataSource &_data_source) : data_source(_data_source)
+        {}
+		DistanceType evalMetric(const T* a, const size_t b_idx, size_t size, DistanceType worst_dist = -1) const
 		{
 			DistanceType result = DistanceType();
 			const T* last = a + size;
@@ -408,7 +381,7 @@ namespace nanoflann
 		}
 
 		template <typename U, typename V>
-		inline DistanceType accum_dist(const U a, const V b, int ) const
+		DistanceType accum_dist(const U a, const V b, int ) const
 		{
 			return (a - b) * (a - b);
 		}
@@ -544,7 +517,6 @@ namespace nanoflann
 			typedef SO3_Adaptor<T, DataSource> distance_t;
 		};
 	};
-
 	/** @} */
 
 	/** @addtogroup param_grp Parameter structs
@@ -556,7 +528,6 @@ namespace nanoflann
 		KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10) :
 			leaf_max_size(_leaf_max_size)
 		{}
-
 		size_t leaf_max_size;
 	};
 
@@ -567,8 +538,8 @@ namespace nanoflann
 		SearchParams(int checks_IGNORED_ = 32, float eps_ = 0, bool sorted_ = true ) :
 			checks(checks_IGNORED_), eps(eps_), sorted(sorted_) {}
 
-		int   checks;  //!< Ignored parameter (Kept for compatibility with the FLANN interface).
-		float eps;  //!< search for eps-approximate neighbours (default: 0)
+		int checks;  //!< Ignored parameter (Kept for compatibility with the FLANN interface).
+		float eps;   //!< search for eps-approximate neighbours (default: 0)
 		bool sorted; //!< only for radius search, require neighbours sorted by distance (default: true)
 	};
 	/** @} */
@@ -587,7 +558,7 @@ namespace nanoflann
 	template <typename T>
 	inline T* allocate(size_t count = 1)
 	{
-		T* mem = static_cast<T*>( ::malloc(sizeof(T)*count));
+		T* mem = static_cast<T*>( ::malloc(sizeof(T)*count) );
 		return mem;
 	}
 
@@ -1025,7 +996,6 @@ namespace nanoflann
 				save_tree(obj, stream, tree->child2);
 			}
 		}
-
 
 		void load_tree(Derived &obj, FILE* stream, NodePtr& tree)
 		{
