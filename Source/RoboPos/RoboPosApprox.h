@@ -8,7 +8,6 @@
 #include "Robo.h"
 #include "RoboControl.h"
 
-
 namespace RoboPos {
 //------------------------------------------------------------------------------
 /// Аппроксимирующая функция - точка остановы по управлениям
@@ -47,6 +46,7 @@ class Approx
     Eigen::MatrixXd calcKFunction(Eigen::MatrixXd &X) const;
 
     void constructXY();
+    friend void myConstructXY(Approx&, void*);
 public:
     using Noize = std::function<double(size_t)>;
     using Sizing = std::function<double()>;
@@ -105,7 +105,6 @@ public:
         }
         constructXY();
     }
-
     /// save/load
     template <class Archive>
     void serialize(Archive &ar, unsigned version)

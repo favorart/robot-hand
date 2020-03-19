@@ -89,13 +89,12 @@ inline void TourI::adaptiveAvgLasts(IN const Point &prev_pos, IN const Point &cu
         * уменьшением длительность основного,
         * подключаем торможение противоположным
         */
-        appendBreakings(joint, control_i);
+        appendBreakings(control_i.muscle);
     }
     else if (_b_braking && (d < _step_distance || !was_on_target) && _breakings_controls_actives > 0)
     {
-        joint_t joint = RoboI::jointByMuscle(control_i.muscle);
         /* сначала по возможности отключаем торможения */
-        removeBreakings(joint);
+        removeBreakings(control_i.muscle);
     }
     else
     {

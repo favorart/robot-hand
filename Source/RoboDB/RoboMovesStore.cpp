@@ -45,6 +45,7 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
 {
     boost::lock_guard<boost::mutex> lock(_store_mutex);
     // -----------------------------------------------
+#if defined(NO_MTREE)
     const auto &indexP = _store.get<ByP>();
     auto itPL = indexP.lower_bound(boost::tuple<double, double>(aim));
     auto itPU = indexP.upper_bound(boost::tuple<double, double>(aim));
@@ -71,6 +72,10 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
         CINFO(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
         return rec;
     }
+#else  //MTREE
+    auto query = _mtree.get_nearest(aim);
+    return query.begin()->data;
+#endif //MTREE
 }
 
 //------------------------------------------------------------------------------
@@ -172,11 +177,16 @@ void RoboMoves::Store::insert(const Record &rec)
         boost::lock_guard<boost::mutex> lock(_store_mutex);
         // ==============================
         auto status = _store.insert(rec);
+#ifndef NO_MTREE
+        _mtree.add(rec);
+#endif
         status.first->updateTimeTraj(_trajectories_enumerate);
         // ==============================
+#ifndef NO_INVERSE_INDEX
         if (status.second)
             for (const auto &p : rec.trajectory)
                 _inverse.push_back({ &p.spec(), &(*status.first) });
+#endif
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
@@ -204,7 +214,12 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
             boa << root << *this;
         }
         else CERROR("Invalid store format");
-        CINFO("saved '" << filename << "' store " << size() << " inverse " << _inverse.size());
+
+        size_t inverse_sz = 0;
+#ifndef NO_INVERSE_INDEX
+        inverse_sz = _inverse.size();
+#endif
+        CINFO("saved '" << filename << "' store " << size() << " inverse " << inverse_sz);
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
@@ -236,11 +251,24 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
         }
         else CERROR("Invalid store format");
 
+        size_t inverse_sz = 0;
+#if (!defined(NO_INVERSE_INDEX) || !defined(NO_MTREE))
         for (const auto &rec : _store)
+        {
+#ifndef NO_MTREE
+            _mtree.add(rec);
+#endif
+#ifndef NO_INVERSE_INDEX
             for (const auto &p : rec.trajectory)
+            {
                 _inverse.push_back({ &p.spec(), &rec });
+                ++inverse_sz;
+            }
+#endif
+        }
+#endif //INVERSE_INDEX||MTREE
+        CINFO("loaded '" << filename << "' store " << size() << " inverse " << inverse_sz);
 
-        CINFO("loaded '" << filename << "' store " << size() << " inverse " << _inverse.size());
         // --- header ---
         Factory<Robo::RoboI> frobo;
         auto pNewRobo = frobo.create(root);
@@ -249,10 +277,13 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
             CINFO("change robo from " << pRobo->getName() << " to " << pNewRobo->getName());
             pRobo = pNewRobo;
         }
+        //construct_approx(max_n_controls, filter); // ???
+
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
 //------------------------------------------------------------------------------
+#ifndef NO_INVERSE_INDEX
 void RoboMoves::Store::near_passed_build_index()
 {
     if (_inverse_index_last == _inverse.size())
@@ -263,9 +294,24 @@ void RoboMoves::Store::near_passed_build_index()
         _inverse_index_last = _inverse.size();
     }
 }
+#endif
 
 //------------------------------------------------------------------------------
 RoboPos::Approx* RoboMoves::Store::approx() { return _approx.get(); }
+
+//------------------------------------------------------------------------------
+void RoboPos::myConstructXY(RoboPos::Approx& approx, void *data)
+{
+    RoboMoves::ApproxFilter &next = *(RoboMoves::ApproxFilter*)(data);
+    for (size_t i = 0; true; ++i)
+    {
+        const RoboMoves::Record *rec = next();
+        if (!rec)
+            break;
+        approx.insert(rec->controls, rec->hit, i);
+    }
+    approx.constructXY();
+}
 
 //------------------------------------------------------------------------------
 void RoboMoves::Store::construct_approx(size_t max_n_controls, RoboMoves::ApproxFilter &filter)
@@ -279,7 +325,8 @@ void RoboMoves::Store::construct_approx(size_t max_n_controls, RoboMoves::Approx
             /*sizing*/[]() { return 1.01; });
     }
     if (!approx()->constructed())
-        approx()->constructXY(filter); // filtering
+        myConstructXY((*approx()), (void*)(&filter));
+        //approx()->constructXY(filter); // filtering
 }
 
 

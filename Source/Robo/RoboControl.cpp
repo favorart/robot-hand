@@ -73,6 +73,16 @@ void Robo::Control::remove(size_t i)
 }
 
 //---------------------------------------------------------
+void Robo::Control::remove(const Robo::Actuator *a)
+{
+    size_t pos = (a - actuators.data());
+    if (a >= actuators.data() && pos < actuals)
+        std::copy(begin() + pos + 1, end(), begin() + pos);
+        //std::memmove((void*)(a), (void*)(a + 1), (actuals - pos) * sizeof(Actuator));
+    throw std::logic_error("remove: Actuator does not belong to Control!");
+}
+
+//---------------------------------------------------------
 void Robo::Control::pop_back()
 {
     if (!actuals)
@@ -225,11 +235,13 @@ bool Robo::Control::validate(Robo::muscle_t n_muscles) const
 }
 
 //---------------------------------------------------------
-void Robo::Control::order(Robo::muscle_t n_muscles)
+void Robo::Control::order(Robo::muscle_t n_muscles, bool keep_actors)
 {
     if (!validate(n_muscles))
     {
-        br::for_each(actuators, [](auto &a) { if (!a.lasts) a.lasts = 1; });
+        br::for_each(actuators, [keep_actors](auto &a) { if (!a.lasts) a.lasts = 1;
+        //if (!keep_actors) remove(a - actuators.data());
+        });
         br::sort(actuators);
     }
     removeStartPause();
@@ -257,9 +269,16 @@ void Robo::Control::shorter(size_t index, frames_t velosity, bool infl_oppo_star
         while ((it_op = std::find(++it_op, end(), m_op)) != end())
         {
             if (infl_oppo_start && !removed && it_op->start > actuators[index].start)
+            {
                 it_op->start -= std::min(it_op->start, velosity);
+                for (size_t pos = (it_op - begin()); pos > 0 && actuators[pos-1].start > actuators[pos].start; pos--)
+                    std::swap(actuators[pos], actuators[pos-1]);
+            }
             if (infl_oppo_lasts)
                 longer(it_op - begin(), velosity);
+
+            if (!validate(RoboI::musclesMaxCount))
+                tcout << std::endl;
         }
     }
     //if (removed) --index;
@@ -275,7 +294,14 @@ void Robo::Control::longer(size_t index, frames_t velosity, bool oppo_start)
         auto m_op = RoboI::muscleOpposite(actuators[index].muscle);
         for (auto it_op = std::find(begin() + index, end(), m_op); it_op != end(); ++it_op)
             if (it_op->start > actuators[index].start)
+            {
                 it_op->start += velosity;
+                for (auto it = it_op + 1; it != end() && it_op->start > it->start; ++it_op, ++it)
+                    std::swap(*it, *it_op);
+
+                if (!validate(RoboI::musclesMaxCount))
+                    tcout << std::endl;
+            }
     }
     //_validated = false;
 }

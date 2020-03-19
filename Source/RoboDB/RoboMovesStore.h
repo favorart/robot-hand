@@ -1,7 +1,13 @@
 ﻿#pragma once
 
+#ifndef NO_INVERSE_INDEX
 // https://github.com/jlblancoc/nanoflann
 #include "nanoflann.hpp"
+#endif
+
+#ifndef NO_MTREE
+#include "mtree.h"
+#endif
 
 #include "RoboMovesRecord.h"
 #ifdef MY_WINDOW
@@ -33,16 +39,26 @@ namespace RoboMoves
   {
       Point _aim;
   public:
-    ClosestPredicate(const Point &aim) : _aim(aim) {}
-    double operator()(const std::shared_ptr<Record> &a,
-                      const std::shared_ptr<Record> &b)
-    { return this->operator()(a->hit, b->hit); }
-    double operator()(const Record *a, const Record *b)
-    { return this->operator()(a->hit, b->hit); }
-    double operator()(const Record &a, const Record &b)
-    { return this->operator()(a.hit, b.hit); }
-    double operator()(const Point &a, const Point &b)
-    { return (bg::distance(_aim, a) < bg::distance(_aim, b)); }
+    explicit ClosestPredicate(const Point &aim) : _aim(aim) {}
+    Robo::distance_t operator()(const std::shared_ptr<Record> &a,
+                                const std::shared_ptr<Record> &b) const { return this->operator()(a->hit, b->hit); }
+    Robo::distance_t operator()(const Record *a, const Record *b) const { return this->operator()(a->hit, b->hit); }
+    Robo::distance_t operator()(const Record &a, const Record &b) const { return this->operator()(a.hit, b.hit); }
+    Robo::distance_t operator()(const Point  &a, const Point  &b) const { return (bg::distance(_aim, a) < bg::distance(_aim, b)); }
+  };
+  //------------------------------------------------------------------------------
+  struct Distance
+  {
+      Robo::distance_t operator()(const std::shared_ptr<Record> &aim,
+                                  const std::shared_ptr<Record> &p)   const { return bg::distance(aim->hit, p->hit); }
+      Robo::distance_t operator()(const Record *aim, const Record *p) const { return bg::distance(aim->hit, p->hit); }
+      Robo::distance_t operator()(const Record *aim, const Point  *p) const { return bg::distance(aim->hit, *p); }
+      Robo::distance_t operator()(const Point  *aim, const Record *p) const { return bg::distance(*aim, p->hit); }
+      Robo::distance_t operator()(const Point  *aim, const Point  *p) const { return bg::distance(*aim, *p); }
+      Robo::distance_t operator()(const Record &aim, const Record &p) const { return bg::distance(aim.hit, p.hit); }
+      Robo::distance_t operator()(const Record &aim, const Point  &p) const { return bg::distance(aim.hit, p); }
+      Robo::distance_t operator()(const Point  &aim, const Record &p) const { return bg::distance(aim, p.hit); }
+      Robo::distance_t operator()(const Point  &aim, const Point  &p) const { return bg::distance(aim, p); }
   };
   //------------------------------------------------------------------------------
   class  ControlHasher //: std::unary_function<const Robo::Control&, size_t>
@@ -74,7 +90,7 @@ namespace RoboMoves
   //------------------------------------------------------------------------------
   using namespace boost::multi_index;
   /// Robot Moves DataBase
-  class Store
+  class Store // : public StoreI
   {
     //------------------------------------------------------------------------------
     using MultiIndexMoves = boost::multi_index_container
@@ -101,47 +117,70 @@ namespace RoboMoves
                    // , random_access      < > // доступ, как у вектору
                  >
     >;
-
-    using InverseIndex = std::vector<std::pair<const Point*, const Record*>>;
-    //==============================================================================   
-    MultiIndexMoves _store{};
-    mutable boost::mutex _store_mutex{};
-    InverseIndex _inverse{};
-    size_t _inverse_index_last{ 0 };
-    /// интерполяция функции(x,y) остановки по управлениям мускулов
-    std::shared_ptr<RoboPos::Approx> _approx{};
-
+    using MultiIndexIterator = MultiIndexMoves::iterator;
     //==============================================================================
-    SimTime _trajectories_enumerate{ 0 };
-    //==============================================================================
+#ifndef NO_INVERSE_INDEX
     /// \returns number of points in kdtree
     inline size_t kdtree_get_point_count() const { return _inverse.size(); }
-    
+
     /// \returns the dim-th component of the i-th point
     inline Robo::distance_t kdtree_get_pt(const size_t i, int dim) const
     { return (*_inverse[i].first)[i]; }
-        
+
     /// Optional bounding-box computation: return false by default
     /// \return true if the BBOX was already computed (to avoid the redoing) and return it in "bb"
     template <class BBOX>
     bool kdtree_get_bbox(BBOX&/*bb*/) const { return false; }
-    
+
     static const size_t KDTDim = 2;
     using KDTDist = nanoflann::L2_Simple_Adaptor<Robo::distance_t, Store>;
-    using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor<KDTDist, Store, KDTDim>;    
+    using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor<KDTDist, Store, KDTDim>;
     using KDTree1 = nanoflann::KDTreeSingleIndexDynamicAdaptor_<KDTDist, Store, KDTDim, size_t>;
     using KDTreeBase = nanoflann::KDTreeBaseClass<KDTree1, KDTDist, Store, KDTDim, size_t>;
     friend class KDTreeBase;
     friend class KDTree1;
     friend class KDTree;
+
+    using InverseIndex = std::vector<std::pair<const Point*, const Record*>>;
+#endif //!NO_INVERSE_INDEX
     //==============================================================================
+    MultiIndexMoves _store{};
+    mutable boost::mutex _store_mutex{};
+
+    /// интерполяция функции(x,y) остановки по управлениям мускулов
+    std::shared_ptr<RoboPos::Approx> _approx{};
+
+    SimTime _trajectories_enumerate{ 0 };
+    //==============================================================================
+#ifndef NO_MTREE
+    mt::mtree<Record, Distance> _mtree{}; // mirror of _store
+#endif
+    //==============================================================================
+#ifndef NO_INVERSE_INDEX
     /// Construct a kd-tree index
     KDTree _inverse_kdtree{ KDTDim, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10) };
+
+    InverseIndex _inverse{};
+    size_t _inverse_index_last{ 0 };
+
+    /// Construct Inverse Index of all passed points
+    void near_passed_build_index();
+#endif //!NO_INVERSE_INDEX
     //==============================================================================
     friend class boost::serialization::access;
     template <class Archive>
     void serialize(Archive &ar, unsigned version)
-    { ar & _store; }
+    {
+        ar & _store;
+        //ar & _approx; // restord on load
+        ar & _trajectories_enumerate;
+//#ifndef NO_MTREE // restored on load
+//        ar & _mtree;
+//#endif
+//#ifndef NO_INVERSE_INDEX // restored on load
+//        ar & _inverse_kdtree & _inverse & _inverse_index_last;
+//#endif
+    }
 
   public:
     enum class Format { NONE = 0, TXT = 1, BIN = (1 << 1) };
@@ -319,6 +358,7 @@ namespace RoboMoves
     template <class range_t>
     size_t near_passed_points(OUT range_t &range, IN const Point &p, IN Robo::distance_t radius) const
     {
+#ifndef NO_INVERSE_INDEX
         static_assert (boost::is_same<range_t, adjacency_t>::value
                     || boost::is_same<range_t, adjacency_ptrs_t>::value
                     || boost::is_same<range_t, adjacency_sh_ptrs_t>::value,
@@ -342,9 +382,10 @@ namespace RoboMoves
         }
         CDEBUG(" near to " << p << " passed " << n_found);
         return n_found;
+#else
+        return 0;
+#endif //!NO_INVERSE_INDEX
     }
-    /// Construct Inverse Index of all passed points
-    void near_passed_build_index();
     //------------------------------------------------------------------------------
     void construct_approx(size_t max_n_controls, ApproxFilter &filter);
     RoboPos::Approx* approx();

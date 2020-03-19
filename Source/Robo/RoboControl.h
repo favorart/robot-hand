@@ -124,6 +124,7 @@ public:
     void pop_back();
     void pop(size_t i) { remove(i); }
     void remove(size_t i);
+    void remove(const Robo::Actuator*);
 
     void clear()
     { actuals = 0; actuators.fill({MInvalid,0,0}); _validated = false; }
@@ -155,7 +156,7 @@ public:
     //----------------------------------------------------
     void removeStartPause();
     bool intersectMusclesOpposites() const;
-    void order(Robo::muscle_t n_muscles) /*nothrow*/;
+    void order(Robo::muscle_t n_muscles, bool keep_actors=true) /*nothrow*/;
     bool validate(Robo::muscle_t n_muscles) /*nothrow*/ const;
     void validated(Robo::muscle_t n_muscles) /*!throw*/ const;
     //----------------------------------------------------

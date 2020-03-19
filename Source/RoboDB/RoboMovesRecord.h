@@ -19,7 +19,7 @@ class Strategy
     using Value = uint64_t;
     Value _number{};
     static const size_t NPOS = (sizeof(_number)*BITSINBYTE);
-    Value check_chunk(size_t pos) const;
+    Value chunk(size_t pos) const;
     size_t nchunks() const { return (NPOS / _nmuscles); }
 public:
     auto number() const { return _number; }
@@ -99,6 +99,11 @@ public:
     { return (this == &rec) || (control_ == rec.control_); }
     bool  operator!= (const Record &rec) const
     { return (this != &rec) && (control_ != rec.control_); }
+
+    bool operator< (const Record &rec) const
+    { return (hit < rec.hit); }
+    bool operator< (const Point &p) const
+    { return (hit < p); }
     // ----------------------------------------
     /* Container index keys  */
     Robo::distance_t hit_x() const { return move_final_.x; }

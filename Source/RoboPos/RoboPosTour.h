@@ -73,8 +73,8 @@ protected:
     std::shared_ptr<TourI::AvgLastsIncrement> _p_avg_lasts;
 
     void  exactBreakings(IN Robo::joint_t joint, IN const Robo::Control &controls);
-    void appendBreakings(IN Robo::joint_t joint, IN const Robo::Actuator &a);
-    void removeBreakings(IN Robo::joint_t joint);
+    void appendBreakings(IN Robo::muscle_t m);
+    bool removeBreakings(IN Robo::muscle_t m);
     void  cleanBreakings(IN Robo::joint_t joint);
     /// Адаптивное (в отношении к желамой величине шага попаданий)
     /// изменение длительности работы мускула и задание торможений
@@ -147,5 +147,5 @@ protected:
     void defineTargetBorders(Robo::distance_t side);
     virtual void printParameters() const;
 };
-}
+} // end RoboPos
 

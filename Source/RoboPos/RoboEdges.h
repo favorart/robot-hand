@@ -10,15 +10,15 @@ namespace Robo {
 class EnvEdges
 {
 protected:
-    const distance_t backpath_ratio_;
-    const distance_t damping_;
-    const distance_t borders_[2] = { (-1. + RoboI::minFrameMove), (+1. - RoboI::minFrameMove) };
+    const distance_t backpath_ratio_; ///< множитель реального изменения величины смещения для данного такта
+    const distance_t damping_; ///< множитель, на который изменется prev_frame для вычисления смещения в будущий такт
+    const distance_t borders_[2] = { (-1. + RoboI::minFrameMove), (+1. - RoboI::minFrameMove) }; ///< положение границ видимой области
     virtual bool isCollision(bool, joint_t) const = 0;
 public:
-    bool collision{ false };
+    bool collision{ false }; ///< сохранённый флаг - была ли коллизия в текущий такт
     EnvEdges(distance_t backpath, distance_t damping) : backpath_ratio_(backpath), damping_(damping) {}
     virtual ~EnvEdges() {}
-    virtual void interaction(bool used, const Point &c={}, const Point &m={}, double a={}) = 0;
+    virtual void interaction(bool used, const Point &c={}, const Point &m={}, double a={}) = 0; ///< вычисление взаимодейтсвия робота в случаи коллизии
 };
 
 class EnvEdgesTank : public EnvEdges

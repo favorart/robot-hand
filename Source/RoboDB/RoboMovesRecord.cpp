@@ -183,57 +183,63 @@ tistream& RoboMoves::operator>>(tistream &s, RoboMoves::Record &rec)
     return s;
 }
 //------------------------------------------------------------------------------
-/// 
 Strategy RoboMoves::Strategy::get(const Robo::Control &controls)
 {
     // int(std::ceil(std::log2(RoboI::musclesMaxCount))); //=3=log2(8)
     //if (controls.size() > NPOS / n_muscles_bits) // 64/8 ~ 8
     //    CERROR("Too long control=" << controls.size() << " >" << NPOS / n_muscles_bits);
-    return Strategy::get(controls, RoboI::musclesMaxCount);
+    return Strategy::get(controls, RoboI::musclesMaxCount); // !!! INCORRECT depends on n_muscles
 }
 //------------------------------------------------------------------------------
-/// 
-Strategy RoboMoves::Strategy::get(const Robo::Control &controls, muscle_t nmuscles)
+Strategy RoboMoves::Strategy::get(const Robo::Control &controls, muscle_t n_muscles)
 {
-    if (controls.size() > NPOS / nmuscles)
-        CERROR("Too long control=" << controls.size() << " >" << NPOS / nmuscles);
+    if (controls.size() > NPOS / n_muscles)
+        CERROR("Too long control=" << controls.size() << " >" << NPOS / n_muscles);
 
     int pos = 0;
-    Strategy strategy(nmuscles);
+    Strategy strategy(n_muscles);
     for (auto &a : controls)
-        strategy._number |= (Strategy::Value(a.muscle) << (nmuscles * pos++));
+        strategy._number |= (Strategy::Value(a.muscle) << (n_muscles * pos++));
     return strategy;
 }
 
 //------------------------------------------------------------------------------
-RoboMoves::Strategy::Value RoboMoves::Strategy::check_chunk(size_t pos) const
+RoboMoves::Strategy::Value RoboMoves::Strategy::chunk(size_t pos) const
 {
-    Value chunk = ((1 << _nmuscles) - 1) << (pos * _nmuscles);
-    return (chunk & _number) >> (pos * _nmuscles);
+    Value _chunk = ((1 << _nmuscles) - 1) << (pos * _nmuscles);
+    return (_chunk & _number) >> (pos * _nmuscles);
 }
 
 //------------------------------------------------------------------------------
 bool RoboMoves::Strategy::operator==(const RoboMoves::Strategy &s) const
 {
-    if (!_number || !s._number)
+    if (_nmuscles != s._nmuscles)
+        CERROR("Invalid compare n_muscles=" << _nmuscles << " > s.n_muscles" << s._nmuscles);
+
+    if (!_number || !s._number) // empty equals all
         return true;
-    for (size_t pos = 0; pos < nchunks(); ++pos)
-        if (check_chunk(pos) != s.check_chunk(pos))
-            return false;
-    return true;
+    //for (size_t pos = 0; pos < nchunks(); ++pos)
+    //    if (chunk(pos) != s.chunk(pos))
+    //        return false;
+    //return true;
+    return (_number == s._number);
 }
 
 //------------------------------------------------------------------------------
 bool RoboMoves::Strategy::almost_eq(const RoboMoves::Strategy &s) const
 {
-    if (!_number || !s._number)
+    if (_nmuscles != s._nmuscles)
+        CERROR("Invalid compare n_muscles=" << _nmuscles << " > s.n_muscles" << s._nmuscles);
+
+    if (!_number || !s._number) // empty equals all
         return true;
-    for (size_t lpos = 0, rpos = 0; lpos < nchunks() || rpos < nchunks(); ++lpos, ++rpos)
+
+    Value chunk1, chunk2;
+    for (size_t lpos = 0, rpos = 0; lpos < nchunks() || rpos < s.nchunks(); ++lpos, ++rpos)
     {
-        auto chunk1 = check_chunk(lpos);
-        auto chunk2 = s.check_chunk(rpos);
-        while (chunk1 == 0 && lpos < nchunks()) chunk1 = check_chunk(++lpos);
-        while (chunk2 == 0 && rpos < nchunks()) chunk2 = s.check_chunk(++rpos);
+        while ((chunk1 =   chunk(lpos)) == 0 /*skip empties*/ && lpos <   nchunks()) ++lpos;
+        while ((chunk2 = s.chunk(rpos)) == 0 /*skip empties*/ && rpos < s.nchunks()) ++rpos;
+        //if (chunk1 == 0 || chunk2 == 0) break;
         if (chunk1 != chunk2)
             return false;
     }
