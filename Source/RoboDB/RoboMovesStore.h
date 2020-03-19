@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#define NO_MTREE
+#define NO_INVERSE_INDEX
+
 #ifndef NO_INVERSE_INDEX
 // https://github.com/jlblancoc/nanoflann
 #include "nanoflann.hpp"
@@ -14,6 +17,7 @@
 #include "WindowHeader.h"
 #include "WindowDraw.h"
 #endif // MY_WINDOW
+
 
 namespace RoboPos {
 class Approx;
@@ -47,6 +51,7 @@ namespace RoboMoves
     Robo::distance_t operator()(const Point  &a, const Point  &b) const { return (bg::distance(_aim, a) < bg::distance(_aim, b)); }
   };
   //------------------------------------------------------------------------------
+#ifndef NO_MTREE
   struct Distance
   {
       Robo::distance_t operator()(const std::shared_ptr<Record> &aim,
@@ -60,6 +65,7 @@ namespace RoboMoves
       Robo::distance_t operator()(const Point  &aim, const Record &p) const { return bg::distance(aim, p.hit); }
       Robo::distance_t operator()(const Point  &aim, const Point  &p) const { return bg::distance(aim, p); }
   };
+#endif
   //------------------------------------------------------------------------------
   class  ControlHasher //: std::unary_function<const Robo::Control&, size_t>
   {

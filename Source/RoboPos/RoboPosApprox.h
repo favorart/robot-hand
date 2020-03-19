@@ -68,6 +68,8 @@ public:
     Eigen::VectorXd convertToRow(const Robo::Control&) const;
     /// Apply aligned row in currect index
     void insert(const Robo::Control&, Point, size_t index);
+    /// Free data
+    void clear();
 
     /// Predict the end-point for a pack of controls at once
     /// \param[in]  XTest  matrix of aligned rows of doubles

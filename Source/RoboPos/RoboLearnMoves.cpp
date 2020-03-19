@@ -18,13 +18,69 @@ using namespace RoboMoves;
 #endif
 
 //------------------------------------------------------------------------------
-RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, 
+bool RoboPos::LearnMoves::less(Robo::distance_t distance, Robo::distance_t new_distance)
+{
+    CDEBUG(" d=" << distance << " > nd=" << new_distance << std::endl);
+    return distance > new_distance && (distance - new_distance) > 0.000000001;
+}
+
+//------------------------------------------------------------------------------
+bool RoboPos::LearnMoves::check_precision(Robo::distance_t distance)
+{
+    return (_target.precision() > distance);
+}
+
+//------------------------------------------------------------------------------
+bool RoboPos::LearnMoves::check_precision(Robo::distance_t distance, const Point &aim)
+{
+    bool res = check_precision(distance);
+    if (res)
+        CINFO(aim << _T(" reached"));
+    return res;
+}
+
+//------------------------------------------------------------------------------
+struct RoboPos::LearnMoves::MidHitStat
+{
+    Robo::distance_t min_ = DBL_MAX, max_ = 0., avg_ = 0.;
+    int count_ = 0;
+    void append(Robo::distance_t d)
+    {
+        avg_ += d;
+        if (min_ > d) min_ = d;
+        if (max_ < d) max_ = d;
+        ++count_;
+    }
+    void print() const
+    {
+        std::cout << "mid_hit_stat: {";
+        if (count_)
+            std::cout << "c=" << count_ << " min=" << min_ << " max=" << max_ << " avg=" << avg_ / count_;
+        std::cout << "}" << std::endl;
+    }
+};
+
+//------------------------------------------------------------------------------
+void RoboPos::LearnMoves::append(MidHitStat *mhs, Robo::distance_t d) { mhs->append(d); }
+
+
+//------------------------------------------------------------------------------
+RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo,
                                 IN const TargetI &target, IN const tstring &fn_config) :
     _store(store), _robo(robo), _target(target), _fn_config(fn_config)
 {
     _robo.reset();
     _base_pos = _robo.position();
     read_config();
+    mid_hit_stat  = new LearnMoves::MidHitStat();
+    mid_hit_stat1 = new LearnMoves::MidHitStat();
+}
+
+//------------------------------------------------------------------------------
+RoboPos::LearnMoves::~LearnMoves()
+{
+    delete mid_hit_stat;
+    delete mid_hit_stat1;
 }
 
 //------------------------------------------------------------------------------
@@ -90,6 +146,45 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
     else CERROR("Invalid stage");
     return pTour;
 }
+
+//------------------------------------------------------------------------------
+class AFilter : public RoboMoves::ApproxFilter
+{
+    RoboMoves::Store &store;
+    RoboMoves::adjacency_ptrs_t range{};
+    TargetI::vec_t::const_iterator tg_it{};
+    const TargetI::vec_t::const_iterator tg_end;
+    const Robo::distance_t side{};
+    const size_t n_pt_at_tg{3};
+    size_t i_pt{};
+public:
+    AFilter(RoboMoves::Store &store, const TargetI &target, Robo::distance_t side) :
+        store(store), 
+        tg_it(target.coords().begin()), 
+        tg_end(target.coords().end()),
+        side(side)
+    {}
+    //AFilter(AFilter&&) = delete;
+    //AFilter(const AFilter&) = delete;
+    const Record* operator()(size_t index)
+    {
+        if ((i_pt % n_pt_at_tg) == 0)
+        {
+            do
+            {
+                store.adjacencyPoints(range, *tg_it, side);
+                ++tg_it;
+                if (tg_it == tg_end)
+                    return nullptr; //finish
+            } while (range.empty());
+            range.sort(ClosestPredicate(*tg_it));
+        }
+        const Record *pRec = range.front();
+        range.pop_front();
+        ++i_pt;
+        return pRec;
+    }
+};
 
 //------------------------------------------------------------------------------
 /// грубое покрытие всего рабочего пространства
@@ -178,66 +273,108 @@ void  RoboPos::LearnMoves::STAGE_2()
     catch (const std::exception &e)
     { SHOW_CERROR(e.what()); }
 }
-
 /// Попадание в оставшиеся непокрытыми точки мишени
 void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 {
-    load(_config);
-    size_t count = 0;
-    size_t count_random = 0;
+    size_t count_regular = 0, count_random = 0;
+
     try
     {
+    if (!_store.size())
+        CERROR("Empty database");
+    
+    load(_config);
     uncovered.clear();
-    // -----------------------------------------------------
-    auto itp = _target.it_coords();
-    for (auto it = itp.first; it != itp.second; ++it)
+
     {
-        CINFO(_T("current: ") << count << _T(" / ") << _target.coords().size());
+        CINFO("Construct Approx...");
+        AFilter next(_store, _target, side3);
+        _store.construct_approx(32, next);
+    }
+
+    _complexity = 0;
+    _gradient_points_complexity = 0;
+    _gradient_wmeans_complexity = 0;
+    _rundown_alldirs_complexity = 0;
+    _rundown_maindir_complexity = 0;
+    _wmean_complexity = 0;
+    // -----------------------------------------------------
+    size_t current = 0;
+    auto itp = _target.it_coords();
+    for (auto it = itp.first; it != itp.second; ++it, ++current)
+    {
+        distance_t distance = bg::distance(_base_pos, *it);
         // ---------------------------------------------------
-        auto prec = _target.precision();
-        auto p = _store.getClosestPoint(*it, side3);
-        for (size_t tries = 0; (tries <= _tries) && (!p.first || bg::distance(p.second.hit, *it) > prec); ++tries)
+        CINFO(_T("current: ") << current << _T(" / ") << _target.coords().size());
+        tcerr << _T("current: ") << current << _T(" / ") << _target.coords().size();
+        bool is_aim;
+        // ---------------------------------------------------        
+        for (size_t tries = 0; (tries <= _tries) && !check_precision(distance, *it); ++tries)
         {
-            ++count;
-            Point pt;
+            Point aim;
             // -------------------------------------------------
             if (!(tries % _random_try))
-                pt = *it;
+            {
+                ++count_regular;
+                aim = *it;
+                is_aim = true;
+            }
             else
             {
                 ++count_random;
-                double min = prec * prec;
-                double max = prec * 2.;
+                const distance_t prec = _target.precision();
+                const auto rx = Utils::random(-prec * 10, prec * 10); // const_3 from??
+                const auto ry = Utils::random(-prec * 10, prec * 10);
 
-                double rx = Utils::random(min, max);
-                double ry = Utils::random(min, max);
+                //const auto min = prec * prec;
+                //const auto max = prec * 2.;
+                //auto rx = Utils::random(min, max);
+                //auto ry = Utils::random(min, max);
+                //rx = Utils::random(2) ? -rx : rx;
+                //ry = Utils::random(2) ? -ry : ry;
 
-                rx = Utils::random(2) ? -rx : rx;
-                ry = Utils::random(2) ? -ry : ry;
-
-                pt = { it->x + rx, it->y + ry };
+                aim = { it->x + rx, it->y + ry };
+                is_aim = false;
             }
             // -------------------------------------------------
-            _complexity += testStage3(pt);
-            p = _store.getClosestPoint(*it, side3);
+            distance_t d = testStage3(aim);
+            if (is_aim)
+                distance = d;
             // -------------------------------------------------
             boost::this_thread::interruption_point();
+            // -------------------------------------------------
         }
-        // ---------------------------------------------------
-        if (!p.first || boost_distance(p.second.hit, *it) > prec)
+        if (!check_precision(distance, *it))
+        {
+            tcerr << _T("  failed") << std::endl;
             uncovered.push_back(*it);
-    }
-    }
+        }
+        else tcerr << _T("  reached") << std::endl;
+    } // for
+    } // try
     catch (boost::thread_interrupted&)
     { CINFO("WorkingThread interrupted"); }
     catch (const std::exception &e)
     { SHOW_CERROR(e.what()); }
     // -----------------------------------------------------
-    CINFO(_T("TOTAL Complexity: ") << complexity() << 
-          _T(" minutes:") << (static_cast<double>(complexity()) / TourI::divToMinutes) << std::endl <<
-          _T("AVERAGE Complexity: ") << complexity() / count << std::endl << 
-          _T("Uncovered points: ") << uncovered.size() << "/" << _target.coords().size() << std::endl <<
-          _T("tries: ") << count << _T(" tries-of-randoms: ") << count_random << std::endl);
+    CINFO(_T("\n") <<
+          _T("\ngradient_points_complexity: ") << _gradient_points_complexity <<
+          _T("\ngradient_wmeans_complexity: ") << _gradient_wmeans_complexity <<
+          _T("\nrundown_alldirs_complexity: ") << _rundown_alldirs_complexity <<
+          _T("\nrundown_maindir_complexity: ") << _rundown_maindir_complexity <<
+          _T("\n  weighted_mean_complexity: ") << _wmean_complexity << 
+          _T("\n") <<
+          _T("\n   TOTAL Complexity: ") << complexity() <<
+          _T("\n AVERAGE Complexity: ") << (static_cast<double>(complexity()) / (count_regular + count_random)) <<
+          _T("\n            minutes: ") << (static_cast<double>(complexity()) / TourI::divToMinutes) <<
+          _T("\n   Uncovered points: ") << uncovered.size() << _T(" / ") << _target.coords().size() <<
+          _T("\n      regular tries: ") << count_regular <<
+          _T("\n       random tries: ") << count_random << 
+          _T("\n"));
+    // -----------------------------------------------------
+    mid_hit_stat->print();
+    mid_hit_stat1->print();
+    //std::exit(1);
 }
 
 //------------------------------------------------------------------------------
@@ -274,7 +411,17 @@ Robo::distance_t RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const C
         _robo.move(controls);
         ++_complexity;
         hit = _robo.position();
+        //if (pRec)
+        //{
+        //    tcout << " d=" << bg::distance(pRec->hit, hit) << ", hit" << hit << ", old" << pRec->hit;
+        //    tcout << std::endl;
+        //    tcout << std::endl;
+        //}
         _store.insert(Record{ aim, _base_pos, hit, controls, _robo.trajectory() });
     }
     return bg::distance(aim, hit);
 }
+
+//------------------------------------------------------------------------------
+Point RoboPos::LearnMoves::predict(const Robo::Control &controls)
+{ return _store.approx()->predict(controls); }

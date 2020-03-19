@@ -1,89 +1,109 @@
-﻿#include "StdAfx.h"
-#include "Robo.h"
+﻿#include "Robo.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
 #include "RoboLearnMoves.h"
 #include "Combinations.h"
 
-
 using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
+
+
+const Robo::frames_t start_next = 1;
+
 //------------------------------------------------------------------------------
-void   LearnMoves::rundownControls(IN OUT Control &controls)
+/// Добавить к текущему лучшему массиву управлений мини-движения незадействованных мускулов
+void LearnMoves::rundownControls(IN OUT Control &controls)
 {
     for (joint_t j = 0; j < _robo.jointsCount(); ++j)
     {
         auto mo = RoboI::muscleByJoint(j, true);
         auto mc = RoboI::muscleByJoint(j, false);
 
-        auto it_o = std::find(controls.begin(), controls.end(), mo);
-        auto it_c = std::find(controls.begin(), controls.end(), mc);
+        auto it_o = br::find(controls | boost::adaptors::reversed, mo);
+        auto it_c = br::find(controls | boost::adaptors::reversed, mc);
 
-        if (it_o == controls.end() && it_c != controls.end())
-        { controls.append({ mo, it_c->lasts + 1U, lasts_min }); }
-        else if (it_o == controls.end())
-        { controls.append({ mo, 0U, lasts_min }); }
-
-        if (it_c == controls.end())
+        if (it_o == controls.rend())
         {
-            if (it_o == controls.end())
-            { it_o = std::find(controls.begin(), controls.end(), mo); }
-            controls.append({ mc, it_o->lasts + 1U, lasts_min });
+            frames_t start_mo = (it_c != controls.rend()) ? (it_c->lasts + start_next) : 0;
+            controls.append({ mo, start_mo, lasts_min });
+        }
+        if (it_c == controls.rend())
+        {
+            frames_t start_mc = (it_o == controls.rend()) ? (br::find(controls, mo)->lasts + start_next) : 0;
+            controls.append({ mc, start_mc, lasts_min });
         }
     }
+
+    controls.order(_robo.musclesCount());
 }
+
 //------------------------------------------------------------------------------
-bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t &controls_curr,
-                                      IN OUT frames_t &velosity, IN OUT frames_t &velosity_prev)
+
+//static
+//void correctOppositeStart(Robo::Control::iterator &it)
+//{
+//    if (it->start == 0)
+//    {
+//        auto  m_op = RoboI::muscleOpposite(it->muscle);
+//        auto it_op = br::find(controls | boost::adaptors::reversed, m_op);
+//        it_op->start = (it->lasts + start_next);
+//    }
+//}
+
+//------------------------------------------------------------------------------
+/// For Main Directions
+bool LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t &controls_curr,
+                                    IN OUT frames_t &velosity, IN OUT frames_t &velosity_prev)
 {
     if (controls_curr >= controls.size())
-    { return true; }
+        return true;
     // ---------------------------------
     auto it = controls.begin();
-    if (controls_curr == 0U)
+    if (controls_curr == 0)
     {
         it->lasts += velosity;
-        if (it->start == 0U)
+        //correctOppositeStart(it);
+        if (it->start == 0)
         {
             auto  m_op = RoboI::muscleOpposite(it->muscle);
-            auto it_op = boost::range::find(controls, m_op);
-            it_op->start = (it->lasts + 1U);
+            auto it_op = br::find(controls | boost::adaptors::reversed, m_op);
+            it_op->start = (it->lasts + start_next);
         }
     }
     else
     {
-        std::advance(it, controls_curr / 2U);
+        std::advance(it, controls_curr / RoboI::musclesPerJoint);
         // ---------------------------------
-        if ((controls_curr % 2U))
+        if (controls_curr % RoboI::musclesPerJoint)
         {
             if (it->lasts >= (velosity_prev + velosity))
-            { it->lasts -= (velosity_prev + velosity); }
+                it->lasts -= (velosity_prev + velosity);
             else
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
-                auto it_op = boost::range::find(controls, m_op);
+                auto it_op = br::find(controls | boost::adaptors::reversed, m_op);
                 // ---------------------------------
                 it_op->lasts += (velosity_prev + velosity - it->lasts);
-                it->lasts = 0U;
+                it->lasts = 0;
                 // ---------------------------------
-                if (it_op->start == 0U)
+                if (it_op->start == 0)
                 {
-                    it->start = (it_op->lasts + 1U);
-                    it_op->start = 0U;
+                    it->start = (it_op->lasts + start_next);
+                    it_op->start = 0;
                 }
                 else
                 {
-                    it_op->start = (it->lasts + 1U);
-                    it->start = 0U;
+                    it_op->start = (it->lasts + start_next);
+                    it->start = 0;
                 }
             } // end else
 
-            if (it->start == 0U)
+            if (it->start == 0)
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
-                auto it_op = boost::range::find(controls, m_op);
-                it_op->start = (it->lasts + 1U);
+                auto it_op = br::find(controls, m_op);
+                it_op->start = (it->lasts + start_next);
             }
         }
         else
@@ -94,17 +114,17 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
             (it)->lasts += velosity_prev;
             (jt)->lasts += velosity;
             // ---------------------------------
-            if (it->start == 0U)
+            if (it->start == 0)
             {
                 auto  m_op = RoboI::muscleOpposite(it->muscle);
-                auto it_op = boost::range::find(controls, m_op);
+                auto it_op = br::find(controls, m_op);
                 it_op->start = (it->lasts + 1U);
             }
             // ---------------------------------
-            if (jt->start == 0U)
+            if (jt->start == 0)
             {
                 auto  m_op = RoboI::muscleOpposite(jt->muscle);
-                auto jt_op = boost::range::find(controls, m_op);
+                auto jt_op = br::find(controls, m_op);
                 jt_op->start = (jt->lasts + 1U);
             }
             // ---------------------------------
@@ -116,9 +136,11 @@ bool   LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t
     ++controls_curr;
     return false;
 }
+
 //------------------------------------------------------------------------------
 Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
 {
+    /// !!!!!!!!!!! store.approx().
     auto p = _store.getClosestPoint(aim, annealing);
     if (!p.first)
         CERROR(_T("rundownMainDir: Empty adjacency"));
@@ -132,7 +154,7 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
     frames_t velosity = frames_t(floor(distance / _target.precision() + 0.5));
     frames_t velosity_prev = 0;
     // -----------------------------------------------
-    size_t  controls_curr = 0;
+    size_t controls_curr = 0;
     // -----------------------------------------------
     while (!rundownNextControl(controls, controls_curr,
                                velosity, velosity_prev))
@@ -142,16 +164,13 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
             // -----------------------------------------------
             prev_distance = next_distance;
             next_distance = actionRobo(aim, controls);
-            //++rundown_complexity;
+            ++_rundown_maindir_complexity;
             // -----------------------------------------------
-            if (next_distance < distance)
+            if (less(distance, next_distance))
             {
                 distance = next_distance;
-                if (distance < _target.precision())
-                {
-                    CINFO(aim << _T(" reached"));
+                if (check_precision(distance, aim))
                     break;
-                }
             }
             // -----------------------------------------------
             velosity = frames_t(floor(distance / _target.precision() + 0.5));
@@ -189,245 +208,201 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
             // ---------------------------------        
             velosity_prev = velosity;
             // ---------------------------------
-        } while (next_distance < prev_distance);
+        } while (less(prev_distance, next_distance));
     } // end while  rundownNextControl
 
     CINFO(_T("rundownMainDir precision: ") << distance);
-    //CINFO(_T("rundown complexity: ") << rundown_complexity);
     return distance;
 }
 
-
 //------------------------------------------------------------------------------
-class RundownFullIncrementor
+class LearnMoves::RundownAllDirsIncrementor
 {
-    std::vector<int>  alphabet_;
-    const size_t directions_ = 2U; // +/-
-    size_t  n_joints_;
-    size_t  n_combs_ = 1U;
-
+    const size_t directions_ = 2; // +/-
+    const joint_t n_joints_;
+    const muscle_t n_muscles_;
+    size_t n_combs_ = 1;
+    std::vector<int> alphabet_;
 public:
-    RundownFullIncrementor(size_t n_joints) :
-        n_joints_(n_joints),
-        alphabet_(2 * n_joints * directions_)
+    RundownAllDirsIncrementor(joint_t n_joints) :
+        n_joints_(n_joints), 
+        n_muscles_(n_joints * RoboI::musclesPerJoint)//,
+        //alphabet_(size_t(n_joints  * RoboI::musclesPerJoint * directions_), 0)
     {
+        alphabet_.resize(RoboI::musclesPerJoint * n_joints * directions_);
         reset();
     }
-
-    void  reset()
+    void reset()
     {
-        n_combs_ = 1U;
-        // --------------------------------------------------
+        n_combs_ = 1;
         int inc = 0;
-        // --------------------------------------------------
         for (auto &letter : alphabet_)
-        { letter = inc++; }
+            letter = inc++;
+        //print_state();
     }
-    bool  next(std::vector<int> &currents)
+    void print_state() const
+    {
+        tcout << _T("alphabet: ");
+        for (auto it = alphabet_.begin(); it != (alphabet_.begin() + n_combs_); ++it)
+            tcout << *it << _T(" ");
+        tcout << std::endl;
+    }
+    bool next(changes_t &changes)
     {
         bool result, one_more;
-        // --------------------------------------------------
         do
         {
+            changes.assign(size_t(n_muscles_), 0);
             one_more = false;
-            currents.assign(currents.size(), 0);
-            // --------------------------------------------------
-            int  it_curr = 0,
-                it_prev = static_cast<int> (currents.size());
-            // --------------------------------------------------
-            for (auto it = alphabet_.begin();
-                 it != alphabet_.begin() + n_combs_;
-                 ++it)
+            change_t it_prev = n_muscles_;
+            for (auto it = alphabet_.begin(); it != (alphabet_.begin() + n_combs_); ++it)
             {
-                it_curr = *it % currents.size();
+                change_t it_curr = *it % n_muscles_;
                 if (n_combs_ > 1 && it_prev == it_curr)
                 {
                     one_more = true;
                     break;
                 }
-                // --------------------------------------------------
-                currents[it_curr] = (*it >= int(currents.size())) ? -1 : 1;
+                changes[it_curr] = (*it >= n_muscles_) ? -1 : 1;
                 it_prev = it_curr;
             } // end for
-            // --------------------------------------------------
             result = next_combination(alphabet_.begin(),
                                       alphabet_.begin() + n_combs_,
                                       alphabet_.end());
-            // --------------------------------------------------
-            if (!result)
-            {
-                ++n_combs_;
-                if (n_combs_ > n_joints_)
-                { reset(); result = true; }
-            }
-            // --------------------------------------------------
+            //print_state();
+            if (!result && ++n_combs_ > changes.size())
+                reset();
         } while (one_more);
-        // --------------------------------------------------
-        return result;
+        return !result;
+    }
+    static void print_changes(changes_t &changes)
+    {
+        tcout << _T("lasts_changes: ");
+        for (auto &chg : changes)
+            tcout << chg << _T(" ");
+        tcout << std::endl;
     }
 };
 
 //------------------------------------------------------------------------------
-bool LearnMoves::rundownNextControl(IN OUT Control    &controls,
-                                    IN OUT std::vector<int> &lasts_changes,
-                                    IN OUT frames_t   &velosity)
+bool LearnMoves::rundownNextControl(IN OUT Robo::Control  &controls,
+                                    IN OUT changes_t      &lasts_changes,
+                                    IN OUT Robo::frames_t  velosity,
+                                    std::vector<int> &muscles_repeats)
 {
-    bool result = true;
-    // ---------------------------------
-    if (controls.size() != lasts_changes.size())
-        CERROR(_T("rundownNextControl: not equal sizes controls and lasts_changes"));
-    // ---------------------------------
-    auto it = controls.begin();
-    for (auto last_change : lasts_changes)
+    if (!velosity)
+        return false;
+
+    bool one_more = false;
+    for (size_t pos = 0; pos < controls.size(); ++pos)
     {
-        if (last_change)
+        if (lasts_changes[controls[pos].muscle] < 0) // укорачивать имеющееся управление
         {
-            // ---------------------------------
-            if (last_change < 0)
+            if (muscles_repeats[controls[pos].muscle] < 0) // ????
             {
-                if (it->lasts >= velosity)
-                { it->lasts -= velosity; }
-                else
-                {
-                    velosity = it->lasts;
-                    it->lasts = 0U;
-                }
-
-                // {
-                //   auto  m_op = muscleOpposite (it->muscle);
-                //   auto it_op = boost::range::find (controls, m_op);
-                //   // ---------------------------------
-                //   it_op->last += (velosity - it->last);
-                //   it->last = 0U;
-                //   // ---------------------------------
-                //   if ( it_op->start < it->start )
-                //   {
-                //     it->start = (it_op->last + 1U);
-                //     it_op->start = 0U;
-                //   }
-                //   else // it_op->start > it->start
-                //   {
-                //     it_op->start = (it->last + 1U);
-                //     it->start = 0U;
-                //   }
-                // } // end else
-
-                auto  m_op = RoboI::muscleOpposite(it->muscle);
-                auto it_op = boost::range::find(controls, m_op);
-
-                if (it->start < it_op->start)
-                { it_op->start = (it->lasts + 1U); }
+                muscles_repeats[controls[pos].muscle] = int(pos);
+                controls.shorter(pos, velosity,
+                                 true/*уточнить ли время старта противоположного?*/,
+                                 true/*добавлять ли в противоположное управление? какое?*/);
             }
-            else // last_change > 0
+            else one_more = true;
+        }
+        else if (lasts_changes[controls[pos].muscle] > 0) // добавлять в имеющееся управление
+        {
+            if (muscles_repeats[controls[pos].muscle] < 0) // ????
             {
-                it->lasts += velosity;
-                // ---------------------------------
-                auto  m_op = RoboI::muscleOpposite(it->muscle);
-                auto it_op = boost::range::find(controls, m_op);
-
-                if (it->start < it_op->start)
-                { it_op->start = (it->lasts + 1U); }
-                // ---------------------------------
-            } // end else
-            // ---------------------------------
-            result = false;
-        } // end if
-        ++it;
-    } // end for
-    // ---------------------------------
-    return result;
+                muscles_repeats[controls[pos].muscle] = int(pos);
+                controls.longer(pos, velosity,
+                                true/*уточнить ли время старта противоположного?*/);
+            }
+            else one_more = true;
+        }
+    }
+    if (!controls.validate(_robo.musclesCount()))
+        tcout << std::endl;
+    //controls.order(_robo.musclesCount());
+    return one_more;
 }
+
+//------------------------------------------------------------------------------
+Robo::frames_t LearnMoves::rundownVelosity(Robo::distance_t distance)
+{ return static_cast<Robo::frames_t>( std::max(1., std::ceil(distance / _target.precision())) ); }
+
 //------------------------------------------------------------------------------
 Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
 {
     auto p = _store.getClosestPoint(aim, annealing);
     if (!p.first)
-        CERROR(_T("rundownFull: Empty adjacency"));
+        CERROR(_T("rundownAllDirs: Empty adjacency"));
     // -----------------------------------------------
     distance_t distance, next_distance;
     next_distance = distance = bg::distance(aim, p.second.hit);
     // -----------------------------------------------
     Control controls{ p.second.controls };
     rundownControls(controls);
+    CINFO(_T("rundownControls: ") << controls);
     // -----------------------------------------------
-    frames_t velosity = 0;
-    frames_t velosity_prev = 0;
+    Control tmp(controls);
     // -----------------------------------------------
-    std::vector<int>  lasts_changes(_robo.musclesCount());
+    RundownAllDirsIncrementor increm(_robo.jointsCount());
+    changes_t lasts_changes(size_t(_robo.musclesCount()));
+    bool finish;
     // -----------------------------------------------
-    RundownFullIncrementor   increm(_robo.jointsCount());
-    // -----------------------------------------------
-    while (distance > _target.precision())
+    do
     {
-        velosity = frames_t(floor(distance / _target.precision() + 0.5));
-        velosity = (velosity) ? velosity : 1U;
-        // -----------------------------------------------
-        /* Восстановить прошлое управление */
-        for (auto &last_change : lasts_changes)
-        {
-            if (last_change != 0)
-            { last_change = -last_change; }
-        }
-        rundownNextControl(controls, lasts_changes, velosity_prev);
-        // -----------------------------------------------
+        tmp = controls;
         /* Взять новое сочетание */
-        bool increm_result = increm.next(lasts_changes);
+        finish = increm.next(lasts_changes);
         // -----------------------------------------------
-        rundownNextControl(controls, lasts_changes, velosity);
-
-        velosity_prev = velosity;
+        RundownAllDirsIncrementor::print_changes(lasts_changes);
         // -----------------------------------------------
-        next_distance = actionRobo(aim, controls);
-        //++rundown_complexity;
-        if (next_distance < _target.precision())
+        /* что такое muscles_repeats ?? */
+        std::vector<int> muscles_repeats(size_t(_robo.musclesCount()), -1);
+        std::vector<int> muscles_repeats_prev(size_t(_robo.musclesCount()), -1);
+        bool closer, repeat, reset = false;
+        // -----------------------------------------------
+        do
         {
-            CINFO(aim << _T(" reached"));
-            break;
-        }
-        // -----------------------------------------------
-        while (next_distance < distance)
-        {
-            distance = next_distance;
+            auto velosity = rundownVelosity(distance);
+            repeat = rundownNextControl(tmp, lasts_changes, velosity, muscles_repeats);
             // -----------------------------------------------
-            frames_t velosity_new = frames_t(floor((distance) / _target.precision() + 0.5));
-            velosity_new = (velosity_new) ? velosity_new : 1U;
-
-            if (velosity_new != velosity)
+            CINFO(_T("rundownNextControl: ") << tmp << " v=" << velosity);
+            tcout << " muscles_repeats={ ";
+            for (auto &r : muscles_repeats) tcout << r << " , ";
+            tcout << " } repeat=" << repeat << std::endl;
+            // -----------------------------------------------
+            //auto hit = predict(controls);
+            //auto d = bg::distance(aim, hit);
+            //if (less(distance, d))
             {
-                velosity = velosity_new;
-                for (auto &l : lasts_changes)
-                { l = static_cast<int>(boost::math::sign(l) * velosity); }
+                next_distance = actionRobo(aim, tmp);
+                ++_rundown_alldirs_complexity;
             }
             // -----------------------------------------------
-            rundownNextControl(controls, lasts_changes, velosity);
-
-            velosity_prev = velosity;
-            // -----------------------------------------------
-            next_distance = actionRobo(aim, controls);
-            // ++rundown_complexity;
-            // -----------------------------------------------
-            if (next_distance < _target.precision())
+            if (less(distance, next_distance))
             {
-                CINFO(aim << _T(" reached"));
-                break;
+                distance = next_distance;
+                //if (check_precision(distance, aim))
+                {
+                    finish = true;
+                    break;
+                }
+                //controls = tmp;
+                //muscles_repeats = muscles_repeats_prev;
+                reset = closer = true;
+                //tcout << " closer" << std::endl;
             }
-            if (next_distance >= distance)
+            else
             {
-                increm.reset();
-                increm_result = false;
+                muscles_repeats_prev = muscles_repeats;
+                closer = false;
+                //if (closer) finish = true;
             }
-        }
-        // -----------------------------------------------
-        // if ( next_distance > side )
-        if (increm_result)
-        {
-            CINFO(_T("rundownAllDirs FAIL ") << distance);
-            break; /* FAIL */
-        }
-    } // end while
+        } while (/*closer ||*/ repeat);
+        //if (reset) increm.reset(); // начинаем перебор сначала с нового лучшего управления
+    } while (!finish);
 
     CINFO("rundownAllDirs precision: " << distance);
-    //CINFO("rundown complexity: " << rundown_complexity);
     return distance;
 }
 

@@ -533,10 +533,12 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
 }
 
 //------------------------------------------------------------------------------
-size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
+Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
 {
     annealing = bg::distance(_target.min(), _target.max()) / 10.;
+    annealing = 0.11;// new_distance / 5;
     CINFO("NEW aim=" << aim << " annealing=" << annealing);
+
     distance_t distance, new_distance;
     new_distance = distance = bg::distance(_base_pos, aim);
     // -----------------------------------------------
@@ -560,10 +562,11 @@ size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
                          controls);
         // -----------------------------------------------
         new_distance = actionRobo(aim, controls);
+        ++_gradient_wmeans_complexity;
         // -----------------------------------------------
-        if (distance > new_distance)
+        if (less(distance, new_distance))
         {
-            auto ann1 = sqrt(distance);
+            auto ann1 = sqrt(distance); // annealing * 0.9;// 
             if (ann1 < annealing)
             {
                 annealing = ann1;
@@ -571,12 +574,8 @@ size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
             }
             distance = new_distance;
             all_admixes_tried = 0;
-
-            if (_target.precision() > distance)
-            {
-                CINFO(aim << _T(" reached"));
+            if (check_precision(distance, aim))
                 break;
-            }
         }
         else if (all_admixes_tried == 3)
         {
@@ -584,21 +583,18 @@ size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
             break;
         }
         // -----------------------------------------------
-        if (distance <= new_distance) // если не приблизились основным алгоритмом
+        if (!less(distance, new_distance)) // если не приблизились основным алгоритмом
         {
             const int n_admixes = sizeof(admixes) / sizeof(*admixes);
             new_distance = (this->*(admixes[i_admix]))(aim); // используем алгоритмы-примеси
             i_admix = ++i_admix % n_admixes;
             all_admixes_tried++;
 
-            if (distance > new_distance)
+            if (less(distance, new_distance))
             {
                 distance = new_distance;
-                if (_target.precision() > distance)
-                {
-                    CINFO(aim << _T(" reached"));
+                if (check_precision(distance, aim))
                     break;
-                }
             }
             if (new_distance > (distance + side3))
             {
@@ -610,8 +606,7 @@ size_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
     } while (true);
     // -----------------------------------------------
     CINFO(_T(" precision: ") << distance << std::endl);
-    // << _T("gradient admix complexity: ") << gradient_complexity << std::endl);
-    return _complexity;
+    return distance;
 }
 
 //------------------------------------------------------------------------------
@@ -620,27 +615,33 @@ const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptr
                                                           IN const HitPosRelToAim   *pHitPosPred,
                                                           IN OUT   visited_t        *pVisited)
 {
-    const Record *pRecMin = NULL;
-    size_t h;
-    distance_t dm = DBL_MAX;
-    RecordHasher rh;
+    const Record *pRecMin = nullptr;
+    distance_t d_min = DBL_MAX;
     //CINFO("aim " << aim);
     for (const auto &pRec : range)
     {
+        bool visited = false;
         if (pVisited)
-            h = rh(*pRec);
-        distance_t dr = bg::distance(pRec->hit, aim);
-        //CDEBUG("dr=" << dr);
+        {
+            const RecordHasher rh;
+            size_t h = rh(*pRec);
+            visited = (pVisited->find(h) == pVisited->end());
+        }
+        bool endPointCondition = (pHitPosPred) ? (*pHitPosPred)(*pRec) : true;
+
+        distance_t d_curr = bg::distance(pRec->hit, aim);
+        //CDEBUG("d_curr=" << d_curr);
         //CINFO("hit " << pRec->hit);
-        if (   (!pVisited    || (pVisited->find(h) == pVisited->end()))
-            && (!pHitPosPred || (*pHitPosPred)(*pRec))
-            && (dr < dm))
+        if (!visited && endPointCondition && d_curr < d_min)
         {
             pRecMin = pRec;
-            dm = dr;
+            d_min = d_curr;
         }
     }
-    CINFO("dr=" << dm << " hit=" << pRecMin->hit << " c=" << pRecMin->controls);
+    if (pRecMin)
+        CINFO("d=" << d_min << " hit=" << pRecMin->hit << " c=" << pRecMin->controls)
+    else
+        CINFO("d=- hit=- c=-")
     return pRecMin;
 }
 
@@ -721,16 +722,20 @@ distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
                          rec_upper.controls,
                          controls);
         // -----------------------------------------------
-        new_distance = actionRobo(aim, controls);
+        //auto hit = predict(controls);
+        //auto d = bg::distance(aim, hit);
+        //if (less(distance, d))
+        {
+            new_distance = actionRobo(aim, controls);
+            ++_gradient_points_complexity;
+            //CINFO(" predict=" << d << " hit=" << new_distance);
+        }
         // -----------------------------------------------
-        if (distance > new_distance)
+        if (less(distance, new_distance))
         {
             distance = new_distance;
-            if (_target.precision() > new_distance)
-            {
-                CINFO(aim << " reached");
+            if (check_precision(distance, aim))
                 break;
-            }
         }
         else
         {
@@ -741,7 +746,6 @@ distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
     } while (true);
     // -----------------------------------------------
     CINFO(_T("gradientMethod precision: ") << distance << std::endl);
-    // << _T("grad_complex ") << gradient_complexity << std::endl);
     return distance;
 }
 //------------------------------------------------------------------------------

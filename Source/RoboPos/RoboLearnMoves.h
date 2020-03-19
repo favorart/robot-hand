@@ -10,11 +10,10 @@ namespace Robo {
 class RoboPhysics;
 }
 
-namespace RoboPos
-{
+namespace RoboPos {
 class TourI;
-/* тестовые движения рукой */
 //------------------------------------------------------------------------------
+/* тестовые движения рукой */
 void  testApprox (RoboMoves::Store&, Robo::RoboI&);
 void  testRandom (RoboMoves::Store&, Robo::RoboI&, size_t tries);
 void  testCover  (RoboMoves::Store&, Robo::RoboPhysics&);
@@ -34,13 +33,20 @@ void  testCover  (RoboMoves::Store&, Robo::RoboPhysics&);
 class LearnMoves
 {
     static const Robo::frames_t lasts_min = 1;
+    //static const Robo::frames_t start_next = 1;
 
     const TargetI &_target;
     RoboMoves::Store &_store;
     Robo::RoboI &_robo;
     Point _base_pos{};
+    /// Подсчёт сложности
+    size_t _complexity = 0;
+    size_t _gradient_points_complexity = 0;
+    size_t _gradient_wmeans_complexity = 0;
+    size_t _rundown_alldirs_complexity = 0;
+    size_t _rundown_maindir_complexity = 0;
+    size_t _wmean_complexity = 0;
 
-    size_t _complexity = 0;  ///< Подсчёт сложности
     tptree _config{};
 
     bool use_weighted_mean{};
@@ -54,13 +60,25 @@ class LearnMoves
     //=============================================
     Robo::distance_t actionRobo(IN const Point &aim, IN const Robo::Control &controls);
     //---------------------------------------------
+    /*inline*/ bool less(Robo::distance_t distance, Robo::distance_t new_distance);
+    /*inline*/ bool check_precision(Robo::distance_t distance);
+    /*inline*/ bool check_precision(Robo::distance_t distance, const Point &aim);
+    //---------------------------------------------
+    Point predict(const Robo::Control &controls);
+    //---------------------------------------------
     bool defineDependenceOfMuscles() {}
     bool defineStaticalPeriodsinMuscles() {}
-
+    //---------------------------------------------
+    struct MidHitStat;
+    MidHitStat *mid_hit_stat{}, *mid_hit_stat1{};
+    void append(MidHitStat *mhs, Robo::distance_t d);
+    //---------------------------------------------
     void  weightedMeanControls(IN  const Point &aim,
                                IN  const RoboMoves::adjacency_ptrs_t &range, // диапазон управлений с конечными точками вблизи цели
                                OUT Robo::Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.
-                               OUT Point &mid_hit); // среднее расстояние диапазона до цели 
+                               OUT Point &mid_hit1, OUT Point &mid_hit); // среднее расстояние диапазона до цели 
+    void weightedMeanControlsOrdered(IN const Point &aim, IN const RoboMoves::adjacency_ptrs_t &range,
+                                     OUT std::vector<Robo::Actuator> &controls, OUT Point &mid_hit);
 
     bool  weightedMeanULAdjs(IN  const Point   &aim,
                              OUT RoboMoves::Record *pRec,
@@ -79,6 +97,12 @@ class LearnMoves
                              IN const Robo::Control &upper_controls,
                              OUT      Robo::Control &controls);
     //---------------------------------------------
+    class RundownAllDirsIncrementor;
+    using change_t = int8_t; // 1,0,-1
+    using changes_t = std::vector<change_t>;
+    //---------------------------------------------
+    Robo::frames_t rundownVelosity(Robo::distance_t);
+    //---------------------------------------------
     void  rundownControls(IN OUT Robo::Control &controls);
     //---------------------------------------------
     bool  rundownNextControl(IN OUT Robo::Control  &controls,
@@ -87,8 +111,9 @@ class LearnMoves
                              IN OUT Robo::frames_t &velosity_prev);
     //---------------------------------------------
     bool  rundownNextControl(IN OUT Robo::Control    &controls,
-                             IN OUT std::vector<int> &lasts_changes,
-                             IN OUT Robo::frames_t   &velosity);
+                             IN OUT changes_t        &lasts_changes,
+                             IN OUT Robo::frames_t    velosity,
+                             std::vector<int> &muscles_repeats);
     //---------------------------------------------
     using HitPosRelToAim = std::function<bool(const RoboMoves::Record&)>;
     using visited_t = std::set<std::size_t>;
@@ -113,11 +138,11 @@ class LearnMoves
     Robo::distance_t gradientMethod (IN const Point &aim);
 
     using pAdmixMethod = Robo::distance_t(LearnMoves::*)(const Point&);
-    const pAdmixMethod admixes[2] = {
+    const pAdmixMethod admixes[3] = {
         &LearnMoves::weightedMean,
-        &LearnMoves::gradientMethod//,
+        &LearnMoves::gradientMethod,
         //&LearnMoves::rundownMainDir,
-        //&LearnMoves::rundownAllDirs
+        &LearnMoves::rundownAllDirs
     };
 
     tstring _fn_config;
@@ -126,6 +151,7 @@ class LearnMoves
 public:
     LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, 
                IN const TargetI &target, IN const tstring &fn_config);
+    ~LearnMoves();
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
     //---------------------------------------------
@@ -138,7 +164,7 @@ public:
     //---------------------------------------------
     void  uncover(OUT Robo::Trajectory &uncovered);
     //---------------------------------------------
-    size_t testStage3(IN const Point &aim);
+    Robo::distance_t testStage3(IN const Point &aim);
     //---------------------------------------------
     void save(tptree &node) const;
     void load(tptree &node);

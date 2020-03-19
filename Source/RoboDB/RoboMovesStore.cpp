@@ -16,10 +16,19 @@ void RoboMoves::Store::clear()
 {
     boost::lock_guard<boost::mutex> lock(_store_mutex);
     _store.clear();
+    if (_approx)
+        _approx->clear();
+    _trajectories_enumerate = 0;
+#ifndef NO_MTREE
+    _mtree.clear();
+#endif
+#ifndef NO_INVERSE_INDEX
     _inverse.clear();
     for (size_t i = 0; i < _inverse_kdtree.getAllIndices().size(); ++i)
         _inverse_kdtree.removePoint(i);
     _inverse_index_last = 0;
+    _inverse_kdtree.clear();
+#endif
     CINFO(" store clear");
 }
 

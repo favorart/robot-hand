@@ -85,6 +85,20 @@ void RoboPos::Approx::insert(const Robo::Control &controls, Point hit, size_t in
     _mY.row(index) = Vector2d(hit.x, hit.y);
 }
 
+//------------------------------------------------------------------------------
+void RoboPos::Approx::clear()
+{
+    _constructed = false;
+    _train = false;
+    //_max_n_controls;
+    _mX = {}; _mY = {}; _mQ = {};
+    _vNorm = {};
+    _vK = {};
+    _nmX = {};
+    //_noize;
+    //_sizing;
+}
+
 
 //------------------------------------------------------------------------------
 Eigen::MatrixXd RoboPos::Approx::calcKFunction(Eigen::MatrixXd &X) const
