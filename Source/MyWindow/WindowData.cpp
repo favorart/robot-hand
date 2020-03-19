@@ -10,6 +10,8 @@
 #include "Tank.h"
 #include "Hand.h"
 #include "Utils.h"
+#include "RoboPosApprox.h"
+
 
 using namespace Robo;
 using namespace RoboMoves;
@@ -322,31 +324,58 @@ void  onWindowTimer(MyWindowData &wd)
     }
 }
 //-------------------------------------------------------------------------------
+tostream& operator<<(tostream& s, const Robo::StateTrajectory &t)
+{
+    s << "[ ";
+    const size_t indent = 3;
+    for (size_t i = 0; i < t.size(); ++i)
+    {
+        if (i < indent)
+            s << t[i].spec() << " , ";
+        else if (i == indent)
+            s << "... , ";
+        else if ((t.size() - i) < indent)
+            s << t[i].spec() << " , ";
+    }
+    s << " ]";
+    return s;
+}
+//-------------------------------------------------------------------------------
 bool  repeatRoboMove(MyWindowData &wd)
 {
+    if (wd.pStore->empty())
+    {
+        Control c;
+        c.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return (robo.muscleMaxLasts(m)/*/2*/); });
+        wd.pRobo->move(c);
+    }
+    //auto &rec = wd.pStore->closestEndPoint(wd.mouse.aim);
+
     auto p = wd.pStore->getClosestPoint(wd.mouse.aim, wd.search.side);
     if (!p.first)
-        throw std::runtime_error("repeatRoboMove: Empty adjacency");
-    // -------------------------------------------------
-    if (boost_distance(p.second.hit, wd.mouse.aim) <= wd.pTarget->precision())
+        CERROR("repeatRoboMove: empty adjacency aim=" << wd.mouse.aim << " side=" << wd.search.side);
+    auto &rec = p.second;
+
+    CINFO(" aim="<< wd.mouse.aim << " hit=" << rec.hit << "\n traj=" << rec.trajectory << "\n");
+    if (bg::distance(rec.hit, wd.mouse.aim) >= wd.pTarget->precision())
         return false;
     // -------------------------------------------------
     /* Repeat Hand Movement */
     wd.pRobo->reset();
-    wd.trajFrames.step(*wd.pStore, *wd.pRobo, p.second.controls);
+    wd.trajFrames.step(*wd.pStore, *wd.pRobo, rec.controls);
     //MyWindowData::reals.clear();
     //br::copy(p.second.trajectory, std::back_inserter(MyWindowData::reals));
     // -------------------------------------------------
     if (!wd.trajFrames.animation())
     {
-        if (!boost::equal(wd.pRobo->trajectory(), p.second.trajectory))
+        if (!boost::equal(wd.pRobo->trajectory(), rec.trajectory))
             throw std::runtime_error("repeatRoboMove: Restore another trajectory");
     }
     // -------------------------------------------------
     tstringstream ss;
     tstring text = getWindowTitleString(wd.canvas.hLabMAim);
     ss << text << _T("\r");
-    ss << p.second.controls << _T("\r");
+    ss << rec.controls << _T("\r");
     SendMessage(wd.canvas.hLabMAim, WM_SETTEXT, NULL, (LPARAM)(ss.str().c_str()));
     // -------------------------------------------------
     return true;
@@ -359,6 +388,7 @@ bool  makeRoboMove(MyWindowData &wd)
     if (!repeatRoboMove(wd))
     {
         const Point &aim = wd.mouse.aim;
+        //wd.pStore->approx()->predict(wd.mouse.aim); // !!!!!!!!!!!!!!!!!!!!!!!!!!!
         // if (!wd.pLM) wd.pLM = std::make_shared<RoboPos::LearnMoves>(*wd.pStore, *wd.pRobo, *wd.pTarget, wd._lm_config); //??
         wd.pLM->testStage3(aim);
         // -------------------------------------------------

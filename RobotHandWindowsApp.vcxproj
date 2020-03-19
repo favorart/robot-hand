@@ -5,6 +5,14 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="HandTest-Debug|Win32">
+      <Configuration>HandTest-Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="HandTest-Debug|x64">
+      <Configuration>HandTest-Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="HandTesting|Win32">
       <Configuration>HandTesting</Configuration>
       <Platform>Win32</Platform>
@@ -44,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\EigenSerializePlugin.h" />
+    <ClInclude Include="libs\mtree.h" />
     <ClInclude Include="libs\RL\rl-boyan-chain.hpp" />
     <ClInclude Include="libs\RL\rl-cliff-walking.hpp" />
     <ClInclude Include="libs\RL\rl-garnet.hpp" />
@@ -66,6 +75,7 @@
     <ClInclude Include="libs\RL\rlTraits.hpp" />
     <ClInclude Include="libs\RL\rlTypes.hpp" />
     <ClInclude Include="Resource\resource.h" />
+    <ClInclude Include="Source\RoboDB\RoboMovesStoreI.h" />
     <ClInclude Include="Source\RoboPos\gradient.h" />
     <ClInclude Include="Source\RoboPos\Old\RoboPosMDirections.h" />
     <ClInclude Include="Source\RoboPos\Old\RoboPosMDirections_Old.h" />
@@ -148,7 +158,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Hand|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Tank|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='HandTesting|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Hand|Win32'">Create</PrecompiledHeader>
@@ -182,6 +194,12 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
@@ -221,6 +239,12 @@
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -254,6 +278,9 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -267,6 +294,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -289,7 +319,21 @@
     <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\alglib-3.14.0\src\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(VC_SourcePath)</SourcePath>
     <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Robo\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Robo\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\alglib-3.14.0\src\;$(ProjectDir)libs\lp_solve\include\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(ProjectDir)libs\alglib-3.14.0\src\;$(ProjectDir)libs\J.Burkardt %28FSU%29\llsq\;$(ProjectDir)libs\J.Burkardt %28FSU%29\qr_solve\;$(ProjectDir)libs\J.Burkardt %28FSU%29\r8lib\;$(ProjectDir)libs\J.Burkardt %28FSU%29\test_ls\;$(ProjectDir)libs\J.Burkardt %28FSU%29\lagrange\;$(VC_SourcePath)</SourcePath>
+    <ExecutablePath>$(VC_ExecutablePath_x86);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Robo\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Robo\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(VC_SourcePath)</SourcePath>
+    <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Robo\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Robo\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(IncludePath)</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
@@ -370,12 +414,58 @@
       <AdditionalDependencies>liblpsolve55.lib;liblpsolve55d.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;MY_WINDOW;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>D:\blaslapack\CBLAS\include;D:\blaslapack\LAPACKE\include;C:\b11\boost_1_66_0;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zm200 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ForcedUsingFiles>
+      </ForcedUsingFiles>
+      <ShowIncludes>false</ShowIncludes>
+      <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)libs\lp_solve\lib32;D:\blaslapack\!LIB;C:\b11\boost_1_66_0\libs;C:\b11\boost_1_66_0\lib32-msvc-14.1;C:\Users\MainUser\Documents\Visual Studio 2015\boost_1_60_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>liblpsolve55.lib;liblpsolve55d.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;MY_WINDOW;DEBUG_SHOW_CONTRADICTION;DEBUG_PLOTTING;DEBUG_RM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)\libs\RL;D:\blaslapack\CBLAS\include;$(SolutionDir)\libs\Radial-0.1.2\src;D:\blaslapack\LAPACKE\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>/Zm200  /std:c++17 %(AdditionalOptions)</AdditionalOptions>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ForcedIncludeFiles>StdAfx.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ShowIncludes>false</ShowIncludes>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UndefinePreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE;</UndefinePreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>D:\blaslapack\!LIB;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;_WINDOWS;_SILENCE_CXX17_NEGATORS_DEPRECATION_WARNING;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;MY_WINDOW;DEBUG_SHOW_CONTRADICTION;DEBUG_PLOTTING;DEBUG_RM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)\libs\RL;D:\blaslapack\CBLAS\include;$(SolutionDir)\libs\Radial-0.1.2\src;D:\blaslapack\LAPACKE\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>

@@ -17,6 +17,9 @@ Global
 		Hand|Any CPU = Hand|Any CPU
 		Hand|x64 = Hand|x64
 		Hand|x86 = Hand|x86
+		HandTest-Debug|Any CPU = HandTest-Debug|Any CPU
+		HandTest-Debug|x64 = HandTest-Debug|x64
+		HandTest-Debug|x86 = HandTest-Debug|x86
 		HandTesting|Any CPU = HandTesting|Any CPU
 		HandTesting|x64 = HandTesting|x64
 		HandTesting|x86 = HandTesting|x86
@@ -34,6 +37,9 @@ Global
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Hand|Any CPU.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Hand|x64.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Hand|x86.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.HandTest-Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.HandTest-Debug|x64.ActiveCfg = Debug|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.HandTest-Debug|x86.ActiveCfg = Debug|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.HandTesting|Any CPU.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.HandTesting|x64.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.HandTesting|x86.ActiveCfg = Release|Any CPU
@@ -53,6 +59,10 @@ Global
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Hand|x64.Build.0 = Hand|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Hand|x86.ActiveCfg = Hand|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Hand|x86.Build.0 = Hand|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|Any CPU.ActiveCfg = HandTest-Debug|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x64.ActiveCfg = HandTest-Debug|x64
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x86.ActiveCfg = HandTest-Debug|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x86.Build.0 = HandTest-Debug|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTesting|Any CPU.ActiveCfg = HandTesting|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTesting|x64.ActiveCfg = HandTesting|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTesting|x64.Build.0 = HandTesting|x64
@@ -76,6 +86,9 @@ Global
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Hand|Any CPU.ActiveCfg = Release|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Hand|x64.ActiveCfg = Release|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Hand|x86.ActiveCfg = Release|Win32
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.HandTest-Debug|Any CPU.ActiveCfg = Release|x64
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.HandTest-Debug|x64.ActiveCfg = Debug|x64
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.HandTest-Debug|x86.ActiveCfg = Debug|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.HandTesting|Any CPU.ActiveCfg = Tank|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.HandTesting|x64.ActiveCfg = Tank|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.HandTesting|x86.ActiveCfg = Tank|Win32
