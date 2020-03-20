@@ -453,7 +453,7 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
         RoboMoves::ApproxFilter next = [&it, &it_end]() -> const Record* {
             return ((it++ != it_end) ? &(*it) : nullptr);
         };
-        store.construct_approx(_max_n_controls, next);
+        store.constructApprox(_max_n_controls, next);
     }
 }
 
@@ -686,7 +686,7 @@ bool TourTarget::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
     //----------------------------------------------
     if (_b_predict)
     {
-        pred_end = _store.approx()->predict(controling);
+        pred_end = _store.getApprox()->predict(controling);
         if (_b_checking)
         {
             _robo.move(controling);

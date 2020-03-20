@@ -289,7 +289,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     {
         CINFO("Construct Approx...");
         AFilter next(_store, _target, side3);
-        _store.construct_approx(32, next);
+        _store.constructApprox(32, next);
     }
 
     _complexity = 0;
@@ -424,4 +424,4 @@ Robo::distance_t RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const C
 
 //------------------------------------------------------------------------------
 Point RoboPos::LearnMoves::predict(const Robo::Control &controls)
-{ return _store.approx()->predict(controls); }
+{ return _store.getApprox()->predict(controls); }

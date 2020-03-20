@@ -1,6 +1,202 @@
-﻿#include "RoboMovesStore.h"
+﻿#ifndef NO_INVERSE_INDEX
+#include "nanoflann.hpp" // https://github.com/jlblancoc/nanoflann
+#endif
+#ifndef NO_MTREE
+#include "mtree.h" // https://github.com/erdavila/M-Tree
+#endif
+
+#include "RoboMovesStore.h"
 #include "RoboPosApprox.h"
 
+
+#ifndef NO_MTREE
+namespace RoboMoves {
+//------------------------------------------------------------------------------
+struct MTreeDistance
+{
+    Robo::distance_t operator()(const std::shared_ptr<Record> &aim,
+                                const std::shared_ptr<Record> &p)   const { return bg::distance(aim->hit, p->hit); }
+    Robo::distance_t operator()(const Record *aim, const Record *p) const { return bg::distance(aim->hit, p->hit); }
+    Robo::distance_t operator()(const Record *aim, const Point  *p) const { return bg::distance(aim->hit, *p); }
+    Robo::distance_t operator()(const Point  *aim, const Record *p) const { return bg::distance(*aim, p->hit); }
+    Robo::distance_t operator()(const Point  *aim, const Point  *p) const { return bg::distance(*aim, *p); }
+    Robo::distance_t operator()(const Record &aim, const Record &p) const { return bg::distance(aim.hit, p.hit); }
+    Robo::distance_t operator()(const Record &aim, const Point  &p) const { return bg::distance(aim.hit, p); }
+    Robo::distance_t operator()(const Point  &aim, const Record &p) const { return bg::distance(aim, p.hit); }
+    Robo::distance_t operator()(const Point  &aim, const Point  &p) const { return bg::distance(aim, p); }
+};
+//------------------------------------------------------------------------------
+//using MTree = mt::mtree<Record, MTreeDistance>;
+//typedef mt::mtree<Record, MTreeDistance> MTree;
+}
+#endif //NO_MTREE
+
+
+
+#ifndef NO_INVERSE_INDEX
+//------------------------------------------------------------------------------
+class RoboMoves::Store::InverseIndex
+{
+public:
+    using Index = size_t;
+    using Distance = Robo::distance_t;
+    using IndexPair = std::pair<const Point*, const Record*>;
+    using IndexContainer = std::vector<IndexPair>;
+    using KDTreeDataset = InverseIndex;
+    using KDTMetric = nanoflann::L2_Simple_Adaptor<Robo::distance_t, KDTreeDataset>;
+    using KDTree = nanoflann::KDTreeSingleIndexDynamicAdaptor<KDTMetric, KDTreeDataset, Point::ndimensions>;
+    //using RSearchReply  = std::vector<std::pair<Index, Robo::distance_t>>;
+    class ResultCallBack;
+
+    //KDTreeDataset(const Store &store) : owner(store) {}
+    inline Index kdtree_get_point_count() const { return inverse.size(); } //!< \returns number of points in kdtree
+    inline Distance kdtree_get_pt(Index i, Index dim) const { return (*inverse[int(i)].first)[int(dim)]; } //!< get the dim-th component of the i-th point
+    template <class BBOX>
+    bool kdtree_get_bbox(BBOX&/*bb*/) const { return false; } //!< optional: false - default, true - if bounding-box was already computed (avoid redoing) and return in bb
+
+    inline IndexPair operator[](Index i) const { return inverse[int(i)]; }
+    inline Index size() const { return inverse.size(); }
+    inline void append(const IndexPair &v) { inverse.push_back(v); }
+    inline void append(const Point &p, const Record &rec) { inverse.emplace_back(&p, &rec); }
+    void clear();
+
+    size_t radius_search(const Point &aim, Distance radius, SearchCallBack callback) const;
+    size_t knn_search(const Point &aim, Index k, SearchCallBack callback) const;
+    void build_index();  //!< build kd-tree index of all passed points
+private:
+    //const Store &owner;                //!< owner base class 
+    IndexContainer inverse{};            //!< container, keeps data for kd-tree
+    Index last_pass_point_indexed{ 0 };  //!< is need to recalc kd-tree?
+    KDTree kdtree{ *this };              //!< kd-tree index
+};
+
+//------------------------------------------------------------------------------
+void RoboMoves::Store::InverseIndex::clear()
+{
+    inverse.clear();
+    last_pass_point_indexed = 0;
+    //for (size_t i = 0; i < kdtree.getAllIndices().size(); ++i)
+    //    kdtree.removePoint(i);
+    kdtree.clear();
+}
+
+//------------------------------------------------------------------------------
+void RoboMoves::Store::InverseIndex::build_index()
+{
+    if (last_pass_point_indexed != inverse.size())
+        return;
+    //boost::lock_guard<boost::mutex> lock(_store_mutex);
+    kdtree.addPoints(last_pass_point_indexed, inverse.size() - 1);
+    CINFO("built " << inverse.size() - last_pass_point_indexed);
+    last_pass_point_indexed = inverse.size();
+}
+
+//------------------------------------------------------------------------------
+class RoboMoves::Store::InverseIndex::ResultCallBack
+{
+    const InverseIndex::IndexContainer &indices;
+    const InverseIndex::Distance radius{};
+    const InverseIndex::Index num_points = 0;
+    InverseIndex::Index count = 0;
+    Store::SearchCallBack callback{};
+    std::vector<std::pair<InverseIndex::Distance, InverseIndex::Index>> space{};
+public:
+    ResultCallBack(const IndexContainer &indices, InverseIndex::Distance radius, SearchCallBack callback)
+        : indices(indices), radius(radius), callback(callback)
+    {}
+    ResultCallBack(const IndexContainer &indices, InverseIndex::Index num_points, SearchCallBack callback)
+        : indices(indices), num_points(num_points), callback(callback), space(num_points)
+    {}
+    size_t size() const { return count; }
+    bool full() const { return (num_points == 0 || count < num_points); }
+    InverseIndex::Distance worstDist() const { return (num_points > 0) ? space[num_points - 1].first : radius; }
+    //! return true if the search should be continued, false if the results are sufficient
+    bool addPoint(InverseIndex::Distance dist, InverseIndex::Index index);
+    void calling()
+    {
+        for (const auto &p : space)
+            callback(indices[p.second].second);
+    }
+};
+
+//------------------------------------------------------------------------------
+bool RoboMoves::Store::InverseIndex::ResultCallBack::addPoint(InverseIndex::Distance dist, InverseIndex::Index index)
+{
+    if (num_points > 0) // knn
+    {
+        InverseIndex::Index i;
+        for (i = count; i > 0; --i) // sorted input
+            if (space[i - 1].first > dist)
+            {
+                if (i < num_points)
+                    space[i] = space[i - 1];
+            }
+            else break;
+        if (i < num_points)
+            space[i] = { dist, index };
+        if (count < num_points)
+            count++;
+        else
+        {
+            //end??
+            //callback(indices[space[i].second/*index*/].second);
+        }
+    }
+    else if (dist < radius) // radius search
+        callback(indices[index].second);
+    return true; // tell caller that the search shall continue
+}
+
+//------------------------------------------------------------------------------
+size_t RoboMoves::Store::InverseIndex::radius_search(const Point &aim, Robo::distance_t radius, SearchCallBack callback) const
+{
+    const nanoflann::SearchParams search_params{ 0 /* ignored */, Utils::EPSILONT, true /* sorted by distance to aim */ };
+    ResultCallBack res(inverse, radius, callback);
+    const double query[] = { aim.x, aim.y };
+    kdtree.findNeighbors(res, query, search_params);
+    return res.size();
+}
+
+//------------------------------------------------------------------------------
+size_t RoboMoves::Store::InverseIndex::knn_search(const Point &aim, size_t k, SearchCallBack callback) const
+{
+    const nanoflann::SearchParams search_params{ 0 /* ignored */, Utils::EPSILONT, true /* sorted by distance to aim */ };
+    ResultCallBack res(inverse, k, callback);
+    const double query[] = { aim.x, aim.y };
+    kdtree.findNeighbors(res, query, search_params);
+    res.calling(); // execute all callbacks
+    return res.size();
+}
+#endif //NO_INVERSE_INDEX
+
+//------------------------------------------------------------------------------
+size_t RoboMoves::Store::nearPassPoints(const Point &aim, Robo::distance_t radius, SearchCallBack callback) const
+{
+    size_t n_found = 0;
+
+#ifndef NO_INVERSE_INDEX
+    {
+        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        _inverse->build_index();
+        n_found = _inverse->radius_search(aim, radius, callback);
+    }
+#endif //!NO_INVERSE_INDEX
+
+    CDEBUG(" near to " << aim << " passed " << n_found << " moves");
+    return n_found;
+}
+
+
+//------------------------------------------------------------------------------
+RoboMoves::Store::Store() :
+#ifndef NO_MTREE
+    _mtree(std::make_shared<RoboMoves::MTree>()),
+#endif
+#ifndef NO_INVERSE_INDEX
+    _inverse(std::make_shared<RoboMoves::Store::InverseIndex>()),
+#endif
+    _trajectories_enumerate(0)
+{}
 
 //------------------------------------------------------------------------------
 void RoboMoves::Store::replace(IN const Robo::Control &controls, IN const RoboMoves::Store::Mod &mod)
@@ -19,15 +215,12 @@ void RoboMoves::Store::clear()
     if (_approx)
         _approx->clear();
     _trajectories_enumerate = 0;
+
 #ifndef NO_MTREE
-    _mtree.clear();
+    if (_mtree) _mtree->clear();
 #endif
 #ifndef NO_INVERSE_INDEX
-    _inverse.clear();
-    for (size_t i = 0; i < _inverse_kdtree.getAllIndices().size(); ++i)
-        _inverse_kdtree.removePoint(i);
-    _inverse_index_last = 0;
-    _inverse_kdtree.clear();
+    if (_inverse) _inverse->clear();
 #endif
     CINFO(" store clear");
 }
@@ -82,9 +275,25 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
         return rec;
     }
 #else  //MTREE
-    auto query = _mtree.get_nearest(aim);
+    auto query = _mtree->get_nearest(aim);
     return query.begin()->data;
 #endif //MTREE
+}
+
+//------------------------------------------------------------------------------
+size_t RoboMoves::Store::equalEndPoint(const Point &aim, SearchCallBack callback) const
+{
+    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    // -----------------------------------------------
+    const MultiIndexMoves::index<ByP>::type &indexP = _store.get<ByP>();
+    const auto result = indexP.equal_range(boost::tuple<double, double>(aim));
+    // -----------------------------------------------
+    size_t count = 0;
+    for (auto it = result.first; it != result.second; ++it, ++count)
+        callback(&(*it));
+    CINFO(" aim " << aim << " count " << count);
+    // -----------------------------------------------
+    return count;
 }
 
 //------------------------------------------------------------------------------
@@ -187,14 +396,14 @@ void RoboMoves::Store::insert(const Record &rec)
         // ==============================
         auto status = _store.insert(rec);
 #ifndef NO_MTREE
-        _mtree.add(rec);
+        _mtree->add(rec);
 #endif
         status.first->updateTimeTraj(_trajectories_enumerate);
         // ==============================
 #ifndef NO_INVERSE_INDEX
         if (status.second)
             for (const auto &p : rec.trajectory)
-                _inverse.push_back({ &p.spec(), &(*status.first) });
+                _inverse->append(p.spec(), *status.first);
 #endif
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
@@ -226,7 +435,7 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
 
         size_t inverse_sz = 0;
 #ifndef NO_INVERSE_INDEX
-        inverse_sz = _inverse.size();
+        inverse_sz = _inverse->size();
 #endif
         CINFO("saved '" << filename << "' store " << size() << " inverse " << inverse_sz);
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
@@ -265,12 +474,12 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
         for (const auto &rec : _store)
         {
 #ifndef NO_MTREE
-            _mtree.add(rec);
+            _mtree->add(rec);
 #endif
 #ifndef NO_INVERSE_INDEX
             for (const auto &p : rec.trajectory)
             {
-                _inverse.push_back({ &p.spec(), &rec });
+                _inverse->append(p.spec(), rec);
                 ++inverse_sz;
             }
 #endif
@@ -291,22 +500,10 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
-//------------------------------------------------------------------------------
-#ifndef NO_INVERSE_INDEX
-void RoboMoves::Store::near_passed_build_index()
-{
-    if (_inverse_index_last == _inverse.size())
-    {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
-        _inverse_kdtree.addPoints(_inverse_index_last, _inverse.size() - 1);
-        CINFO("built " << _inverse.size() - _inverse_index_last);
-        _inverse_index_last = _inverse.size();
-    }
-}
-#endif
+
 
 //------------------------------------------------------------------------------
-RoboPos::Approx* RoboMoves::Store::approx() { return _approx.get(); }
+RoboPos::Approx* RoboMoves::Store::getApprox() { return _approx.get(); }
 
 //------------------------------------------------------------------------------
 void RoboPos::myConstructXY(RoboPos::Approx& approx, void *data)
@@ -323,9 +520,9 @@ void RoboPos::myConstructXY(RoboPos::Approx& approx, void *data)
 }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::construct_approx(size_t max_n_controls, RoboMoves::ApproxFilter &filter)
+void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::ApproxFilter &filter)
 {
-    if (!approx())
+    if (!getApprox())
     {
         _approx = std::make_unique<RoboPos::Approx>(
             this->size(),
@@ -333,9 +530,7 @@ void RoboMoves::Store::construct_approx(size_t max_n_controls, RoboMoves::Approx
             /*noize*/[](size_t) { return 0.00000000001; },
             /*sizing*/[]() { return 1.01; });
     }
-    if (!approx()->constructed())
-        myConstructXY((*approx()), (void*)(&filter));
+    if (!getApprox()->constructed())
+        myConstructXY((*getApprox()), (void*)(&filter));
         //approx()->constructXY(filter); // filtering
 }
-
-

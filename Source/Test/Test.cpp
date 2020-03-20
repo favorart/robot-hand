@@ -4,6 +4,7 @@
 #include "Tank.h"
 #include "HandMotionLaws.h"
 #include "RoboInputs.h"
+#include "RoboPosApprox.h"
 
 using namespace std;
 using namespace test;
@@ -360,6 +361,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     CINFO("Read Config LM...");
     LearnMoves lm(store, *pRobo, *pTarget, params.LM_CONFIG_FN);
 
+#ifdef TEST_DEBUG
     CINFO("STAGE 1...");
     lm.STAGE_1();
     printStat1(store, *pRobo);
@@ -367,6 +369,33 @@ void test::Test::testMotionLaws(const tstring &test_name)
     CINFO("STAGE 2...");
     lm.STAGE_2();
     printStat2(store, *pRobo);
+#else
+    if (!isFileExists(_T("test-store.txt")))
+    {
+        CINFO("STAGE 1...");
+        lm.STAGE_1();
+        printStat1(store, *pRobo);
+
+        CINFO("STAGE 2...");
+        lm.STAGE_2();
+        printStat2(store, *pRobo);
+
+        store.dump_off(_T("test-store.txt"), *pRobo, Store::Format::BIN);
+        std::exit(1);
+    }
+    else
+    {
+        store.pick_up(_T("test-store.txt"), pRobo, Store::Format::BIN);
+        //plotStoreState(store, test_name);
+
+        CINFO("Construct Approx...");
+        auto it = store.begin(), it_end = store.end();
+        RoboMoves::ApproxFilter next = [&it, &it_end]() {
+            return ((it != it_end) ? &(*(it++)) : nullptr);
+        };
+        store.construct_approx(32, next);
+    }
+#endif
 
     CINFO("STAGE 3...");
     Robo::Trajectory uncovered;
@@ -375,6 +404,9 @@ void test::Test::testMotionLaws(const tstring &test_name)
     // ==============================
     boost::this_thread::interruption_point();
     // ==============================
+#ifdef TEST_DEBUG
+    store.dump_off(_T("test-store-2.txt"), *pRobo, Store::Format::BIN);
+#endif
 }
 
 //------------------------------------------------------
@@ -433,8 +465,7 @@ void test::Test::plotStoreAdj(const RoboMoves::adjacency_ptrs_t &range, const Po
     ss << " \"" << filename << "\" --persist\"" << std::endl;
     //-------------------------
     CDEBUG(Utils::uni(ss.str()));
-    std::system(ss.str().c_str());
-
+    std::system(ss.str().c_str()); //execute
     //-------------------------
 #endif // !GNUPLOT_SILENCE
 }
@@ -485,20 +516,22 @@ void test::Test::plotRobotMotionLaw(const Robo::RoboI &robo, const tstring &test
     ss << Utils::now();
     ss << ".plt";
     //-------------------------
-    auto *rphy = dynamic_cast<const RoboPhysics*>(&robo);
-    rphy->plotMotionLaws(Utils::uni(ss.str()), RoboPhysics::jointsAll);
+    std::string filename = ss.str();
+    if (!bfs::exists(filename))
+    {
+        auto *rphy = dynamic_cast<const RoboPhysics*>(&robo);
+        rphy->plotMotionLaws(Utils::uni(filename), RoboPhysics::jointsAll);
+    }
     //-------------------------
 #if !defined(GNUPLOT_SILENCE)
-    std::string filename = ss.str();
     ss.str("");
-
-    ss << "\"start \"GNUPLOT\" " << Utils::ununi(params.GNUPLOT_PATH);
-    ss << '"' << filename << "\" --persist\"" << std::endl;
+    ss << "start \"GNUPLOT\" " << Utils::ununi(params.GNUPLOT_PATH);
+    ss << "  \"" << filename << "\" --persist" << std::endl;
     //-------------------------
-    CDEBUG(Utils::uni(ss.str()));
-    std::system(ss.str().c_str());
-    //-------------------------
-#endif // !GNUPLOT_SILENCE
+    std::cerr << ss.str() << std::endl;
+    CINFO(Utils::uni(ss.str()));
+    //std::system(ss.str().c_str());
+#endif //!GNUPLOT_SILENCE
 }
 
 //------------------------------------------------------

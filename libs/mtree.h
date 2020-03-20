@@ -502,6 +502,11 @@ public:
         return *this;
     }
 
+    void clear()
+    {
+        delete root;
+        root = nullptr;
+    }
 
     /**
      * @brief Adds and indexes a data object.
@@ -728,9 +733,7 @@ private:
             size_t childHeight;
             for (typename ChildrenMap::const_iterator i = children.begin(); i != children.end(); ++i)
             {
-#ifndef NDEBUG
                 const Data& data = i->first;
-#endif
                 IndexItem* child = i->second;
 
                 assert(child->data == data);
