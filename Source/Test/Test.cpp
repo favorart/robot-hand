@@ -361,7 +361,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     CINFO("Read Config LM...");
     LearnMoves lm(store, *pRobo, *pTarget, params.LM_CONFIG_FN);
 
-#ifdef TEST_DEBUG
+#ifndef TEST_DEBUG
     CINFO("STAGE 1...");
     lm.STAGE_1();
     printStat1(store, *pRobo);
@@ -393,7 +393,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
         RoboMoves::ApproxFilter next = [&it, &it_end]() {
             return ((it != it_end) ? &(*(it++)) : nullptr);
         };
-        store.construct_approx(32, next);
+        store.constructApprox(32, next);
     }
 #endif
 
@@ -533,7 +533,6 @@ void test::Test::plotRobotMotionLaw(const Robo::RoboI &robo, const tstring &test
     //std::system(ss.str().c_str());
 #endif //!GNUPLOT_SILENCE
 }
-
 //------------------------------------------------------
 void test::Test::printConfig() const
 {
