@@ -22,6 +22,10 @@ void  testApprox (RoboMoves::Store&, Robo::RoboI&);
 void  testRandom (RoboMoves::Store&, Robo::RoboI&, size_t tries);
 void  testCover  (RoboMoves::Store&, Robo::RoboPhysics&);
 //------------------------------------------------------------------------------
+enum class Admix { GradWMeans, WeightMean, GradPoints, AllRundown, DirRundown, _AllAdmixes_ };
+
+//------------------------------------------------------------------------------
+
 
 /*!  Количество точек, в окресности искомой точки.
 *    Что я могу варьировать?
@@ -45,18 +49,21 @@ class LearnMoves
     Point _base_pos{};
     /// Подсчёт сложности
     size_t _complexity = 0;
-    size_t _gradient_points_complexity = 0;
-    size_t _gradient_wmeans_complexity = 0;
-    size_t _rundown_alldirs_complexity = 0;
-    size_t _rundown_maindir_complexity = 0;
-    size_t _wmean_complexity = 0;
+    //size_t _gradient_points_complexity = 0;
+    //size_t _gradient_wmeans_complexity = 0;
+    //size_t _rundown_alldirs_complexity = 0;
+    //size_t _rundown_maindir_complexity = 0;
+    //size_t _wmean_complexity = 0;
+    using ComplexCounters = std::array<size_t, int(Admix::_AllAdmixes_)>;
+    ComplexCounters _complex{};
 
 #ifdef USE_REACH_STAT
-    std::vector<boost::tuple<int, int, int, int>> random_by_admix{};
-    std::vector<boost::tuple<int, int, int, int, bool>> reached_by_admix{};
-    int reach_current = 0;
-    int random_current = 0;
+    ComplexCounters _random_by_admix{};
+    std::vector<std::pair<ComplexCounters, bool>> _reached_by_admix{};
+    int _reach_current = 0;
 #endif
+    void updateReachedStat(Admix admix);
+    void printReachedStat();
 
     tptree _config{};
 
@@ -167,6 +174,8 @@ public:
     ~LearnMoves();
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
+    //---------------------------------------------
+    RoboMoves::ApproxFilter getApproxRangeFilter(Robo::distance_t side=0, size_t pick_points=3) const;
     //---------------------------------------------
     /// грубое покрытие всего рабочего пространства
     void  STAGE_1();

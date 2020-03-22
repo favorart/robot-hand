@@ -154,11 +154,8 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         {
             //============================
             next_distance = actionRobo(aim, controls);
-            ++_wmean_complexity;
-#ifdef USE_REACH_STAT
-            if (reach_current != -1) reached_by_admix[reach_current].get<1>()++;
-            if (random_current != -1) random_by_admix[random_current].get<1>()++;
-#endif
+            //++_wmean_complexity;
+            updateReachedStat(Admix::WeightMean);
             //============================
         }
         // -----------------------------------------------

@@ -181,11 +181,14 @@ void test::Params::scanLaws(tptree &root)
     i = SCAN_ARR_PARAM(_T("JOINT_BASES"), j_input_bases, scanSubPoint);
     SCAN_ARR_CHECK("JOINT_BASES");
 
+    if (ROBO_TYPE == RoboType::Hand)
+    {
     i = SCAN_ARR_PARAM(_T("HAND_DEF_POSES"), hand_def_poses, std::stod);
     SCAN_ARR_CHECK("HAND_DEF_POSES");
 
     i = SCAN_ARR_PARAM(_T("HAND_USE_JOINTS"), hand_use_joints, std::stoi);
     SCAN_ARR_CHECK("HAND_USE_JOINTS");
+    }
 
 #ifdef TEST_DEBUG
     if (min_i < N_JOINTS)
@@ -377,7 +380,9 @@ void test::Test::testMotionLaws(const tstring &test_name)
     //pRobo->setEnvCond(params.ENVIROMENT);
 
     printConfig();
-    //plotRobotMotionLaw(*pRobo, test_name);
+#ifdef TEST_DEBUG
+    plotRobotMotionLaw(*pRobo, test_name);
+#endif
 
     CINFO("Read Config LM...");
     LearnMoves lm(store, *pRobo, *pTarget, params.LM_CONFIG_FN);
@@ -390,7 +395,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     CINFO("STAGE 2...");
     lm.STAGE_2();
     printStat2(store, *pRobo);
-#else
+#else //TEST_DEBUG
     if (!isFileExists(_T("test-store.txt")))
     {
         CINFO("STAGE 1...");
@@ -411,7 +416,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
 
         store.constructApprox(RoboPos::Approx::max_n_controls);
     }
-#endif
+#endif //TEST_DEBUG
 
     CINFO("STAGE 3...");
     Robo::Trajectory uncovered;

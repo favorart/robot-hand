@@ -814,6 +814,10 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
                 //----------------------------------------
                 test::Test mytests(wd.pCArgs->testsfile, wd.pCArgs->testname);
                 //----------------------------------------
+#ifdef TEST_DEBUG
+                //wd.pStore->pick_up(_T("test-store.txt"), wd.pRobo, Store::Format::BIN, &wd.pLM->getApproxRangeFilter());
+                wd.pStore->pick_up(_T("test-store-2.txt"), wd.pRobo, Store::Format::BIN, &wd.pLM->getApproxRangeFilter());
+#endif
             }
             catch (boost::thread_interrupted&)
             { CINFO("WorkingThread interrupted"); }

@@ -191,6 +191,12 @@ public:
 };
 
 //------------------------------------------------------------------------------
+RoboMoves::ApproxFilter RoboPos::LearnMoves::getApproxRangeFilter(Robo::distance_t side, size_t pick_points) const
+{
+    return AFilter(_store, _target, ((side) ? side : side3), pick_points);
+}
+
+//------------------------------------------------------------------------------
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
 {
@@ -289,27 +295,22 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     
     load(_config);
     uncovered.clear();
-
-    {
-        CINFO("Construct Approx...");
-        AFilter next(_store, _target, side3);
-        _store.constructApprox(RoboPos::Approx::max_n_controls, &next);
-    }
-
+    // -----------------------------------------------------
+    _store.constructApprox(RoboPos::Approx::max_n_controls, &getApproxRangeFilter(side3));
+    // -----------------------------------------------------
     _complexity = 0;
-    _gradient_points_complexity = 0;
-    _gradient_wmeans_complexity = 0;
-    _rundown_alldirs_complexity = 0;
-    _rundown_maindir_complexity = 0;
-    _wmean_complexity = 0;
+    br::fill(_complex, 0);
+    //_gradient_points_complexity = 0;
+    //_gradient_wmeans_complexity = 0;
+    //_rundown_alldirs_complexity = 0;
+    //_rundown_maindir_complexity = 0;
+    //_wmean_complexity = 0;
     // -----------------------------------------------------
     size_t current = 0;
 #ifdef USE_REACH_STAT
-    int rand_curr = 0;
-    reach_current = 0;
-    random_current = 0;
-    random_by_admix.resize(200);
-    reached_by_admix.resize(_target.n_coords());
+    _reach_current = 0;
+    _reached_by_admix.resize(_target.n_coords());
+    br::fill(_random_by_admix, 0);
 #endif
     auto itp = _target.it_coords();
     for (auto it = itp.first; it != itp.second; ++it, ++current)
@@ -327,9 +328,8 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             if (!(tries % _random_try))
             {
 #ifdef USE_REACH_STAT
-                random_current = -1;
-                reach_current = current;
-                reached_by_admix[reach_current] = { 0, 0, 0, 0, false };
+                _reach_current = current;
+                _reached_by_admix[_reach_current] = { ComplexCounters{}, false };
 #endif
                 ++count_regular;
                 aim = *it;
@@ -338,12 +338,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             else
             {
 #ifdef USE_REACH_STAT
-                ++rand_curr;
-                random_current = rand_curr;
-                if (random_current >= random_by_admix.size())
-                    random_by_admix.resize(random_current + 200);
-                random_by_admix[random_current] = { 0, 0, 0, 0 };
-                reach_current = -1;
+                _reach_current = -1;
 #endif
                 ++count_random;
                 const distance_t prec = _target.precision();
@@ -373,14 +368,14 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             tcerr << _T("  failed") << std::endl;
             uncovered.push_back(*it);
 #ifdef USE_REACH_STAT
-            reached_by_admix[reach_current].get<4>() = false;
+            _reached_by_admix[_reach_current].second = false;
 #endif
         }
         else
         {
             tcerr << _T("  reached") << std::endl;
 #ifdef USE_REACH_STAT
-            reached_by_admix[reach_current].get<4>() = true;
+            _reached_by_admix[_reach_current].second = true;
 #endif
         }
     } // for
@@ -390,42 +385,12 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     catch (const std::exception &e)
     { SHOW_CERROR(e.what()); }
     // -----------------------------------------------------
-#ifdef USE_REACH_STAT
-    size_t good_grad_wmean = 0, good_wmean = 0, good_grad_point = 0, good_rundown = 0;
-    size_t  bad_grad_wmean = 0,  bad_wmean = 0,  bad_grad_point = 0,  bad_rundown = 0;
-    size_t rand_grad_wmean = 0, rand_wmean = 0, rand_grad_point = 0, rand_rundown = 0;
-    for (auto &t : reached_by_admix)
-    {
-        if (t.get<4>())
-        {
-            good_grad_wmean += t.get<0>();
-            good_wmean      += t.get<1>();
-            good_grad_point += t.get<2>();
-            good_rundown    += t.get<3>();
-        }
-        else
-        {
-            bad_grad_wmean  += t.get<0>();
-            bad_wmean       += t.get<1>();
-            bad_grad_point  += t.get<2>();
-            bad_rundown     += t.get<3>();
-        }
-    }
-    for (auto &t : random_by_admix)
-    {
-        rand_grad_wmean += t.get<0>();
-        rand_wmean      += t.get<1>();
-        rand_grad_point += t.get<2>();
-        rand_rundown    += t.get<3>();
-    }
-#endif
-    // -----------------------------------------------------
     CINFO(_T("\n") <<
-          _T("\ngradient_points_complexity: ") << _gradient_points_complexity <<
-          _T("\ngradient_wmeans_complexity: ") << _gradient_wmeans_complexity <<
-          _T("\nrundown_alldirs_complexity: ") << _rundown_alldirs_complexity <<
-          _T("\nrundown_maindir_complexity: ") << _rundown_maindir_complexity <<
-          _T("\n  weighted_mean_complexity: ") << _wmean_complexity << 
+          _T("\n gradient_wmeans_complexity: ") << _complex[int(Admix::GradWMeans)] << // _gradient_wmeans_complexity <<
+          _T("\n gradient_points_complexity: ") << _complex[int(Admix::GradPoints)] << // _gradient_points_complexity <<
+          _T("\n   weighted_mean_complexity: ") << _complex[int(Admix::WeightMean)] << // _wmean_complexity << 
+          _T("\n rundown_alldirs_complexity: ") << _complex[int(Admix::AllRundown)] << // _rundown_alldirs_complexity <<
+          _T("\n rundown_maindir_complexity: ") << _complex[int(Admix::DirRundown)] << // _rundown_maindir_complexity <<
           _T("\n") <<
           _T("\n   TOTAL Complexity: ") << complexity() <<
           _T("\n AVERAGE Complexity: ") << (static_cast<double>(complexity()) / (count_regular + count_random)) <<
@@ -434,13 +399,8 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
           _T("\n      regular tries: ") << count_regular <<
           _T("\n       random tries: ") << count_random <<
           _T("\n"));
-#ifdef USE_REACH_STAT
-    CINFO(_T("\n") <<
-          _T("\n good { grad_wmean=") << good_grad_wmean << _T(" wmean=") << good_wmean << _T(" grad_point=") << good_grad_point << _T(" rundown=") << good_rundown << _T(" }") <<
-          _T("\n  bad { grad_wmean=") << bad_grad_wmean << _T(" wmean=") << bad_wmean << _T(" grad_point=") << bad_grad_point << _T(" rundown=") << bad_rundown << _T(" }") <<
-          _T("\n rand { grad_wmean=") << rand_grad_wmean << _T(" wmean=") << rand_wmean << _T(" grad_point=") << rand_grad_point << _T(" rundown=") << rand_rundown << _T(" }") <<
-          _T("\n"));
-#endif
+    // -----------------------------------------------------
+    printReachedStat();
     // -----------------------------------------------------
 #ifdef USE_MID_STAT
     mid_hit_stat->print();
@@ -450,7 +410,61 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 }
 
 //------------------------------------------------------------------------------
-void  RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
+void RoboPos::LearnMoves::printReachedStat()
+{
+#ifdef USE_REACH_STAT
+    size_t good_grad_wmean = 0, good_wmean = 0, good_grad_point = 0, good_rundown = 0;
+    size_t  bad_grad_wmean = 0,  bad_wmean = 0,  bad_grad_point = 0,  bad_rundown = 0;
+    size_t rand_grad_wmean = 0, rand_wmean = 0, rand_grad_point = 0, rand_rundown = 0;
+
+    for (auto &counter : _reached_by_admix)
+    {
+        if (counter.second/*reached*/)
+        {
+            good_grad_wmean += counter.first[0];
+            good_wmean      += counter.first[1];
+            good_grad_point += counter.first[2];
+            good_rundown    += counter.first[3];
+        }
+        else /*failed*/
+        {
+            bad_grad_wmean += counter.first[0];
+            bad_wmean      += counter.first[1];
+            bad_grad_point += counter.first[2];
+            bad_rundown    += counter.first[3];
+        }
+    }
+    { /*random try reached or failed*/
+        rand_grad_wmean += _random_by_admix[0];
+        rand_wmean      += _random_by_admix[1];
+        rand_grad_point += _random_by_admix[2];
+        rand_rundown    += _random_by_admix[3];
+    }
+
+    CINFO(_T("\n") <<
+          _T("\n good { grad_wmean=") << good_grad_wmean << _T(" wmean=") << good_wmean << _T(" grad_point=") << good_grad_point << _T(" rundown=") << good_rundown << _T(" }") <<
+          _T("\n  bad { grad_wmean=") <<  bad_grad_wmean << _T(" wmean=") <<  bad_wmean << _T(" grad_point=") <<  bad_grad_point << _T(" rundown=") <<  bad_rundown << _T(" }") <<
+          _T("\n rand { grad_wmean=") << rand_grad_wmean << _T(" wmean=") << rand_wmean << _T(" grad_point=") << rand_grad_point << _T(" rundown=") << rand_rundown << _T(" }") <<
+          _T("\n"));
+#endif
+}
+
+//------------------------------------------------------------------------------
+void RoboPos::LearnMoves::updateReachedStat(Admix admix)
+{
+    auto i = int(admix);
+    ++_complex[i];
+
+#ifdef USE_REACH_STAT
+    if (_reach_current != -1)
+        ++_reached_by_admix[_reach_current].first[i];
+    else
+        ++_random_by_admix[i];
+#endif
+}
+
+//------------------------------------------------------------------------------
+void RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 {
     uncovered.clear();
     auto itp = _target.it_coords();

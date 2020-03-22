@@ -152,7 +152,8 @@ void MyWindowData::save(const tstring &filename) const
 void MyWindowData::load(const tstring &filename)
 {
     read_config(filename);
-    pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat));
+    if (!pLM) pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ???
+    pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat), &pLM->getApproxRangeFilter());
 }
 //-------------------------------------------------------------------------------
 RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
@@ -394,7 +395,8 @@ bool  makeRoboMove(MyWindowData &wd)
     {
         const Point &aim = wd.mouse.aim;
         //wd.pStore->approx()->predict(wd.mouse.aim); // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // if (!wd.pLM) wd.pLM = std::make_shared<RoboPos::LearnMoves>(*wd.pStore, *wd.pRobo, *wd.pTarget, wd._lm_config); //??
+        if (!wd.pLM)
+            wd.pLM = std::make_shared<RoboPos::LearnMoves>(*wd.pStore, *wd.pRobo, *wd.pTarget, wd.pCArgs->lm_config); //??
         wd.pLM->testStage3(aim);
         // -------------------------------------------------
         if (0 /* Around Trajectories !!! */)
@@ -465,10 +467,6 @@ void MyWindowData::read_config(IN const tstring &filename)
         }
 
         storeLoad = root.get_optional<tstring>(_T("startUpLoad")).get_value_or(_T(""));
-        if (storeLoad.length())
-        {
-            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat));
-        }
         // -------------------------------------------------------------------------
 
         double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
@@ -477,8 +475,12 @@ void MyWindowData::read_config(IN const tstring &filename)
 
         pCArgs->lm_config /*!!!*/ = root.get<tstring>(_T("lm_config"));
         pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ????
-        read_canvas(root);
 
+        if (storeLoad.length())
+            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), &pLM->getApproxRangeFilter());
+        // -------------------------------------------------------------------------
+        read_canvas(root);
+        // -------------------------------------------------------------------------
         LV_CLEVEL = root.get_optional<int>(_T("verbose")).get_value_or(1);
     }
     catch (const std::exception &e)

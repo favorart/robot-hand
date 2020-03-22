@@ -282,6 +282,8 @@ void RoboPhysics::step(IN const Control &control, OUT size_t &control_curr)
 //--------------------------------------------------------------------------------
 frames_t RoboPhysics::move(IN const std::vector<muscle_t> &controls, IN frames_t max_frames)
 {
+    if (controls.size() > RoboPhysics::LastsTooLong)
+        CERROR(" move lasts too long ");
     for (frames_t i = 0; (i < controls.size() || !moveEnd()) /*&& _frame < max_frames*/; ++i)
     {
         step({ controls[i] });
@@ -299,6 +301,8 @@ frames_t RoboPhysics::move(IN frames_t max_frames)
     }
     while (_frame < max_frames && !moveEnd()) // just moving
     {
+        if (frame() > RoboPhysics::LastsTooLong * 2)
+            CERROR(" move lasts too long ");
         if (!somethingMoving())
             return _frame;
         step();
@@ -328,10 +332,10 @@ frames_t RoboPhysics::move(IN const Control &controls, IN frames_t max_frames)
     CDEBUG("C:" << controls);
     for (auto &a : controls) // starts all moves
     {
-        if (a.lasts > RoboPhysics::LastsTooLong)
+        if (a.lasts > RoboPhysics::LastsTooLong ||
+            a.start > RoboPhysics::LastsTooLong ||
+            frame() > RoboPhysics::LastsTooLong * 2)
             CERROR(" move lasts too long ");
-        if (a.start > RoboPhysics::LastsTooLong)
-            CERROR(" move start too long ");
         //CDEBUG("c:" << c);
         while (a.start > _frame)
             step();
@@ -364,8 +368,8 @@ void RoboPhysics::reset()
 //--------------------------------------------------------------------------------
 RoboPhysics::RoboPhysics(const Point &base, const JointsInputsPtrs &joint_inputs, pEnvEdges edges) :
     RoboI(joint_inputs),
-    status{ std::make_shared<Status>(base, joint_inputs) },
-    env{ std::make_shared<EnvPhyState>(base, joint_inputs, edges) }
+    status(std::make_shared<Status>(base, joint_inputs)),
+    env(std::make_shared<EnvPhyState>(base, joint_inputs, edges))
 {
     if (!ba::is_sorted(joint_inputs, [](const auto &a, const auto &b) { return (*a < *b); }))
         throw std::runtime_error("Joint Inputs are not sorted!");
