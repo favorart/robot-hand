@@ -6,6 +6,10 @@
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
 
+//#define USE_MID_STAT
+//#define USE_REACH_STAT
+
+
 namespace Robo {
 class RoboPhysics;
 }
@@ -47,6 +51,13 @@ class LearnMoves
     size_t _rundown_maindir_complexity = 0;
     size_t _wmean_complexity = 0;
 
+#ifdef USE_REACH_STAT
+    std::vector<boost::tuple<int, int, int, int>> random_by_admix{};
+    std::vector<boost::tuple<int, int, int, int, bool>> reached_by_admix{};
+    int reach_current = 0;
+    int random_current = 0;
+#endif
+
     tptree _config{};
 
     bool use_weighted_mean{};
@@ -69,14 +80,16 @@ class LearnMoves
     bool defineDependenceOfMuscles() {}
     bool defineStaticalPeriodsinMuscles() {}
     //---------------------------------------------
+#ifdef USE_MID_STAT
     struct MidHitStat;
     MidHitStat *mid_hit_stat{}, *mid_hit_stat1{};
     void append(MidHitStat *mhs, Robo::distance_t d);
+#endif
     //---------------------------------------------
-    void  weightedMeanControls(IN  const Point &aim,
-                               IN  const RoboMoves::adjacency_ptrs_t &range, // диапазон управлений с конечными точками вблизи цели
-                               OUT Robo::Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.
-                               OUT Point &mid_hit1, OUT Point &mid_hit); // среднее расстояние диапазона до цели 
+    void weightedMeanControls(IN  const Point &aim,
+                              IN  const RoboMoves::adjacency_ptrs_t &range, // диапазон управлений с конечными точками вблизи цели
+                              OUT Robo::Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.
+                              OUT Point &mid_hit);         // среднее расстояние диапазона до цели
     void weightedMeanControlsOrdered(IN const Point &aim, IN const RoboMoves::adjacency_ptrs_t &range,
                                      OUT std::vector<Robo::Actuator> &controls, OUT Point &mid_hit);
 

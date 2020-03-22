@@ -12,11 +12,12 @@ using namespace RoboMoves;
 void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
                                                IN  const adjacency_ptrs_t &range,
                                                OUT Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.
-                                               OUT Point &mid_hit1,
                                                OUT Point &mid_hit)
 {
+#ifdef USE_MID_STAT
+    Point mid_hit1{};
+#endif
     mid_hit = {};
-    mid_hit1 = {};
     distance_t sum_range_distances = 0.;
     for (auto &pRec : range)
     {
@@ -40,7 +41,9 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
             if (m_max < c.muscle) m_max = c.muscle;
             if (m_min > c.muscle) m_min = c.muscle;
             //CDEBUG(c << ' ' << weight);
+#ifdef USE_MID_STAT
             mid_hit1 += pRec->hit * weight;
+#endif
         }
     // ----------------------------------------------
     ++m_max;
@@ -52,6 +55,11 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
     /* controls check for correctness: opposite muscles work time */
     controls.validated(_robo.musclesCount());
     //CDEBUG("weightedMeanControls end");
+    // -----------------------------------------------
+#ifdef USE_MID_STAT
+    append(mid_hit_stat, bg::distance(aim, mid_hit));
+    append(mid_hit_stat1, bg::distance(aim, mid_hit1));
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -128,10 +136,9 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         side_tmp -= side_decrease_step;
         // -----------------------------------------------
         Point mid_hit;
-        Point mid_hit1;
 #if 1
         Control controls;
-        weightedMeanControls(aim, range, controls, mid_hit1, mid_hit);
+        weightedMeanControls(aim, range, controls, mid_hit);
 #else
         Control controls;
         std::vector<Actuator> v;
@@ -141,9 +148,6 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         range.clear();
         next_distance = bg::distance(aim, mid_hit);
         // -----------------------------------------------
-        append(mid_hit_stat, next_distance);
-        append(mid_hit_stat1, bg::distance(aim, mid_hit1));
-        // -----------------------------------------------
         auto hit = predict(controls);
         auto d = bg::distance(aim, hit);
         //if (less(distance, next_distance) || less(distance, d)) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -151,6 +155,10 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
             //============================
             next_distance = actionRobo(aim, controls);
             ++_wmean_complexity;
+#ifdef USE_REACH_STAT
+            if (reach_current != -1) reached_by_admix[reach_current].get<1>()++;
+            if (random_current != -1) random_by_admix[random_current].get<1>()++;
+#endif
             //============================
         }
         // -----------------------------------------------
@@ -170,7 +178,6 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     if (!pRec) return false;
 
     adjacency_ptrs_t range;
-    Point mid_hit;
     Point min, max, lo_hit, hi_hit;
     // ------------------------------------------------
     lower_controls.clear();
@@ -203,7 +210,7 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     if (range.empty())
         return false;
     // ------------------------------------------------
-    weightedMeanControls(aim, range, lower_controls, mid_hit, lo_hit);
+    weightedMeanControls(aim, range, lower_controls, lo_hit);
     range.clear();
     // ------------------------------------------------
     min = Point(aim.x - /*side3*/annealing, pRec->hit.y);
@@ -213,7 +220,7 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     if (range.empty())
         return false;
     // ------------------------------------------------
-    weightedMeanControls(aim, range, upper_controls, mid_hit, hi_hit);
+    weightedMeanControls(aim, range, upper_controls, hi_hit);
     range.clear();
     // ------------------------------------------------
     delta = bg::distance(lo_hit, hi_hit);

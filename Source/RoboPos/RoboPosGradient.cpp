@@ -563,6 +563,10 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
         // -----------------------------------------------
         new_distance = actionRobo(aim, controls);
         ++_gradient_wmeans_complexity;
+#ifdef USE_REACH_STAT
+        if (reach_current != -1) reached_by_admix[reach_current].get<0>()++;
+        if (random_current != -1) random_by_admix[random_current].get<0>()++;
+#endif
         // -----------------------------------------------
         if (less(distance, new_distance))
         {
@@ -728,6 +732,10 @@ distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
         {
             new_distance = actionRobo(aim, controls);
             ++_gradient_points_complexity;
+#ifdef USE_REACH_STAT
+            if (reach_current != -1) reached_by_admix[reach_current].get<2>()++;
+            if (random_current != -1) random_by_admix[random_current].get<2>()++;
+#endif
             //CINFO(" predict=" << d << " hit=" << new_distance);
         }
         // -----------------------------------------------

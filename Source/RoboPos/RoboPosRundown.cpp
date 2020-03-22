@@ -165,6 +165,10 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
             prev_distance = next_distance;
             next_distance = actionRobo(aim, controls);
             ++_rundown_maindir_complexity;
+#ifdef USE_REACH_STAT
+            if (reach_current != -1) reached_by_admix[reach_current].get<3>()++;
+            if (random_current != -1) random_by_admix[random_current].get<3>()++;
+#endif
             // -----------------------------------------------
             if (less(distance, next_distance))
             {
@@ -377,6 +381,10 @@ Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
             {
                 next_distance = actionRobo(aim, tmp);
                 ++_rundown_alldirs_complexity;
+#ifdef USE_REACH_STAT
+                if (reach_current != -1) reached_by_admix[reach_current].get<3>()++;
+                if (random_current != -1) random_by_admix[random_current].get<3>()++;
+#endif
             }
             // -----------------------------------------------
             if (less(distance, next_distance))
