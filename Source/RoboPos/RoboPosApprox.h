@@ -46,10 +46,13 @@ class Approx
     Eigen::MatrixXd calcKFunction(Eigen::MatrixXd &X) const;
 
     void constructXY();
-    friend void myConstructXY(Approx&, void*);
 public:
+    static const size_t       max_n_controls; ///< influence to number of columns
+    static const size_t  test_max_n_controls; ///< influence to number of columns (less number)
+
     using Noize = std::function<double(size_t)>;
     using Sizing = std::function<double()>;
+
     /// Calibrating factor (greater is more precise)
     static double sizing() { return 4.; }
     /// Шум - этот коэффициент сообщает, насколько можно доверять управлению с номером i
@@ -98,6 +101,8 @@ public:
     template <typename ApproxFilter>
     void  constructXY(ApproxFilter &next)
     {
+        //static_assert(std::is_convertible<ApproxFilter, std::function<const Record*()>>
+        //              "Incorrect type to template function.");
         for (size_t i = 0; true; ++i)
         {
             auto res = next();

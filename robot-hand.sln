@@ -29,6 +29,9 @@ Global
 		Tank|Any CPU = Tank|Any CPU
 		Tank|x64 = Tank|x64
 		Tank|x86 = Tank|x86
+		TankTesting|Any CPU = TankTesting|Any CPU
+		TankTesting|x64 = TankTesting|x64
+		TankTesting|x86 = TankTesting|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -49,6 +52,9 @@ Global
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Tank|Any CPU.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Tank|x64.ActiveCfg = Release|Any CPU
 		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.Tank|x86.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.TankTesting|Any CPU.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.TankTesting|x64.ActiveCfg = Release|Any CPU
+		{2ED5F868-6E6C-46DE-B016-F4E80A4DF56A}.TankTesting|x86.ActiveCfg = Release|Any CPU
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Debug|x64.ActiveCfg = Debug|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Debug|x64.Build.0 = Debug|x64
@@ -78,6 +84,11 @@ Global
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x64.Build.0 = Tank|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x86.ActiveCfg = Tank|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Tank|x86.Build.0 = Tank|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.TankTesting|Any CPU.ActiveCfg = TankTesting|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.TankTesting|x64.ActiveCfg = TankTesting|x64
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.TankTesting|x64.Build.0 = TankTesting|x64
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.TankTesting|x86.ActiveCfg = TankTesting|Win32
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.TankTesting|x86.Build.0 = TankTesting|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Debug|x64.ActiveCfg = Debug|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Debug|x64.Build.0 = Debug|x64
@@ -102,6 +113,9 @@ Global
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x64.Build.0 = Tank|x64
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x86.ActiveCfg = Tank|Win32
 		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.Tank|x86.Build.0 = Tank|Win32
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.TankTesting|Any CPU.ActiveCfg = TankTesting|Win32
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.TankTesting|x64.ActiveCfg = TankTesting|x64
+		{2068574B-0943-420E-BE4C-ACCEFECE02FD}.TankTesting|x86.ActiveCfg = TankTesting|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

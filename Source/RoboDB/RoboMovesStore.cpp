@@ -9,6 +9,24 @@
 #include "RoboPosApprox.h"
 
 
+//------------------------------------------------------------------------------
+namespace RoboMoves
+{
+class ANoFilter : public RoboMoves::ApproxFilter
+{
+    Store::MultiIndexIterator it;
+    const Store::MultiIndexIterator it_end;
+public:
+    ANoFilter(const Store &store) : it(store.begin()), it_end(store.end()) {}
+    ANoFilter(ANoFilter&&) = default;
+    ANoFilter(const ANoFilter&) = default;
+    const Record* operator() () { return ((it != it_end) ? &(*(it++)) : nullptr); }
+};
+}
+
+
+
+
 #ifndef NO_MTREE
 namespace RoboMoves {
 //------------------------------------------------------------------------------
@@ -185,6 +203,7 @@ size_t RoboMoves::Store::nearPassPoints(const Point &aim, Robo::distance_t radiu
     CDEBUG(" near to " << aim << " passed " << n_found << " moves");
     return n_found;
 }
+
 
 
 //------------------------------------------------------------------------------
@@ -442,14 +461,15 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
 }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::RoboI> &pRobo, Format format)
+void RoboMoves::Store::pick_up(const tstring &filename, Robo::pRoboI &pRobo, Format format, const ApproxFilter *filter)
 {
     if (!bfs::exists(filename))
         CERROR(_T("File '") << filename << _T("' does not exists."));
 
     clear();
 
-    //try {
+    //try
+    {
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::mutex> lock(_store_mutex);
 
@@ -495,32 +515,20 @@ void RoboMoves::Store::pick_up(const tstring &filename, std::shared_ptr<Robo::Ro
             CINFO("change robo from " << pRobo->getName() << " to " << pNewRobo->getName());
             pRobo = pNewRobo;
         }
-        //construct_approx(max_n_controls, filter); // ???
 
-    //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
+        constructApprox(RoboPos::Approx::max_n_controls, filter);
+    }
+    //catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
-
-
 
 //------------------------------------------------------------------------------
 RoboPos::Approx* RoboMoves::Store::getApprox() { return _approx.get(); }
 
 //------------------------------------------------------------------------------
-void RoboPos::myConstructXY(RoboPos::Approx& approx, void *data)
-{
-    RoboMoves::ApproxFilter &next = *(RoboMoves::ApproxFilter*)(data);
-    for (size_t i = 0; true; ++i)
-    {
-        const RoboMoves::Record *rec = next();
-        if (!rec)
-            break;
-        approx.insert(rec->controls, rec->hit, i);
-    }
-    approx.constructXY();
-}
+RoboMoves::ApproxFilter RoboMoves::Store::getApproxNoFilterAllRecords() const { return RoboMoves::ANoFilter(*this); }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::ApproxFilter &filter)
+void RoboMoves::Store::constructApprox(size_t max_n_controls, const RoboMoves::ApproxFilter *filter)
 {
     if (!getApprox())
     {
@@ -530,7 +538,10 @@ void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::ApproxF
             /*noize*/[](size_t) { return 0.00000000001; },
             /*sizing*/[]() { return 1.01; });
     }
+
     if (!getApprox()->constructed())
-        myConstructXY((*getApprox()), (void*)(&filter));
-        //approx()->constructXY(filter); // filtering
+    {
+        CINFO("Construct Approx...");
+        getApprox()->constructXY((filter) ? *filter : getApproxNoFilterAllRecords());
+    }
 }

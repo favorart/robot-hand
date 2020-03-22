@@ -6,6 +6,10 @@
 #include "RoboLearnMoves.h"
 #include "RoboMovesStore.h"
 
+//#define TEST_DEBUG
+//#define GNUPLOT_SILENCE
+
+
 // TODO:
 //  + kd-tree
 //  + tables of different configurations
@@ -101,6 +105,7 @@ public:
     static void plotStoreAdj(const RoboMoves::adjacency_ptrs_t& range, const Point &aim, const Point &hit);
     void plotStoreState(const RoboMoves::Store&, const tstring &test_name);
     void plotRobotMotionLaw(const Robo::RoboI&, const tstring &test_name);
+    void plotAnimation(const tstring &plt_prefix) {}
 
     void printStat2(const RoboMoves::Store&, const Robo::RoboI&) const;
     void printStat1(const RoboMoves::Store&, const Robo::RoboI&) const;
@@ -110,7 +115,7 @@ public:
     void testNFrames(const tstring &test_name);
     void testAll();
 
-    Test(const tstring &testsfile);
+    Test(const tstring &tests_file, const tstring &test_name_prefix);
     //virtual ~Test() {}
     Test(const Test&) = delete;
     Test& operator=(const Test&) = delete;

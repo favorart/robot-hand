@@ -277,7 +277,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
 
   SendMessage(hWnd, WM_USER_STORE, NULL, NULL);
   
-  if (wd.testings)
+  if (wd.pCArgs->testings)
       SendMessage(hWnd, WM_CHAR, 'b', NULL);
 }
 //------------------------------------------------------------------------------
@@ -754,7 +754,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
 
     case 'n': /* read current wd config */
     {
-        wd.read_config(wd._config_fn);
+        wd.read_config(wd.pCArgs->config);
         break;
     }
 
@@ -812,7 +812,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
             try
             {
                 //----------------------------------------
-                test::Test mytests(wd._tests_fn);
+                test::Test mytests(wd.pCArgs->testsfile, wd.pCArgs->testname);
                 //----------------------------------------
             }
             catch (boost::thread_interrupted&)

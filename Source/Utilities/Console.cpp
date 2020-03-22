@@ -98,8 +98,9 @@ void getConsoleArguments(Utils::CArgs &args)
             ("config_path,c", po_tvalue(&args.config), "Path to json config file")
             ("database_path,d", po_tvalue(&args.database)->default_value(_T(""), ""), "Path to trajectories database")
             ("lm_conf_path,l", po_tvalue(&args.lm_config)->default_value(_T(""), ""), "Path to LM config file")
-            ("tests_path,s", po_tvalue(&args.testsfile)->default_value(_T(""), ""), "Path to Tests file")
-            ("test,t", po::bool_switch(&args.tests)->default_value(false)->implicit_value(true), "Testing regime");
+            ("tests_path,p", po_tvalue(&args.testsfile)->default_value(_T(""), ""), "Path to Tests file")
+            ("test_name,n", po_tvalue(&args.testname)->default_value(_T(""), ""), "Prefix of Test name")
+            ("test,t", po::bool_switch(&args.testings)->default_value(false)->implicit_value(true), "Testing regime");
         
         po::variables_map vm; // здесь будут значения артументов, если не указать контейнер в po::value
         try

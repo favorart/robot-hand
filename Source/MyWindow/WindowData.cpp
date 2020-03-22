@@ -87,16 +87,11 @@ void MyWindowData::TrajectoryFrames::clear()
 MyWindowData::Zoom MyWindowData::zoom = MyWindowData::Zoom::NONE;
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const Utils::CArgs &args) :
-    testings{ args.tests },
-    _config_fn{ args.config },
-    _tests_fn{ args.testsfile },
-    _lm_conf_fn{ args.lm_config },
-    pWorkerThread{ nullptr },
-    pTarget{ nullptr },
-    pStore{ std::make_shared<RoboMoves::Store>() }
+    pStore{ std::make_shared<RoboMoves::Store>() },
+    pCArgs{ std::make_shared<Utils::CArgs>(args) }
 {
-    read_config(_config_fn);
-    currFileName = (args.database.size() > 0) ? args.database : getCurrFileName();
+    read_config(pCArgs->config);
+    currFileName = (pCArgs->database.size() > 0) ? pCArgs->database : getCurrFileName();
 
     /* создаем ручки */
     canvas.hPen_grn  = CreatePen(PS_SOLID, 1, RGB(100, 180, 050));
@@ -137,6 +132,16 @@ MyWindowData::~MyWindowData()
     //=======================
     // save(currFileName);
     //=======================
+}
+//-------------------------------------------------------------------------------
+tstring MyWindowData::getCurrFileName() const
+{
+    tstringstream ss;
+    ss << pRobo->getName() << '-' << Robo::RoboI::name() << _T("-moves-")
+        << getCurrentTimeString(_T("%Y.%m.%d-%H.%M"))
+        << _T(".bin");
+    // ?? currFileName = ss.str();
+    return ss.str();
 }
 //-------------------------------------------------------------------------------
 void MyWindowData::save(const tstring &filename) const
@@ -470,8 +475,8 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (precision_mm <= 0)
             throw std::runtime_error("read_config: incorrect precision");
 
-        _lm_conf_fn = root.get<tstring>(_T("lm_config"));
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, _lm_conf_fn); // ????
+        pCArgs->lm_config /*!!!*/ = root.get<tstring>(_T("lm_config"));
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ????
         read_canvas(root);
 
         LV_CLEVEL = root.get_optional<int>(_T("verbose")).get_value_or(1);
@@ -522,7 +527,7 @@ void MyWindowData::write_config(IN const tstring &filename) const
 
         double precision_mm = pTarget->precision() / RoboPos::TourI::divToMiliMeters;
         root.put(_T("precision"), precision_mm);
-        root.put(_T("lm_config"), _lm_conf_fn);
+        root.put(_T("lm_config"), pCArgs->lm_config);
         
         root.put(_T("verbose"), LV_CLEVEL);
         root.put(_T("redirect"), redirect);

@@ -448,12 +448,7 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
 
     if (_b_predict)
     {
-        CINFO("Construct Approx...");
-        auto it = store.begin(), it_end = store.end();
-        RoboMoves::ApproxFilter next = [&it, &it_end]() -> const Record* {
-            return ((it++ != it_end) ? &(*it) : nullptr);
-        };
-        store.constructApprox(_max_n_controls, next);
+        store.constructApprox(_max_n_controls);
     }
 }
 

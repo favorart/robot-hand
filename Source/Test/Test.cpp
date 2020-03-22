@@ -6,12 +6,20 @@
 #include "RoboInputs.h"
 #include "RoboPosApprox.h"
 
+const size_t RoboPos::Approx::max_n_controls = 32;
+const size_t RoboPos::Approx::test_max_n_controls = 8;
+
+
 using namespace std;
 using namespace test;
 using namespace Robo;
 using namespace Robo::MotionLaws;
 using namespace RoboPos;
 using namespace RoboMoves;
+//------------------------------------------------------
+//#define TEST_DEBUG_VERBOSE(message)    {tcout<<message;}
+#define TEST_DEBUG_VERBOSE(message)    {}
+
 //------------------------------------------------------
 inline tstring unquote(const tstring &s)
 { return (s.front() == _T('"')) ? s.substr(1, s.length() - 2) : s; };
@@ -66,7 +74,7 @@ static
 void scanParam(tptree &root, tstring &buf, const tstring &name, SetterF setter)
 {
     buf = root.get_optional<tstring>(name).get_value_or(_T(""));
-    //tcout << name << "\t=\t" << buf << std::endl;
+    TEST_DEBUG_VERBOSE(name << "\t=\t" << buf << std::endl);
     if (!buf.empty())
     {
         boost::trim(buf);
@@ -85,7 +93,7 @@ static
 int scanArrParam(tptree &root, tstring &buf, const tstring &name, SetterArrF setter)
 {
     buf = root.get_optional<tstring>(name).get_value_or(_T(""));
-    //tcout << name << "\t=\t" << buf << "\t";
+    TEST_DEBUG_VERBOSE(name << "\t=\t" << buf << "\t");
     int i = 0;
     if (!buf.empty())
     {
@@ -95,11 +103,11 @@ int scanArrParam(tptree &root, tstring &buf, const tstring &name, SetterArrF set
         ttokenizer tokens(buf, sep);
         for (auto &tok : tokens)
         {
-            //tcout << tok << " ";
+            TEST_DEBUG_VERBOSE(tok << " ");
             setter(tok, i++);
         }
     }
-    //tcout << std::endl;
+    TEST_DEBUG_VERBOSE(std::endl);
     return i;
 }
 
@@ -113,7 +121,7 @@ Point scanSubPoint(const tstring &buf)
     int i = 0;
     for (auto &tok : tokens)
     {
-        //tcout << tok << ";";
+        TEST_DEBUG_VERBOSE(tok << ";");
         p[i++] = std::stod(tok);
     }
     return p;
@@ -127,8 +135,13 @@ Point scanSubPoint(const tstring &buf)
 #define SCAN_PARAM2(param,f,outs)      scanParam(root,buf,_T(STRINGIFY(param)),SCAN_FUNC_CALL2(param,f,outs))
 
 #define SCAN_ARR_FUNC_CALL(param,f)    [&p=param](const tstring&s, int i){p[i]=f(s);}
-#define SCAN_ARR_CHECK(name)           if(i!=0&&i!=N_JOINTS)CERROR("Invalid "<<name<<' '<<i);min_i=std::min(i,min_i)
 #define SCAN_ARR_PARAM(name,param,f)   scanArrParam(root,buf,name,SCAN_ARR_FUNC_CALL(param,f))
+
+#ifdef TEST_DEBUG
+#define SCAN_ARR_CHECK(name)           {if(i!=0&&i!=N_JOINTS)CERROR("Invalid "<<name<<' '<<i);min_i=std::min(i,min_i);}
+#else
+#define SCAN_ARR_CHECK(name)           {}
+#endif
 
 //------------------------------------------------------
 // Params
@@ -144,9 +157,11 @@ void test::Params::scanLaws(tptree &root)
     double   hand_def_poses [Robo::RoboI::jointsMaxCount]{}; //HAND_DEF_POSES={70.0  ,0.0     }
     joint_t  hand_use_joints[Robo::RoboI::jointsMaxCount]{}; //HAND_USE_JOINTS={  1  ,2       }//#{ELBOW ,SHOULDER}
 
-    int      min_i{ N_JOINTS };
     int      i{};
     tstring  buf{};
+#ifdef TEST_DEBUG
+    int      min_i{ N_JOINTS };
+#endif
 
     i = SCAN_ARR_PARAM(_T("MOTION_LAW"), mlaws, scanMLaw);
     SCAN_ARR_CHECK("MOTION_LAW");
@@ -172,8 +187,10 @@ void test::Params::scanLaws(tptree &root)
     i = SCAN_ARR_PARAM(_T("HAND_USE_JOINTS"), hand_use_joints, std::stoi);
     SCAN_ARR_CHECK("HAND_USE_JOINTS");
 
+#ifdef TEST_DEBUG
     if (min_i < N_JOINTS)
         return;
+#endif
 
     for (joint_t j = 0; j < N_JOINTS; ++j)
     {
@@ -243,20 +260,24 @@ void test::Params::scan(tptree &root)
 //------------------------------------------------------
 // Test
 //------------------------------------------------------
-test::Test::Test(const tstring &tests_file)
+test::Test::Test(const tstring &tests_file, const tstring &test_name_prefix)
 {
     tptree root = readTestsFile(tests_file);
     for (auto &test : root)
     {
-        tcout << "testing " << test.first << " .." << std::endl;
-        params.scan(test.second);
-        //restart();
-        testMotionLaws(test.first);
-        //testAll();
+        TEST_DEBUG_VERBOSE(test.first << " " << test_name_prefix << std::endl);
+        if (boost::starts_with(test.first, test_name_prefix))
+        {
+            tcout << "testing " << test.first << " .." << std::endl;
+            params.scan(test.second);
+            //restart();
+            testMotionLaws(test.first);
+            //testAll();
+            return; // << TODO: 1 test only
+        }
         // ==============================
         boost::this_thread::interruption_point();
         // ==============================
-        return;
     }
 }
 
@@ -388,12 +409,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
         store.pick_up(_T("test-store.txt"), pRobo, Store::Format::BIN);
         //plotStoreState(store, test_name);
 
-        CINFO("Construct Approx...");
-        auto it = store.begin(), it_end = store.end();
-        RoboMoves::ApproxFilter next = [&it, &it_end]() {
-            return ((it != it_end) ? &(*(it++)) : nullptr);
-        };
-        store.constructApprox(32, next);
+        store.constructApprox(RoboPos::Approx::max_n_controls);
     }
 #endif
 
@@ -419,11 +435,12 @@ void test::Test::testNFrames(const tstring &test_name)
 void test::Test::plotStoreAdj(const RoboMoves::adjacency_ptrs_t &range, const Point &aim, const Point &hit)
 {
     std::ostringstream ss;
-    ss << "test-RANGE-" << aim << "-";
-    //ss << Utils::ununi(RoboTypeOutputs[static_cast<int>(params.ROBO_TYPE)]) << '-';
+    ss << "test-RANGE-" << aim;
+    //ss << '-' << Utils::ununi(RoboTypeOutputs[static_cast<int>(params.ROBO_TYPE)]);
     //for (auto &pji : params.JINPUTS)
-    //    ss << Utils::ununi(Robo::MotionLaws::name(pji->frames.type)) << '-';
-    ss << Utils::now() << ".plt";
+    //    ss << "-" << Utils::ununi(Robo::MotionLaws::name(pji->frames.type));
+    ss << "-" << Utils::now();
+    ss << ".plt";
     //-------------------------
     {
         std::ofstream fplot(ss.str());
@@ -473,12 +490,12 @@ void test::Test::plotStoreAdj(const RoboMoves::adjacency_ptrs_t &range, const Po
 void test::Test::plotStoreState(const RoboMoves::Store &store, const tstring &test_name)
 {
     std::ostringstream ss;
-    ss << "test-STORE-";
-    ss << Utils::ununi(test_name) << '-';
-    ss << Utils::ununi(RoboTypeOutputs[static_cast<int>(params.ROBO_TYPE)]) << '-';
+    ss << "test-STORE";
+    ss << '-' << Utils::ununi(test_name);
+    ss << '-' << Utils::ununi(RoboTypeOutputs[static_cast<int>(params.ROBO_TYPE)]);
     for (auto &pji : params.JINPUTS)
-        ss << Utils::ununi(Robo::MotionLaws::name(pji->frames.type)) << '-';
-    ss << Utils::now();
+        ss << '-' << Utils::ununi(Robo::MotionLaws::name(pji->frames.type));
+    ss << '-' << Utils::now();
     ss << ".plt";
     //-------------------------
     std::ofstream fplot(ss.str());
@@ -508,12 +525,12 @@ void test::Test::plotStoreState(const RoboMoves::Store &store, const tstring &te
 void test::Test::plotRobotMotionLaw(const Robo::RoboI &robo, const tstring &test_name)
 {
     std::ostringstream ss;
-    ss << "test-motion-law-";
-    ss << Utils::ununi(test_name) << '-';
-    ss << Utils::ununi(robo.getName()) << '-';
+    ss << "test-motion-law";
+    ss << '-' << Utils::ununi(test_name);
+    ss << '-' << Utils::ununi(robo.getName());
     for (auto &pji : params.JINPUTS)
-        ss << Utils::ununi(Robo::MotionLaws::name(pji->frames.type)) << '-';
-    ss << Utils::now();
+        ss << '-' << Utils::ununi(Robo::MotionLaws::name(pji->frames.type));
+    //ss << '-'<< Utils::now();
     ss << ".plt";
     //-------------------------
     std::string filename = ss.str();

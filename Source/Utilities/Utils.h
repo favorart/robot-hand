@@ -39,10 +39,11 @@ std::string now();
 //-------------------------------------------------------------------------------
 struct CArgs
 {
-    bool tests{ false };
+    bool testings{ false };
     tstring config{ _T("") };
     tstring database{ _T("") };
     tstring testsfile{ _T("") };
+    tstring testname{ _T("") };
     tstring lm_config{ _T("") };
 };
 } // Utils

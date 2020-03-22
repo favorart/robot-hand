@@ -1,19 +1,13 @@
 ﻿#pragma once
 
-//#define NO_MTREE
-//#define NO_INVERSE_INDEX
-
 #include "RoboMovesRecord.h"
 #ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowDraw.h"
 #endif // MY_WINDOW
 
-
-namespace RoboPos {
-class Approx;
-}
-
+//#define NO_MTREE
+//#define NO_INVERSE_INDEX
 
 #ifndef NO_MTREE
 namespace mt {
@@ -31,6 +25,10 @@ using MTree = mt::mtree<Record, MTreeDistance>;
 }
 #endif //NO_MTREE
 
+
+namespace RoboPos {
+class Approx;
+}
 
 namespace RoboMoves
 {
@@ -91,7 +89,6 @@ namespace RoboMoves
   /// Robot Moves DataBase
   class Store // : public StoreI
   {
-    //------------------------------------------------------------------------------
     using MultiIndexMoves = boost::multi_index_container
     < Record,
       indexed_by < hashed_unique      < tag<ByC>,
@@ -116,8 +113,6 @@ namespace RoboMoves
                    // , random_access      < > // доступ, как у вектору
                  >
     >;
-    using MultiIndexIterator = MultiIndexMoves::iterator;
-    using SearchCallBack = std::function<void(const Record*)>;
     //==============================================================================
     mutable boost::mutex _store_mutex{};
     MultiIndexMoves _store{};                     //!< прямой индекс хранения записей
@@ -150,8 +145,10 @@ namespace RoboMoves
     }
 
   public:
+    using MultiIndexIterator = MultiIndexMoves::iterator;
+    using SearchCallBack = std::function<void(const Record*)>;
     enum class Format { NONE = 0, TXT = 1, BIN = (1 << 1) };
-
+    //------------------------------------------------------------------------------
     Store();
     Store(Store&&) = delete;
     Store(const Store&) = delete;
@@ -297,12 +294,13 @@ namespace RoboMoves
     void draw(HDC hdc, double radius, const GetHPen&) const;
     //------------------------------------------------------------------------------
     void dump_off(const tstring &filename, const Robo::RoboI&, Format) const;
-    void pick_up(const tstring &filename, Robo::pRoboI&, Format);
+    void pick_up(const tstring &filename, Robo::pRoboI&, Format, const ApproxFilter *filter=nullptr);
     //------------------------------------------------------------------------------
     size_t nearPassPoints(IN const Point &aim, IN Robo::distance_t radius, OUT SearchCallBack callback) const;
     //------------------------------------------------------------------------------
-    void constructApprox(size_t max_n_controls, ApproxFilter &filter);
+    void constructApprox(size_t max_n_controls, const ApproxFilter *filter=nullptr);
     RoboPos::Approx* getApprox();
+    ApproxFilter getApproxNoFilterAllRecords() const;
     //------------------------------------------------------------------------------
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
     using MultiIndexMovesSqPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;

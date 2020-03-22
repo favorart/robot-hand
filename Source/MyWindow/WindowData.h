@@ -24,7 +24,7 @@ struct MyWindowData
 {
     struct MouseHandler
     {
-        bool   click{ false }; ///< был ли клик в этот фрэйм в рабочейо области окна
+        bool   click{ false }; ///< был ли клик в этот фрэйм в рабочей области окна
         POINT coords{}; ///< координаты мыши в пикселях
         Point    aim{}; ///< координаты мыши преобразованы во внутреннее представление
     } mouse;
@@ -73,8 +73,8 @@ struct MyWindowData
         // --------------------------------
         CGradient cGradient{ CGradient::Longz };
         // --------------------------------
-    } canvas;
-
+    } canvas{};
+    // ---------------------------------
     class TrajectoryFrames
     {
         bool show_ = false;
@@ -92,48 +92,38 @@ struct MyWindowData
         void clear();
         void step(RoboMoves::Store&, Robo::RoboI&, const Robo::Control&);
         void step(RoboMoves::Store&, Robo::RoboI&);
-    } trajFrames; ///< show frames trajectory
-    //Robo::frames_t frames = 0; ///< Global App Time (to show animation)
+    };
+    TrajectoryFrames trajFrames{}; ///< show frames trajectory
     // ---------------------------------
     bool testing = false;
-    std::shared_ptr<boost::thread> pWorkerThread;
+    std::shared_ptr<boost::thread> pWorkerThread{};
     // ---------------------------------
-    std::shared_ptr<TargetI> pTarget;
-    std::shared_ptr<Robo::RoboI> pRobo;
-    //std::shared_ptr<Robo::RoboI> pRoboClone; ///< For the !weather! testing <<< TODO !!
-    std::shared_ptr<RoboMoves::Store> pStore;
-    std::shared_ptr<RoboPos::LearnMoves> pLM;
+    std::shared_ptr<TargetI> pTarget{};
+    std::shared_ptr<Robo::RoboI> pRobo{};
+    //std::shared_ptr<Robo::RoboI> pRoboClone{}; ///< For the !weather! testing <<< TODO !!
+    std::shared_ptr<RoboMoves::Store> pStore{};
+    //Robo::frames_t frames = 0; ///< Global App Time (to show animation)
+    // ---------------------------------
+    std::shared_ptr<RoboPos::LearnMoves> pLM{};
+    std::shared_ptr<Utils::CArgs> pCArgs{};
+    // ---------------------------------
+    tstring currFileName{};
+    tstring storeLoad{ false };
+    int storeSaveFormat{ 1 /*TXT*/ };
+    bool redirect{ false };
     // ---------------------------------
     struct StoreSearch
     {
         const double radius = 0.05;
         const double side = 0.1;
     };
-    const StoreSearch search;
-    // ---------------------------------
-    tstring currFileName{};
-    tstring getCurrFileName() const
-    {
-        tstringstream ss;
-        ss << pRobo->getName() << '-' << Robo::RoboI::name() << _T("-moves-")
-           << getCurrentTimeString(_T("%Y.%m.%d-%H.%M"))
-           << _T(".bin");
-        // ?? currFileName = ss.str();
-        return ss.str();
-    }
-    // ---------------------------------
-    void save(const tstring &fn_db) const;
-    void load(const tstring &fn_db);
+    const StoreSearch search{};
     // ---------------------------------
 #ifdef DEBUG_SHOW_CONTRADICTION
     static std::list<Point> goals;
     static std::list<Point> predicts;
     static std::list<Point> reals;
 #endif
-    bool testings{ false };
-    tstring _config_fn{};
-    tstring _tests_fn{};
-    tstring _lm_conf_fn{};
     // ---------------------------------
     MyWindowData(const Utils::CArgs&);
     ~MyWindowData();
@@ -142,10 +132,10 @@ struct MyWindowData
     void write_config(IN const tstring &filename) const;
     void write_canvas(tptree&) const;
     void read_canvas(tptree&);
+    tstring getCurrFileName() const;
     // ---------------------------------
-    tstring storeLoad{ false };
-    int storeSaveFormat{ 1 /*TXT*/ };
-    bool redirect{ false };
+    void save(const tstring &fn_db) const;
+    void load(const tstring &fn_db);
 };
 //-------------------------------------------------------------------------------
 template<typename Function, typename... Args>

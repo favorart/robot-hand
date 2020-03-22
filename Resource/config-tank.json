@@ -85,10 +85,10 @@
   },
   "lm_config": ".\\Resource\\Tour-tank.txt",
   "precision": 1.5,   "#precision": "mm",
-  "redirect": false,
+  "redirect": true,
     
   "saveFormat": 1, "#saveFormat": "none(0)|txt(1)|bin(2)",
-  "#startUpLoad": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
+  "#startUpLoad": "Tank-v2-robo-moves.bin",
   
   "#LV_OUTALL": 0,
   "#LV_CDEBUG": 1,
@@ -96,5 +96,5 @@
   "#LV_CWARN": 3,
   "#LV_CERROR": 4,
   "#LV_CALERT": 5,
-  "verbose": 1
+  "verbose": 2
 }

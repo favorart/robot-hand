@@ -602,6 +602,17 @@ void RoboPhysics::plotMotionLaws(const tstring &fn, joint_t joint) const
     //// arrow
     //ss << "set arrow from 1, 1 to 5, 10" << std::endl;
 
+    //fplot << "set style line 1 lt 2 " << std::endl; // dashtype 2
+    for (joint_t j = 0; j < jointsCount(); ++j)
+    {
+        auto  no = int(j) * 10;
+        auto nno = int(jointsCount() - 1 - j) * 10;
+        //"set dashtype 10 ( 0,10,30,0) "
+        //"set dashtype 11 (10,10,20,0) "
+        //"set dashtype 12 (20,10,10,0) "
+        //"set dashtype 13 (30,10, 0,0) "
+        fplot << "set dashtype 1" << int(j) << " (" << no << ",10," << nno << ",0) " << std::endl;
+    }
     if (joint == jointsAll)
     {
         auto &robo = dynamic_cast<const RoboI&>(*this);
@@ -610,7 +621,7 @@ void RoboPhysics::plotMotionLaws(const tstring &fn, joint_t joint) const
         {
             if (j > 0)
                 fplot << ", \\" << std::endl << "     '" << fname << ".dat' ";
-            fplot << " using 1:" << int(j+2) << " with lines ";
+            fplot << " using 1:" << int(j+2) << " with lines dt 1" << int(j) << " ";
             fplot << " title '" << Utils::ununi(Robo::getJointName(robo, j)) << "' ";
         }
         fplot << std::endl;
