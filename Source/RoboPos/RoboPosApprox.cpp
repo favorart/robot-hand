@@ -35,6 +35,28 @@ RoboPos::Approx::Approx(Eigen::MatrixXd &X, Eigen::MatrixXd &Y) :
     constructXY();
 }
 
+//------------------------------------------------------------------------------
+void RoboPos::Approx::resize(size_t store_size, size_t max_n_controls)
+{
+    _mX.resize(store_size, Approx::control_size * max_n_controls);
+    _mY.resize(store_size, Approx::point_size);
+    _mQ.resize(store_size, Approx::point_size);
+    _vNorm.resize(store_size);
+    _vK.resize(store_size);
+    _nmX.resize(Approx::control_size * max_n_controls, store_size);
+    _constructed = false;
+    _train = false;
+}
+
+//------------------------------------------------------------------------------
+void RoboPos::Approx::chg_params(Noize noize, Sizing sizing)
+{
+    _noize = noize;
+    _sizing = sizing;
+    _constructed = false;
+    _train = false;
+}
+
 
 //------------------------------------------------------------------------------
 VectorXd RoboPos::Approx::convertToRow(const Robo::Control &controls) const
@@ -83,6 +105,7 @@ void RoboPos::Approx::insert(const Robo::Control &controls, Point hit, size_t in
 {
     _mX.row(index) = convertToRow(controls);
     _mY.row(index) = Vector2d(hit.x, hit.y);
+    _constructed = false;
 }
 
 //------------------------------------------------------------------------------
@@ -147,6 +170,8 @@ void RoboPos::Approx::constructXY()
 {
     if (!_mX.rows() || !_mX.cols() || !_mY.rows() || !_mY.cols())
         CERROR("Approx does not applied train data to construct");
+
+    CINFO("matix X=" << _mX.rows() << "x" << _mX.cols() << " Y=" << _mY.rows() << "x" << _mY.cols());
 
     _train = true;
     _vNorm = (_mX.colwise().maxCoeff() - _mX.colwise().minCoeff()) * sqrt(double(_mX.rows()));

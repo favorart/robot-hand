@@ -88,6 +88,11 @@ public:
     /// Exact interpolation by one more point converted
     bool  clarify(const Eigen::VectorXd&, const Eigen::Vector2d&);
 
+    /// New sizes(rows and cols) of the internal matrices
+    void  resize(size_t store_size, size_t max_n_controls);
+    /// Change params of noize and calibration
+    void  chg_params(Noize, Sizing);
+
     /// Construct the train data from any iterable container
     template <typename Iterator>
     void  constructXY(const Iterator begin, const Iterator end)
@@ -95,6 +100,7 @@ public:
         int i = 0;
         for (Iterator it = begin; it != end; ++it, ++i)
             insert(it->controls, it->hit, i);
+        resize(i, _max_n_controls);
         constructXY();
     }
     /// Construct the train data from any source, with filtering
@@ -107,7 +113,10 @@ public:
         {
             auto res = next();
             if (!res)
+            {
+                resize(i, _max_n_controls);
                 break;
+            }
             insert(res->controls, res->hit, i);
         }
         constructXY();
@@ -115,6 +124,6 @@ public:
     /// save/load
     template <class Archive>
     void serialize(Archive &ar, unsigned version)
-    { ar & _mX & _mY & _mq & _max_controls_count; }
+    { ar & _constructed & _train & _max_n_controls & _mX & _mY & _mQ & _vNorm & _vK & _nmX & _noize & _sizing; }
 };
 } // RoboPos
