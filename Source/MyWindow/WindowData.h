@@ -132,10 +132,13 @@ struct MyWindowData
     void write_config(IN const tstring &filename) const;
     void write_canvas(tptree&) const;
     void read_canvas(tptree&);
+    // ---------------------------------
     tstring getCurrFileName() const;
     // ---------------------------------
     void save(const tstring &fn_db) const;
     void load(const tstring &fn_db);
+    // ---------------------------------
+    void reinitRobo(/*Robo::pRoboI*/);
 };
 //-------------------------------------------------------------------------------
 template<typename Function, typename... Args>

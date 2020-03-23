@@ -87,8 +87,8 @@ void MyWindowData::TrajectoryFrames::clear()
 MyWindowData::Zoom MyWindowData::zoom = MyWindowData::Zoom::NONE;
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const Utils::CArgs &args) :
-    pStore{ std::make_shared<RoboMoves::Store>() },
-    pCArgs{ std::make_shared<Utils::CArgs>(args) }
+    pStore(std::make_shared<RoboMoves::Store>()),
+    pCArgs(std::make_shared<Utils::CArgs>(args))
 {
     read_config(pCArgs->config);
     currFileName = (pCArgs->database.size() > 0) ? pCArgs->database : getCurrFileName();
@@ -152,8 +152,15 @@ void MyWindowData::save(const tstring &filename) const
 void MyWindowData::load(const tstring &filename)
 {
     read_config(filename);
-    if (!pLM) pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ???
     pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat), &pLM->getApproxRangeFilter());
+    reinitRobo();
+}
+void MyWindowData::reinitRobo(/*Robo::pRoboI pRobo*/)
+{
+    //this->pRobo = pRobo;
+    //pLM->_robo = *pRobo;
+    //pRobo.reset();
+    pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config);
 }
 //-------------------------------------------------------------------------------
 RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
@@ -394,9 +401,7 @@ bool  makeRoboMove(MyWindowData &wd)
     if (!repeatRoboMove(wd))
     {
         const Point &aim = wd.mouse.aim;
-        //wd.pStore->approx()->predict(wd.mouse.aim); // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-        if (!wd.pLM)
-            wd.pLM = std::make_shared<RoboPos::LearnMoves>(*wd.pStore, *wd.pRobo, *wd.pTarget, wd.pCArgs->lm_config); //??
+        //wd.pStore->approx()->predict(wd.mouse.aim); // !!!
         wd.pLM->testStage3(aim);
         // -------------------------------------------------
         if (0 /* Around Trajectories !!! */)
@@ -467,6 +472,8 @@ void MyWindowData::read_config(IN const tstring &filename)
         }
 
         storeLoad = root.get_optional<tstring>(_T("startUpLoad")).get_value_or(_T(""));
+        if (storeLoad.length())
+            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), &RoboPos::newApproxRangeFilter(*pStore, *pTarget, 0.01 /*!!!*/));
         // -------------------------------------------------------------------------
 
         double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
@@ -474,10 +481,7 @@ void MyWindowData::read_config(IN const tstring &filename)
             throw std::runtime_error("read_config: incorrect precision");
 
         pCArgs->lm_config /*!!!*/ = root.get<tstring>(_T("lm_config"));
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ????
-
-        if (storeLoad.length())
-            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), &pLM->getApproxRangeFilter());
+        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ???
         // -------------------------------------------------------------------------
         read_canvas(root);
         // -------------------------------------------------------------------------

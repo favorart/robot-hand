@@ -10,8 +10,7 @@
 
 
 //------------------------------------------------------------------------------
-namespace RoboMoves
-{
+namespace RoboMoves {
 class ANoFilter : public RoboMoves::ApproxFilter
 {
     Store::MultiIndexIterator it;
@@ -20,7 +19,7 @@ public:
     ANoFilter(const Store &store) : it(store.begin()), it_end(store.end()) {}
     ANoFilter(ANoFilter&&) = default;
     ANoFilter(const ANoFilter&) = default;
-    const Record* operator() () { return ((it != it_end) ? &(*(it++)) : nullptr); }
+    const Record* operator()() { return ((it != it_end) ? &(*(it++)) : nullptr); }
 };
 }
 
@@ -194,7 +193,7 @@ size_t RoboMoves::Store::nearPassPoints(const Point &aim, Robo::distance_t radiu
 
 #ifndef NO_INVERSE_INDEX
     {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         _inverse->build_index();
         n_found = _inverse->radius_search(aim, radius, callback);
     }
@@ -220,7 +219,7 @@ RoboMoves::Store::Store() :
 //------------------------------------------------------------------------------
 void RoboMoves::Store::replace(IN const Robo::Control &controls, IN const RoboMoves::Store::Mod &mod)
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     // -----------------------------------------------
     auto it = _store.get<ByC>().find(controls);
     _store.get<ByC>().modify(it, mod);
@@ -229,7 +228,7 @@ void RoboMoves::Store::replace(IN const Robo::Control &controls, IN const RoboMo
 //------------------------------------------------------------------------------
 void RoboMoves::Store::clear()
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     _store.clear();
     if (_approx)
         _approx->clear();
@@ -247,7 +246,7 @@ void RoboMoves::Store::clear()
 //------------------------------------------------------------------------------
 std::pair<bool, RoboMoves::Record> RoboMoves::Store::getClosestPoint(IN const Point &aim, IN double side) const
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     // -----------------------------------------------
     const auto &indexP = _store.get<ByP>();
     // -----------------------------------------------
@@ -264,7 +263,7 @@ std::pair<bool, RoboMoves::Record> RoboMoves::Store::getClosestPoint(IN const Po
 //------------------------------------------------------------------------------
 RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     // -----------------------------------------------
 #if defined(NO_MTREE)
     const auto &indexP = _store.get<ByP>();
@@ -278,31 +277,33 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
     else if (itPU != indexP.end() && itPL != indexP.end())
     {
         const Record &rec = (ClosestPredicate(aim)(*itPU, *itPL)) ? *itPU : *itPL;
-        CINFO(" aim=" << aim << " PU=" << itPU->hit << " PL=" << itPL->hit << " d=" << bg::distance(rec.hit, aim));
+        CDEBUG(" aim=" << aim << " PU=" << itPU->hit << " PL=" << itPL->hit << " d=" << bg::distance(rec.hit, aim));
         return rec;
     }
     else if (itPU != indexP.end())
     {
         const Record &rec = *itPU;
-        CINFO(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
+        CDEBUG(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
         return rec;
     }
     //else if (itPL != indexP.end())
     {
         const Record &rec = *itPL;
-        CINFO(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
+        CDEBUG(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
         return rec;
     }
 #else  //MTREE
     auto query = _mtree->get_nearest(aim);
-    return query.begin()->data;
+    auto rec = query.begin()->data;
+    CDEBUG(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
+    return rec;
 #endif //MTREE
 }
 
 //------------------------------------------------------------------------------
 size_t RoboMoves::Store::equalEndPoint(const Point &aim, SearchCallBack callback) const
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     // -----------------------------------------------
     const MultiIndexMoves::index<ByP>::type &indexP = _store.get<ByP>();
     const auto result = indexP.equal_range(boost::tuple<double, double>(aim));
@@ -310,7 +311,8 @@ size_t RoboMoves::Store::equalEndPoint(const Point &aim, SearchCallBack callback
     size_t count = 0;
     for (auto it = result.first; it != result.second; ++it, ++count)
         callback(&(*it));
-    CINFO(" aim " << aim << " count " << count);
+    // -----------------------------------------------
+    CDEBUG(" aim " << aim << " count " << count);
     // -----------------------------------------------
     return count;
 }
@@ -318,14 +320,14 @@ size_t RoboMoves::Store::equalEndPoint(const Point &aim, SearchCallBack callback
 //------------------------------------------------------------------------------
 const RoboMoves::Record* RoboMoves::Store::exactRecordByControl(IN const Robo::Control &controls) const
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     // -----------------------------------------------
     const auto &index = _store.get<ByC>();
     // -----------------------------------------------
     auto equal = index.find(controls);
     bool exist = (equal != index.end());
     // -----------------------------------------------
-    CINFO(" exact c=" << controls << " p=" << tstring{ (exist) ? tstring(equal->hit) : tstring(_T("-")) });
+    CDEBUG(" exact c=" << controls << " p=" << tstring{ (exist) ? tstring(equal->hit) : tstring(_T("-")) });
     // -----------------------------------------------
     return (exist) ? (&(*equal)) : (nullptr);
 }
@@ -335,7 +337,7 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
                                               OUT std::pair<Record, Record> &x_pair,
                                               OUT std::pair<Record, Record> &y_pair) const
 {
-    boost::lock_guard<boost::mutex> lock(_store_mutex);
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     //-------------------------------------------------------
     size_t count = 0U;
     //-------------------------------------------------------
@@ -377,12 +379,15 @@ size_t RoboMoves::Store::adjacencyByXYBorders(IN  const Point &aim, IN double si
         { y_pair = std::make_pair(*it_max_y, *it_min_y); count += 2U; }
     }
     //-------------------------------------------------------
+    CDEBUG(" aim=" << aim << " r=" << side << " count=" << count);
+    //-------------------------------------------------------
     return count;
 }
 
 // --------------------------------------------------------------
 void RoboMoves::Store::draw(HDC hdc, double radius, const GetHPen &getPen) const
 {
+    //boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
 #ifdef MY_WINDOW
     try
     {
@@ -411,7 +416,7 @@ void RoboMoves::Store::insert(const Record &rec)
         *  Вверх класть более удачные движения, отн. кол-ва действий и точности попадания.
         */
         boost::this_thread::disable_interruption no_interruption;
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         // ==============================
         auto status = _store.insert(rec);
 #ifndef NO_MTREE
@@ -424,6 +429,8 @@ void RoboMoves::Store::insert(const Record &rec)
             for (const auto &p : rec.trajectory)
                 _inverse->append(p.spec(), *status.first);
 #endif
+        // ==============================
+        //CDEBUG(" aim=" << rec->aim);
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
 
@@ -432,7 +439,7 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
 {
     //try {
         boost::this_thread::disable_interruption no_interruption;
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
 
         // --- header ---
         tptree root;
@@ -461,7 +468,7 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
 }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::pick_up(const tstring &filename, Robo::pRoboI &pRobo, Format format, const ApproxFilter *filter)
+void RoboMoves::Store::pick_up(const tstring &filename, Robo::pRoboI &pRobo, Format format, ApproxFilter *filter)
 {
     if (!bfs::exists(filename))
         CERROR(_T("File '") << filename << _T("' does not exists."));
@@ -471,7 +478,7 @@ void RoboMoves::Store::pick_up(const tstring &filename, Robo::pRoboI &pRobo, For
     //try
     {
         boost::this_thread::disable_interruption no_interruption;
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
 
         tptree root;
         if (format == Format::TXT)
@@ -528,8 +535,10 @@ RoboPos::Approx* RoboMoves::Store::getApprox() { return _approx.get(); }
 RoboMoves::ApproxFilter RoboMoves::Store::getApproxNoFilterAllRecords() const { return RoboMoves::ANoFilter(*this); }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::constructApprox(size_t max_n_controls, const RoboMoves::ApproxFilter *filter)
+void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::ApproxFilter *filter)
 {
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex); // !!! double lock
+    //boost::this_thread::disable_interruption no_interruption;
     if (!getApprox())
     {
         _approx = std::make_unique<RoboPos::Approx>(

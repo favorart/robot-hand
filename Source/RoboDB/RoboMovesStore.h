@@ -6,8 +6,8 @@
 #include "WindowDraw.h"
 #endif // MY_WINDOW
 
-//#define NO_MTREE
-//#define NO_INVERSE_INDEX
+#define NO_MTREE
+#define NO_INVERSE_INDEX
 
 #ifndef NO_MTREE
 namespace mt {
@@ -15,10 +15,10 @@ namespace helpers {
 struct random_promotion;
 struct balanced_partition;
 template <typename, typename> struct split_function;
-}
+} //helpers
 template <typename, typename, typename =helpers::split_function<helpers::random_promotion, helpers::balanced_partition>>
 class mtree;
-}
+} //mt
 namespace RoboMoves {
 struct MTreeDistance;
 using MTree = mt::mtree<Record, MTreeDistance>;
@@ -114,7 +114,7 @@ namespace RoboMoves
                  >
     >;
     //==============================================================================
-    mutable boost::mutex _store_mutex{};
+    mutable boost::recursive_mutex _store_mutex{};
     MultiIndexMoves _store{};                     //!< прямой индекс хранения записей
     std::shared_ptr<RoboPos::Approx> _approx{};   //!< интерполяция функции(x,y) остановки по управлениям мускулов
     //==============================================================================
@@ -152,7 +152,7 @@ namespace RoboMoves
     Store();
     Store(Store&&) = delete;
     Store(const Store&) = delete;
-    Store(const tstring &filename, std::shared_ptr<Robo::RoboI> &r, Format f) : Store() { pick_up(filename, r, f); }
+    //Store(const tstring &filename, std::shared_ptr<Robo::RoboI> &r, Format f) : Store() { pick_up(filename, r, f); }
     //------------------------------------------------------------------------------
     /// \return the closest hit in a square adjacency of the aim point
     std::pair<bool, Record> getClosestPoint(IN const Point &aim, IN double side) const;
@@ -165,7 +165,7 @@ namespace RoboMoves
     template <class range_t, class index_t>
     size_t  adjacencyRectPoints(OUT range_t &range, IN const Point &min, IN const Point &max) const
     {
-      boost::lock_guard<boost::mutex> lock(_store_mutex);
+      boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
       // -----------------------------------------------
       static_assert ( boost::is_same<range_t, adjacency_t>::value
                    || boost::is_same<range_t, adjacency_ptrs_t>::value
@@ -187,7 +187,7 @@ namespace RoboMoves
           && (max.x >= it->hit.x && max.y >= it->hit.y) )
             rangeInserter(range, *it);
       }
-      CINFO(" min=" << min << " max=" << max << " r=" << bg::distance(min, max)/2 << " adjacency=" << range.size());
+      CDEBUG(" min=" << min << " max=" << max << " r=" << bg::distance(min, max)/2 << " adjacency=" << range.size());
       // -----------------------------------------------
       return range.size();
     }
@@ -195,7 +195,7 @@ namespace RoboMoves
     template <class range_t>
     size_t adjacencyPoints(OUT range_t &range, IN const Point &aim, IN double radius) const
     {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         // -----------------------------------------------
         static_assert (boost::is_same<range_t, adjacency_t>::value
                        || boost::is_same<range_t, adjacency_ptrs_t>::value
@@ -214,7 +214,7 @@ namespace RoboMoves
             if (boost_distance(aim, it->hit) <= radius)
                 rangeInserter(range, *it);
 
-        CINFO(" aim=" << aim << " r=" << radius << " adj_n_points=" << range.size());
+        CDEBUG(" aim=" << aim << " r=" << radius << " adj_n_points=" << range.size());
         // -----------------------------------------------
         return range.size();
     }
@@ -222,7 +222,7 @@ namespace RoboMoves
     template <class range_t>
     size_t similDistances(OUT range_t &range, IN double min_distance, IN double max_distance) const
     {
-        boost::lock_guard<boost::mutex> lock(_store_mutex);
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         // -----------------------------------------------
         static_assert (boost::is_same<range_t, adjacency_t>::value
                        || boost::is_same<range_t, adjacency_ptrs_t>::value
@@ -249,6 +249,7 @@ namespace RoboMoves
         adjacencyRectPoints<range_t, ByP>(range, Point(aim.x - side, aim.y - side),
                                                  Point(aim.x + side, aim.y + side));
         // -----------------------------------------------
+        boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         ClosestPredicate cp(aim);
         range.sort(cp);
         // -----------------------------------------------
@@ -268,6 +269,8 @@ namespace RoboMoves
             else
             { it = range.erase(it); }
         }
+        // -----------------------------------------------
+        CDEBUG(" aim=" << aim << " r=" << side << " adj_n_points=" << range.size());
         // -----------------------------------------------
         return range.size();
     }
@@ -294,11 +297,11 @@ namespace RoboMoves
     void draw(HDC hdc, double radius, const GetHPen&) const;
     //------------------------------------------------------------------------------
     void dump_off(const tstring &filename, const Robo::RoboI&, Format) const;
-    void pick_up(const tstring &filename, Robo::pRoboI&, Format, const ApproxFilter *filter=nullptr);
+    void pick_up(const tstring &filename, Robo::pRoboI&, Format, ApproxFilter *filter=nullptr);
     //------------------------------------------------------------------------------
     size_t nearPassPoints(IN const Point &aim, IN Robo::distance_t radius, OUT SearchCallBack callback) const;
     //------------------------------------------------------------------------------
-    void constructApprox(size_t max_n_controls, const ApproxFilter *filter=nullptr);
+    void constructApprox(size_t max_n_controls, ApproxFilter *filter=nullptr);
     RoboPos::Approx* getApprox();
     ApproxFilter getApproxNoFilterAllRecords() const;
     //------------------------------------------------------------------------------
@@ -308,7 +311,7 @@ namespace RoboMoves
     /// \return all points in a square adjacency for the aim point
     MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN double side) const
     {
-        //boost::lock_guard<boost::mutex> lock(_store_mutex);
+        //boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         const auto &indexP = _store.get<ByP>();
         // -----------------------------------------------
         auto itPL = indexP.lower_bound(boost::make_tuple(aim.x - side, aim.y - side));
@@ -319,7 +322,7 @@ namespace RoboMoves
     }
     MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN const Point &min, IN const Point &max) const
     {
-        //boost::lock_guard<boost::mutex> lock(_store_mutex);
+        //boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         const auto &index = _store.get<ByP>();
         // -----------------------------------------------
         auto itPL = index.lower_bound(boost::tuple<double, double>(min));
@@ -332,7 +335,7 @@ namespace RoboMoves
     //using MultiIndexMovesRnPassing = std::pair<MultiIndexMovesIxDcIter, MultiIndexMovesIxDcIter>;
     //MultiIndexMovesRnPassing aim_rn_adjacency(IN const Point &aim, IN double radius) const
     //{
-    //    //boost::lock_guard<boost::mutex> lock(_store_mutex);
+    //    //boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
     //    //MultiIndexMoves::index<ByD>::type
     //    const auto &indexD = _store.get<ByD>();
     //    CINFO(" aim " << aim << " r " << radius << " adjacency");
@@ -341,6 +344,7 @@ namespace RoboMoves
     //------------------------------------------------------------------------------
     void  insert(const Record &rec);
     //------------------------------------------------------------------------------
+    // Race condition ???
     auto  begin()       -> decltype(_store.begin()) { return _store.begin (); }
     auto  begin() const -> decltype(_store.begin()) { return _store.begin (); }
 
@@ -348,18 +352,15 @@ namespace RoboMoves
     auto  end() const -> decltype(_store.end()) { return _store.end (); }
     //------------------------------------------------------------------------------
     void  clear();
-    bool  empty() const
-    {
-        // boost::lock_guard<boost::mutex>  lock(_store_mutex);
-        return _store.empty();
-    }
-    size_t size() const
-    {
-        // boost::lock_guard<boost::mutex>  lock(_store_mutex);
-        return _store.size();
-    }
+    bool  empty() const { return /*atomic?*/ _store.empty(); }
+    size_t size() const { return /*atomic?*/ _store.size(); }
   };
 }
 //------------------------------------------------------------------------------
 BOOST_CLASS_VERSION(RoboMoves::Store, 2)
 //------------------------------------------------------------------------------
+class TargetI;
+namespace RoboPos {
+RoboMoves::ApproxFilter newApproxRangeFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3);
+}
+

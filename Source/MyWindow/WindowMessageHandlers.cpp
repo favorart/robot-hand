@@ -270,6 +270,7 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
       WorkerThreadRunTask(wd, _T("  *** loading ***  "),
                           [](MyWindowData &wd, const tstring &filename) {
                               wd.pStore->pick_up(filename, wd.pRobo, Store::Format(wd.storeSaveFormat));
+                              wd.reinitRobo();
                               /// wd.load(filename); TODO:
                           }, std::ref(wd), wd.currFileName);
       WorkerThreadTryJoin(wd);
@@ -817,6 +818,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
 #ifdef TEST_DEBUG
                 //wd.pStore->pick_up(_T("test-store.txt"), wd.pRobo, Store::Format::BIN, &wd.pLM->getApproxRangeFilter());
                 wd.pStore->pick_up(_T("test-store-2.txt"), wd.pRobo, Store::Format::BIN, &wd.pLM->getApproxRangeFilter());
+                wd.reinitRobo();
 #endif
             }
             catch (boost::thread_interrupted&)
@@ -908,6 +910,7 @@ void onWindowKeyDown(HWND hWnd, MyWindowData &wd, WPARAM wParam)
                     //    store.clear();
                     //}
                     store.pick_up(FileName, wd.pRobo, Store::Format(wd.storeSaveFormat));
+                    wd.reinitRobo();
                 }, std::ref(*wd.pStore), std::ref(wd));
                 WorkerThreadTryJoin(wd);
                 wd.currFileName = FileName;

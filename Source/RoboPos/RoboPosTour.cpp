@@ -448,7 +448,7 @@ TourTarget::TourTarget(IN RoboMoves::Store &store,
 
     if (_b_predict)
     {
-        store.constructApprox(_max_n_controls);
+        store.constructApprox(_max_n_controls, &RoboPos::newApproxRangeFilter(_store, _target, _step_distance));
     }
 }
 

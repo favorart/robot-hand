@@ -27,6 +27,7 @@ enum class Admix { GradWMeans, WeightMean, GradPoints, AllRundown, DirRundown, _
 //------------------------------------------------------------------------------
 
 
+
 /*!  Количество точек, в окресности искомой точки.
 *    Что я могу варьировать?
 *   
@@ -45,8 +46,13 @@ class LearnMoves
 
     const TargetI &_target;
     RoboMoves::Store &_store;
+
+    // robo: actionRobo, robo.m_opposite, for Tour, ...
     Robo::RoboI &_robo;
-    Point _base_pos{};
+    const Robo::joint_t robo_njoints{};
+    const Robo::muscle_t robo_nmuscles{};
+    /*const*/ Point _base_pos{};
+
     /// Подсчёт сложности
     size_t _complexity = 0;
     //size_t _gradient_points_complexity = 0;
@@ -71,6 +77,7 @@ class LearnMoves
     Robo::distance_t annealing{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
+    Robo::distance_t factor_random_spread{ 10. };
     size_t _tries = 0;
     size_t _random_try = 0;
 
@@ -169,7 +176,8 @@ class LearnMoves
     void read_config();
 
 public:
-    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo, 
+    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo,
+               //IN const Point &robo_base_pos, IN Robo::joint_t robo_njoints, IN Robo::muscle_t robo_nmuscles,
                IN const TargetI &target, IN const tstring &fn_config);
     ~LearnMoves();
     //---------------------------------------------

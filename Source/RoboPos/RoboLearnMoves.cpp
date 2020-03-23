@@ -70,7 +70,8 @@ void RoboPos::LearnMoves::append(MidHitStat *mhs, Robo::distance_t d) { mhs->app
 //------------------------------------------------------------------------------
 RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo,
                                 IN const TargetI &target, IN const tstring &fn_config) :
-    _store(store), _robo(robo), _target(target), _fn_config(fn_config)
+    _store(store), _robo(robo), robo_njoints(_robo.jointsCount()), robo_nmuscles(_robo.musclesCount()),
+    _target(target), _fn_config(fn_config)
 {
     _robo.reset();
     _base_pos = _robo.position();
@@ -155,14 +156,14 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 }
 
 //------------------------------------------------------------------------------
-class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each side-vicinity of target
+class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each 'side'-vicinity of target
 {
     const RoboMoves::Store &store;
-    RoboMoves::adjacency_ptrs_t range{};
     TargetI::vec_t::const_iterator tg_it{};
     const TargetI::vec_t::const_iterator tg_end;
     const Robo::distance_t side{};
     const size_t n_pt_at_tg{};
+    RoboMoves::adjacency_ptrs_t range{};
     size_t i_pt{};
 public:
     AFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3) :
@@ -170,18 +171,21 @@ public:
     {}
     AFilter(AFilter&&) = default;
     AFilter(const AFilter&) = default;
-    const Record* operator()(size_t index)
+    const Record* operator()()
     {
-        if ((i_pt % n_pt_at_tg) == 0)
+        if (range.empty() || (i_pt % n_pt_at_tg) == 0)
         {
-            do
+            Point aim;
+            range.clear();
+            while (range.empty())
             {
-                store.adjacencyPoints(range, *tg_it, side);
-                ++tg_it;
-                if (tg_it == tg_end)
+                aim = *tg_it;
+                store.adjacencyPoints(range, aim, side);
+                if (++tg_it == tg_end)
                     return nullptr; //finish
-            } while (range.empty());
-            range.sort(ClosestPredicate(*tg_it));
+            }
+            range.sort(ClosestPredicate(aim));
+            i_pt = 0;
         }
         const Record *pRec = range.front();
         range.pop_front();
@@ -194,6 +198,12 @@ public:
 RoboMoves::ApproxFilter RoboPos::LearnMoves::getApproxRangeFilter(Robo::distance_t side, size_t pick_points) const
 {
     return AFilter(_store, _target, ((side) ? side : side3), pick_points);
+}
+
+//------------------------------------------------------------------------------
+RoboMoves::ApproxFilter RoboPos::newApproxRangeFilter(const Store &store, const TargetI &target, distance_t side, size_t pick_points)
+{
+    return AFilter(store, target, side, pick_points);
 }
 
 //------------------------------------------------------------------------------
@@ -321,7 +331,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         tcerr << _T("current: ") << current << _T(" / ") << _target.coords().size();
         bool is_aim;
         // ---------------------------------------------------        
-        for (size_t tries = 0; (tries <= _tries) && !check_precision(distance, *it); ++tries)
+        for (size_t tries = 0; tries <= _tries; ++tries)
         {
             Point aim;
             // -------------------------------------------------
@@ -341,16 +351,9 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
                 _reach_current = -1;
 #endif
                 ++count_random;
-                const distance_t prec = _target.precision();
-                const auto rx = Utils::random(-prec * 10, prec * 10); // const_3 from??
-                const auto ry = Utils::random(-prec * 10, prec * 10);
-
-                //const auto min = prec * prec;
-                //const auto max = prec * 2.;
-                //auto rx = Utils::random(min, max);
-                //auto ry = Utils::random(min, max);
-                //rx = Utils::random(2) ? -rx : rx;
-                //ry = Utils::random(2) ? -ry : ry;
+                const distance_t spread = _target.precision() * factor_random_spread;
+                const auto rx = Utils::random(-spread, spread);
+                const auto ry = Utils::random(-spread, spread);
 
                 aim = { it->x + rx, it->y + ry };
                 is_aim = false;
@@ -377,6 +380,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 #ifdef USE_REACH_STAT
             _reached_by_admix[_reach_current].second = true;
 #endif
+            break;
         }
     } // for
     } // try
@@ -493,6 +497,7 @@ Robo::distance_t RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const C
     }
     else
     {
+        //Point p = predict(controls); //??
         _robo.reset();
         _robo.move(controls);
         ++_complexity;
