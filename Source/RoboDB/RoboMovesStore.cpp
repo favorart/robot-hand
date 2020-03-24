@@ -13,13 +13,16 @@
 namespace RoboMoves {
 class ANoFilter : public RoboMoves::ApproxFilter
 {
+    const Store &store;
     Store::MultiIndexIterator it;
     const Store::MultiIndexIterator it_end;
 public:
-    ANoFilter(const Store &store) : it(store.begin()), it_end(store.end()) {}
+    ANoFilter(const Store &store) : store(store), it(store.begin()), it_end(store.end()) {}
     ANoFilter(ANoFilter&&) = default;
     ANoFilter(const ANoFilter&) = default;
     const Record* operator()() { return ((it != it_end) ? &(*(it++)) : nullptr); }
+    void reset() { it = store.begin(); }
+    size_t expect_size() const { return store.size(); }
 };
 }
 
@@ -539,16 +542,16 @@ void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::ApproxF
 {
     boost::lock_guard<boost::recursive_mutex> lock(_store_mutex); // !!! double lock
     //boost::this_thread::disable_interruption no_interruption;
-    if (!getApprox())
+    if (!_approx)
     {
         _approx = std::make_unique<RoboPos::Approx>(
-            this->size(),
+            0, //(filter) ? filter->expect_size() : this->size(),
             max_n_controls,
             /*noize*/[](size_t) { return 0.00000000001; },
             /*sizing*/[]() { return 1.01; });
     }
 
-    if (!getApprox()->constructed())
+    if (!_approx->constructed())
     {
         CINFO("Construct Approx...");
         getApprox()->constructXY((filter) ? *filter : getApproxNoFilterAllRecords());

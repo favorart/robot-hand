@@ -159,6 +159,7 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each 'side'-vicinity of target
 {
     const RoboMoves::Store &store;
+    const TargetI &target;
     TargetI::vec_t::const_iterator tg_it{};
     const TargetI::vec_t::const_iterator tg_end;
     const Robo::distance_t side{};
@@ -167,7 +168,7 @@ class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each
     size_t i_pt{};
 public:
     AFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3) :
-        store(store), tg_it(target.coords().begin()), tg_end(target.coords().end()), side(side), n_pt_at_tg(pick_points)
+        store(store), target(target), tg_it(target.coords().begin()), tg_end(target.coords().end()), side(side), n_pt_at_tg(pick_points)
     {}
     AFilter(AFilter&&) = default;
     AFilter(const AFilter&) = default;
@@ -192,6 +193,8 @@ public:
         ++i_pt;
         return pRec;
     }
+    void reset() { tg_it = target.coords().begin(); range.clear(); }
+    size_t expect_size() const { return (n_pt_at_tg * target.n_coords()); }
 };
 
 //------------------------------------------------------------------------------
