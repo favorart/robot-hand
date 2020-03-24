@@ -34,10 +34,9 @@ inline bool containE(ENV e, ENV conds) { return ((e & conds) != ENV::NOTHING); }
 //------------------------------------------------------
 constexpr std::array<const TCHAR*, size_t(Robo::Enviroment::_LAST_)> enviroment_outputs =
 {
-    _T("NOTHING"), _T("WINDY"), _T("OPPOSITE_HANDLE"),
-    _T("MUTIAL_BLOCKING"), _T("MUTIAL_DYNAMICS"),
-    _T("MOMENTUM_CHANGES"), _T("SYSTEMATIC_CHANGES"),
-    _T("START_FRICTION"), _T("EDGES"), _T("WEATHER")
+    _T("NOTHING"), _T("MUTIAL_BLOCKING"), _T("MUTIAL_DYNAMICS"), _T("OPPOSITE_HANDLE"),
+    _T("MOMENTUM_CHANGES"), _T("SYSTEMATIC_CHANGES"), _T("START_FRICTION"), _T("EDGES"), 
+    _T("WINDY"), _T("WEATHER")
 };
 } // Robo
 
