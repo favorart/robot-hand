@@ -2,9 +2,7 @@
 
 #include "RoboPhysics.h"
 
-namespace Robo
-{
-
+namespace Robo {
 struct RoboPhysics::Status
 {
     using JointPrevs = std::array<Point, jointsMaxCount>;
@@ -40,7 +38,6 @@ struct RoboPhysics::Status
     void calcCurState(State &state, int spec);
     void getCurState(State &state, int spec) const;
 };
-
 //--------------------------------------------------------------------------------
 struct RoboPhysics::EnvPhyState
 {
@@ -54,10 +51,8 @@ struct RoboPhysics::EnvPhyState
     frames_t momentum_n_start{ LastsInfinity }; ///< ???
     frames_t momentum_n_frames{ 10 }; ///< ???
 
-    frames_t st_friction_n_frames{ 10 }; ///< ???
+    frames_t st_friction_n_frames{ 10 }; ///< количество кадров задержки начала движения из-за трения в сочленениях
     distance_t st_friction_big_frame{ RoboI::minFrameMove }; ///< ???
-
-    // systematic_change = []() { изменить несколько рандомных кадров framesMove или framesStop };
 
     // --- велична перемещений в каждый кадр ---
     using JointFrames = std::array<std::vector<distance_t>, RoboI::jointsMaxCount>;
@@ -69,7 +64,27 @@ struct RoboPhysics::EnvPhyState
     frames_t nFramesAll(joint_t j) const { return (framesMove[j].size() + framesStop[j].size()); }
     frames_t nFramesMove(joint_t j) const { return framesMove[j].size(); }
     frames_t nFramesStop(joint_t j) const { return framesStop[j].size(); }
-};
 
-}
+    // systematic_change = []() { изменить несколько рандомных кадров framesMove или framesStop };
+    template <typename RandGen  = std::mt19937, 
+              typename T        = double,
+              typename Distr    = std::uniform_real_distribution<T>>
+    class SystematicChanges
+    {
+        RandGen gen;
+        Distr dis;
+        /**@  Загрузить большое (относительно) количество шума
+         *    Под шумом понимается некоторое количество равномерно распределённых случайных чисел из интервала.
+         *    Класс random_device с помощью внешнего источника генерирует начальные данные для последующего их использования в генераторе
+         *    Генератор псевдо-случайных чисел (Вихрь Мерсенна) принимает random_device (во всей программе делается 1 раз)
+         *    Интервал, в котором набираются случайные числа: от 0.0 до 1.0 — для шумов более, чем достаточно.
+         */
+        SystematicChanges(T left = 0.0f, T right = 1.0f) :
+            gen(RandGen{ std::random_device{} }),
+            dis(Distr{ left, right })
+        {}
+        T get() const { return dis(gen); }
+    };
+};
+} // end Robo
 
