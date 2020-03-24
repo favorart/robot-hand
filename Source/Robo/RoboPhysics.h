@@ -33,6 +33,7 @@ protected:
     const Point& basePos(joint_t) const;
     Point& currPos(joint_t);
 
+    virtual distance_t prismatic_factor(joint_t) const = 0;
 public:
     static const frames_t LastsTooLong = 10000;
     RoboPhysics(const Point &base /*Clavicle|Center*/,

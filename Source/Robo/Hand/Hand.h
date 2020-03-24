@@ -70,7 +70,8 @@ protected:
     void realMove();
     void jointMove(joint_t, double offset);
     distance_t maxJointAngle(joint_t joint) const { return params.maxAngles[joint]; }
-        
+
+    distance_t prismatic_factor(joint_t j) const { return ((J(j) == Joint::Clvcl) ? (3 * M_PI) : 1.); }
 public:
     Hand(const Point &base, const JointsInputsPtrs &joints);
 

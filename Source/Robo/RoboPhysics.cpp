@@ -642,9 +642,9 @@ void RoboPhysics::plotMotionLaws(const tstring &fn, joint_t joint) const
             for (joint_t j = 0; j < jointsCount(); ++j)
             {
                 if (x < env->nFramesMove(j))
-                    fdat << env->framesMove[j][x];
+                    fdat << env->framesMove[j][x] * this->prismatic_factor(j);
                 else if (x < env->nFramesAll(j))
-                    fdat << env->framesStop[j][x - env->nFramesMove(j)];
+                    fdat << env->framesStop[j][x - env->nFramesMove(j)] * this->prismatic_factor(j);
                 else
                     fdat << 0;
                 if (j+1 != jointsCount())
@@ -660,8 +660,9 @@ void RoboPhysics::plotMotionLaws(const tstring &fn, joint_t joint) const
         fplot << " title '" << Utils::ununi(Robo::getJointName(robo, joint)) << "' ";
         fplot << std::endl;
         frames_t x = 0;
-        auto fprinter = [&fplot, &x](Robo::distance_t item) {
-            fplot << x++ << '\t' << item << std::endl;
+        const auto prismatic = this->prismatic_factor(joint);
+        auto fprinter = [&fplot, &x, &prismatic](Robo::distance_t item) {
+            fplot << x++ << '\t' << item * prismatic << std::endl;
         };
         br::for_each(env->framesMove[joint], fprinter);
         br::for_each(env->framesStop[joint], fprinter);        

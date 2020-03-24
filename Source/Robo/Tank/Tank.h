@@ -59,6 +59,8 @@ protected:
     double r1_, r2_;
 #endif
     void realMove();
+
+    distance_t prismatic_factor(joint_t) const { return 1.; }
     
 public:
     Tank(const Point &baseCenter, const JointsInputsPtrs &joints);
