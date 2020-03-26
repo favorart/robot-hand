@@ -95,12 +95,12 @@
     <ClInclude Include="Source\RoboPos\RoboRLSim.h" />
     <ClInclude Include="Source\RoboPos\TourAdaptiveLasts.h" />
     <ClInclude Include="Source\Robo\Hand\Hand.h" />
-    <ClInclude Include="Source\Robo\Hand\HandMotionLaws.h" />
     <ClInclude Include="Source\RoboPos\RoboPosApprox.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourEvo.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourNoRec.h" />
     <ClInclude Include="Source\Robo\RoboEnviroment.h" />
     <ClInclude Include="Source\Robo\RoboInputs.h" />
+    <ClInclude Include="Source\Robo\RoboMotionLawsTypes.h" />
     <ClInclude Include="Source\Robo\RoboMuscles.h" />
     <ClInclude Include="Source\MyWindow\WindowDraw.h" />
     <ClInclude Include="Source\MyWindow\WindowDrawLetters.h" />

@@ -1,5 +1,4 @@
 #include "RoboPhysics.h"
-#include "HandMotionLaws.h"
 #include "RoboEdges.h"
 #include "RoboPhysicsStatus.h"
 #include "RoboEnviroment.h"

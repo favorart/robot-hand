@@ -1,12 +1,50 @@
-﻿
-#include "RoboInputs.h"
+﻿#include "RoboInputs.h"
 #include "RoboMotionLaws.h"
-#include "HandMotionLaws.h"
+#include "RoboMotionLawsTypes.h"
+
 
 using namespace std;
 using namespace Robo;
 using namespace MotionLaws;
+//--------------------------------------------------------------------------------
+// JointMoveLawI
+//--------------------------------------------------------------------------------
+const double JointMoveLawI::Epsilont = Utils::EPSILONT;
 
+//--------------------------------------------------------------------------------
+void JointMoveLawI::normalize(IterVecDoubles iter, size_t n, double left, double right, double summary) const
+{
+    for (size_t i = 0; i < n; ++i)
+    {
+        *iter = *iter * (right - (n + 1) * left) / summary + left;
+        ++iter;
+    }
+}
+
+//------------------------------------------------------------------------------
+// MotionLaws
+//------------------------------------------------------------------------------
+tstring Robo::MotionLaws::name(MLaw ml)
+{
+    if (ml == MLaw::INVALID || ml >= MLaw::_COUNT_)
+        throw std::logic_error{ "Invalid MotionLaw" };
+    const tstring data[] = { _T(""), _T("SLOW"), _T("FAST"), _T("STAB"), _T("CONAC"), _T("MANGO") };
+    return data[static_cast<int>(ml)];
+}
+
+//--------------------------------------------------------------------------------
+MLaw Robo::MotionLaws::scanMLaw(const tstring &ml_name)
+{
+    for (int ml = 1; ml < static_cast<int>(MLaw::_COUNT_); ++ml)
+        if (ml_name == name(MLaw(ml)))
+            return MLaw(ml);
+    CERROR("Invalid scan MotionLaw");
+    return MLaw::INVALID;
+}
+
+
+//--------------------------------------------------------------------------------
+// JointMotionLaw
 //--------------------------------------------------------------------------------
 Robo::MotionLaws::JointMotionLaw::JointMotionLaw(MLaw ml, size_t nMoveFrames, double dMoveDistance,
                                                  double dInertiaRatio, tstring param) :
@@ -55,7 +93,7 @@ void Robo::MotionLaws::JointMotionLaw::init()
         break;
     }
     default:
-        throw std::logic_error{ "Invalid Hand law" };
+        throw std::logic_error{ "Invalid MotionLaw" };
     }
 }
 
@@ -121,6 +159,9 @@ std::ostream& Robo::MotionLaws::operator<<(std::ostream &s, const JointMotionLaw
       << " " << law.dStableRatio << " }";
 }
 
+
+//--------------------------------------------------------------------------------
+// JointInput
 //--------------------------------------------------------------------------------
 void Robo::JointInput::save(tptree &root) const
 {
@@ -144,3 +185,4 @@ void Robo::JointInput::load(tptree &root)
     base.load(root.get_child(_T("base")));
     frames.load(root.get_child(_T("motionLaw")));
 }
+
