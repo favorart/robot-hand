@@ -2,10 +2,10 @@
 #include "Test.h"
 #include "Hand.h"
 #include "Tank.h"
-#include "HandMotionLaws.h"
 #include "RoboInputs.h"
 #include "RoboPosApprox.h"
 
+//------------------------------------------------------
 const size_t RoboPos::Approx::max_n_controls = 32;
 const size_t RoboPos::Approx::test_max_n_controls = 8;
 
@@ -20,9 +20,6 @@ using namespace RoboMoves;
 //#define TEST_DEBUG_VERBOSE(message)    {tcout<<message;}
 #define TEST_DEBUG_VERBOSE(message)    {}
 
-//------------------------------------------------------
-inline tstring unquote(const tstring &s)
-{ return (s.front() == _T('"')) ? s.substr(1, s.length() - 2) : s; };
 
 //------------------------------------------------------------------------------
 void printTree(const tptree &tree, tostream &out, const int level = 0)
@@ -51,6 +48,13 @@ void printTree(const tptree &tree, tostream &out, const int level = 0)
 
 //------------------------------------------------------
 MLaw& operator++(MLaw &mlaw) { return (mlaw = static_cast<MLaw>(static_cast<int>(mlaw) + 1)); }
+
+
+//------------------------------------------------------
+// Scan Functions
+//------------------------------------------------------
+inline tstring unquote(const tstring &s)
+{ return (s.front() == _T('"')) ? s.substr(1, s.length() - 2) : s; };
 
 //------------------------------------------------------
 int test::scanVerboseLevel(const tstring &str_level)
@@ -218,7 +222,10 @@ void test::Params::scanLaws(tptree &root)
         }
         case RoboType::Tank:
         {
-            auto ji = std::make_shared<Robo::Mobile::Tank::JointInput>(j, true, j_input_bases[j], law);
+            auto ji = std::make_shared<Robo::Mobile::Tank::JointInput>(j,
+                                                                       true,
+                                                                       j_input_bases[j],
+                                                                       law);
             rji = std::dynamic_pointer_cast<Robo::JointInput>(ji);
             break;
         }
@@ -261,6 +268,34 @@ void test::Params::scan(tptree &root)
 }
 
 //------------------------------------------------------
+void test::Params::clear()
+{
+    ROBO_TYPE = RoboType::None;
+    ROBO_BASE = {};
+    N_JOINTS= 0;
+    ENVIROMENT = Robo::Enviroment::NOTHING;
+    JINPUTS.clear();
+    
+    //TARGET_N_ROWS = { 20/*200*/ };
+    //TARGET_N_COLS = { 20/*200*/ };
+    //TARGET_LFT = { -0.41 };
+    //TARGET_RGH = { +0.43 };
+    //TARGET_TOP = { -0.03 };
+    //TARGET_BTM = { -0.85 };
+    //LM_N_TRIES = 8;
+    //LM_TRY_BREK = 100;
+    //LM_TRY_RAND = 3;
+    //LM_SIDE = 0.2;
+    //LM_SIDE_DECR = 0.005;
+    //LM_ADMIXES = LMAdmix::WMEAN;
+    //LM_CONFIG_FN = {};
+    //STORE_LOAD_FN = {};
+    //GNUPLOT_PATH = {};
+    //VERBOSE_LEVEL = {};
+}
+
+
+//------------------------------------------------------
 // Test
 //------------------------------------------------------
 test::Test::Test(const tstring &tests_file, const tstring &test_name_prefix)
@@ -276,6 +311,7 @@ test::Test::Test(const tstring &tests_file, const tstring &test_name_prefix)
             //restart();
             testMotionLaws(test.first);
             //testAll();
+            params.clear();
             return; // << TODO: 1 test only
         }
         // ==============================
@@ -305,7 +341,6 @@ tptree test::Test::readTestsFile(const tstring &tests_file)
 //------------------------------------------------------
 void test::Test::restart()
 {
-
 }
 
 //------------------------------------------------------
@@ -383,6 +418,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
 #ifdef TEST_DEBUG
     plotRobotMotionLaw(*pRobo, test_name);
 #endif
+    //return;
 
     CINFO("Read Config LM...");
     LearnMoves lm(store, *pRobo, *pTarget, params.LM_CONFIG_FN);
@@ -411,10 +447,9 @@ void test::Test::testMotionLaws(const tstring &test_name)
     }
     else
     {
-        store.pick_up(_T("test-store.txt"), pRobo, Store::Format::BIN);
+        store.pick_up(_T("test-store.txt"), pRobo, Store::Format::BIN, 
+                      RoboPos::newApproxRangeFilter(store, *pTarget, params.LM_SIDE)); // << constructApprox
         //plotStoreState(store, test_name);
-
-        store.constructApprox(RoboPos::Approx::max_n_controls);
     }
 #endif //TEST_DEBUG
 

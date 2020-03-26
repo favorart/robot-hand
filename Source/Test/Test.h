@@ -6,7 +6,7 @@
 #include "RoboLearnMoves.h"
 #include "RoboMovesStore.h"
 
-//#define TEST_DEBUG
+#define TEST_DEBUG
 //#define GNUPLOT_SILENCE
 
 
@@ -89,6 +89,7 @@ struct Params
     
     void scanLaws(tptree&);
     void scan(tptree&);
+    void clear();
 };
 
 //------------------------------------------------------
