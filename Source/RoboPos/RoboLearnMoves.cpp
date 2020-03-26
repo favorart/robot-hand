@@ -156,6 +156,7 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 }
 
 //------------------------------------------------------------------------------
+namespace RoboMoves {
 class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each 'side'-vicinity of target
 {
     const RoboMoves::Store &store;
@@ -167,46 +168,50 @@ class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each
     RoboMoves::adjacency_ptrs_t range{};
     size_t i_pt{};
 public:
-    AFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3) :
+    AFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points = 3) :
         store(store), target(target), tg_it(target.coords().begin()), tg_end(target.coords().end()), side(side), n_pt_at_tg(pick_points)
     {}
     AFilter(AFilter&&) = default;
     AFilter(const AFilter&) = default;
-    const Record* operator()()
-    {
-        if (range.empty() || (i_pt % n_pt_at_tg) == 0)
-        {
-            Point aim;
-            range.clear();
-            while (range.empty())
-            {
-                aim = *tg_it;
-                store.adjacencyPoints(range, aim, side);
-                if (++tg_it == tg_end)
-                    return nullptr; //finish
-            }
-            range.sort(ClosestPredicate(aim));
-            i_pt = 0;
-        }
-        const Record *pRec = range.front();
-        range.pop_front();
-        ++i_pt;
-        return pRec;
-    }
-    void reset() { tg_it = target.coords().begin(); range.clear(); }
-    size_t expect_size() const { return (n_pt_at_tg * target.n_coords()); }
+    const Record* operator()() override;
+    void reset() override { tg_it = target.coords().begin(); range.clear(); }
+    size_t expect_size() const override { return (n_pt_at_tg * target.n_coords()); }
 };
-
-//------------------------------------------------------------------------------
-RoboMoves::ApproxFilter RoboPos::LearnMoves::getApproxRangeFilter(Robo::distance_t side, size_t pick_points) const
-{
-    return AFilter(_store, _target, ((side) ? side : side3), pick_points);
 }
 
 //------------------------------------------------------------------------------
-RoboMoves::ApproxFilter RoboPos::newApproxRangeFilter(const Store &store, const TargetI &target, distance_t side, size_t pick_points)
+const Record* RoboMoves::AFilter::operator()()
 {
-    return AFilter(store, target, side, pick_points);
+    if (range.empty() || (i_pt % n_pt_at_tg) == 0)
+    {
+        Point aim;
+        range.clear();
+        while (range.empty())
+        {
+            aim = *tg_it;
+            store.adjacencyPoints(range, aim, side);
+            if (++tg_it == tg_end)
+                return nullptr; //finish
+        }
+        range.sort(ClosestPredicate(aim));
+        i_pt = 0;
+    }
+    const Record *pRec = range.front();
+    range.pop_front();
+    ++i_pt;
+    return pRec;
+}
+
+//------------------------------------------------------------------------------
+RoboMoves::pApproxFilter RoboPos::LearnMoves::getApproxRangeFilter(Robo::distance_t side, size_t pick_points) const
+{
+    return std::make_unique<AFilter>(_store, _target, ((side) ? side : side3), pick_points);
+}
+
+//------------------------------------------------------------------------------
+RoboMoves::pApproxFilter RoboPos::newApproxRangeFilter(const Store &store, const TargetI &target, distance_t side, size_t pick_points)
+{
+    return std::make_unique<AFilter>(store, target, side, pick_points);
 }
 
 //------------------------------------------------------------------------------
@@ -309,7 +314,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     load(_config);
     uncovered.clear();
     // -----------------------------------------------------
-    _store.constructApprox(RoboPos::Approx::max_n_controls, &getApproxRangeFilter(side3));
+    _store.constructApprox(RoboPos::Approx::max_n_controls, getApproxRangeFilter(side3));
     // -----------------------------------------------------
     _complexity = 0;
     br::fill(_complex, 0);

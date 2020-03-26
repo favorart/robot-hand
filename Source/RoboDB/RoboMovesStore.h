@@ -44,7 +44,14 @@ namespace RoboMoves
   typedef std::list<const Record*>            adjacency_ptrs_t;
   typedef std::list<std::shared_ptr<Record>>  adjacency_sh_ptrs_t;
 
-  using ApproxFilter = std::function<const Record*()>;
+  //using ApproxFilter = std::function<const Record*()>;
+  struct ApproxFilter
+  {
+      virtual const Record* operator()() = 0;
+      virtual void reset() = 0;
+      virtual size_t expect_size() const = 0;
+  };
+  using pApproxFilter = std::unique_ptr<ApproxFilter>;
   //------------------------------------------------------------------------------
   class  ClosestPredicate
   {
@@ -297,13 +304,13 @@ namespace RoboMoves
     void draw(HDC hdc, double radius, const GetHPen&) const;
     //------------------------------------------------------------------------------
     void dump_off(const tstring &filename, const Robo::RoboI&, Format) const;
-    void pick_up(const tstring &filename, Robo::pRoboI&, Format, ApproxFilter *filter=nullptr);
+    void pick_up(const tstring &filename, Robo::pRoboI&, Format, pApproxFilter filter=nullptr);
     //------------------------------------------------------------------------------
     size_t nearPassPoints(IN const Point &aim, IN Robo::distance_t radius, OUT SearchCallBack callback) const;
     //------------------------------------------------------------------------------
-    void constructApprox(size_t max_n_controls, ApproxFilter *filter=nullptr);
+    void constructApprox(size_t max_n_controls, pApproxFilter filter=nullptr);
     RoboPos::Approx* getApprox();
-    ApproxFilter getApproxNoFilterAllRecords() const;
+    pApproxFilter getApproxNoFilterAllRecords() const;
     //------------------------------------------------------------------------------
     using MultiIndexMovesIxPcIter = MultiIndexMoves::index<ByP>::type::const_iterator;
     using MultiIndexMovesSqPassing = std::pair<MultiIndexMovesIxPcIter, MultiIndexMovesIxPcIter>;
@@ -361,6 +368,6 @@ BOOST_CLASS_VERSION(RoboMoves::Store, 2)
 //------------------------------------------------------------------------------
 class TargetI;
 namespace RoboPos {
-RoboMoves::ApproxFilter newApproxRangeFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3);
+RoboMoves::pApproxFilter newApproxRangeFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3);
 }
 

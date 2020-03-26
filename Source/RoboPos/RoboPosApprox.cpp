@@ -38,14 +38,23 @@ RoboPos::Approx::Approx(Eigen::MatrixXd &X, Eigen::MatrixXd &Y) :
 //------------------------------------------------------------------------------
 void RoboPos::Approx::resize(size_t store_size, size_t max_n_controls)
 {
-    _mX.resize(store_size, Approx::control_size * max_n_controls);
-    _mY.resize(store_size, Approx::point_size);
-    _mQ.resize(store_size, Approx::point_size);
-    _vNorm.resize(store_size);
-    _vK.resize(store_size);
-    _nmX.resize(Approx::control_size * max_n_controls, store_size);
+    CINFO(" sz="  << store_size << " nc=" << _max_n_controls <<
+          " _mX=" << _mX.rows() << "x" << _mX.cols() <<
+          " _mY=" << _mY.rows() << "x" << _mY.cols());
+
+    if (_mX.rows() != store_size || _mX.cols() != Approx::control_size * max_n_controls)
+        _mX.resize(store_size, Approx::control_size * max_n_controls);
+    if (_mY.rows() != store_size)
+        _mY.resize(store_size, Approx::point_size);
+    if (_mQ.rows() != store_size)
+        _mQ.resize(store_size, Approx::point_size);
+    if (_vNorm.size() != store_size)
+        _vNorm.resize(store_size);
+    if (_vK.size() != store_size)
+        _vK.resize(store_size);
+    if (_nmX.rows() != Approx::control_size * max_n_controls || _nmX.cols() != store_size)
+        _nmX.resize(Approx::control_size * max_n_controls, store_size);
     _constructed = false;
-    _train = false;
 }
 
 //------------------------------------------------------------------------------

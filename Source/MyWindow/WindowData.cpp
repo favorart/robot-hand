@@ -152,7 +152,7 @@ void MyWindowData::save(const tstring &filename) const
 void MyWindowData::load(const tstring &filename)
 {
     read_config(filename);
-    pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat), &pLM->getApproxRangeFilter());
+    pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat), pLM->getApproxRangeFilter());
     reinitRobo();
 }
 void MyWindowData::reinitRobo(/*Robo::pRoboI pRobo*/)
@@ -473,7 +473,7 @@ void MyWindowData::read_config(IN const tstring &filename)
 
         storeLoad = root.get_optional<tstring>(_T("startUpLoad")).get_value_or(_T(""));
         if (storeLoad.length())
-            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), &RoboPos::newApproxRangeFilter(*pStore, *pTarget, 0.01 /*!!!*/));
+            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), RoboPos::newApproxRangeFilter(*pStore, *pTarget, 0.01 /*!!!*/));
         // -------------------------------------------------------------------------
 
         double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);

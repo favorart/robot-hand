@@ -183,7 +183,7 @@ public:
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
     //---------------------------------------------
-    RoboMoves::ApproxFilter getApproxRangeFilter(Robo::distance_t side=0, size_t pick_points=3) const;
+    RoboMoves::pApproxFilter getApproxRangeFilter(Robo::distance_t side=0, size_t pick_points=3) const;
     //---------------------------------------------
     /// грубое покрытие всего рабочего пространства
     void  STAGE_1();
