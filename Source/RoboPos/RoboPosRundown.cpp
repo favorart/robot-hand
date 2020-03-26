@@ -15,7 +15,7 @@ const Robo::frames_t start_next = 1;
 /// Добавить к текущему лучшему массиву управлений мини-движения незадействованных мускулов
 void LearnMoves::rundownControls(IN OUT Control &controls)
 {
-    for (joint_t j = 0; j < _robo.jointsCount(); ++j)
+    for (joint_t j = 0; j < robo_njoints; ++j)
     {
         auto mo = RoboI::muscleByJoint(j, true);
         auto mc = RoboI::muscleByJoint(j, false);
@@ -35,7 +35,7 @@ void LearnMoves::rundownControls(IN OUT Control &controls)
         }
     }
 
-    controls.order(_robo.musclesCount());
+    controls.order(robo_nmuscles);
 }
 
 //------------------------------------------------------------------------------
@@ -319,7 +319,7 @@ bool LearnMoves::rundownNextControl(IN OUT Robo::Control  &controls,
             else one_more = true;
         }
     }
-    if (!controls.validate(_robo.musclesCount()))
+    if (!controls.validate(robo_nmuscles))
         tcout << std::endl;
     //controls.order(_robo.musclesCount());
     return one_more;
@@ -345,8 +345,8 @@ Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
     // -----------------------------------------------
     Control tmp(controls);
     // -----------------------------------------------
-    RundownAllDirsIncrementor increm(_robo.jointsCount());
-    changes_t lasts_changes(size_t(_robo.musclesCount()));
+    RundownAllDirsIncrementor increm(robo_njoints);
+    changes_t lasts_changes(size_t{ robo_nmuscles });
     bool finish;
     // -----------------------------------------------
     do
@@ -358,8 +358,8 @@ Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
         RundownAllDirsIncrementor::print_changes(lasts_changes);
         // -----------------------------------------------
         /* что такое muscles_repeats ?? */
-        std::vector<int> muscles_repeats(size_t(_robo.musclesCount()), -1);
-        std::vector<int> muscles_repeats_prev(size_t(_robo.musclesCount()), -1);
+        std::vector<int> muscles_repeats(size_t(robo_nmuscles), -1);
+        std::vector<int> muscles_repeats_prev(size_t(robo_nmuscles), -1);
         bool closer, repeat, reset = false;
         // -----------------------------------------------
         do

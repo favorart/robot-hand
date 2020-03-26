@@ -315,16 +315,15 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
                                            IN const Control &upper_controls,
                                            OUT      Control &controls)
 {
-    const auto n_muscles = _robo.musclesCount();
     std::vector<Actuator> inits, lower, upper;
-    layout_controls(inits, inits_controls, n_muscles);
-    layout_controls(lower, lower_controls, n_muscles);
-    layout_controls(upper, upper_controls, n_muscles);
+    layout_controls(inits, inits_controls, robo_nmuscles);
+    layout_controls(lower, lower_controls, robo_nmuscles);
+    layout_controls(upper, upper_controls, robo_nmuscles);
 
     auto max_sz = std::max({ inits.size(), lower.size(), lower.size() });
-    layout_controls_continue(inits, max_sz, n_muscles);
-    layout_controls_continue(lower, max_sz, n_muscles);
-    layout_controls_continue(upper, max_sz, n_muscles);
+    layout_controls_continue(inits, max_sz, robo_nmuscles);
+    layout_controls_continue(lower, max_sz, robo_nmuscles);
+    layout_controls_continue(upper, max_sz, robo_nmuscles);
 
     tcout << " inits: "; for (auto &i : inits) tcout << i << " "; tcout << std::endl;
     tcout << " lower: "; for (auto &i : lower) tcout << i << " "; tcout << std::endl;
@@ -426,7 +425,7 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
             if (last_c) controls.append({ mc, start_c, last_c });
         }
     }
-    controls.order(_robo.musclesCount());
+    controls.order(robo_nmuscles);
 }
 
 //------------------------------------------------------------------------------
@@ -436,16 +435,15 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
                                               IN const Control &upper_controls,
                                               OUT      Control &controls)
 {
-    const auto n_muscles = _robo.musclesCount();
     std::vector<Actuator> inits, lower, upper;
-    layout_controls(inits, inits_controls, n_muscles);
-    layout_controls(lower, lower_controls, n_muscles);
-    layout_controls(upper, upper_controls, n_muscles);
+    layout_controls(inits, inits_controls, robo_nmuscles);
+    layout_controls(lower, lower_controls, robo_nmuscles);
+    layout_controls(upper, upper_controls, robo_nmuscles);
 
     auto max_sz = std::max({ inits.size(), lower.size(), lower.size() });
-    layout_controls_continue(inits, max_sz, n_muscles);
-    layout_controls_continue(lower, max_sz, n_muscles);
-    layout_controls_continue(upper, max_sz, n_muscles);
+    layout_controls_continue(inits, max_sz, robo_nmuscles);
+    layout_controls_continue(lower, max_sz, robo_nmuscles);
+    layout_controls_continue(upper, max_sz, robo_nmuscles);
 
     auto lows = Strategy::get(lower_controls);
     auto inis = Strategy::get(inits_controls);
@@ -460,7 +458,7 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
     const int delta_normalized = int(d * 5);
 
     frames_t min_start = SIZE_MAX;
-    for (muscle_t m = 0; m < max_sz/*n_muscles*/; ++m)
+    for (muscle_t m = 0; m < max_sz/*robo_nmuscles*/; ++m)
     {
         frames_t start;
         int64_t lasts = 0;
