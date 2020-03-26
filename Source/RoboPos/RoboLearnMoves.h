@@ -7,7 +7,7 @@
 #include "RoboMovesStore.h"
 
 //#define USE_MID_STAT
-//#define USE_REACH_STAT
+#define USE_REACH_STAT
 
 
 namespace Robo {
@@ -66,7 +66,7 @@ class LearnMoves
 #ifdef USE_REACH_STAT
     ComplexCounters _random_by_admix{};
     std::vector<std::pair<ComplexCounters, bool>> _reached_by_admix{};
-    int _reach_current = 0;
+    size_t _reach_current = 0;
 #endif
     void updateReachedStat(Admix admix);
     void printReachedStat();

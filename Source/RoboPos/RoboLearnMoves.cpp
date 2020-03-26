@@ -338,26 +338,24 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         CINFO(_T("current: ") << current << _T(" / ") << _target.coords().size());
         tcerr << _T("current: ") << current << _T(" / ") << _target.coords().size();
         bool is_aim;
-        // ---------------------------------------------------        
+        // ---------------------------------------------------       
+#ifdef USE_REACH_STAT
+        _reached_by_admix[_reach_current] = { ComplexCounters{}, false };
+        _reached_by_admix[_reach_current].second = false;
+#endif 
+        // ---------------------------------------------------      
         for (size_t tries = 0; tries <= _tries; ++tries)
         {
             Point aim;
             // -------------------------------------------------
             if (!(tries % _random_try))
             {
-#ifdef USE_REACH_STAT
-                _reach_current = current;
-                _reached_by_admix[_reach_current] = { ComplexCounters{}, false };
-#endif
                 ++count_regular;
                 aim = *it;
                 is_aim = true;
             }
             else
             {
-#ifdef USE_REACH_STAT
-                _reach_current = -1;
-#endif
                 ++count_random;
                 const distance_t spread = _target.precision() * factor_random_spread;
                 const auto rx = Utils::random(-spread, spread);
@@ -366,6 +364,9 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
                 aim = { it->x + rx, it->y + ry };
                 is_aim = false;
             }
+#ifdef USE_REACH_STAT
+            _reach_current = (is_aim) ? current : -1;
+#endif
             // -------------------------------------------------
             distance_t d = testStage3(aim);
             if (is_aim)
@@ -378,9 +379,6 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         {
             tcerr << _T("  failed") << std::endl;
             uncovered.push_back(*it);
-#ifdef USE_REACH_STAT
-            _reached_by_admix[_reach_current].second = false;
-#endif
         }
         else
         {
@@ -454,11 +452,23 @@ void RoboPos::LearnMoves::printReachedStat()
     }
 
     CINFO(_T("\n") <<
-          _T("\n good { grad_wmean=") << good_grad_wmean << _T(" wmean=") << good_wmean << _T(" grad_point=") << good_grad_point << _T(" rundown=") << good_rundown << _T(" }") <<
-          _T("\n  bad { grad_wmean=") <<  bad_grad_wmean << _T(" wmean=") <<  bad_wmean << _T(" grad_point=") <<  bad_grad_point << _T(" rundown=") <<  bad_rundown << _T(" }") <<
-          _T("\n rand { grad_wmean=") << rand_grad_wmean << _T(" wmean=") << rand_wmean << _T(" grad_point=") << rand_grad_point << _T(" rundown=") << rand_rundown << _T(" }") <<
+          _T("\n good {") <<
+          _T(" GradWMeans=") << std::setw(4) << good_grad_wmean << 
+          _T(" WeightMean=") << std::setw(4) << good_wmean << 
+          _T(" GradPoints=") << std::setw(4) << good_grad_point << 
+          _T(" AllRundown=") << std::setw(4) << good_rundown << _T(" }") <<
+          _T("\n  bad {") <<
+          _T(" GradWMeans=") << std::setw(4) << bad_grad_wmean << 
+          _T(" WeightMean=") << std::setw(4) << bad_wmean << 
+          _T(" GradPoints=") << std::setw(4) << bad_grad_point << 
+          _T(" AllRundown=") << std::setw(4) << bad_rundown << _T(" }") <<
+          _T("\n rand {") <<
+          _T(" GradWMeans=") << std::setw(4) << rand_grad_wmean << 
+          _T(" WeightMean=") << std::setw(4) << rand_wmean << 
+          _T(" GradPoints=") << std::setw(4) << rand_grad_point << 
+          _T(" AllRundown=") << std::setw(4) << rand_rundown << _T(" }") <<
           _T("\n"));
-#endif
+#endif //USE_REACH_STAT
 }
 
 //------------------------------------------------------------------------------
@@ -472,7 +482,7 @@ void RoboPos::LearnMoves::updateReachedStat(Admix admix)
         ++_reached_by_admix[_reach_current].first[i];
     else
         ++_random_by_admix[i];
-#endif
+#endif //USE_REACH_STAT
 }
 
 //------------------------------------------------------------------------------
