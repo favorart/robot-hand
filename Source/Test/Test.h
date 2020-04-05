@@ -1,10 +1,9 @@
 ﻿#pragma once
 
 #include "Robo.h"
-#include "RoboPhysics.h"
-#include "RoboMotionLaws.h"
-#include "RoboLearnMoves.h"
-#include "RoboMovesStore.h"
+namespace RoboMoves {
+class Store;
+}
 
 #define TEST_DEBUG
 //#define GNUPLOT_SILENCE
@@ -103,7 +102,6 @@ public:
 
     tptree readTestsFile(const tstring &tests_file);
     void printConfig() const;
-    static void plotStoreAdj(const RoboMoves::adjacency_ptrs_t& range, const Point &aim, const Point &hit);
     void plotStoreState(const RoboMoves::Store&, const tstring &test_name);
     void plotRobotMotionLaw(const Robo::RoboI&, const tstring &test_name);
     void plotAnimation(const tstring &plt_prefix) {}

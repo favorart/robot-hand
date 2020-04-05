@@ -6,7 +6,12 @@
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
 #include "RoboLearnMoves.h"
-#include "Test/Test.h"
+
+
+//#include "Test/Test.h"
+namespace test {
+void plotStoreAdj(const RoboMoves::adjacency_ptrs_t& range, const Point &aim, const Point &hit);
+}
 
 using namespace Robo;
 using namespace RoboPos;
@@ -677,6 +682,7 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
     *pRecClose = *pRec; 
     // ===========
     //test::Test::plotStoreAdj(range, aim, pRec->hit);
+    // ===========
     if (pRecLower && pRecUpper)
     {
         pRec = gradientClothestRecord(range, aim, &cmp_l, pVisited);

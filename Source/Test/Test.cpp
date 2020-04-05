@@ -1,9 +1,20 @@
 ﻿#include "StdAfx.h"
+
 #include "Test.h"
+#include "RoboPhysics.h"
+#include "RoboMotionLaws.h"
+#include "RoboLearnMoves.h"
+#include "RoboMovesStore.h"
 #include "Hand.h"
 #include "Tank.h"
 #include "RoboInputs.h"
 #include "RoboPosApprox.h"
+
+
+//------------------------------------------------------
+namespace test {
+void plotStoreAdj(const RoboMoves::adjacency_ptrs_t& range, const Point &aim, const Point &hit);
+}
 
 //------------------------------------------------------
 const size_t RoboPos::Approx::max_n_controls = 32;
@@ -472,7 +483,7 @@ void test::Test::testNFrames(const tstring &test_name)
 }
 
 //------------------------------------------------------
-void test::Test::plotStoreAdj(const RoboMoves::adjacency_ptrs_t &range, const Point &aim, const Point &hit)
+void test::plotStoreAdj(const RoboMoves::adjacency_ptrs_t &range, const Point &aim, const Point &hit)
 {
     std::ostringstream ss;
     ss << "test-RANGE-" << aim;
