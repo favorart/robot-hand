@@ -167,6 +167,9 @@ class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each
     const size_t n_pt_at_tg{};
     RoboMoves::adjacency_ptrs_t range{};
     size_t i_pt{};
+    std::set<size_t> visited{};
+    RoboMoves::ControlHasher ch{};
+    Point aim{};
 public:
     AFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points = 3) :
         store(store), target(target), tg_it(target.coords().begin()), tg_end(target.coords().end()), side(side), n_pt_at_tg(pick_points)
@@ -182,24 +185,36 @@ public:
 //------------------------------------------------------------------------------
 const Record* RoboMoves::AFilter::operator()()
 {
-    if (range.empty() || (i_pt % n_pt_at_tg) == 0)
+    while (true)
     {
-        Point aim;
-        range.clear();
-        while (range.empty())
+        if (range.empty() || (i_pt % n_pt_at_tg) == 0)
         {
-            aim = *tg_it;
-            store.adjacencyPoints(range, aim, side);
-            if (++tg_it == tg_end)
-                return nullptr; //finish
+            range.clear();
+            while (range.empty())
+            {
+                aim = *tg_it;
+                store.adjacencyPoints(range, aim, side);
+                if (++tg_it == tg_end)
+                    return nullptr; //finish
+            }
+            range.sort(ClosestPredicate(aim));
+            i_pt = 0;
         }
-        range.sort(ClosestPredicate(aim));
-        i_pt = 0;
+        for (const Record *pRec = range.front(); range.size() > 0; )
+        {
+            auto hash = ch(pRec->controls);
+            if (visited.count(hash) == 0)
+            {
+                visited.insert(hash);
+                range.pop_front();
+                ++i_pt;
+                tcout << "AFilter::req::aim=" << aim << i_pt << std::endl;
+                return pRec;
+            }
+            range.pop_front();
+        }
+        tcout << "AFilter::range.empty aim=" << aim << std::endl;
     }
-    const Record *pRec = range.front();
-    range.pop_front();
-    ++i_pt;
-    return pRec;
 }
 
 //------------------------------------------------------------------------------
