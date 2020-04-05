@@ -318,11 +318,6 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     // -----------------------------------------------------
     _complexity = 0;
     br::fill(_complex, 0);
-    //_gradient_points_complexity = 0;
-    //_gradient_wmeans_complexity = 0;
-    //_rundown_alldirs_complexity = 0;
-    //_rundown_maindir_complexity = 0;
-    //_wmean_complexity = 0;
     // -----------------------------------------------------
     size_t current = 0;
 #ifdef USE_REACH_STAT
@@ -337,13 +332,12 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         // ---------------------------------------------------
         CINFO(_T("current: ") << current << _T(" / ") << _target.coords().size());
         tcerr << _T("current: ") << current << _T(" / ") << _target.coords().size();
-        bool is_aim;
         // ---------------------------------------------------       
 #ifdef USE_REACH_STAT
-        _reached_by_admix[_reach_current] = { ComplexCounters{}, false };
-        _reached_by_admix[_reach_current].second = false;
+        _reached_by_admix[current] = { ComplexCounters{}, false };
 #endif 
-        // ---------------------------------------------------      
+        // ---------------------------------------------------  
+        bool is_aim = false;
         for (size_t tries = 0; tries <= _tries; ++tries)
         {
             Point aim;
@@ -384,9 +378,9 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         {
             tcerr << _T("  reached") << std::endl;
 #ifdef USE_REACH_STAT
-            _reached_by_admix[_reach_current].second = true;
+            _reached_by_admix[current].second = true;
 #endif
-            break;
+            //break;
         }
     } // for
     } // try
@@ -396,11 +390,11 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     { SHOW_CERROR(e.what()); }
     // -----------------------------------------------------
     CINFO(_T("\n") <<
-          _T("\n gradient_wmeans_complexity: ") << _complex[int(Admix::GradWMeans)] << // _gradient_wmeans_complexity <<
-          _T("\n gradient_points_complexity: ") << _complex[int(Admix::GradPoints)] << // _gradient_points_complexity <<
-          _T("\n   weighted_mean_complexity: ") << _complex[int(Admix::WeightMean)] << // _wmean_complexity << 
-          _T("\n rundown_alldirs_complexity: ") << _complex[int(Admix::AllRundown)] << // _rundown_alldirs_complexity <<
-          _T("\n rundown_maindir_complexity: ") << _complex[int(Admix::DirRundown)] << // _rundown_maindir_complexity <<
+          _T("\n gradient_wmeans_complexity: ") << _complex[int(Admix::GradWMeans)] <<
+          _T("\n gradient_points_complexity: ") << _complex[int(Admix::GradPoints)] <<
+          _T("\n   weighted_mean_complexity: ") << _complex[int(Admix::WeightMean)] <<
+          _T("\n rundown_alldirs_complexity: ") << _complex[int(Admix::AllRundown)] <<
+          _T("\n rundown_maindir_complexity: ") << _complex[int(Admix::DirRundown)] <<
           _T("\n") <<
           _T("\n   TOTAL Complexity: ") << complexity() <<
           _T("\n AVERAGE Complexity: ") << (static_cast<double>(complexity()) / (count_regular + count_random)) <<
@@ -416,6 +410,8 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     mid_hit_stat->print();
     mid_hit_stat1->print();
 #endif
+    // -----------------------------------------------------
+    tcerr << std::endl << _T("  Uncovered ") << uncovered.size() << _T("/") << _target.coords().size() << std::endl;
     //std::exit(1);
 }
 

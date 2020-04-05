@@ -25,9 +25,6 @@ void  testCover  (RoboMoves::Store&, Robo::RoboPhysics&);
 enum class Admix { GradWMeans, WeightMean, GradPoints, AllRundown, DirRundown, _AllAdmixes_ };
 
 //------------------------------------------------------------------------------
-
-
-
 /*!  Количество точек, в окресности искомой точки.
 *    Что я могу варьировать?
 *   
@@ -55,11 +52,6 @@ class LearnMoves
 
     /// Подсчёт сложности
     size_t _complexity = 0;
-    //size_t _gradient_points_complexity = 0;
-    //size_t _gradient_wmeans_complexity = 0;
-    //size_t _rundown_alldirs_complexity = 0;
-    //size_t _rundown_maindir_complexity = 0;
-    //size_t _wmean_complexity = 0;
     using ComplexCounters = std::array<size_t, int(Admix::_AllAdmixes_)>;
     ComplexCounters _complex{};
 
