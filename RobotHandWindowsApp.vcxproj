@@ -366,9 +366,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='HandTest-Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Robo\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Robo\Tank\;$(ProjectDir)Source\Utilities\;$(ProjectDir)libs\;$(IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
     <SourcePath>$(ProjectDir)Resource\;$(ProjectDir)Source\;$(ProjectDir)Source\Hand\;$(ProjectDir)Source\MyWindow\;$(ProjectDir)Source\Robo\;$(ProjectDir)Source\RoboDB\;$(ProjectDir)Source\RoboPos\;$(ProjectDir)Source\Tank\;$(ProjectDir)Source\Utilities\;$(VC_SourcePath)</SourcePath>
-    <ExecutablePath>$(VC_ExecutablePath_x64);$(WindowsSDK_ExecutablePath);$(VS_ExecutablePath);$(MSBuild_ExecutablePath);$(SystemRoot)\SysWow64;$(FxCopDir);$(PATH);</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

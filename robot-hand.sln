@@ -67,6 +67,7 @@ Global
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.Hand|x86.Build.0 = Hand|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|Any CPU.ActiveCfg = HandTest-Debug|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x64.ActiveCfg = HandTest-Debug|x64
+		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x64.Build.0 = HandTest-Debug|x64
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x86.ActiveCfg = HandTest-Debug|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTest-Debug|x86.Build.0 = HandTest-Debug|Win32
 		{31D13702-BE83-40A3-9194-4A05CE7CDB34}.HandTesting|Any CPU.ActiveCfg = HandTesting|Win32
