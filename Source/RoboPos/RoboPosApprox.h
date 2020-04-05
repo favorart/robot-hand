@@ -68,7 +68,7 @@ public:
     /// If predictor is configurated
     bool constructed() const { return _constructed; }
     /// Convert a raw controls of RoboI to an aligned row of doubles
-    Eigen::VectorXd convertToRow(const Robo::Control&) const;
+    Eigen::RowVectorXd convertToRow(const Robo::Control&) const;
     /// Apply aligned row in currect index
     void insert(const Robo::Control&, Point, size_t index);
     /// Free data
@@ -79,14 +79,14 @@ public:
     /// \return matrix, each row is a point (x,y)
     Eigen::MatrixXd predict(Eigen::MatrixXd&) const;
     /// Predict the end-point for an aligned row of doubles
-    Point predict(Eigen::VectorXd&) const;
+    Point predict(Eigen::RowVectorXd&) const;
     /// Predict the end-point for a raw control
     Point predict(const Robo::Control&) const;
 
     /// Exact interpolation by one more point
     bool  clarify(const Robo::Control&, Point);
     /// Exact interpolation by one more point converted
-    bool  clarify(const Eigen::VectorXd&, const Eigen::Vector2d&);
+    bool  clarify(const Eigen::RowVectorXd&, const Eigen::RowVector2d&);
 
     /// New sizes(rows and cols) of the internal matrices
     void  resize(size_t store_size, size_t max_n_controls);

@@ -68,12 +68,12 @@ void RoboPos::Approx::chg_params(Noize noize, Sizing sizing)
 
 
 //------------------------------------------------------------------------------
-VectorXd RoboPos::Approx::convertToRow(const Robo::Control &controls) const
+RowVectorXd RoboPos::Approx::convertToRow(const Robo::Control &controls) const
 {
     if (controls.size() > _max_n_controls)
         CERROR("convertToRow: controls " << controls.size() << " is too long " << _max_n_controls);
 
-    VectorXd res(_max_n_controls * Approx::control_size);
+    RowVectorXd res(_max_n_controls * Approx::control_size);
     res.fill(double(Robo::MInvalid));
 
     int j = 0;
@@ -233,7 +233,7 @@ Eigen::MatrixXd RoboPos::Approx::predict(Eigen::MatrixXd &X) const
 }
 
 //------------------------------------------------------------------------------
-Point RoboPos::Approx::predict(Eigen::VectorXd &v) const
+Point RoboPos::Approx::predict(Eigen::RowVectorXd &v) const
 {
     MatrixXd mX(1, v.size());
     mX << v;
@@ -247,7 +247,7 @@ Point RoboPos::Approx::predict(Eigen::VectorXd &v) const
 //------------------------------------------------------------------------------
 Point RoboPos::Approx::predict(const Robo::Control &controls) const
 {
-    VectorXd x = convertToRow(controls);
+    RowVectorXd x = convertToRow(controls);
     return predict(x);
 }
 
@@ -255,13 +255,13 @@ Point RoboPos::Approx::predict(const Robo::Control &controls) const
 //------------------------------------------------------------------------------
 bool RoboPos::Approx::clarify(const Robo::Control &controls, Point hit)
 {
-    VectorXd x = convertToRow(controls);
-    Vector2d y = { hit.x, hit.y };
+    RowVectorXd x = convertToRow(controls);
+    RowVector2d y = { hit.x, hit.y };
     return clarify(x, y);
 }
 
 //------------------------------------------------------------------------------
-bool RoboPos::Approx::clarify(const Eigen::VectorXd &x, const Eigen::Vector2d &y)
+bool RoboPos::Approx::clarify(const Eigen::RowVectorXd &x, const Eigen::RowVector2d &y)
 {
     /// ??? https://www.encyclopediaofmath.org/index.php/Sequential_approximation
     return false;
