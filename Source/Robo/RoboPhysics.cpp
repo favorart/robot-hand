@@ -368,13 +368,13 @@ void RoboPhysics::reset()
 RoboPhysics::RoboPhysics(const Point &base, const JointsInputsPtrs &joint_inputs, pEnvEdges edges) :
     RoboI(joint_inputs),
     status(std::make_shared<Status>(base, joint_inputs)),
-    env(std::make_shared<EnvPhyState>(base, joint_inputs, edges))
+    env(std::make_shared<EnvPhyState>(/*base,*/ joint_inputs, edges))
 {
     if (!ba::is_sorted(joint_inputs, [](const auto &a, const auto &b) { return (*a < *b); }))
         throw std::runtime_error("Joint Inputs are not sorted!");
 }
 //--------------------------------------------------------------------------------
-RoboPhysics::EnvPhyState::EnvPhyState(const Point &base, const JointsInputsPtrs &joint_inputs, pEnvEdges edges) :
+RoboPhysics::EnvPhyState::EnvPhyState(/*const Point &base,*/ const JointsInputsPtrs &joint_inputs, pEnvEdges edges) :
     edges(edges)
 {
     joint_t j = 0;
@@ -521,16 +521,16 @@ Point& RoboPhysics::currPos(joint_t j)
 { return status->currPos[(j > jointsCount()) ? jointsCount() : j]; }
 distance_t RoboPhysics::Imoment(joint_t j) const
 {
-    const auto mo = muscleByJoint(j, true);
-    const auto mc = muscleByJoint(j, false);
+    const auto m_o = muscleByJoint(j, true);
+    const auto m_c = muscleByJoint(j, false);
     // Добавить моменты инерции, для соседей
     // Когда "сочленение заблокировано"=(1,1) - то перемещается, как "монолит",
     // Иначе на него действуют смещения остальных сочленений
     distance_t Imoment = 0.;
     if (containE(getEnvCond(), ENV::MUTIAL_DYNAMICS) &&
         containE(getEnvCond(), ENV::MUTIAL_BLOCKING) && // actuators mutual blocking
-         !(status->shifts[mc] > RoboI::minFrameMove &&
-           fabs(status->shifts[mc] - status->shifts[mo]) < RoboI::minFrameMove))//)
+         !(status->shifts[m_c] > RoboI::minFrameMove &&
+           fabs(status->shifts[m_c] - status->shifts[m_o]) < RoboI::minFrameMove))//)
     {
         for (joint_t jj = j, gain = 4; jj > 0; --jj, gain <<= 1)
         {

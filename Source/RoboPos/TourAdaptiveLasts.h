@@ -77,18 +77,14 @@ public:
 
 inline void TourI::adaptiveAvgLasts(IN const Point &prev_pos, IN const Point &curr_pos,
                              IN const Robo::Actuator &control_i, IN OUT Robo::frames_t &lasts_step,
-                             IN bool target_contain, IN bool was_on_target, IN bool init)
+                             IN bool /*target_contain !!!*/, IN bool was_on_target, IN bool init)
 {
     distance_t d = bg::distance(prev_pos, curr_pos);
     //------------------------------------------
     if (_b_braking && d > _step_distance && lasts_step < 2)
     {
         //glob_lasts_step = lasts_step; /// REMOVE
-        joint_t joint = RoboI::jointByMuscle(control_i.muscle);
-        /* если нельзя сохранить одинаковый промежуток
-        * уменьшением длительность основного,
-        * подключаем торможение противоположным
-        */
+        /* если нельзя сохранить одинаковый промежуток уменьшением длительности основного мускула, подключаем торможение противоположным */
         appendBreakings(control_i.muscle);
     }
     else if (_b_braking && (d < _step_distance || !was_on_target) && _breakings_controls_actives > 0)

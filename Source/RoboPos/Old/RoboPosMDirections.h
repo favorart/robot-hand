@@ -44,9 +44,9 @@ public:
     friend RoboPos::MainDirections MainDirectionsFactory(IN Robo::RoboI&);
 #endif // MDIR_OLD
 
-    Robo::Control measure(const Point &aim) { return {}; }
-    Point predict(const Robo::Control &controls) { return {}; }
-    Point predict(Robo::muscle_t muscle, Robo::frames_t last) { return {}; }
-    friend RoboPos::MainDirections MainDirectionsFactory(IN Robo::RoboI&) { return {}; }
+    Robo::Control measure(const Point&) { return {}; }
+    Point predict(const Robo::Control&) { return {}; }
+    Point predict(Robo::muscle_t, Robo::frames_t) { return {}; }
+    friend RoboPos::MainDirections MainDirectionsFactory(Robo::RoboI&) { return {}; }
 };
 } // end namespace RoboPos

@@ -59,7 +59,7 @@ struct RoboPhysics::EnvPhyState
     JointFrames framesMove{}; ///< кадры при движении (дельта прироста)
     JointFrames framesStop{}; ///< кадры при остановке (дельта прироста)
 
-    EnvPhyState(const Point &base, const JointsInputsPtrs&, pEnvEdges);
+    EnvPhyState(/*const Point &base,*/ const JointsInputsPtrs&, pEnvEdges);
     void reset();
     frames_t nFramesAll(joint_t j) const { return (framesMove[j].size() + framesStop[j].size()); }
     frames_t nFramesMove(joint_t j) const { return framesMove[j].size(); }

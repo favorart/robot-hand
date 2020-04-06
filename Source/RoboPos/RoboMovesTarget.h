@@ -112,7 +112,7 @@ class PolyTarget : public TargetI
 public:
     using Poly = bg::model::polygon<Point>;
 
-    PolyTarget(const Poly &polygon, size_t n_rows, size_t n_cols, const Point &min, const Point &max)
+    PolyTarget(const Poly &polygon, size_t n_rows, size_t n_cols/*, const Point &min, const Point &max*/)
         : TargetI(polygon.outer()), _n_rows(n_rows), _n_cols(n_cols), _polygon(polygon)
     { generate(); }
     PolyTarget(tptree &root) :

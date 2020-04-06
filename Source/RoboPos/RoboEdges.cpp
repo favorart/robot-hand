@@ -37,7 +37,8 @@ void Robo::EnvEdgesTank::interaction(bool used, const Point &center, const Point
     const bool movesL = (tank_.status->musclesMove[Tank::LTrackFrw] > 0 || tank_.status->musclesMove[Tank::LTrackBck] > 0);
     const bool movesR = (tank_.status->musclesMove[Tank::RTrackFrw] > 0 || tank_.status->musclesMove[Tank::RTrackBck] > 0);
 
-    if (!(collision = isCollision((movesL || movesR), 0)))
+    collision = isCollision((movesL || movesR), 0);
+    if (!collision)
         return;
 
     if (fabs(tan_angle) > 0./*eps?*/)

@@ -8,7 +8,7 @@ using muscle_t = uint8_t;  ///< muscle index (no holes)
 //-------------------------------------------------------------------------------
 class RoboI;
 const muscle_t MInvalid = 0xFF;
-const frames_t LastsInfinity = -1;
+const frames_t LastsInfinity = std::numeric_limits<frames_t>::max(); //-1
 //-------------------------------------------------------------------------------
 struct Actuator final
 {
@@ -44,7 +44,7 @@ struct Actuator final
     friend tistream& operator>>(tistream&, Actuator&);
     //----------------------------------------------------
     template<class Archive>
-    void serialize(Archive &ar, unsigned version)
+    void serialize(Archive &ar, unsigned /*version*/)
     { ar & muscle & start & lasts; }
 
     bool intersect(const Robo::Actuator&) const;
@@ -72,7 +72,7 @@ protected:
     // ----------------------------------------
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive &ar, unsigned version)
+    void serialize(Archive &ar, unsigned /*version*/)
     { ar & actuals; for (auto &a : actuators) ar & a; }
     // ----------------------------------------
     std::string str() const { std::stringstream ss; stream(ss); return ss.str(); }

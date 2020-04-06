@@ -217,7 +217,7 @@ void PolyTarget::load(tptree &root)
     _n_rows = node.get<size_t>(_T("vn_aims"));
 
     auto &polygon = node.get_child(_T("polygon"));
-    for (tptree::value_type &v : node.get_child(_T("polygon")))
+    for (tptree::value_type &v : polygon)
     {
         Point p;
         p.load(v.second);

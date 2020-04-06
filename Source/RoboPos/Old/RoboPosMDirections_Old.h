@@ -36,7 +36,7 @@ public:
 #endif // MDIR_OLD
 
 public:
-    DirectionPredictor(IN Robo::RoboI &robo) {}
-    Point predict(IN Robo::Control controls) { return {}; }
+    DirectionPredictor(IN Robo::RoboI&) {}
+    Point predict(IN Robo::Control) { return {}; }
 };
 } // namespace RoboPos

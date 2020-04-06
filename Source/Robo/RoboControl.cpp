@@ -385,7 +385,7 @@ tistream& Robo::operator>>(tistream &s, Robo::Actuator &a)
       >> ConfirmInput(_T(",")) >> a.start
       >> ConfirmInput(_T(",")) >> a.lasts
       >> ConfirmInput(_T("}"));
-    a.muscle = m;
+    a.muscle = muscle_t(m);
     return s;
 }
 
@@ -394,7 +394,7 @@ tostream& Robo::operator<<(tostream &s, const Robo::Control &controls)
 {
     s << _T("c[");
     for (const Robo::Actuator &a : controls)
-        s << a << (((&a - &controls.actuators[0]) == (controls.actuals - 1)) ? _T("") : _T(","));
+        s << a << ((size_t(&a - &controls.actuators[0]) == (controls.actuals - 1)) ? _T("") : _T(","));
     s << _T("]");
     return s;
 }
@@ -421,7 +421,7 @@ std::ostream& Robo::Control::stream(std::ostream &s) const
     for (const auto &a : *this)
     {
         a.stream(s);
-        s << (((&a - &actuators[0]) == (actuals - 1)) ? "" : ",");
+        s << ((size_t(&a - &actuators[0]) == (actuals - 1)) ? "" : ",");
     }
     s << "]";
     return s;

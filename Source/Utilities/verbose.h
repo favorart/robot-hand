@@ -18,47 +18,47 @@ constexpr int LV_CALERT = 5;
                                      }
 #define _CWARNING_(LV,message,title) { if (LV_CLEVEL <= LV)                         \
                                        {                                            \
-                                           bfs::path p(__FILE__);                   \
-                                           tstring last_err = getLastErrorString(); \
+                                           bfs::path __path(__FILE__);              \
+                                           auto __last_err = getLastErrorString();  \
                                            tcout << __FUNCTION__ << _T("() ")       \
-                                                 << p.filename() << _T("@")         \
+                                                 << __path.filename() << _T("@")    \
                                                  << __LINE__ << _T(": ")            \
                                                  << std::endl << message            \
-                                                 << std::endl << last_err           \
+                                                 << std::endl << __last_err         \
                                                  << std::endl;                      \
                                            tcerr << __FUNCTION__ << _T("() ")       \
-                                                 << p.filename() << _T("@")         \
+                                                 << __path.filename() << _T("@")    \
                                                  << __LINE__ << _T(": ")            \
                                                  << std::endl << message            \
-                                                 << std::endl << last_err           \
+                                                 << std::endl << __last_err         \
                                                  << std::endl;                      \
                                                                                     \
-                                           if (LV >= LV_CERROR)                     \
+                                           if constexpr (LV >= LV_CERROR)           \
                                            {                                        \
-                                              tstringstream ss;                     \
-                                              ss << message  << std::endl           \
-                                                 << last_err << std::endl;          \
+                                              tstringstream __ss;                   \
+                                              __ss << message  << std::endl         \
+                                                   << __last_err << std::endl;      \
                                               MessageBox(NULL,                      \
-                                                         ss.str().c_str(),          \
+                                                         __ss.str().c_str(),        \
                                                          title,                     \
                                                          MB_OK | MB_ICONERROR);     \
                                               throw std::runtime_error("");         \
                                            }                                        \
                                        }                                            \
                                      }
-#define SHOW_CERROR(message)         { tstring msg = Utils::uni({ message });       \
-                                       if (msg.length() > 0)                        \
+#define SHOW_CERROR(message)         { tstring __msg = Utils::uni({ message });     \
+                                       if (__msg.length() > 0)                      \
                                        {                                            \
-                                           bfs::path p(__FILE__);                   \
+                                           bfs::path __path(__FILE__);              \
                                            tcout << __FUNCTION__ << _T("() ")       \
-                                                 << p.filename() << _T("@")         \
+                                                 << __path.filename() << _T("@")    \
                                                  << __LINE__ << _T(": ")            \
-                                                 << msg << std::endl;               \
+                                                 << __msg << std::endl;             \
                                            tcerr << __FUNCTION__ << _T("() ")       \
-                                                 << p.filename() << _T("@")         \
+                                                 << __path.filename() << _T("@")    \
                                                  << __LINE__ << _T(": ")            \
-                                                 << msg << std::endl;               \
-                                            MessageBox(NULL,msg.c_str(),_T("error"),\
+                                                 << __msg << std::endl;             \
+                                          MessageBox(NULL,__msg.c_str(),_T("error"),\
                                                        MB_OK | MB_ICONERROR);       \
                                         }                                           \
                                      }

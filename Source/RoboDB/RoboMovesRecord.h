@@ -46,7 +46,7 @@ class Record final
     Control control_{};
     Traj visited_{};
 
-    Strategy _strategy{-1}; ///< набор зайствованных мускулов в управлении
+    Strategy _strategy{ Robo::MInvalid }; ///< набор зайствованных мускулов в управлении
     Robo::frames_t _lasts_step{};
     mutable double _error_distance{0.};
     
@@ -58,14 +58,14 @@ class Record final
     friend class boost::serialization::access;
     BOOST_SERIALIZATION_SPLIT_MEMBER()
     template <class Archive>
-    void save(Archive &ar, unsigned version) const
+    void save(Archive &ar, unsigned /*version*/) const
     {
         ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
         //ar & _lasts_step & _strategy;
         ar &(_update_time - std::time(NULL)) & _update_traj & _error_distance;
     }
     template <class Archive>
-    void load(Archive &ar, unsigned version)
+    void load(Archive &ar, unsigned /*version*/)
     {
         ar & aim_ & move_begin_ & move_final_ & control_ & visited_;
         //ar & _lasts_step & _strategy;

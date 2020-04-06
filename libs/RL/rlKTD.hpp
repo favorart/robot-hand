@@ -635,7 +635,7 @@ public:
     }
 
 protected:
-    virtual double nextValue(const STATE& next_state, const ACTION& next_action, unsigned i) const
+    virtual double nextValue(const STATE& next_state, const ACTION& /*next_action*/, unsigned i) const
     {
         gsl_vector sigmaPoint = gsl_matrix_column(sigmaPointsSet, i).vector;
         return rl::max(std::bind(q, &sigmaPoint, next_state, std::placeholders::_1), a_begin, a_end);

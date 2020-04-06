@@ -12,7 +12,7 @@ using namespace Robo;
 using namespace Mobile;
 double betw;
 //--------------------------------------------------------------------------------
-frames_t Tank::muscleMaxLasts(const Control &control) const
+frames_t Tank::muscleMaxLasts(const Control &/*control*/) const
 {
     //frames_t last = 0U;
     //for (auto &c : control)
@@ -24,7 +24,7 @@ frames_t Tank::muscleMaxLasts(const Control &control) const
     //return last;
     return Robo::LastsInfinity;
 }
-frames_t Tank::muscleMaxLasts(muscle_t muscle) const
+frames_t Tank::muscleMaxLasts(muscle_t /*muscle*/) const
 {
     //return (physics.framesMove[jointByMuscle(muscle)].size() - 1);
     return Robo::LastsInfinity;
@@ -33,14 +33,14 @@ frames_t Tank::muscleMaxLasts(muscle_t muscle) const
 const Point& Tank::position() const
 { return status->currPos[Center]; }
 //--------------------------------------------------------------------------------
-Tank::Tank(const Point &base, const JointsInputsPtrs &joints) :
-    RoboPhysics(base, joints, std::make_shared<EnvEdgesTank>(*this, 10/*%*/, 1.5)),
-    params(joints, *this)
+Tank::Tank(const Point &base, const JointsInputsPtrs &joint_inputs) :
+    RoboPhysics(base, joint_inputs, std::make_shared<EnvEdgesTank>(*this, 10/*%*/, 1.5)),
+    params(joint_inputs, *this)
 {
     if (params.jointsUsed[0] != Joint::LTrack || params.jointsUsed[1] != Joint::RTrack)
         throw std::logic_error("Invalid tracks numeration");
-    if (!joints.size() || joints.size() > jointsCount())
-        throw std::logic_error("Incorrect joints count");
+    if (!joint_inputs.size() || joint_inputs.size() > jointsCount())
+        throw std::logic_error("Incorrect joint_inputs count");
     //reset();
     betw = boost_distance(currPos(LTrack), currPos(RTrack));
 }
@@ -54,14 +54,15 @@ Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
     musclesUsed.fill(Tank::Muscle::MInvalid);
     jointsUsed.fill(Tank::Joint::JInvalid);
 
+#ifdef _DEBUG
     const auto &front = *joint_inputs.front();
-    auto dMoveDistance = front.frames.dMoveDistance;
+    const double dMoveDistance = front.frames.dMoveDistance;
+    const frames_t nMoveFrames = front.frames.nMoveFrames;
+    const frames_t nStopFrames = static_cast<frames_t>(front.frames.nMoveFrames * front.frames.dInertiaRatio + 2);
+#endif
+
     assert(dMoveDistance > RoboI::minFrameMove);
-
-    auto nMoveFrames = front.frames.nMoveFrames;
     assert(nMoveFrames > 0);
-
-    frames_t nStopFrames = static_cast<frames_t>(front.frames.nMoveFrames * front.frames.dInertiaRatio + 2);
     assert(nStopFrames > 0);
 
     muscle_t m = 0;

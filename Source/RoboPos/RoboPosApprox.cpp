@@ -42,17 +42,17 @@ void RoboPos::Approx::resize(size_t store_size, size_t max_n_controls)
           " _mX=" << _mX.rows() << "x" << _mX.cols() <<
           " _mY=" << _mY.rows() << "x" << _mY.cols());
 
-    if (_mX.rows() != store_size || _mX.cols() != Approx::control_size * max_n_controls)
+    if (size_t(_mX.rows()) != store_size || size_t(_mX.cols()) != (Approx::control_size * max_n_controls))
         _mX.resize(store_size, Approx::control_size * max_n_controls);
-    if (_mY.rows() != store_size)
+    if (size_t(_mY.rows()) != store_size)
         _mY.resize(store_size, Approx::point_size);
-    if (_mQ.rows() != store_size)
+    if (size_t(_mQ.rows()) != store_size)
         _mQ.resize(store_size, Approx::point_size);
-    if (_vNorm.size() != store_size)
+    if (size_t(_vNorm.size()) != store_size)
         _vNorm.resize(store_size);
-    if (_vK.size() != store_size)
+    if (size_t(_vK.size()) != store_size)
         _vK.resize(store_size);
-    if (_nmX.rows() != Approx::control_size * max_n_controls || _nmX.cols() != store_size)
+    if (size_t(_nmX.rows()) != (Approx::control_size * max_n_controls) || size_t(_nmX.cols()) != store_size)
         _nmX.resize(Approx::control_size * max_n_controls, store_size);
     _constructed = false;
 }
@@ -78,8 +78,8 @@ RowVectorXd RoboPos::Approx::convertToRow(const Robo::Control &controls) const
 
     int j = 0;
     muscle_t m = 0;
-    frames_t prev_start = -1;
-    frames_t prev_lasts = -1;
+    frames_t prev_start = Robo::LastsInfinity; // -1;
+    frames_t prev_lasts = Robo::LastsInfinity; // -1;
     for (auto &a : controls)
     {
         // если границы движения совпадают у нескольких мускулов,
@@ -216,7 +216,7 @@ Eigen::MatrixXd RoboPos::Approx::predict(Eigen::MatrixXd &X) const
 {
     if (!_constructed)
         throw std::runtime_error{ "Approx does not constructed train data to predict"};
-    if (X.cols() != _max_n_controls * Approx::control_size)
+    if (size_t(X.cols()) != _max_n_controls * Approx::control_size)
         throw std::runtime_error{ "Invalid predict data" };
 
     //std::cout << "Norm= " << std::endl << _vNorm << std::endl;

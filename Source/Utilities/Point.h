@@ -95,7 +95,7 @@ private:
     /* serialization */
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive &ar, unsigned version) { ar & x_ & y_; }
+    void serialize(Archive &ar, unsigned /*version*/) { ar & x_ & y_; }
 }; // end class Point
 //-------------------------------------------------------------------------------
 inline Point rotate (const Point &p, const Point &center, Point::value_type angle)

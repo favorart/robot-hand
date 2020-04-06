@@ -133,7 +133,7 @@ public:
 	  return this;
 	}
     
-	void operator()(const gsl_vector* theta, const state_type& s, const action_type& a, gsl_vector * const yy) const
+	void operator()(const gsl_vector* /*theta*/, const state_type& s, const action_type& a, gsl_vector * const yy) const
     {
 	  phi(xx, s, a);
       assert(yy->size == xx->size);

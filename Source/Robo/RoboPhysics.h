@@ -81,7 +81,7 @@ public:
     void plotMotionLaws(const tstring &fn, joint_t joint) const;
 
 private:
-    static pRoboI make(const tstring &type, tptree &node){ throw std::logic_error("Depricated"); };
+    static pRoboI make(const tstring &/*type*/, tptree &/*node*/){ throw std::logic_error("Depricated"); };
 };
 }
 

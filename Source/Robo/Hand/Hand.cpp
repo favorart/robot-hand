@@ -81,15 +81,15 @@ void Hand::realMove()
     status->shifts.fill(0);
 }
 //--------------------------------------------------------------------------------
-Hand::Hand(const Point &base, const JointsInputsPtrs &joints) :
-    RoboPhysics(base, joints, std::make_shared<Robo::EnvEdgesHand>(*this, 20, 2)),
-    params(joints, *this)
+Hand::Hand(const Point &base, const JointsInputsPtrs &joint_inputs) :
+    RoboPhysics(base, joint_inputs, std::make_shared<Robo::EnvEdgesHand>(*this, 20, 2)),
+    params(joint_inputs, *this)
 {
-    if (!joints.size() || joints.size() > Hand::joints)
-        throw std::logic_error("Hand: Incorrect joints inputs size");
+    if (!joint_inputs.size() || joint_inputs.size() > Hand::joints)
+        throw std::logic_error("Hand: Incorrect joints_inputs size");
 }
 //--------------------------------------------------------------------------------
-Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
+Hand::Params::Params(const JointsInputsPtrs &joint_inputs, const Hand &hand) :
     drawPalm(false),
     palmRadius(0.05),
     jointRadius(0.03),
@@ -100,7 +100,7 @@ Hand::Params::Params(const JointsInputsPtrs &joints, const Hand &hand) :
 
     muscle_t m = 0;
     joint_t j = 0;
-    for (auto& j_in : joints)
+    for (auto& j_in : joint_inputs)
     {
         if (!j_in->show)
             continue;

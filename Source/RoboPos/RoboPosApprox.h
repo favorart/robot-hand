@@ -56,7 +56,7 @@ public:
     /// Calibrating factor (greater is more precise)
     static double sizing() { return 4.; }
     /// Шум - этот коэффициент сообщает, насколько можно доверять управлению с номером i
-    static double noize(size_t i = 0) { return 0.00000001; }
+    static double noize(size_t /*i*/ = 0) { return 0.00000001; }
 
     /// Construct from store
     Approx(size_t store_size, size_t max_n_controls, 

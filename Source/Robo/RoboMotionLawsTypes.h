@@ -24,7 +24,7 @@ class ContinuousAcceleration : public JointMoveLawI
      */
 public:
     ContinuousAcceleration() : JointMoveLawI(JointMoveLawI::Law::Move) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double) const override
     {
         IterVecDoubles iter = first;
         size_t n = (count - 1);
@@ -53,7 +53,7 @@ class ContinuousDeceleration : public JointMoveLawI
      */
 public:
     ContinuousDeceleration() : JointMoveLawI(JointMoveLawI::Law::Stop) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double max_velosity) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double max_velosity) const override
     {
         IterVecDoubles iter = first;
         size_t n = (count - 1);
@@ -90,7 +90,7 @@ class ContinuousAccelerationThenStabilization : public JointMoveLawI
      *  длина этой части задаётся параметром AccelerationLong ϵ [0.0, 1.0].
      *  Затем скорость движения руки стабилизируется до полного раскрытия ...
      */
-    double accelerationLong_;
+    double accelerationLong_{};
 public:
     // --------------------------------
     ContinuousAccelerationThenStabilization(double dStableRatio = 0.45)
@@ -100,7 +100,7 @@ public:
             throw std::logic_error{ "Invalid Hand law" };
         accelerationLong_ = 1. - dStableRatio;
     }
-    void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double) const override
     {
         IterVecDoubles iter = first;
         // --------------------------------
@@ -144,7 +144,7 @@ class ContinuousFastAcceleration : public JointMoveLawI
      */
 public:
     ContinuousFastAcceleration() : JointMoveLawI(JointMoveLawI::Law::Move) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double) const override
     {
         IterVecDoubles iter = first;
         size_t n = count;
@@ -168,7 +168,7 @@ class ContinuousSlowAcceleration : public JointMoveLawI
      */
 public:
     ContinuousSlowAcceleration() : JointMoveLawI(JointMoveLawI::Law::Move) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double) const override
     {
         IterVecDoubles iter = first;
         size_t n = count;
@@ -197,7 +197,7 @@ class PhisicalAcceleration // : public JointMoveLawI
     double  JountMass;     /* Масса сочленения */
     double  JountFriction; /* Трение в сочленении */
 public:
-    virtual void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    virtual void generate(IterVecDoubles /*first*/, size_t /*count*/, double /*left*/, double /*right*/, double) const /*override*/
     {}
 };
 
@@ -210,7 +210,7 @@ class PhisicalDeceleration // : public JointMoveLawI
     double InrtiaMoment;   /* Момент инерции */
 public:
     // template <typename ForwardIterator>
-    virtual void generate(IterVecDoubles first, size_t count, double left, double right, double max_velosity) const
+    virtual void generate(IterVecDoubles /*first*/, size_t /*count*/, double /*left*/, double /*right*/, double /*max_velosity*/) const /*override*/
     {}
 };
 
@@ -220,7 +220,7 @@ class MangoAcceleration : public JointMoveLawI
     tstring filename;
 public:
     MangoAcceleration(const tstring &filename) : JointMoveLawI(JointMoveLawI::Law::Move), filename(filename) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double) const override
     {
         std::vector<double> angles;
         inputAngles(filename, angles);
@@ -261,7 +261,7 @@ class MangoDeceleration : public JointMoveLawI
     tstring filename;
 public:
     MangoDeceleration(const tstring &filename) : JointMoveLawI(JointMoveLawI::Law::Stop), filename(filename) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double max_velosity) const
+    void generate(IterVecDoubles first, size_t count, double left, double right, double max_velosity) const override
     {
         std::vector<double> angles;
         inputAngles(filename, angles);
@@ -313,7 +313,7 @@ class ElbowMoveLaw : public JointMoveLawI
      */
 public:
     ElbowMoveLaw() : JointMoveLawI(JointMoveLawI::Law::Move) {}
-    void generate(IterVecDoubles first, size_t count, double left, double right, double) const
+    void generate(IterVecDoubles /*first*/, size_t /*count*/, double /*left*/, double /*right*/, double) const override
     {}
 };
 } // MotionLaws
