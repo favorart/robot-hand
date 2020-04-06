@@ -16,6 +16,7 @@
 using namespace Robo;
 using namespace RoboMoves;
 //-------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 bool repeatRoboMove(MyWindowData &wd);
 bool   makeRoboMove(MyWindowData &wd);
 //-------------------------------------------------------------------------------
@@ -85,6 +86,7 @@ void MyWindowData::TrajectoryFrames::clear()
 }
 //-------------------------------------------------------------------------------
 MyWindowData::Zoom MyWindowData::zoom = MyWindowData::Zoom::NONE;
+#endif //MY_WINDOW
 //-------------------------------------------------------------------------------
 MyWindowData::MyWindowData(const Utils::CArgs &args) :
     pStore(std::make_shared<RoboMoves::Store>()),
@@ -93,6 +95,7 @@ MyWindowData::MyWindowData(const Utils::CArgs &args) :
     read_config(pCArgs->config);
     currFileName = (pCArgs->database.size() > 0) ? pCArgs->database : getCurrFileName();
 
+#ifdef MY_WINDOW
     /* создаем ручки */
     canvas.hPen_grn  = CreatePen(PS_SOLID, 1, RGB(100, 180, 050));
     canvas.hPen_red  = CreatePen(PS_SOLID, 2, RGB(255, 000, 000));
@@ -106,9 +109,11 @@ MyWindowData::MyWindowData(const Utils::CArgs &args) :
     canvas.hBrush_back = CreateSolidBrush(RGB(235, 235, 255));
     /* background color = RGB (255,204,238) */
     canvas.pLetters = std::make_shared<CanvasScaleLetters>(pTarget->min(), pTarget->max());
+#endif //MY_WINDOW
 }
 MyWindowData::~MyWindowData()
 {
+#ifdef MY_WINDOW
     //=======================
     /* очищаем ручку */
     DeleteObject(canvas.hPen_grn);
@@ -123,6 +128,7 @@ MyWindowData::~MyWindowData()
 
     DeleteDC(canvas.hStaticDC);
     DeleteObject(canvas.hStaticBitmap);
+#endif //MY_WINDOW
     //=======================    
     if (pWorkerThread)
     {
@@ -163,9 +169,45 @@ void MyWindowData::reinitRobo(/*Robo::pRoboI pRobo*/)
     pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config);
 }
 //-------------------------------------------------------------------------------
+bool  WorkerThreadTryJoin(MyWindowData &wd)
+{
+    if (wd.pWorkerThread && wd.pWorkerThread->try_join_for(boost::chrono::milliseconds(10)))
+    {
+        /* joined */
+        wd.pWorkerThread.reset();
+        wd.pWorkerThread = nullptr;
+
+        wd.testing = false;
+#ifdef MY_WINDOW
+        wd.canvas.hDynamicBitmapChanged = true;
+        /* Set text of label 'Stat'  */
+        SendMessage(wd.canvas.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(_T(" Done  ")));
+#endif //MY_WINDOW
+        return true;
+    }
+    return false;
+}
+//-------------------------------------------------------------------------------
+tostream& operator<<(tostream& s, const Robo::StateTrajectory &t)
+{
+    s << "[ ";
+    const size_t indent = 3;
+    for (size_t i = 0; i < t.size(); ++i)
+    {
+        if (i < indent)
+            s << t[i].spec() << " , ";
+        else if (i == indent)
+            s << "... , ";
+        else if ((t.size() - i) < indent)
+            s << t[i].spec() << " , ";
+    }
+    s << " ]";
+    return s;
+}
+//-------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 RoboMoves::Store::GetHPen makeGrad(CGradient cg, GradPens &gradPens)
 {
-    std::srand(unsigned(std::time(NULL)));
     switch (cg)
     {
     case CGradient::Longz:
@@ -279,24 +321,6 @@ void  onPainDynamicFigures(HDC hdc, MyWindowData &wd)
         drawCircle(hdc, wd.mouse.aim, wd.search.radius, wd.canvas.hPen_cian);
 }
 //-------------------------------------------------------------------------------
-bool  WorkerThreadTryJoin(MyWindowData &wd)
-{
-    if (wd.pWorkerThread && wd.pWorkerThread->try_join_for(boost::chrono::milliseconds(10)))
-    {
-        /* joined */
-        wd.pWorkerThread.reset();
-        wd.pWorkerThread = nullptr;
-
-        wd.testing = false;
-        wd.canvas.hDynamicBitmapChanged = true;
-
-        /* Set text of label 'Stat'  */
-        SendMessage(wd.canvas.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(_T(" Done  ")));
-        return true;
-    }
-    return false;
-}
-//-------------------------------------------------------------------------------
 void  onShowDBPoints(MyWindowData &wd)
 {
   if ( !wd.testing )
@@ -335,23 +359,6 @@ void  onWindowTimer(MyWindowData &wd)
         for(auto i = 0u; i < 1/*wd.pRobo->getVisitedRarity()*/; ++i)
             wd.pRobo->step();
     }
-}
-//-------------------------------------------------------------------------------
-tostream& operator<<(tostream& s, const Robo::StateTrajectory &t)
-{
-    s << "[ ";
-    const size_t indent = 3;
-    for (size_t i = 0; i < t.size(); ++i)
-    {
-        if (i < indent)
-            s << t[i].spec() << " , ";
-        else if (i == indent)
-            s << "... , ";
-        else if ((t.size() - i) < indent)
-            s << t[i].spec() << " , ";
-    }
-    s << " ]";
-    return s;
 }
 //-------------------------------------------------------------------------------
 bool  repeatRoboMove(MyWindowData &wd)
@@ -393,6 +400,7 @@ bool  repeatRoboMove(MyWindowData &wd)
     // -------------------------------------------------
     return true;
 }
+//-------------------------------------------------------------------------------
 bool  makeRoboMove(MyWindowData &wd)
 {
     wd.trajFrames.clear();
@@ -435,6 +443,7 @@ bool  makeRoboMove(MyWindowData &wd)
     // -------------------------------------------------
     return true;
 }
+#endif //MY_WINDOW
 //-------------------------------------------------------------------------------
 using namespace NewHand;
 using namespace Mobile;
@@ -493,8 +502,10 @@ void MyWindowData::read_config(IN const tstring &filename)
         std::exit(1);
     }
 }
+//-------------------------------------------------------------------------------
 void MyWindowData::read_canvas(tptree &root)
 {
+#ifdef MY_WINDOW
     auto node = root.get_child(_T("canvas"));
     canvas.radiusDB = node.get_optional<double>(_T("radiusDB")).get_value_or(0.01);
     canvas.radiusDBzoom = node.get_optional<double>(_T("radiusDBzoom")).get_value_or(0.000);
@@ -506,9 +517,12 @@ void MyWindowData::read_canvas(tptree &root)
 
     trajFrames.setAnim(node.get_optional<bool>(_T("animation")).get_value_or(true));
     trajFrames.setSkipShowFrames(node.get_optional<frames_t>(_T("skipShowFrames")).get_value_or(15));
+#endif //MY_WINDOW
 }
+//-------------------------------------------------------------------------------
 void MyWindowData::write_canvas(tptree &root) const
 {
+#ifdef MY_WINDOW
     tptree node;
     node.put(_T("radiusDB"), canvas.radiusDB);
     node.put(_T("radiusDBzoom"), canvas.radiusDBzoom);
@@ -519,7 +533,9 @@ void MyWindowData::write_canvas(tptree &root) const
     node.put(_T("animation"), trajFrames.animation());
     node.put(_T("skipShowFrames"), trajFrames.skipShowFrames());
     root.put_child(_T("canvas"), node);
+#endif //MY_WINDOW
 }
+//-------------------------------------------------------------------------------
 #include "RoboPosTour.h"
 void MyWindowData::write_config(IN const tstring &filename) const
 {

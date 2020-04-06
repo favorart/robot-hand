@@ -1,6 +1,7 @@
 ﻿#include "WindowDraw.h"
 #include <random>
 
+#ifdef MY_WINDOW
 const HPEN defaultPen = (HPEN)GetStockObject(BLACK_PEN);
 //------------------------------------------------------------------------------
 void  drawDecardsCoordinates(HDC hdc)
@@ -374,7 +375,7 @@ void GradPens::setColors(color_interval_t colors, size_t gradations)
 HPEN GradPens::operator()(Robo::frames_t longz) const
 {
     int i = 0;
-    CDEBUG("longz=" << longz);
+    //CDEBUG("longz=" << longz);
     if (longz > _maxLasts)
     {
         //throw std::runtime_error("");
@@ -390,3 +391,5 @@ HPEN GradPens::operator()(Robo::frames_t longz) const
     }
     return _gradientPens[i];
 }
+
+#endif //MY_WINDOW

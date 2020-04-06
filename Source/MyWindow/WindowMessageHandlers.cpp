@@ -16,6 +16,7 @@ using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 static Point windowCenter{ 0., 0. };
 static double currWheelSize = 0.;
 
@@ -616,7 +617,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 1 ***  "),
-                            [](LearnMoves &lm) { lm.STAGE_1(); }
+                            [](LearnMoves &lm) { init_thread_rand_seed(); lm.STAGE_1(); }
                             , std::ref(*wd.pLM));
         if (WorkerThreadTryJoin(wd))
             InvalidateRect(hWnd, &myRect, TRUE);
@@ -628,7 +629,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 2 ***  "),
-                            [](LearnMoves &lm) { lm.STAGE_2(); },
+                            [](LearnMoves &lm) { init_thread_rand_seed(); lm.STAGE_2(); },
                             std::ref(*wd.pLM));
         if (WorkerThreadTryJoin(wd))
             InvalidateRect(hWnd, &myRect, TRUE);
@@ -641,6 +642,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
         //========================================
         WorkerThreadRunTask(wd, _T(" *** STAGE 3 ***  "),
                             [](LearnMoves &lm, Trajectory &uncovered) {
+            init_thread_rand_seed();
             try
             { lm.STAGE_3(uncovered); }
             catch (boost::thread_interrupted&)
@@ -793,12 +795,12 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
             wd.canvas.hDynamicBitmapChanged = true;
 
             WorkerThreadRunTask(wd, _T("\n *** RL test ***  "),
-                                rl_problem::startRL,
-                                std::ref(*wd.pRobo),
+                                RoboPos::testRL,
                                 std::ref(*wd.pStore),
+                                std::ref(*wd.pRobo),
                                 std::ref(*wd.pTarget),
                                 std::ref(wd.canvas.testingTrajsList));
-            //rl_problem::RoboRL(*wd.pRobo, *wd.pStore, *wd.pTarget, wd.canvas.testingTrajsList);
+            //RoboPos::RoboRL(*wd.pStore, *wd.pRobo, *wd.pTarget, wd.canvas.testingTrajsList);
             if (WorkerThreadTryJoin(wd))
                 InvalidateRect(hWnd, &myRect, TRUE);
         }
@@ -810,6 +812,7 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     {
         //----------------------------------------
         WorkerThreadRunTask(wd, _T("  *** testAll ***  "), [](MyWindowData &wd) {
+            init_thread_rand_seed();
             try
             {
                 //----------------------------------------
@@ -1064,3 +1067,4 @@ tstring   getWindowTitleString (HWND hWnd)
   return tstring(buffer.begin(), buffer.end() - 1);
 }
 //-------------------------------------------------------------------------------
+#endif //MY_WINDOW

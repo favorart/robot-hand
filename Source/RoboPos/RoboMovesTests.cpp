@@ -7,13 +7,18 @@ using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
+void init_thread_rand_seed()
+{
+    std::srand(112); /// (unsigned int)clock());
+}
+
+//------------------------------------------------------------------------------
 void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
 {
+    init_thread_rand_seed();
+    //-------------------------------
     try
     {
-        /* Для нового потока нужно снова переинициализировать rand */
-        std::srand((unsigned)clock());
-        //-------------------------------
         robo.reset();
         Point pos_base = robo.position();
         //-------------------------------
@@ -48,6 +53,8 @@ void RoboPos::testRandom(Store &store, RoboI &robo, size_t tries)
 //------------------------------------------------------------------------------
 void RoboPos::testCover(Store &store, RoboPhysics &robo)
 {
+    init_thread_rand_seed();
+    //-------------------------------
     const frames_t lasts_min = 50U;
     const frames_t lasts_step = 10U;
 
@@ -136,13 +143,15 @@ void RoboPos::testCover(Store &store, RoboPhysics &robo)
 //------------------------------------------------------------------------------
 void RoboPos::testApprox(Store &store, RoboI &robo)
 {
+    init_thread_rand_seed();
+    //-------------------------------
     try
     {
-        for (int i = 1; i < 20; ++i)
+        for (int sizing = 1; sizing < 20; ++sizing)
         {
-            CDEBUG(i << _T(" approx sizing=") << i * 2);
+            CDEBUG(sizing << _T(" approx sizing=") << sizing * 2);
 
-            Approx approx(store.size(), 8, Approx::noize, [i]() { return i * 2; });
+            Approx approx(store.size(), 8, Approx::noize, [sizing]() { return sizing * 2; });
             approx.constructXY(store.begin(), store.end());
             //tcout << _T("writing") << std::endl;
             {
@@ -165,7 +174,8 @@ void RoboPos::testApprox(Store &store, RoboI &robo)
                 //std::cout << std::endl << "sum_error=" << sum_error / store.size() << std::endl;
                 CDEBUG(std::endl << "sum_error=" << sum_error / store.size());
 
-                for (auto i = 0; i < 1000; ++i)
+                const int iterations = 1000;
+                for (auto i = 0; i < iterations; ++i)
                 {
                     Control c;
                     c.fillRandom(robo.musclesCount(), [&robo](muscle_t m) { return robo.muscleMaxLasts(m); });
@@ -180,9 +190,9 @@ void RoboPos::testApprox(Store &store, RoboI &robo)
                     //ofs << pred << " " << robo.position() << " " << err << std::endl;
                     sum_error += err;
                 }
-                //ofs << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
-                //std::cout << std::endl << "sum_error=" << sum_error / 1000 << std::endl;
-                CDEBUG(std::endl << "sum_error=" << sum_error / 1000);
+                //ofs << std::endl << "sum_error=" << sum_error / iterations << std::endl;
+                //std::cout << std::endl << "sum_error=" << sum_error / iterations << std::endl;
+                CDEBUG(std::endl << "sum_error=" << sum_error / iterations);
             }
         }
     }
@@ -193,4 +203,18 @@ void RoboPos::testApprox(Store &store, RoboI &robo)
 }
 
 //------------------------------------------------------------------------------
-
+void RoboPos::testRL(Store &store, RoboI &robo, TargetI &target, Robo::StateTrajectories &show_trajs)
+{
+    //init_thread_rand_seed(); // used std::random_device
+    //-------------------------------
+    try
+    {
+        //----------------------------------------
+        RoboRL(store, robo, target, show_trajs);
+        //----------------------------------------
+    }
+    catch (boost::thread_interrupted&)
+    { CINFO("WorkingThread interrupted"); }
+    catch (const std::exception &e)
+    { SHOW_CERROR(e.what()); }
+}

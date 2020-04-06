@@ -1,20 +1,20 @@
 ﻿#include "StdAfx.h"
 
+#ifdef WIN32
 #include <shellapi.h>
 #include <fcntl.h>
 #include <io.h>
-
 
 //-------------------------------------------------------------------------------
 #if defined(UNICODE) || defined(_UNICODE)
 #define tfdopen _wfdopen
 #define _O_TTEXT _O_WTEXT
 #define CommandLineToArgvT CommandLineToArgvW
-#else
+#else //!UNICODE
 #define tfdopen _fdopen
 #define _O_TTEXT _O_TEXT
 #define CommandLineToArgvT CommandLineToArgvA
-#endif
+#endif //!UNICODE
 //-------------------------------------------------------------------------------
 void redirectConsoleIO()
 {
@@ -67,6 +67,8 @@ void redirectConsoleIO()
     _tprintf(_T("redirected..\n"));
     //fflush(stdout);
 }
+#endif //WIN32
+
 //-------------------------------------------------------------------------------
 #include "Utils.h"
 #include <boost/program_options.hpp>
@@ -77,20 +79,25 @@ using po_tparser = po::basic_command_line_parser<TCHAR>;
 using po_tparsed_options = po::wparsed_options;
 
 #define po_tvalue po::wvalue
-#else
+#else //!UNICODE
 using po_tparser = po::basic_command_line_parser<TCHAR>;
 using po_tparsed_options = po::parsed_options;
 
 #define po_tvalue po::value
-#endif
+#endif //!UNICODE
 
 //-------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 void getConsoleArguments(Utils::CArgs &args)
+#else //!MY_WINDOW
+void getConsoleArguments(const int argc, const TCHAR **argv, Utils::CArgs &args)
+#endif //!MY_WINDOW
 {
-    int argc;
-    LPTSTR *lpArgv = CommandLineToArgvT(GetCommandLine(), &argc);
+#ifdef MY_WINDOW
+    int argc = 0;
+    LPTSTR *argv /*lpArgv*/ = CommandLineToArgvT(GetCommandLine(), &argc);
     // wcstombs ( wstring --> string )
-    
+#endif //MY_WINDOW
     {
         po::options_description desc("Global params:");
         desc.add_options()
@@ -105,7 +112,7 @@ void getConsoleArguments(Utils::CArgs &args)
         po::variables_map vm; // здесь будут значения артументов, если не указать контейнер в po::value
         try
         {
-            po_tparser parser(argc, lpArgv);
+            po_tparser parser(argc, argv);
             parser.options(desc);
             parser.style(po::command_line_style::default_style);
             po_tparsed_options parsedOptions = parser.run();
@@ -122,6 +129,8 @@ void getConsoleArguments(Utils::CArgs &args)
             tcout << lines << std::endl;
         }
     }
-    LocalFree(lpArgv);
+#ifdef MY_WINDOW
+    LocalFree(argv);
+#endif //MY_WINDOW
 }
 //-------------------------------------------------------------------------------

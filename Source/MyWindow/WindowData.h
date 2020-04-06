@@ -22,6 +22,7 @@ struct CArgs;
 //-------------------------------------------------------------------------------
 struct MyWindowData final
 {
+#ifdef MY_WINDOW
     struct MouseHandler
     {
         bool   click{ false }; ///< был ли клик в этот фрэйм в рабочей области окна
@@ -94,6 +95,7 @@ struct MyWindowData final
         void step(RoboMoves::Store&, Robo::RoboI&);
     };
     TrajectoryFrames trajFrames{}; ///< show frames trajectory
+#endif //MY_WINDOW
     // ---------------------------------
     bool testing = false;
     std::shared_ptr<boost::thread> pWorkerThread{};
@@ -140,7 +142,9 @@ struct MyWindowData final
     // ---------------------------------
     void reinitRobo(/*Robo::pRoboI*/);
 };
-//-------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------        
+void init_thread_rand_seed(); /* Для нового потока нужно снова переинициализировать rand */
+//-------------------------------------------------------------------------------    
 template<typename Function, typename... Args>
 void  WorkerThreadRunTask (MyWindowData &wd, const tstring &message, Function task, Args... args)
 {
@@ -162,6 +166,7 @@ void  WorkerThreadRunTask (MyWindowData &wd, const tstring &message, Function ta
 }
 bool  WorkerThreadTryJoin (MyWindowData &wd);
 //-------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 void  onPaintStaticBckGrnd (HDC hdc, MyWindowData &wd);
 void  onPaintStaticFigures (HDC hdc, MyWindowData &wd);
 void  onPainDynamicFigures (HDC hdc, MyWindowData &wd);
@@ -175,4 +180,7 @@ void  onShowDBTrajes (MyWindowData &wd);
 bool  repeatRoboMove(MyWindowData &wd);
 bool  makeRoboMove(MyWindowData &wd);
 //-------------------------------------------------------------------------------
+#endif //MY_WINDOW
+
 #endif // _WINDOW_DATA_H_
+

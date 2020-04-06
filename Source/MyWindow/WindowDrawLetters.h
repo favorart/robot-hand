@@ -3,6 +3,8 @@
 
 #ifndef  _DRAW_LETTERS_H_
 #define  _DRAW_LETTERS_H_
+
+#ifdef MY_WINDOW
 //------------------------------------------------------------------------------
 class CanvasScaleLetters
 {
@@ -33,4 +35,6 @@ public:
     void draw(HDC hdc, const Point *jointsCoords, int jointsN, bool centerCoords = false);
 };
 //------------------------------------------------------------------------------
+#endif //MY_WINDOW
+
 #endif // _DRAW_LETTERS_H_

@@ -4,6 +4,7 @@
 #include "RoboMovesStore.h"
 #include "RoboMovesTarget.h"
 
+#ifdef MY_WINDOW
 //------------------------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
 {
@@ -158,3 +159,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
   return DefWindowProc(hWnd, messg, wParam, lParam);
 }
 //------------------------------------------------------------------------------
+#endif //MY_WINDOW

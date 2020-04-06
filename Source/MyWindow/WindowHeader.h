@@ -2,8 +2,25 @@
 
 #ifndef  _WINDOW_H_
 #define  _WINDOW_H_
+//--------------------------------------------------------------------------------
+namespace Utils {
+struct CArgs;
+}
 
+#ifdef MY_WINDOW
+#ifdef WIN32
 #include <commdlg.h>
+void  redirectConsoleIO();
+#endif //WIN32
+
+void  getConsoleArguments(Utils::CArgs&);
+#else //!MY_WINDOW
+void getConsoleArguments(const int argc, const TCHAR **argv, Utils::CArgs &args);
+#endif //!MY_WINDOW
+//-------------------------------------------------------------------------------
+tstring getCurrentTimeString(tstring format, std::time_t *the_time = NULL);
+//-------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 //--------------------------------------------------------------------------------
 constexpr LONG  myMARGIN = 10L;
 constexpr LONG  myWIDTH  = 950L;
@@ -55,14 +72,7 @@ enum class CGradient { None, Longz, Dense, Strats, _Last_ };
 tstring OpenFileDialog(HWND hWnd);
 tstring SaveFileDialog(HWND hWnd);
 
-tstring getCurrentTimeString (tstring format, std::time_t *the_time=NULL);
 tstring getWindowTitleString (HWND hWnd);
-//-------------------------------------------------------------------------------
-namespace Utils {
-struct CArgs;
-}
-void  getConsoleArguments(Utils::CArgs&);
-void  redirectConsoleIO ();
 //-------------------------------------------------------------------------------
 struct MyWindowData;
 
@@ -103,5 +113,6 @@ inline bool inside(PRECT rect, PPOINT pt)
              pt->y > rect->top  && pt->y < rect->bottom);
 }
 //-------------------------------------------------------------------------------
+#endif //MY_WINDOW
 
 #endif // _WINDOW_H_

@@ -21,6 +21,8 @@ class TourI;
 void  testApprox (RoboMoves::Store&, Robo::RoboI&);
 void  testRandom (RoboMoves::Store&, Robo::RoboI&, size_t tries);
 void  testCover  (RoboMoves::Store&, Robo::RoboPhysics&);
+void  testRL     (RoboMoves::Store&, Robo::RoboI&, TargetI&, Robo::StateTrajectories&);
+void  RoboRL     (RoboMoves::Store&, Robo::RoboI&, TargetI&, Robo::StateTrajectories&);
 //------------------------------------------------------------------------------
 enum class Admix { GradWMeans, WeightMean, GradPoints, AllRundown, DirRundown, _AllAdmixes_ };
 

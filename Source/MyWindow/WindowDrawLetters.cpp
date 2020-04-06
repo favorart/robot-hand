@@ -1,6 +1,8 @@
 ﻿#include "stdafx.h"
 #include "WindowHeader.h"
 #include "WindowDrawLetters.h"
+
+#ifdef MY_WINDOW
 //------------------------------------------------------------------------------
 CanvasScaleLetters::CanvasScaleLetters (const Point &targetMin, const Point &targetMax) :
   show(false), targetMin_(targetMin), targetMax_(targetMax)
@@ -116,3 +118,4 @@ void CanvasScaleLetters::draw(HDC hdc, const Point *jointsPoses, int jointsN, bo
     SelectObject(hdc, oldFont);
 }
 //------------------------------------------------------------------------------
+#endif //MY_WINDOW

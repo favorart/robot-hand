@@ -6,6 +6,7 @@
 #include "WindowHeader.h"
 #include "Robo.h"
 //------------------------------------------------------------------------------
+#ifdef MY_WINDOW
 void drawDecardsCoordinates(HDC hdc);
 void drawCoordinates(HDC hdc, bool show_marks);
 
@@ -77,4 +78,6 @@ public:
     }
 };
 //------------------------------------------------------------------------------
+#endif //MY_WINDOW
+
 #endif // _DRAW_H_

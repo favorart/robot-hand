@@ -443,7 +443,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     lm.STAGE_2();
     printStat2(store, *pRobo);
 #else //TEST_DEBUG
-    if (!isFileExists(_T("test-store.txt")))
+    if (!bfs::exists(_T("test-store.txt"))) //isFileExists
     {
         CINFO("STAGE 1...");
         lm.STAGE_1();

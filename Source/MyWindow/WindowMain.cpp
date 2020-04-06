@@ -1,9 +1,9 @@
 ﻿#include "StdAfx.h"
-#ifdef MY_WINDOW
 #include "WindowHeader.h"
 #include "WindowData.h"
 
 
+#ifdef MY_WINDOW
 int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   HWND      hWnd;
@@ -39,7 +39,7 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   // Получаем параметры командной строки
   getConsoleArguments(args);
   //=======================
-  std::srand(112); /// (unsigned int)clock());
+  init_thread_rand_seed();
   //=======================
   // Инициализируем пользовательские данные
   MyWindowData wd(args);
@@ -72,25 +72,28 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
   return int(lpMsg.wParam);
 }
 
-#else // !MY_WINDOW
+#else //!MY_WINDOW
 
 #include "Test/Test.h"
 
-int main(int argc, char **argv)
+int main(const int argc, const TCHAR **argv)
 {
     Utils::CArgs args;
-    getConsoleArguments(args);
+    getConsoleArguments(argc, argv, args);
     //=======================
-    std::srand(112); /// (unsigned int)clock());
+    init_thread_rand_seed();
     //=======================
     try
     {
         MyWindowData wd(args);
-        test::Test tests(wd._tests_fn);
+        test::Test tests(wd.pCArgs->testsfile, wd.pCArgs->testname);
     }
     catch (std::exception &e)
-    { CERROR_SHOW(e.what()); }
+    {
+        SHOW_CERROR(e.what());
+        return 1;
+    }
     return 0;
 }
 
-#endif // !MY_WINDOW
+#endif //!MY_WINDOW
