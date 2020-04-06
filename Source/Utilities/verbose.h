@@ -12,10 +12,8 @@ constexpr int LV_CALERT = 5;
 //-------------------------------------------------------------------------------
 #define _CVERBOSE_(LV,message)       { if (LV_CLEVEL <= LV)                         \
                                        {                                            \
-                                           bfs::path p(__FILE__);                   \
-                                           tcout << p.filename() << _T("@")         \
-                                                 << __LINE__ << _T(": ") << message \
-                                                 << std::endl;                      \
+                                           tcout << __FUNCTION__ << _T("(): ")      \
+                                                 << message << std::endl;           \
                                        }                                            \
                                      }
 #define _CWARNING_(LV,message,title) { if (LV_CLEVEL <= LV)                         \

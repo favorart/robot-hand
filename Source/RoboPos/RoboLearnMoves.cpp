@@ -80,6 +80,9 @@ RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo
     mid_hit_stat  = new LearnMoves::MidHitStat();
     mid_hit_stat1 = new LearnMoves::MidHitStat();
 #endif
+#ifdef USE_REACH_STAT
+    _reached_by_admix.resize(_target.n_coords());
+#endif
 }
 
 //------------------------------------------------------------------------------
