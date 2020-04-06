@@ -47,7 +47,10 @@ class LearnMoves final
     const std::shared_ptr<RoboMoves::Store> _store;
     /*const*/ tptree _config{};
 
-    // robo: actionRobo, robo.m_opposite, for Tour, ...
+    // using robo: 
+    //   1. actionRobo: (1-call reset-move-position-trajectory), 
+    //   2. Gradient:   (2-calls m_opposite), 
+    //   3. Tour:       (1-call reset-move-position and many-calls njoints, nmuscles, muscleMaxLasts, step-position) ...
     /*const*/ std::shared_ptr<Robo::RoboI> _robo;
     const Robo::joint_t robo_njoints{};
     const Robo::muscle_t robo_nmuscles{};
@@ -172,7 +175,8 @@ public:
                //IN const Point &robo_base_pos, IN Robo::joint_t robo_njoints, IN Robo::muscle_t robo_nmuscles,
                const TargetI *target, IN const tstring &fn_config);
     ~LearnMoves();
-    void reinitRobo(Robo::RoboI *robo) { _robo.reset(robo); _robo->reset(); }
+    //---------------------------------------------
+    void reinitRobo(Robo::RoboI *robo) { _robo.reset(robo, [](Robo::RoboI*) {}); _robo->reset(); }
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
     //---------------------------------------------

@@ -80,9 +80,9 @@ void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN co
     //mid_hit /= static_cast<distance_t>(range.size());
     //// -----------------------------------------------
     ////CDEBUG("weightedMeanControls start");
-    //std::vector<double> lasts(_robo->musclesCount(), 0.);
-    //std::vector<double> starts(_robo->musclesCount(), 0.);
-    //muscle_t m_max = 0, m_min = _robo->musclesCount();
+    //std::vector<double> lasts(robo_nmuscles, 0.);
+    //std::vector<double> starts(robo_nmuscles, 0.);
+    //muscle_t m_max = 0, m_min = robo_nmuscles;
     //// -----------------------------------------------
     //for (auto &pRec : range)
     //    for (auto &c : pRec->controls)
@@ -103,7 +103,7 @@ void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN co
     ////CDEBUG(controls);
     //// ----------------------------------------------
     ///* controls check for correctness: opposite muscles work time */
-    //controls.validated(_robo->musclesCount());
+    //controls.validated(robo_nmuscles);
     ////CDEBUG("weightedMeanControls end");
 }
 
@@ -142,7 +142,7 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
 #else
         Control controls;
         std::vector<Actuator> v;
-        layout_controls(v, controls, _robo->musclesCount());
+        layout_controls(v, controls, robo_nmuscles);
         weightedMeanControlsOrdered(aim, range, v, mid_hit);
 #endif
         range.clear();

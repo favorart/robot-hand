@@ -321,7 +321,7 @@ bool LearnMoves::rundownNextControl(IN OUT Robo::Control  &controls,
     }
     if (!controls.validate(robo_nmuscles))
         tcout << std::endl;
-    //controls.order(_robo->musclesCount());
+    //controls.order(robo_nmuscles);
     return one_more;
 }
 
