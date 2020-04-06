@@ -295,14 +295,50 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
     }
 #else  //MTREE
     auto query = _mtree->get_nearest(aim);
-    const Record *rec = query.begin()->data;
-    if (rec)
+    if (query.begin() != query.end())
     {
+        const Record *rec = query.begin()->data;
         CDEBUG(" aim=" << aim << " PU=" << rec->hit << " d=" << bg::distance(rec->hit, aim));
         return *rec;
     }
     return Record{};
 #endif //MTREE
+}
+
+//------------------------------------------------------------------------------
+size_t RoboMoves::Store::knn_search(const Point &aim, size_t k, Store::SearchCallBack callback, Store::VisitedHashes *visited) const
+{
+    boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
+    // -----------------------------------------------
+    size_t matched = 0;
+    RoboMoves::ControlHasher ch{};
+
+#if defined(NO_MTREE)
+    const Robo::distance_t side = 0.11;
+    RoboMoves::adjacency_ptrs_t range{};
+    adjacencyPoints(range, aim, side);
+    range.sort(ClosestPredicate(aim));
+    for (const Record *rec : range)
+    {
+        if (matched == k)
+            break;
+#else  //MTREE
+    auto query = _mtree->get_nearest_by_limit(aim, k);
+    for (const auto &match : query)
+    {
+        const Record *rec = match->data;
+#endif //MTREE
+        if (rec)
+        {
+            auto hash = ch(rec->controls);
+            if (visited && visited->count(hash) != 0)
+                continue;
+            visited->insert(hash);
+            callback(rec);
+            ++matched;
+        }
+    }
+    return matched;
 }
 
 //------------------------------------------------------------------------------

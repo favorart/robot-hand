@@ -138,14 +138,15 @@ namespace RoboMoves
 #endif
     void inverse_insert(const Record&);
     //==============================================================================
+    //friend class AFilter; // ?? TODO
     friend class boost::serialization::access;
     template <class Archive>
-    void serialize(Archive &ar, unsigned version)
+    void serialize(Archive &ar, unsigned /*version*/)
     {
         ar & _store;
         ar & _trajectories_enumerate;
         //ar & *_approx;   // restore on load
-//#ifndef NO_MTREE // restored on load
+//#ifndef NO_MTREE
 //        ar & *_mtree;    // restore on load
 //#endif
 //#ifndef NO_INVERSE_INDEX
@@ -156,6 +157,7 @@ namespace RoboMoves
   public:
     using MultiIndexIterator = MultiIndexMoves::iterator;
     using SearchCallBack = std::function<void(const Record*)>;
+    using VisitedHashes = std::set<size_t>;
     enum class Format { NONE = 0, TXT = 1, BIN = (1 << 1) };
     //------------------------------------------------------------------------------
     Store();
@@ -290,6 +292,8 @@ namespace RoboMoves
     //------------------------------------------------------------------------------
     const Record* exactRecordByControl(IN const Robo::Control &controls) const;
     //------------------------------------------------------------------------------
+    size_t knn_search(const Point &aim, size_t k, SearchCallBack callback, VisitedHashes *visited = nullptr) const;
+    //------------------------------------------------------------------------------
     size_t equalEndPoint(IN const Point &aim, OUT SearchCallBack callback) const;
     //------------------------------------------------------------------------------
     using GetHPen = std::function<HPEN(const RoboMoves::Record&)>;
@@ -329,7 +333,7 @@ namespace RoboMoves
         CDEBUG(" aim " << aim << " side " << side << " adjacency");
         return std::make_pair(itPL, itPU);
     }
-    MultiIndexMovesSqPassing aim_sq_adjacency(IN const Point &aim, IN const Point &min, IN const Point &max) const
+    MultiIndexMovesSqPassing aim_sq_adjacency(/*IN const Point &aim,*/ IN const Point &min, IN const Point &max) const
     {
         //boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
         const auto &index = _store.get<ByP>();
@@ -370,6 +374,6 @@ BOOST_CLASS_VERSION(RoboMoves::Store, 2)
 //------------------------------------------------------------------------------
 class TargetI;
 namespace RoboPos {
-RoboMoves::pApproxFilter newApproxRangeFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points=3);
+RoboMoves::pApproxFilter newApproxRangeFilter(const RoboMoves::Store*, const TargetI*, Robo::distance_t side, size_t pick_points=3);
 }
 
