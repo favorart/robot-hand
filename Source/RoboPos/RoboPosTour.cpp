@@ -297,7 +297,7 @@ bool TourI::runNestedMove(IN const Control &controls, OUT Point &robo_hit)
 }
 
 //------------------------------------------------------------------------------
-TourWorkSpace::TourWorkSpace(RoboMoves::Store *store, Robo::RoboI *robo, tptree *config, const TourI::JointsNumerator next_joint) :
+TourWorkSpace::TourWorkSpace(RoboMoves::Store *store, Robo::RoboI *robo, const tptree *config, const TourI::JointsNumerator next_joint) :
     TourI(store, robo, config, next_joint)
 {
     CONF_GET_OPT_SCOPE(_config, _b_simul, workspace);
@@ -425,7 +425,7 @@ bool TourWorkSpace::runNestedForMuscle(IN joint_t joint, IN Control &controls, O
 //------------------------------------------------------------------------------
 TourTarget::TourTarget(IN RoboMoves::Store *store,
                        IN Robo::RoboI *robo,
-                       IN tptree *config,
+                       IN const tptree *config,
                        IN const TargetI &target,
                        IN const TargetContain &target_contain,
                        IN const TourI::JointsNumerator next_joint) :

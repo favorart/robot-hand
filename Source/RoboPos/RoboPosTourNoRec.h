@@ -14,9 +14,9 @@ struct Counters;
 class Tour
 {
 protected:
-    std::shared_ptr<Robo::RoboI> _robo{};
-    std::shared_ptr<RoboMoves::Store> _store{};
-    std::shared_ptr<Counters> _counters{};
+    const std::shared_ptr<Robo::RoboI> _robo{};
+    const std::shared_ptr<RoboMoves::Store> _store{};
+    const std::shared_ptr<Counters> _counters{};
 
     Point _base_pos{};
     size_t _complexity = 0;
@@ -48,7 +48,7 @@ class TourNoRecursion : public Tour
     using Borders = std::vector<BorderLasts>;
     Borders _borders;
 
-    RecTarget &_target;
+    const RecTarget &_target;
     size_t  _max_nested = 0;
     Approx &_approx;
 
@@ -60,7 +60,7 @@ class TourNoRecursion : public Tour
     bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
 
 public:
-    TourNoRecursion(IN RoboMoves::Store *store, IN Robo::RoboI *robo, IN RecTarget &target, Approx &approx) :
+    TourNoRecursion(IN RoboMoves::Store *store, IN Robo::RoboI *robo, IN const RecTarget &target, Approx &approx) :
         Tour(store, robo), _target(target),
         _max_nested(_robo->jointsCount()),
         _breakings_controls(_max_nested), /// ???
