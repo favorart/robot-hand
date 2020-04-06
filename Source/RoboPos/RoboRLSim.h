@@ -119,6 +119,4 @@ public:
     SimRobo(const SimRobo&) = delete;
     SimRobo& operator=(const SimRobo&) = delete;
 };
-
-//------------------------------------------------------
-} // namespace rl_problem
+} // end namespace rl_problem

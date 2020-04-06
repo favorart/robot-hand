@@ -270,7 +270,7 @@ void SimRobo::timeStep(const action_type &a)
     else
         step(a);
 }
-void SimRobo::stepGoal(const action_type &a)
+void SimRobo::stepGoal(const action_type &/*a*/)
 {
     //r = rw.goalReward();
     r = rw.reward(current, curr_goal, robo.isCollision());

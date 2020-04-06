@@ -19,7 +19,6 @@
 using namespace std::placeholders;
 using namespace Robo;
 using namespace RoboMoves;
-//using namespace rl_problem;
 
 namespace rl_problem {
 //------------------------------------------------------
@@ -121,7 +120,7 @@ public:
     }
     auto getGradQfunc() const
     {
-        return [](S s, A a) { return 0.; } /*grad Q(s,a)*/;
+        return [](S /*s*/, A /*a*/) { return 0.; } /*grad Q(s,a)*/;
     }
 };
 
@@ -216,24 +215,17 @@ void make_experiment(Simulator &simulator, Critic &critic, const Q &q, const V &
     }
 }
 
+} // end namespace rl_problem
+
 //------------------------------------------------------
-void startRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories &show_trajs)
-{
-    try
-    {
-        //----------------------------------------
-        RoboRL(robo, store, target, show_trajs);
-        //----------------------------------------
-    }
-    catch (boost::thread_interrupted&)
-    { CINFO("WorkingThread interrupted"); }
-    catch (const std::exception &e)
-    { SHOW_CERROR(e.what()); }
+namespace RoboPos {
+void RoboRL(Store&, RoboI&, TargetI&, StateTrajectories&);
 }
 
 //------------------------------------------------------
-void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories &show_trajs)
+void RoboPos::RoboRL(Store &/*store !!!*/, RoboI &robo, TargetI &target, StateTrajectories &show_trajs)
 {
+    using namespace rl_problem;
     std::random_device rd;
     std::mt19937  rand_gen(rd());
 
@@ -338,7 +330,7 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
                                               target.coords().end(),
                                               [&pos](const Point &a, const Point &b) { return (boost_distance(a, pos) < boost_distance(b, pos)); });
 
-        SimRobo simulator(robo, goal);
+        rl_problem::SimRobo simulator(robo, goal);
         ////Store &store, RoboI &robo
         //make_experiment(simulator, 
         //                critic, 
@@ -373,7 +365,7 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
         //while (boost_distance(base, pos) < 0.0001 && !stop)
         for (unsigned i = 0; i < 100 && !stop; ++i)
         {
-            for (int episode = 0, frame = 0; episode < Qfunction::N_EPISODES; ++episode)
+            for (int episode = 0/*, frame = 0*/; episode < Qfunction::N_EPISODES; ++episode)
             {
                 ++all_count;
                 std::vector<int> controls;
@@ -437,14 +429,14 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
                 {
                     d = dd;
                     show_trajs.push_back(simulator.trajectory());
-                    int i = 0;
-                    auto qlog_printer = [&i, &fqlog](auto c) {
+                    int j = 0;
+                    auto qlog_printer = [&j, &fqlog](auto c) {
                         if (c)
                         {
-                            std::cout << i << ':' << c << ' ';
-                            fqlog << i << ':' << c << ' ';
+                            std::cout << j << ':' << c << ' ';
+                            fqlog << j << ':' << c << ' ';
                         }
-                        ++i;
+                        ++j;
                     };
                     std::for_each(controls.begin(), controls.end(), qlog_printer);
                     fqlog << std::endl;
@@ -487,10 +479,10 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
                     {
                         show_trajs.push_back(simulator.trajectory());
                         Point prev = show_trajs.back().begin()->spec();
-                        for (auto &s : show_trajs.back())
+                        for (auto &hit : show_trajs.back())
                         {
-                            traj_dist += boost_distance(prev, s.spec());
-                            prev = s.spec();
+                            traj_dist += boost_distance(prev, hit.spec());
+                            prev = hit.spec();
                         }
                         // -------------------------------------
                         //boost::this_thread::interruption_point();
@@ -526,4 +518,3 @@ void RoboRL(RoboI &robo, Store &store, TargetI &target, Robo::StateTrajectories 
     fout << Q;
 }
 
-}

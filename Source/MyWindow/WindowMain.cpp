@@ -76,7 +76,7 @@ int WINAPI  WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 #include "Test/Test.h"
 
-int main(const int argc, const TCHAR **argv)
+int _tmain(const int argc, const TCHAR **argv)
 {
     Utils::CArgs args;
     getConsoleArguments(argc, argv, args);
