@@ -9,35 +9,40 @@ RoboPos::MainDirections RoboPos::MainDirectionsFactory(IN Robo::RoboI &robo)
     Robo::Trajectory trajectory;
 
     robo.reset();
-    auto oldRarity = robo.getVisitedRarity();
-    robo.setVisitedRarity(1);
+    //auto oldRarity = robo.getVisitedRarity();
+    //robo.setVisitedRarity(1);
 
     RoboPos::MainDirections md(robo);
     for (Robo::joint_t j = 0; j < robo.jointsCount(); ++j)
     {
-        Robo::muscle_t muscle;
+        auto mo = Robo::RoboI::muscleByJoint(j, true);
+        auto mc = Robo::RoboI::muscleByJoint(j, true);
+
+        Robo::Actuator ao{ mo, 0, robo.muscleMaxLasts(mo) };
+        Robo::Actuator ac{ mc, 0, robo.muscleMaxLasts(mc) };
 
         robo.setJoints({ {j, 100.} });
-        muscle = Robo::RoboI::muscleByJoint(j, true);
-        robo.move(Robo::Control({ muscle, 0, robo.muscleMaxLast(muscle) }), trajectory);
-        md._directions.push_back({ muscle, trajectory, robo.jointPos(j) });
+        robo.move(Robo::Control{ao});
+        md._directions.emplace_back(mo, robo.trajectory(), robo.jointPos(j));
 
         robo.setJoints({ { j, 0. } });
-        muscle = Robo::RoboI::muscleByJoint(j, false);
-        robo.move(Robo::Control({ muscle, 0, robo.muscleMaxLast(muscle) }), trajectory);
-        md._directions.push_back({ muscle, trajectory, robo.jointPos(j) });
+        robo.move(Robo::Control{ac});
+        md._directions.emplace_back(mc, robo.trajectory(), robo.jointPos(j));
 
     }
-    robo.setVisitedRarity(oldRarity);
+    //robo.setVisitedRarity(oldRarity);
     robo.reset();
     return md;
 }
 //------------------------------------------
-RoboPos::MainDirections::Direction::Direction(Robo::muscle_t m, Robo::Trajectory &trajectory, Point c) :
+RoboPos::MainDirections::Direction::Direction(Robo::muscle_t m, const Robo::StateTrajectory &trajectory, Point c) :
     muscle(m) //, center(c)
 {
+    const Point &front = trajectory.front().spec();
     shifts.resize(trajectory.size());
-    std::copy(trajectory.begin(), trajectory.end(), shifts.begin());
+    std::transform(trajectory.begin(), trajectory.end(), shifts.begin(), [&front](const Robo::State &state) -> Point {
+        return { state.spec().x - front.x, state.spec().y - front.y };
+    });
     ////---------------------------------
     //Point &front = trajectory.front();
     //max_radius = boost_distance(center, front);

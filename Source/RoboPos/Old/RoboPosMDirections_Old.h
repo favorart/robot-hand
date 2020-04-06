@@ -33,10 +33,10 @@ class DirectionPredictor final
 public:
     DirectionPredictor(IN Robo::RoboI &robo);
     Point predict(IN Robo::Control controls);
-#endif // MDIR_OLD
-
+#else //!MDIR_OLD
 public:
     DirectionPredictor(IN Robo::RoboI&) {}
     Point predict(IN Robo::Control) { return {}; }
+#endif //!MDIR_OLD
 };
 } // namespace RoboPos

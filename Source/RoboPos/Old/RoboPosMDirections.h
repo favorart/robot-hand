@@ -15,7 +15,7 @@ class MainDirections final
         //double              min_radius = 0.;
         //double              max_radius = 0.;
         //------------------------------------------
-        Direction(Robo::muscle_t, Robo::Trajectory&, Point);
+        Direction(Robo::muscle_t, const Robo::StateTrajectory&, Point);
         //------------------------------------------
         bool  operator== (const Direction& d) const { return (muscle == d.muscle); }
         bool  operator!= (const Direction& d) const { return (muscle != d.muscle); }
@@ -42,11 +42,11 @@ public:
     Point predict(Robo::muscle_t muscle, Robo::frames_t last);
     //------------------------------------------
     friend RoboPos::MainDirections MainDirectionsFactory(IN Robo::RoboI&);
-#endif // MDIR_OLD
-
+#else //!MDIR_OLD
     Robo::Control measure(const Point&) { return {}; }
     Point predict(const Robo::Control&) { return {}; }
     Point predict(Robo::muscle_t, Robo::frames_t) { return {}; }
     friend RoboPos::MainDirections MainDirectionsFactory(Robo::RoboI&) { return {}; }
+#endif //!MDIR_OLD
 };
 } // end namespace RoboPos

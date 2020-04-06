@@ -5,22 +5,17 @@
 //#include "WindowHeader.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
-#endif // MDIR_OLD
 
 
-#ifdef MDIR_OLD
 using namespace RoboPos;
 using namespace RoboMoves;
-
 //------------------------------------------
 RoboPos::DirectionPredictor::MainDirection::MainDirection(IN Robo::muscle_t m, IN Robo::RoboI &robo) : muscle(m)
 {
-    Robo::Trajectory trajectory;
-    robo.move(Robo::Control{ { m, 0, robo.muscleMaxLast(m) } }, trajectory);
-
-    Point &front = trajectory.front();
-    for (auto pt : trajectory)
-        shifts.push_back(Point{ pt.x - front.x, pt.y - front.y });
+    robo.move(Robo::Control{ { m, 0, robo.muscleMaxLasts(m) } });
+    const Point &front = robo.trajectory().front().spec();
+    for (const auto &state : robo.trajectory())
+        shifts.emplace_back(state.spec().x - front.x, state.spec().y - front.y);
 }
 
 //------------------------------------------
@@ -29,28 +24,22 @@ RoboPos::DirectionPredictor::DirectionPredictor(IN Robo::RoboI &robo)
     robo.reset();
     _base_pos = robo.position();
 
-    auto oldRarity = robo.getVisitedRarity();
-    robo.setVisitedRarity(1);
+    //auto oldRarity = robo.getVisitedRarity();
+    //robo.setVisitedRarity(1);
 
     _directions.resize(robo.musclesCount());
     for (Robo::joint_t j = 0; j < robo.jointsCount(); ++j)
     {
-        Robo::muscle_t muscle;
+        auto mo = Robo::RoboI::muscleByJoint(j, true);
+        auto mc = Robo::RoboI::muscleByJoint(j, true);
 
         robo.setJoints({ { j, 100. } });
-        muscle = Robo::RoboI::muscleByJoint(j, true);
-        _directions[muscle] = MainDirection(muscle, robo);
-
-        robo.reset();
+        _directions[mo] = MainDirection(mo, robo);
 
         robo.setJoints({ { j, 0. } });
-        muscle = Robo::RoboI::muscleByJoint(j, false);
-        _directions[muscle] = MainDirection(muscle, robo);
-
-        robo.reset();
+        _directions[mc] = MainDirection(mc, robo);
     }
-    //---------------------------------
-    robo.setVisitedRarity(oldRarity);
+    //robo.setVisitedRarity(oldRarity);
 }
 
 //------------------------------------------
