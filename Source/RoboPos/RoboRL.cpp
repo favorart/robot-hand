@@ -23,7 +23,7 @@ using namespace RoboMoves;
 
 namespace rl_problem {
 //------------------------------------------------------
-class Qfunction
+class Qfunction final
 {
 public:
     static constexpr int N_EPISODES = 400; // 10000;

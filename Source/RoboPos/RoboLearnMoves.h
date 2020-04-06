@@ -36,7 +36,7 @@ enum class Admix { GradWMeans, WeightMean, GradPoints, AllRundown, DirRundown, _
 *    Он может нам понадобиться в зависимости от законов движения
 *    разных мускулов, если один до второго не успевает... (?позже включить??)
 */
-class LearnMoves
+class LearnMoves final
 {
     static const Robo::frames_t lasts_min = 1;
     //static const Robo::frames_t start_next = 1;

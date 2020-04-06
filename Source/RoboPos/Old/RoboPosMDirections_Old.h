@@ -1,22 +1,13 @@
 #pragma once
 
-#ifndef   _DIR_P_H_
-#define   _DIR_P_H_
-
-#ifdef MDIR_OLD
-#include "WindowHeader.h"
-#include "RoboMovesTarget.h"
-#include "RoboMovesStore.h"
-#endif // MDIR_OLD
 #include "Robo.h"
 
-//------------------------------------------------------------------------------
-
 namespace RoboPos {
-class DirectionPredictor
+//------------------------------------------------------------------------------
+class DirectionPredictor final
 {
 #ifdef MDIR_OLD
-    struct MainDirection
+    struct MainDirection final
     {
         Robo::muscle_t muscle;
         std::vector<Point> shifts;
@@ -49,6 +40,3 @@ public:
     Point predict(IN Robo::Control controls) { return {}; }
 };
 } // namespace RoboPos
-
-//------------------------------------------------------------------------------
-#endif // _DIR_P_H_

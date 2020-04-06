@@ -4,7 +4,7 @@
 
 namespace rl_problem {
 //------------------------------------------------------
-struct ActionRobo
+struct ActionRobo final
 {
     Robo::RoboI::bitwise actors;
 
@@ -31,7 +31,7 @@ struct ActionRobo
 };
 
 //------------------------------------------------------
-struct ObservationRobo
+struct ObservationRobo final
 {
     static Robo::distance_t EpsPos;
     static Robo::distance_t EpsVel;
@@ -65,7 +65,7 @@ struct ObservationRobo
 };
 
 //------------------------------------------------------
-struct Reward
+struct Reward final
 {
     double goalReward() const;
     double stepReward() const;
@@ -79,7 +79,7 @@ struct Reward
 };
 
 //------------------------------------------------------
-class SimRobo
+class SimRobo final
 {
     //static_assert<(Actors % 2) != 0>;
 public:

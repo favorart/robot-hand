@@ -8,7 +8,7 @@ using namespace Robo;
 using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
-class TourI::AvgLastsIncrement
+class TourI::AvgLastsIncrement final
 {
     struct Data { Robo::frames_t lasts; unsigned n; };
     using MusclesAvgLasts = std::vector<std::array<Data, _LI_LAST_>>;

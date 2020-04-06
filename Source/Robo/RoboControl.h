@@ -10,7 +10,7 @@ class RoboI;
 const muscle_t MInvalid = 0xFF;
 const frames_t LastsInfinity = -1;
 //-------------------------------------------------------------------------------
-struct Actuator
+struct Actuator final
 {
     muscle_t  muscle = MInvalid;
     frames_t  start = 0;
@@ -61,7 +61,7 @@ protected:
     friend class Control;
 };
 //-------------------------------------------------------------------------------
-class Control
+class Control final
 {
 protected:
     static const unsigned MAX_ACTUATORS = 128;       ///< number of brakes
@@ -196,7 +196,7 @@ public:
 *    параметр N - число доступных приводов.
 */
 template <size_t N>
-class BitsControl
+class BitsControl final
 {
 public:
     using Bitwise = std::bitset<N>;

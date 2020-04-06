@@ -1,9 +1,8 @@
-﻿#include "StdAfx.h"
-#include "Robo.h"
+﻿#include "RoboPosMDirections.h"
+#ifdef MDIR_OLD
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
 
-#ifdef MDIR_OLD
 //------------------------------------------
 RoboPos::MainDirections RoboPos::MainDirectionsFactory(IN Robo::RoboI &robo)
 {

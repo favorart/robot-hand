@@ -1,19 +1,13 @@
-﻿#include "StdAfx.h"
+﻿#pragma once
 
-#ifndef   _DIRECT_PREDICT_H_
-#define   _DIRECT_PREDICT_H_
+#include "Robo.h"
 
-#include "WindowHeader.h"
-#include "RoboMovesTarget.h"
-#include "RoboMovesStore.h"
-
-//------------------------------------------------------------------------------
 namespace RoboPos {
-
-class MainDirections
+//------------------------------------------------------------------------------
+class MainDirections final
 {
 #ifdef MDIR_OLD
-    struct Direction
+    struct Direction final
     {
         Robo::muscle_t      muscle = Robo::MInvalid;
         //Point               center{};
@@ -55,7 +49,4 @@ public:
     Point predict(Robo::muscle_t muscle, Robo::frames_t last) { return {}; }
     friend RoboPos::MainDirections MainDirectionsFactory(IN Robo::RoboI&) { return {}; }
 };
-} // namespace RoboPos
-
-//------------------------------------------------------------------------------
-#endif // _DIRECT_PREDICT_H_
+} // end namespace RoboPos

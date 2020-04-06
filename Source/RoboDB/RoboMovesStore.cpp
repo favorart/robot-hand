@@ -44,7 +44,7 @@ struct MTreeDistance
 
 #ifndef NO_INVERSE_INDEX
 //------------------------------------------------------------------------------
-class RoboMoves::Store::InverseIndex
+class RoboMoves::Store::InverseIndex final
 {
 public:
     using Index = size_t;
@@ -102,7 +102,7 @@ void RoboMoves::Store::InverseIndex::build_index()
 }
 
 //------------------------------------------------------------------------------
-class RoboMoves::Store::InverseIndex::ResultCallBack
+class RoboMoves::Store::InverseIndex::ResultCallBack final
 {
     const InverseIndex::IndexContainer &indices;
     const InverseIndex::Distance radius{};

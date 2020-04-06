@@ -14,6 +14,7 @@ public:
     enum class Law { Move, Stop } law;
 
     explicit JointMoveLawI(Law law) : law(law) {}
+    virtual ~JointMoveLawI() {}
     virtual void generate(IterVecDoubles first, size_t frames_count, double left_border, double right_border, double max_velosity = 1.) const = 0;
 protected:
     virtual void normalize(IterVecDoubles iter, size_t n, double left, double right, double summary) const;
@@ -40,7 +41,7 @@ tstring name(MLaw ml);
 MLaw scanMLaw(const tstring &ml_name);
 
 //------------------------------------------------------------------------------
-struct JointMotionLaw
+struct JointMotionLaw final
 {
     std::shared_ptr<JointMoveLawI> moveLaw{};
     std::shared_ptr<JointMoveLawI> stopLaw{};

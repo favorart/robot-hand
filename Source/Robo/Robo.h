@@ -8,8 +8,7 @@
 namespace rl_problem {
 struct ObservationRobo;
 }
-namespace Robo
-{
+namespace Robo {
 //-------------------------------------------------------------------------------
 using distance_t = double;
 using Trajectory = std::vector<Point>;
@@ -17,7 +16,7 @@ using Trajectories = std::list<Trajectory>;
 using joint_t = uint8_t;
 const joint_t JInvalid = 0xFF;
 //-------------------------------------------------------------------------------
-struct State
+struct State final
 {
     int special_no{ 0 };
     Trajectory positions{};
@@ -116,7 +115,9 @@ public:
     RoboI(const JointsInputsPtrs &joint_inputs) : _joint_inputs(joint_inputs) {}
     RoboI(RoboI&&) = delete;
     RoboI(const RoboI&) = delete;
+    virtual ~RoboI() {}
 
+//protected:
     virtual void setJoints(const Robo::JointsOpenPercent&) = 0;
     virtual bool isCollision() const = 0;
 
@@ -125,7 +126,6 @@ public:
     virtual frames_t lastsStatus(muscle_t m) const = 0;
     virtual TCHAR lastsStatusT(muscle_t m) const = 0;
 #endif
-
     //----------------------------------------------------
     virtual joint_t  jointsCount() const = 0;
     virtual muscle_t musclesCount() const = 0;
@@ -172,6 +172,7 @@ public:
     //----------------------------------------------------
     static tstring name() { return _T("robo"); };
     virtual tstring getName() const = 0;
+
     /*virtual*/ void save(tptree &root) const;
 
 protected:
@@ -206,8 +207,8 @@ inline Robo::frames_t musclesMaxLasts(const Robo::RoboI &robo)
             l = robo.muscleMaxLasts(m);
     return l;
 }
-//-------------------------------------------------------------------------------
-}
+} // end namespace Robo
+
 //------------------------------------------------------------------------------
 BOOST_CLASS_VERSION(Robo::State, 1)
 //------------------------------------------------------------------------------

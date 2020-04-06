@@ -92,7 +92,7 @@ struct Params
 };
 
 //------------------------------------------------------
-class Test
+class Test final
 {
     Params params;
     //RoboPos::LearnMoves lm;

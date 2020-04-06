@@ -34,10 +34,12 @@ protected:
 
 public:
     Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo);
-    void  run(bool distance, bool target, bool braking, bool predict, bool checking,
-              double step_distance, Robo::frames_t lasts_step_increment);
+    virtual ~Tour() {}
     virtual bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high) = 0;
     virtual bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos) = 0;
+
+    void run(bool distance, bool target, bool braking, bool predict, bool checking,
+             double step_distance, Robo::frames_t lasts_step_increment);
 };
 
 class TourNoRecursion : public Tour

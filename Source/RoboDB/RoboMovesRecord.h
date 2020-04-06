@@ -3,8 +3,8 @@
 #include "Robo.h"
 /// TODO: !!! UPDATE TIME & SIM_TIME when request the Record !!!
 
-namespace RoboMoves
-{
+namespace RoboMoves {
+//------------------------------------------------------------------------------
 using SimTime = uint64_t;
 
 typedef std::vector<Robo::frames_t>   frames_array;
@@ -13,7 +13,8 @@ typedef std::vector<Robo::muscle_t>  muscles_array;
 #define  CHECK_BIT(var,pos)   ((var)&(1<<(pos)))
 #define  BITSINBYTE           8
 
-class Strategy
+//------------------------------------------------------------------------------
+class Strategy final
 {
     Robo::muscle_t _nmuscles{};
     using Value = uint64_t;
@@ -35,7 +36,8 @@ public:
     static Strategy getEmpty() { return Strategy(0); }
 };
 
-class Record
+//------------------------------------------------------------------------------
+class Record final
 {
     using Traj = Robo::StateTrajectory;
     using Control = Robo::Control;

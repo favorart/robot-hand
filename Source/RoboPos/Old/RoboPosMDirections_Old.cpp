@@ -1,9 +1,12 @@
 #include "StdAfx.h"
 
 #include "RoboPosMDirections_Old.h"
-#include "Robo.h"
+#ifdef MDIR_OLD
+//#include "WindowHeader.h"
 #include "RoboMovesTarget.h"
 #include "RoboMovesStore.h"
+#endif // MDIR_OLD
+
 
 #ifdef MDIR_OLD
 using namespace RoboPos;

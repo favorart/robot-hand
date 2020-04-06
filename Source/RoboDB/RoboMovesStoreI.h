@@ -32,6 +32,7 @@ class ApproxFilter;
 class StoreI
 {
 public:
+    virtual ~StoreI() {}
     virtual void  insert(const Record&) = 0;
     virtual void  clear() = 0;
     virtual bool  empty() const = 0;

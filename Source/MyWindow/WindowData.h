@@ -20,7 +20,7 @@ struct CArgs;
 }
 
 //-------------------------------------------------------------------------------
-struct MyWindowData
+struct MyWindowData final
 {
     struct MouseHandler
     {

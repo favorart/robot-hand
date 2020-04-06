@@ -13,7 +13,7 @@ using namespace Robo::Mobile;
 using namespace Robo::NewHand;
 //------------------------------------------------------------------------------
 namespace RoboPos {
-struct Counters
+struct Counters final
 {
     int count = 0;
     int count_TP = 0;

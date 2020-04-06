@@ -12,7 +12,7 @@ namespace RoboPos {
 //------------------------------------------------------------------------------
 /// Аппроксимирующая функция - точка остановы по управлениям
 /// http://www.machinelearning.ru/wiki/index.php?title=Обучение_с_учителем._Многомерная_интерполяции_и_аппроксимация._Обобщение_на_основе_теории_случайных_функций._Вариант_точного_решения.
-class Approx
+class Approx final
 {
     static const size_t control_size = 3; ///< muscle, start, lasts
     static const size_t point_size = 2; ///< x, y

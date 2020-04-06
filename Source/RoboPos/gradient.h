@@ -28,7 +28,7 @@ namespace gradient {
 *  from the reseult to descent our gradient accordingly to plot the best curve to fit through
 *  the data points
 */
-class Descent
+class Descent final
 {
 public:
     using residual = double; ///< невязка

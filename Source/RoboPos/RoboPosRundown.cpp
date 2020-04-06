@@ -217,7 +217,7 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
 }
 
 //------------------------------------------------------------------------------
-class LearnMoves::RundownAllDirsIncrementor
+class LearnMoves::RundownAllDirsIncrementor final
 {
     const size_t directions_ = 2; // +/-
     const joint_t n_joints_;

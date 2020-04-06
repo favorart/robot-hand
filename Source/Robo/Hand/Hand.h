@@ -42,12 +42,28 @@ public:
     Hand::Muscle M(muscle_t m) const { return (m >= musclesCount()) ? Hand::Muscle::MInvalid : params.musclesUsed[m]; }
     Hand::Joint  J(joint_t j)  const { return (j >= jointsCount())  ? Hand::Joint::JInvalid  : params.jointsUsed[j]; }
     
+    frames_t muscleMaxLasts(muscle_t) const override;
+    frames_t muscleMaxLasts(const Control&) const override;
+
+    Hand(const Point &base, const JointsInputsPtrs &joints);
+    void getWorkSpace(OUT Trajectory&) override;
+    void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const override;
+    int specPoint() const override { return static_cast<int>(Joint::SpecP); }
+
+    void resetJoint(IN joint_t) override;
+    void setJoints(IN const Robo::JointsOpenPercent&) override;
+
+    tstring getName() const override { return Hand::name(); }
+
+    static tstring name() { return _T("Hand-v4"); }
+    static std::shared_ptr<RoboI> make(const tstring &type, tptree &node);
+    
 protected:
     static const size_t joints = (size_t)(Hand::Joint::JCount);
     static const size_t muscles = (size_t)(Hand::Muscle::MCount);    
     std::array<distance_t, joints> angles{}; ///< текущие смещения каждого сочления (palm, hand, arm, shoulder, clavicle)
 
-    struct Params
+    struct Params final
     {
         std::array<Hand::Muscle, muscles> musclesUsed{};
         std::array<Hand::Joint, joints> jointsUsed{};
@@ -72,22 +88,7 @@ protected:
     distance_t maxJointAngle(joint_t joint) const { return params.maxAngles[joint]; }
 
     distance_t prismatic_factor(joint_t j) const { return ((J(j) == Joint::Clvcl) ? (3 * M_PI) : 1.); }
-public:
-    Hand(const Point &base, const JointsInputsPtrs &joints);
 
-    frames_t muscleMaxLasts(muscle_t) const;
-    frames_t muscleMaxLasts(const Control&) const;
-
-    void getWorkSpace(OUT Trajectory&);
-    void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const;
-    int specPoint() const { return static_cast<int>(Joint::SpecP); }
-    
-    void resetJoint(IN joint_t);
-    void setJoints(IN const Robo::JointsOpenPercent&);
-
-    tstring getName() const { return Hand::name(); }
-    static tstring name() { return _T("Hand-v4"); }
-    static std::shared_ptr<RoboI> make(const tstring &type, tptree &node);
     friend class Robo::EnvEdgesHand;
 };
 
