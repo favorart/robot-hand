@@ -314,7 +314,7 @@ void layout_controls_continue(std::vector<Actuator> &v, const size_t max_sz, con
 }
 
 //------------------------------------------------------------------------------
-void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double delta/*distance(lo.hit, hi.hit)*/,
+void RoboPos::LearnMoves::gradientControls(IN const Point   &/*aim !!!*/, IN  double delta/*distance(lo.hit, hi.hit)*/,
                                            IN const Control &inits_controls,
                                            IN const Control &lower_controls,
                                            IN const Control &upper_controls,
@@ -334,7 +334,7 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
     tcout << " lower: "; for (auto &i : lower) tcout << i << " "; tcout << std::endl;
     tcout << " upper: "; for (auto &i : upper) tcout << i << " "; tcout << std::endl;
 
-    const int int_normalizer = int(delta / _target.precision()); /* velosity */
+    const int int_normalizer = int(delta / _target->precision()); /* velosity */
 
     for (muscle_t mo = 0; mo < max_sz; mo += RoboI::musclesPerJoint)
     {
@@ -434,7 +434,7 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &aim, IN  double del
 }
 
 //------------------------------------------------------------------------------
-void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double delta,
+void RoboPos::LearnMoves::gradientControlsNew(IN const Point &/*aim !!!*/, IN  double delta,
                                               IN const Control &inits_controls,
                                               IN const Control &lower_controls,
                                               IN const Control &upper_controls,
@@ -459,7 +459,7 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
     if (inis != upps) CWARN("incorrect strategies (inits=" << inis.number() << " & lower=" << lows.number() << " )");
 
     //tcout << "delta=" << delta << std::endl;
-    const double d = (delta / _target.precision()); /* velosity */
+    const double d = (delta / _target->precision()); /* velosity */
     const int delta_normalized = int(d * 5);
 
     frames_t min_start = SIZE_MAX;
@@ -478,7 +478,7 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
             lasts = inits[m].lasts + lasts;
             if (lasts <= 0)
             {
-                muscle_t mo = _robo.muscleOpposite(m);
+                muscle_t mo = _robo->muscleOpposite(m);
                 if (mo > m)
                 {
                     inits[mo].lasts += 4;
@@ -502,7 +502,7 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
             lasts = lower[m].lasts + lasts;
             if (lasts <= 0)
             {
-                muscle_t mo = _robo.muscleOpposite(m);
+                muscle_t mo = _robo->muscleOpposite(m);
                 if (mo > m)
                 {
                     inits[mo].lasts += 4;
@@ -538,7 +538,7 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &aim, IN  double de
 //------------------------------------------------------------------------------
 Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
 {
-    annealing = bg::distance(_target.min(), _target.max()) / 10.;
+    annealing = bg::distance(_target->min(), _target->max()) / 10.;
     annealing = 0.11;// new_distance / 5;
     CINFO("NEW aim=" << aim << " annealing=" << annealing);
 
@@ -660,7 +660,7 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
                 max(aim.x + annealing, aim.y + annealing);
     // ------------------------------------------------
     adjacency_ptrs_t range;
-    _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
+    _store->adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     // ------------------------------------------------
     const Record *pRec = gradientClothestRecord(range, aim, NULL, pVisited);
     if (!pRec) { return false; }

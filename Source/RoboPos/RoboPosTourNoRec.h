@@ -14,9 +14,9 @@ struct Counters;
 class Tour
 {
 protected:
-    RoboMoves::Store &_store;
-    Robo::RoboI      &_robo;
-    Counters         &_counters;
+    std::shared_ptr<Robo::RoboI> _robo{};
+    std::shared_ptr<RoboMoves::Store> _store{};
+    std::shared_ptr<Counters> _counters{};
 
     Point _base_pos{};
     size_t _complexity = 0;
@@ -33,7 +33,7 @@ protected:
     bool _b_distance{}, _b_target{}, _b_braking{}, _b_predict{}, _b_checking{};
 
 public:
-    Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo);
+    Tour(IN RoboMoves::Store *store, IN Robo::RoboI *robo);
     virtual ~Tour() {}
     virtual bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &robo_pos_high) = 0;
     virtual bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos) = 0;
@@ -60,11 +60,11 @@ class TourNoRecursion : public Tour
     bool runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos);
 
 public:
-    TourNoRecursion(IN RoboMoves::Store &store, IN Robo::RoboI &robo, IN RecTarget &target, Approx &approx) :
+    TourNoRecursion(IN RoboMoves::Store *store, IN Robo::RoboI *robo, IN RecTarget &target, Approx &approx) :
         Tour(store, robo), _target(target),
-        _max_nested(_robo.jointsCount()),
+        _max_nested(_robo->jointsCount()),
         _breakings_controls(_max_nested), /// ???
-        pDP{ std::make_shared<RoboPos::DirectionPredictor>(_robo) },
+        pDP{ std::make_shared<RoboPos::DirectionPredictor>(*_robo) },
         _approx(approx)
     {
         _lasts_step_increment_thick = 20;

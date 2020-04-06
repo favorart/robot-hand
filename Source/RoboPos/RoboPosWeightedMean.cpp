@@ -80,9 +80,9 @@ void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN co
     //mid_hit /= static_cast<distance_t>(range.size());
     //// -----------------------------------------------
     ////CDEBUG("weightedMeanControls start");
-    //std::vector<double> lasts(_robo.musclesCount(), 0.);
-    //std::vector<double> starts(_robo.musclesCount(), 0.);
-    //muscle_t m_max = 0, m_min = _robo.musclesCount();
+    //std::vector<double> lasts(_robo->musclesCount(), 0.);
+    //std::vector<double> starts(_robo->musclesCount(), 0.);
+    //muscle_t m_max = 0, m_min = _robo->musclesCount();
     //// -----------------------------------------------
     //for (auto &pRec : range)
     //    for (auto &c : pRec->controls)
@@ -103,7 +103,7 @@ void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN co
     ////CDEBUG(controls);
     //// ----------------------------------------------
     ///* controls check for correctness: opposite muscles work time */
-    //controls.validated(_robo.musclesCount());
+    //controls.validated(_robo->musclesCount());
     ////CDEBUG("weightedMeanControls end");
 }
 
@@ -112,13 +112,13 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
 {
     auto side_tmp = 1.5 * annealing;
     // -----------------------------------------------
-    auto p = _store.getClosestPoint(aim, side_tmp);
+    auto p = _store->getClosestPoint(aim, side_tmp);
     if (!p.first)
     {
         CINFO("weightedMean: empty adjacency aim=" << aim << " side=" << side_tmp);
         return bg::distance(aim, _base_pos);
     }
-    //auto rec = _store.closestEndPoint(aim);
+    //auto rec = _store->closestEndPoint(aim);
     // -----------------------------------------------
     distance_t distance, next_distance = bg::distance(aim, p.second.hit);
     do
@@ -126,7 +126,7 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         distance = next_distance;
         // -----------------------------------------------
         adjacency_ptrs_t range;
-        _store.adjacencyByPBorders(range, aim, side_tmp);
+        _store->adjacencyByPBorders(range, aim, side_tmp);
         if (range.empty())
         {
             CINFO("weightedMean: empty adjacency aim=" << aim << " side=" << side_tmp);
@@ -142,14 +142,14 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
 #else
         Control controls;
         std::vector<Actuator> v;
-        layout_controls(v, controls, _robo.musclesCount());
+        layout_controls(v, controls, _robo->musclesCount());
         weightedMeanControlsOrdered(aim, range, v, mid_hit);
 #endif
         range.clear();
         next_distance = bg::distance(aim, mid_hit);
         // -----------------------------------------------
         auto hit = predict(controls);
-        auto d = bg::distance(aim, hit);
+        //auto d = bg::distance(aim, hit);
         //if (less(distance, next_distance) || less(distance, d)) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         {
             //============================
@@ -181,7 +181,7 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     upper_controls.clear();
     // ------------------------------------------------
 
-    //_store.adjacencyPoints(range, aim, /*side3*/annealing);
+    //_store->adjacencyPoints(range, aim, /*side3*/annealing);
     //ClosestPredicate cp(aim);
     //auto it_min = std::min_element(range.begin(), range.end(), cp);
     //if (it_min == range.end())
@@ -190,20 +190,20 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     //range.clear();
 
 
-    auto p = _store.getClosestPoint(aim, /*side3*/annealing);
+    auto p = _store->getClosestPoint(aim, /*side3*/annealing);
     if (!p.first)
     {
         CINFO("weightedMeanULAdjs: empty adjacency aim=" << aim << " side=" << /*side3*/annealing);
         return bg::distance(aim, _base_pos);
     }
-    //*pRec = _store.closestEndPoint(aim);
+    //*pRec = _store->closestEndPoint(aim);
     *pRec = p.second;
 
     // ------------------------------------------------
     min = Point(aim.x - /*side3*/annealing, pRec->hit.y - /*side3*/annealing);
     max = Point(aim.x + /*side3*/annealing, pRec->hit.y);
 
-    _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
+    _store->adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     if (range.empty())
         return false;
     // ------------------------------------------------
@@ -213,7 +213,7 @@ bool RoboPos::LearnMoves::weightedMeanULAdjs(IN  const Point &aim, OUT Record *p
     min = Point(aim.x - /*side3*/annealing, pRec->hit.y);
     max = Point(aim.x + /*side3*/annealing, pRec->hit.y + /*side3*/annealing);
 
-    _store.adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
+    _store->adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
     if (range.empty())
         return false;
     // ------------------------------------------------

@@ -27,7 +27,7 @@ bool RoboPos::LearnMoves::less(Robo::distance_t distance, Robo::distance_t new_d
 //------------------------------------------------------------------------------
 bool RoboPos::LearnMoves::check_precision(Robo::distance_t distance)
 {
-    return (_target.precision() > distance);
+    return (_target->precision() > distance);
 }
 
 //------------------------------------------------------------------------------
@@ -63,25 +63,26 @@ struct RoboPos::LearnMoves::MidHitStat
 
 //------------------------------------------------------------------------------
 void RoboPos::LearnMoves::append(MidHitStat *mhs, Robo::distance_t d) { mhs->append(d); }
-#endif
+#endif //USE_MID_STAT
 
 
 
 //------------------------------------------------------------------------------
-RoboPos::LearnMoves::LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo,
-                                IN const TargetI &target, IN const tstring &fn_config) :
-    _store(store), _robo(robo), robo_njoints(_robo.jointsCount()), robo_nmuscles(_robo.musclesCount()),
-    _target(target), _fn_config(fn_config)
+RoboPos::LearnMoves::LearnMoves(Store *store, RoboI *robo, const TargetI *target, IN const tstring &fn_config) :
+    _target(target, [](const TargetI*) {}),
+    _store(store, [](Store*) {}),
+    _robo(robo, [](RoboI*) {}), robo_njoints(_robo->jointsCount()), robo_nmuscles(_robo->musclesCount()),
+    _fn_config(fn_config)
 {
-    _robo.reset();
-    _base_pos = _robo.position();
+    _robo->reset();
+    _base_pos = _robo->position();
     read_config();
 #ifdef USE_MID_STAT
     mid_hit_stat  = new LearnMoves::MidHitStat();
     mid_hit_stat1 = new LearnMoves::MidHitStat();
 #endif
 #ifdef USE_REACH_STAT
-    _reached_by_admix.resize(_target.n_coords());
+    _reached_by_admix.resize(_target->n_coords());
 #endif
 }
 
@@ -114,7 +115,6 @@ void RoboPos::LearnMoves::save(tptree &node) const
     CONF_PUT(child, _random_try);
     CONF_PUT(child, side3);
     CONF_PUT(child, side_decrease_step);
-    CONF_PUT(child, use_weighted_mean);
 }
 
 //------------------------------------------------------------------------------
@@ -126,7 +126,6 @@ void RoboPos::LearnMoves::load(tptree &node)
     CONF_GET_OPT_VAL(node, _random_try, 3);
     CONF_GET_OPT_VAL(node, side3, 0.1);
     CONF_GET_OPT_VAL(node, side_decrease_step, 0.01);
-    CONF_GET_OPT_VAL(node, use_weighted_mean, true);
 }
 
 //------------------------------------------------------------------------------
@@ -138,11 +137,11 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
     {
         tstring type = _config.get<tstring>(_T("Tour.1"));
         if (type == _T("evo"))
-            pTour = std::make_shared<TourEvo>(_store, _robo, _config, _target);
+            pTour = std::make_shared<TourEvo>(_store.get(), _robo.get(), &_config, *_target);
         else if (type == _T("evostep"))
-            pTour = std::make_shared<TourEvoSteps>(_store, _robo, _config, _target);
+            pTour = std::make_shared<TourEvoSteps>(_store.get(), _robo.get(), &_config, *_target);
         else if (type == _T("workspace"))
-            pTour = std::make_shared<TourWorkSpace>(_store, _robo, _config);
+            pTour = std::make_shared<TourWorkSpace>(_store.get(), _robo.get(), &_config);
         else
             CERROR("Invalid type");
     }
@@ -162,33 +161,36 @@ std::shared_ptr<TourI> RoboPos::LearnMoves::makeTour(int stage)
 namespace RoboMoves {
 class AFilter : public RoboMoves::ApproxFilter //!< pick only 3 endPoint in each 'side'-vicinity of target
 {
-    const RoboMoves::Store &store;
-    const TargetI &target;
+    const std::shared_ptr<const RoboMoves::Store> store;
+    const std::shared_ptr<const TargetI> target;
     TargetI::vec_t::const_iterator tg_it{};
     const TargetI::vec_t::const_iterator tg_end;
     const Robo::distance_t side{};
     const size_t n_pt_at_tg{};
     RoboMoves::adjacency_ptrs_t range{};
     size_t i_pt{};
-    std::set<size_t> visited{};
+#ifndef NO_VISITED
+    RoboMoves::Store::VisitedHashes visited{};
     RoboMoves::ControlHasher ch{};
+#endif //NO_VISITED
     Point aim{};
 public:
-    AFilter(const RoboMoves::Store &store, const TargetI &target, Robo::distance_t side, size_t pick_points = 3) :
-        store(store), target(target), tg_it(target.coords().begin()), tg_end(target.coords().end()), side(side), n_pt_at_tg(pick_points)
+    AFilter(const RoboMoves::Store *store, const TargetI *target, Robo::distance_t side = 0.11, size_t pick_points = 3) :
+        store(store, [](const Store*) {}), target(target, [](const TargetI*) {}),
+        tg_it(target->coords().begin()), tg_end(target->coords().end()), side(side), n_pt_at_tg(pick_points)
     {}
     AFilter(AFilter&&) = default;
     AFilter(const AFilter&) = default;
     const Record* operator()() override;
-    void reset() override { tg_it = target.coords().begin(); range.clear(); }
-    size_t expect_size() const override { return (n_pt_at_tg * target.n_coords()); }
+    void reset() override { tg_it = target->coords().begin(); range.clear(); }
+    size_t expect_size() const override { return (n_pt_at_tg * target->n_coords()); }
 };
 }
 
 //------------------------------------------------------------------------------
 const Record* RoboMoves::AFilter::operator()()
 {
-    while (true)
+start:;
     {
         if (range.empty() || (i_pt % n_pt_at_tg) == 0)
         {
@@ -196,13 +198,14 @@ const Record* RoboMoves::AFilter::operator()()
             while (range.empty())
             {
                 aim = *tg_it;
-                store.adjacencyPoints(range, aim, side);
+                store->adjacencyPoints(range, aim, side);
                 if (++tg_it == tg_end)
                     return nullptr; //finish
             }
             range.sort(ClosestPredicate(aim));
             i_pt = 0;
         }
+#ifndef NO_VISITED
         for (const Record *pRec = range.front(); range.size() > 0; )
         {
             auto hash = ch(pRec->controls);
@@ -217,17 +220,23 @@ const Record* RoboMoves::AFilter::operator()()
             range.pop_front();
         }
         tcout << "AFilter::range.empty aim=" << aim << std::endl;
+        goto start;
     }
+#endif //NO_VISITED
+    const Record *pRec = range.front();
+    range.pop_front();
+    ++i_pt;
+    return pRec;
 }
 
 //------------------------------------------------------------------------------
 RoboMoves::pApproxFilter RoboPos::LearnMoves::getApproxRangeFilter(Robo::distance_t side, size_t pick_points) const
 {
-    return std::make_unique<AFilter>(_store, _target, ((side) ? side : side3), pick_points);
+    return std::make_unique<AFilter>(_store.get(), _target.get(), ((side) ? side : side3), pick_points);
 }
 
 //------------------------------------------------------------------------------
-RoboMoves::pApproxFilter RoboPos::newApproxRangeFilter(const Store &store, const TargetI &target, distance_t side, size_t pick_points)
+RoboMoves::pApproxFilter RoboPos::newApproxRangeFilter(const Store *store, const TargetI *target, distance_t side, size_t pick_points)
 {
     return std::make_unique<AFilter>(store, target, side, pick_points);
 }
@@ -250,7 +259,7 @@ void  RoboPos::LearnMoves::STAGE_1()
     borders_t borders;
     defineRobotBorders(_robo, 70U /*25U*/, borders);
     Approx approx(1,1);
-    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, borders, _target, approx) };
+    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store.get(), _robo.get(), borders, *_target, approx) };
     pTour->run(/* _b_distance */  true, // Stage 1
                /* _b_target   */ false,
                /* _b_braking  */  true,
@@ -288,7 +297,7 @@ void  RoboPos::LearnMoves::STAGE_2()
      *         |                |
      *         +----------------+
      */
-    TourTarget::TargetContain target_contain = [&target=_target](const Point &p) {
+    TourTarget::TargetContain target_contain = [&target=*_target](const Point &p) {
         //return target.contain(p);
         double corr = 0.01;
         return (p.x >= (target.min().x - corr) && p.x <= (target.max().x + corr) &&
@@ -298,7 +307,7 @@ void  RoboPos::LearnMoves::STAGE_2()
 #if defined TOUR_OLD
     borders_t borders;
     defineTargetBorders(_target, _store, /* side */ 0.05, borders);
-    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store, _robo, borders, _target, approx) };
+    std::shared_ptr<Tour> pTour{ new TourNoRecursion(_store.get(), _robo.get(), borders, *_target, approx) };
     pTour->run(/* _b_distance */ false,
                /* _b_target   */ true, // Stage 2
                /* _b_braking  */ true,
@@ -309,7 +318,7 @@ void  RoboPos::LearnMoves::STAGE_2()
                //0.015, 2); // non-recursive
 #else
     // _T("target")
-    std::shared_ptr<TourTarget> pTour = std::make_shared<TourTarget>(_store, _robo, _config, _target, target_contain);
+    std::shared_ptr<TourTarget> pTour = std::make_shared<TourTarget>(_store.get(), _robo.get(), &_config, *_target, target_contain);
     if (!pTour) return;
     pTour->run();
 #endif
@@ -326,13 +335,13 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
 
     try
     {
-    if (!_store.size())
+    if (!_store->size())
         CERROR("Empty database");
     
     load(_config);
     uncovered.clear();
     // -----------------------------------------------------
-    _store.constructApprox(RoboPos::Approx::max_n_controls, getApproxRangeFilter(side3));
+    _store->constructApprox(RoboPos::Approx::max_n_controls, getApproxRangeFilter(side3));
     // -----------------------------------------------------
     _complexity = 0;
     br::fill(_complex, 0);
@@ -340,16 +349,16 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     size_t current = 0;
 #ifdef USE_REACH_STAT
     _reach_current = 0;
-    _reached_by_admix.resize(_target.n_coords());
+    _reached_by_admix.resize(_target->n_coords());
     br::fill(_random_by_admix, 0);
 #endif
-    auto itp = _target.it_coords();
+    auto itp = _target->it_coords();
     for (auto it = itp.first; it != itp.second; ++it, ++current)
     {
         distance_t distance = bg::distance(_base_pos, *it);
         // ---------------------------------------------------
-        CINFO(_T("current: ") << current << _T(" / ") << _target.coords().size());
-        tcerr << _T("current: ") << current << _T(" / ") << _target.coords().size();
+        CINFO(_T("current: ") << current << _T(" / ") << _target->coords().size());
+        tcerr << _T("current: ") << current << _T(" / ") << _target->coords().size();
         // ---------------------------------------------------       
 #ifdef USE_REACH_STAT
         _reached_by_admix[current] = { ComplexCounters{}, false };
@@ -369,7 +378,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             else
             {
                 ++count_random;
-                const distance_t spread = _target.precision() * factor_random_spread;
+                const distance_t spread = _target->precision() * factor_random_spread;
                 const auto rx = Utils::random(-spread, spread);
                 const auto ry = Utils::random(-spread, spread);
 
@@ -417,7 +426,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
           _T("\n   TOTAL Complexity: ") << complexity() <<
           _T("\n AVERAGE Complexity: ") << (static_cast<double>(complexity()) / (count_regular + count_random)) <<
           _T("\n            minutes: ") << (static_cast<double>(complexity()) / TourI::divToMinutes) <<
-          _T("\n   Uncovered points: ") << uncovered.size() << _T(" / ") << _target.coords().size() <<
+          _T("\n   Uncovered points: ") << uncovered.size() << _T(" / ") << _target->coords().size() <<
           _T("\n      regular tries: ") << count_regular <<
           _T("\n       random tries: ") << count_random <<
           _T("\n"));
@@ -429,12 +438,12 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
     mid_hit_stat1->print();
 #endif
     // -----------------------------------------------------
-    tcerr << std::endl << _T("  Uncovered ") << uncovered.size() << _T("/") << _target.coords().size() << std::endl;
+    tcerr << std::endl << _T("  Uncovered ") << uncovered.size() << _T("/") << _target->coords().size() << std::endl;
     //std::exit(1);
 }
 
 //------------------------------------------------------------------------------
-void RoboPos::LearnMoves::printReachedStat()
+void RoboPos::LearnMoves::printReachedStat() const
 {
 #ifdef USE_REACH_STAT
     size_t good_grad_wmean = 0, good_wmean = 0, good_grad_point = 0, good_rundown = 0;
@@ -503,14 +512,14 @@ void RoboPos::LearnMoves::updateReachedStat(Admix admix)
 void RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 {
     uncovered.clear();
-    auto itp = _target.it_coords();
+    auto itp = _target->it_coords();
     for (auto it = itp.first; it != itp.second; ++it)
     {
-        auto p = _store.getClosestPoint(*it, side3);
-        if (p.first && boost_distance(p.second.hit, *it) > _target.precision())
+        auto p = _store->getClosestPoint(*it, side3);
+        if (p.first && boost_distance(p.second.hit, *it) > _target->precision())
             uncovered.push_back(*it);
     }
-    CINFO("uncovered: " << uncovered.size() << '/' << _target.coords().size());
+    CINFO("uncovered: " << uncovered.size() << '/' << _target->coords().size());
 }
 
 //------------------------------------------------------------------------------
@@ -520,7 +529,7 @@ Robo::distance_t RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const C
     boost::this_thread::interruption_point();
     // -----------------------------------------------
     Point hit;
-    const Record *pRec = _store.exactRecordByControl(controls);
+    const Record *pRec = _store->exactRecordByControl(controls);
     if (pRec) // visited.find (h) != visited.end () )
     {
         // if ( pRec ) { 
@@ -530,21 +539,21 @@ Robo::distance_t RoboPos::LearnMoves::actionRobo(IN const Point &aim, IN const C
     else
     {
         //Point p = predict(controls); //??
-        _robo.reset();
-        _robo.move(controls);
+        _robo->reset();
+        _robo->move(controls);
         ++_complexity;
-        hit = _robo.position();
+        hit = _robo->position();
         //if (pRec)
         //{
         //    tcout << " d=" << bg::distance(pRec->hit, hit) << ", hit" << hit << ", old" << pRec->hit;
         //    tcout << std::endl;
         //    tcout << std::endl;
         //}
-        _store.insert(Record{ aim, _base_pos, hit, controls, _robo.trajectory() });
+        _store->insert(Record{ aim, _base_pos, hit, controls, _robo->trajectory() });
     }
     return bg::distance(aim, hit);
 }
 
 //------------------------------------------------------------------------------
 Point RoboPos::LearnMoves::predict(const Robo::Control &controls)
-{ return _store.getApprox()->predict(controls); }
+{ return _store->getApprox()->predict(controls); }

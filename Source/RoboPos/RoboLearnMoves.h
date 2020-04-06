@@ -43,11 +43,12 @@ class LearnMoves final
     static const Robo::frames_t lasts_min = 1;
     //static const Robo::frames_t start_next = 1;
 
-    const TargetI &_target;
-    RoboMoves::Store &_store;
+    const std::shared_ptr<const TargetI> _target;
+    const std::shared_ptr<RoboMoves::Store> _store;
+    /*const*/ tptree _config{};
 
     // robo: actionRobo, robo.m_opposite, for Tour, ...
-    Robo::RoboI &_robo;
+    /*const*/ std::shared_ptr<Robo::RoboI> _robo;
     const Robo::joint_t robo_njoints{};
     const Robo::muscle_t robo_nmuscles{};
     /*const*/ Point _base_pos{};
@@ -63,18 +64,15 @@ class LearnMoves final
     size_t _reach_current = 0;
 #endif
     void updateReachedStat(Admix admix);
-    void printReachedStat();
+    void printReachedStat() const;
 
-    tptree _config{};
-
-    bool use_weighted_mean{};
     Robo::distance_t annealing{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
     Robo::distance_t factor_random_spread{ 100. };
     size_t _tries = 0;
     size_t _random_try = 0;
-
+    //=============================================
     std::shared_ptr<TourI> makeTour(int stage);
     //=============================================
     Robo::distance_t actionRobo(IN const Point &aim, IN const Robo::Control &controls);
@@ -170,10 +168,11 @@ class LearnMoves final
     void read_config();
 
 public:
-    LearnMoves(IN RoboMoves::Store &store, IN Robo::RoboI &robo,
+    LearnMoves(RoboMoves::Store *store, Robo::RoboI *robo,
                //IN const Point &robo_base_pos, IN Robo::joint_t robo_njoints, IN Robo::muscle_t robo_nmuscles,
-               IN const TargetI &target, IN const tstring &fn_config);
+               const TargetI *target, IN const tstring &fn_config);
     ~LearnMoves();
+    void reinitRobo(Robo::RoboI *robo) { _robo.reset(robo); _robo->reset(); }
     //---------------------------------------------
     size_t complexity() const { return _complexity; };
     //---------------------------------------------

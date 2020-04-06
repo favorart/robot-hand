@@ -141,7 +141,7 @@ bool LearnMoves::rundownNextControl(IN OUT Control  &controls, IN OUT   size_t &
 Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
 {
     /// !!!!!!!!!!! store.approx().
-    auto p = _store.getClosestPoint(aim, annealing);
+    auto p = _store->getClosestPoint(aim, annealing);
     if (!p.first)
         CERROR(_T("rundownMainDir: Empty adjacency"));
     // -----------------------------------------------
@@ -151,7 +151,7 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
     distance_t distance, prev_distance, next_distance;
     next_distance = distance = bg::distance(aim, p.second.hit);
     // -----------------------------------------------
-    frames_t velosity = frames_t(floor(distance / _target.precision() + 0.5));
+    frames_t velosity = frames_t(floor(distance / _target->precision() + 0.5));
     frames_t velosity_prev = 0;
     // -----------------------------------------------
     size_t controls_curr = 0;
@@ -174,7 +174,7 @@ Robo::distance_t LearnMoves::rundownMainDir(IN const Point &aim)
                     break;
             }
             // -----------------------------------------------
-            velosity = frames_t(floor(distance / _target.precision() + 0.5));
+            velosity = frames_t(floor(distance / _target->precision() + 0.5));
             // -----------------------------------------------
             auto it = controls.begin();
             std::advance(it, controls_curr / 2U);
@@ -306,7 +306,7 @@ bool LearnMoves::rundownNextControl(IN OUT Robo::Control  &controls,
                                  true/*уточнить ли время старта противоположного?*/,
                                  true/*добавлять ли в противоположное управление? какое?*/);
             }
-            else one_more = true;
+            //else one_more = true; // ???
         }
         else if (lasts_changes[controls[pos].muscle] > 0) // добавлять в имеющееся управление
         {
@@ -316,23 +316,23 @@ bool LearnMoves::rundownNextControl(IN OUT Robo::Control  &controls,
                 controls.longer(pos, velosity,
                                 true/*уточнить ли время старта противоположного?*/);
             }
-            else one_more = true;
+            //else one_more = true; // ???
         }
     }
     if (!controls.validate(robo_nmuscles))
         tcout << std::endl;
-    //controls.order(_robo.musclesCount());
+    //controls.order(_robo->musclesCount());
     return one_more;
 }
 
 //------------------------------------------------------------------------------
 Robo::frames_t LearnMoves::rundownVelosity(Robo::distance_t distance)
-{ return static_cast<Robo::frames_t>( std::max(1., std::ceil(distance / _target.precision())) ); }
+{ return static_cast<Robo::frames_t>( std::max(1., std::ceil(distance / _target->precision())) ); }
 
 //------------------------------------------------------------------------------
 Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
 {
-    auto p = _store.getClosestPoint(aim, annealing);
+    auto p = _store->getClosestPoint(aim, annealing);
     if (!p.first)
         CERROR(_T("rundownAllDirs: Empty adjacency"));
     // -----------------------------------------------

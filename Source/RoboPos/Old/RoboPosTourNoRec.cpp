@@ -56,8 +56,10 @@ struct Counters final
 };
 }
 //------------------------------------------------------------------------------
-Tour::Tour(IN RoboMoves::Store &store, IN Robo::RoboI &robo) :
-    _store(store), _robo(robo), _counters(Counters{})
+Tour::Tour(Store *store, RoboI *robo) :
+    _store(store, [](Store*) {}),
+    _robo(robo, [](RoboI*) {}),
+    _counters(std::make_shared<Counters>())
 {}
 
 //DirectionPredictor  *pDP;
@@ -83,25 +85,26 @@ void Tour::run(bool distance, bool target, bool braking, bool predict, bool chec
     _lasts_step_increment = lasts_step_increment;
     // ----------------------------------------------------
     _complexity = 0;
-    _counters.clear();
+    _counters->clear();
     // ----------------------------------------------------
-    _robo.reset();
-    _base_pos = _robo.position();
+    _robo->reset();
+    _base_pos = _robo->position();
     // ----------------------------------------------------
     try
     {
         if (_step_distance < DBL_EPSILON || _lasts_step_increment == 0)
             throw std::runtime_error{ "Increment Params aren't set" };
 
-        Point useless;
-        runNestedForMuscle(0, Robo::Control{}, useless);
+        Point useless{};
+        Robo::Control c_useless{};
+        runNestedForMuscle(0, c_useless, useless);
     }
     catch (boost::thread_interrupted&)
     { CINFO("WorkingThread interrupted"); }
     catch (const std::exception &e)
     { SHOW_CERROR(e.what()); }
     // ----------------------------------------------------
-    if (_b_checking) { _counters.print(); }
+    if (_b_checking) { _counters->print(); }
     tcout << _T("\nStep: ") << (_step_distance / 0.0028) << _T("mm.");
     tcout << _T("\nComplexity: ") << _complexity;
     tcout << _T("  minutes:") << double(_complexity) / 60. << std::endl;
@@ -123,28 +126,28 @@ void TourNoRecursion::specifyBordersByRecord(const RoboMoves::Record &rec)
 /// Статистичеки найти приблизительную границу мишени по длительности работы мускулов
 void TourNoRecursion::defineTargetBorders(distance_t side)
 {
-    _borders.resize(_robo.musclesCount());
-    for (const auto &rec : _store)
+    _borders.resize(_robo->musclesCount());
+    for (const auto &rec : *_store)
         if (_target.contain(rec.hit))
             specifyBordersByRecord(rec);
 
     adjacency_ptrs_t range;
-    _store.adjacencyPoints(range, _target.min(), side);
+    _store->adjacencyPoints(range, _target.min(), side);
     for (auto p_rec : range)
         specifyBordersByRecord(*p_rec);
 
     range.clear();
-    _store.adjacencyPoints(range, Point(_target.min().x, _target.max().y), side);
+    _store->adjacencyPoints(range, Point(_target.min().x, _target.max().y), side);
     for (auto p_rec : range)
         specifyBordersByRecord(*p_rec);
 
     range.clear();
-    _store.adjacencyPoints(range, Point(_target.max().x, _target.min().y), side);
+    _store->adjacencyPoints(range, Point(_target.max().x, _target.min().y), side);
     for (auto p_rec : range)
         specifyBordersByRecord(*p_rec);
 
     range.clear();
-    _store.adjacencyPoints(range, _target.max(), side);
+    _store->adjacencyPoints(range, _target.max(), side);
     for (auto p_rec : range)
         specifyBordersByRecord(*p_rec);
 }
@@ -181,7 +184,7 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
         }
         {
             lasts_step = _lasts_step_increment;
-            frames_t _lasts_i_max = _robo.muscleMaxLasts(muscle_i);
+            frames_t _lasts_i_max = _robo->muscleMaxLasts(muscle_i);
             //------------------------------------------
             start_i = 0U;
             target_contain = true;
@@ -202,8 +205,9 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
                 //------------------------------------------
                 if (0U <= joint && (joint + 1u) < _max_nested)
                 {
+                    auto c = (controls + control_i);
                     //===============================================================
-                    target_contain = runNestedForMuscle(joint + 1, controls + control_i, curr_pos) || !_b_target;
+                    target_contain = runNestedForMuscle(joint + 1, c, curr_pos) || !_b_target;
                     //===============================================================
                 }
                 else
@@ -216,7 +220,7 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
                                 _breakings_controls[ji].start = it->lasts + 1U;
                     }
                     //===============================================================
-                    target_contain = runNestedMove(controls + control_i, curr_pos) || !_b_target;
+                    target_contain = runNestedMove((controls + control_i), curr_pos) || !_b_target;
                     //===============================================================              
                 } // end else (insert)
 
@@ -292,14 +296,15 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
                     //------------------------------------------
                     if (0u <= joint && (joint + 1u) < _max_nested)
                     {
+                        auto c = (controls + control_i);
                         //===============================================================
-                        target_contain = runNestedForMuscle(joint + 1, controls + control_i, curr_pos) || !_b_target;
+                        target_contain = runNestedForMuscle(joint + 1, c, curr_pos) || !_b_target;
                         //===============================================================
                     }
                     else
                     {
                         //===============================================================
-                        target_contain = runNestedMove(controls + control_i, curr_pos) || !_b_target;
+                        target_contain = runNestedMove((controls + control_i), curr_pos) || !_b_target;
                         //===============================================================
                     } // end (insert)
                       //------------------------------------------
@@ -333,7 +338,7 @@ bool TourNoRecursion::runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Contro
 //------------------------------------------------------------------------------
 bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point &robo_pos)
 {
-    // const Record &rec = _store.ClothestPoint (hand_position, 0.1);
+    // const Record &rec = _store->ClothestPoint (hand_position, 0.1);
     // if ( boost_distance (rec.hit, hand_position) < step_distance )
     // {
     //   hand_position = rec.hit;
@@ -355,27 +360,27 @@ bool TourNoRecursion::runNestedMove(IN const Robo::Control &controls, OUT Point 
         //----------------------------------------------
         if (_b_checking)
         {
-            _robo.reset();
-            _robo.move(controling);
+            _robo->reset();
+            _robo->move(controling);
             //++_complexity;
             bool model = _target.contain(pred_end);
-            bool real = _target.contain(_robo.position());
-            _counters.fill(model, real, _robo.position(), pred_end);
-            _robo.reset();
+            bool real = _target.contain(_robo->position());
+            _counters->fill(model, real, _robo->position(), pred_end);
+            _robo->reset();
         }
     }
     //----------------------------------------------
     if ((!_b_target || _target.contain(pred_end)) && (!_b_distance ||
         boost_distance(_target.center(), pred_end) < boost_distance(_target.max(), _target.min())))
     {
-        _robo.reset();
+        _robo->reset();
         /* двигаем рукой ближе к мишени */
-        _robo.move(controling);
+        _robo->move(controling);
         ++_complexity;
-        robo_pos = _robo.position();
+        robo_pos = _robo->position();
         //----------------------------------------------
-        Record rec{ robo_pos, _base_pos, robo_pos, controling, _robo.trajectory() };
-        _store.insert(rec);
+        Record rec{ robo_pos, _base_pos, robo_pos, controling, _robo->trajectory() };
+        _store->insert(rec);
         //----------------------------------------------
     }
     else if (!_b_target) { robo_pos = pred_end; }

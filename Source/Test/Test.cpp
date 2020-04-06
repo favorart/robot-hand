@@ -432,7 +432,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     //return;
 
     CINFO("Read Config LM...");
-    LearnMoves lm(store, *pRobo, *pTarget, params.LM_CONFIG_FN);
+    LearnMoves lm(&store, pRobo.get(), pTarget.get(), params.LM_CONFIG_FN);
 
 #ifndef TEST_DEBUG
     CINFO("STAGE 1...");
@@ -459,7 +459,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
     else
     {
         store.pick_up(_T("test-store.txt"), pRobo, Store::Format::BIN, 
-                      RoboPos::newApproxRangeFilter(store, *pTarget, params.LM_SIDE)); // << constructApprox
+                      RoboPos::newApproxRangeFilter(&store, pTarget.get(), params.LM_SIDE)); // << constructApprox
         //plotStoreState(store, test_name);
     }
 #endif //TEST_DEBUG

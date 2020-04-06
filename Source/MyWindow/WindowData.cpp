@@ -161,12 +161,10 @@ void MyWindowData::load(const tstring &filename)
     pStore->pick_up(filename, pRobo, Store::Format(storeSaveFormat), pLM->getApproxRangeFilter());
     reinitRobo();
 }
-void MyWindowData::reinitRobo(/*Robo::pRoboI pRobo*/)
+void MyWindowData::reinitRobo()
 {
-    //this->pRobo = pRobo;
-    //pLM->_robo = *pRobo;
-    //pRobo.reset();
-    pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config);
+    //pLM = std::make_shared<RoboPos::LearnMoves>(pStore.get(), pRobo.get(), pTarget.get(), pCArgs->lm_config);
+    pLM->reinitRobo(pRobo.get());
 }
 //-------------------------------------------------------------------------------
 bool  WorkerThreadTryJoin(MyWindowData &wd)
@@ -482,7 +480,7 @@ void MyWindowData::read_config(IN const tstring &filename)
 
         storeLoad = root.get_optional<tstring>(_T("startUpLoad")).get_value_or(_T(""));
         if (storeLoad.length())
-            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), RoboPos::newApproxRangeFilter(*pStore, *pTarget, 0.01 /*!!!*/));
+            pStore->pick_up(storeLoad, pRobo, Store::Format(storeSaveFormat), RoboPos::newApproxRangeFilter(pStore.get(), pTarget.get(), 0.01 /*!!!*/));
         // -------------------------------------------------------------------------
 
         double precision_mm = root.get_optional<double>(_T("precision")).get_value_or(1.5);
@@ -490,7 +488,7 @@ void MyWindowData::read_config(IN const tstring &filename)
             throw std::runtime_error("read_config: incorrect precision");
 
         pCArgs->lm_config /*!!!*/ = root.get<tstring>(_T("lm_config"));
-        pLM = std::make_shared<RoboPos::LearnMoves>(*pStore, *pRobo, *pTarget, pCArgs->lm_config); // ???
+        pLM = std::make_shared<RoboPos::LearnMoves>(pStore.get(), pRobo.get(), pTarget.get(), pCArgs->lm_config); // ???
         // -------------------------------------------------------------------------
         read_canvas(root);
         // -------------------------------------------------------------------------

@@ -40,7 +40,7 @@ protected:
     void printParameters() const;
 
 public:
-    TourEvo(RoboMoves::Store&, Robo::RoboI&, tptree&, const TargetI&);
+    TourEvo(RoboMoves::Store*, Robo::RoboI*, const tptree*, const TargetI&);
     void setParams(double reached_dist, double oppo_penalty)
     {
         _reached_dist = reached_dist;
@@ -57,7 +57,7 @@ protected:
     void printParameters() const;
 
 public:
-    TourEvoSteps(RoboMoves::Store&, Robo::RoboI&, tptree&, const TargetI&);
+    TourEvoSteps(RoboMoves::Store*, Robo::RoboI*, const tptree*, const TargetI&);
 };
 
 /* Случайные движения 

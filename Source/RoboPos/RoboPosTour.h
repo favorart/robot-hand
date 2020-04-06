@@ -29,7 +29,7 @@ public:
     static const Robo::distance_t divToMiliMeters;
     static const double divToMinutes;
 
-    TourI(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint = TourI::reverse);
+    TourI(RoboMoves::Store *store, Robo::RoboI *robo, const tptree *config, const TourI::JointsNumerator next_joint = TourI::reverse);
     size_t complexity() const { return _complexity; }
     void run();
     void setPrecision(Robo::distance_t step_distance, Robo::frames_t lasts_step_increment)
@@ -41,13 +41,13 @@ public:
     void setSimulMoves(bool simul) { _b_simul = simul; }
 
 protected:
-    tptree &_config;
+    const tptree &_config;
     const static Robo::frames_t too_long = 10000;
-    const JointsNumerator &_next_joint; ///< порядок использования сочленений
+    const JointsNumerator _next_joint; ///< порядок использования сочленений
 
-    RoboMoves::Store &_store;           ///< БД движений
-    Robo::RoboI      &_robo;            ///< Модель робота
-    Counters         &_counters;        ///< счётчики попаданий в цель
+    std::shared_ptr<RoboMoves::Store> _store;   ///< БД движений
+    std::shared_ptr<Robo::RoboI> _robo;         ///< Модель робота
+    std::shared_ptr<Counters> _counters;        ///< счётчики попаданий в цель
 
     bool _b_braking{ true };            ///< использование торможения мускулом
     bool _b_simul{ true };              ///< использование мускулов одновременно
@@ -104,7 +104,7 @@ protected:
 class TourWorkSpace : public TourI
 {
 public:
-    TourWorkSpace(RoboMoves::Store &store, Robo::RoboI &robo, tptree &config, const TourI::JointsNumerator &next_joint = TourI::reverse);
+    TourWorkSpace(RoboMoves::Store *store, Robo::RoboI *robo, tptree *config, const TourI::JointsNumerator next_joint = TourI::reverse);
     bool runNestedForMuscle(IN Robo::joint_t joint, IN Robo::Control &controls, OUT Point &avg_pos);
 protected:
     //std::vector<Robo::frames_t> avg_speed_on_start_for_muscle;
@@ -123,12 +123,12 @@ public:
 
     static const unsigned _max_n_controls = 8;
 
-    TourTarget(IN RoboMoves::Store &store,
-               IN Robo::RoboI &robo,
-               IN tptree &config,
+    TourTarget(IN RoboMoves::Store *store,
+               IN Robo::RoboI *robo,
+               IN tptree *config,
                IN const TargetI &target,
                IN const TargetContain &target_contain,
-               IN const TourI::JointsNumerator &next_joint = TourI::reverse);
+               IN const TourI::JointsNumerator next_joint = TourI::reverse);
 
     bool runNestedForMuscle(IN Robo::joint_t, IN Robo::Control&, OUT Point &robo_pos_high);
     bool runNestedMove(IN const Robo::Control&, OUT Point &robo_pos);
