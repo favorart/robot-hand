@@ -335,6 +335,7 @@ namespace nanoflann
 		}
 		template <typename U, typename V>
         DistanceType accum_dist(const U a, const V b, int ) const { return std::abs(a-b); }
+        bool operator==(const L1_Adaptor &adaptor) const { return true; }
 	};
 
 	/** Squared Euclidean distance functor (generic version, optimized for high-dimensionality data sets).
@@ -380,10 +381,8 @@ namespace nanoflann
 		}
 
 		template <typename U, typename V>
-		DistanceType accum_dist(const U a, const V b, int ) const
-		{
-			return (a - b) * (a - b);
-		}
+		DistanceType accum_dist(const U a, const V b, int ) const { return (a - b) * (a - b); }
+        bool operator==(const L2_Adaptor &adaptor) const { return true; }
 	};
 
 	/** Squared Euclidean (L2) distance functor (suitable for low-dimensionality datasets, like 2D or 3D point clouds)
@@ -411,6 +410,7 @@ namespace nanoflann
 		}
 		template <typename U, typename V>
 		inline DistanceType accum_dist(const U a, const V b, int ) const { return (a - b) * (a - b); }
+        bool operator==(const L2_Simple_Adaptor &adaptor) const { return true; }
 	};
 
 	/** SO2 distance functor
@@ -443,6 +443,7 @@ namespace nanoflann
 				result += 2. * M_PI;
 			return result;
 		}
+        bool operator==(const SO2_Adaptor &adaptor) const { return true; }
 	};
 
 	/** SO3 distance functor (Uses L2_Simple)
@@ -456,7 +457,7 @@ namespace nanoflann
 		typedef T ElementType;
 		typedef _DistanceType DistanceType;
 
-		L2_Simple_Adaptor<T, DataSource > distance_L2_Simple;
+		L2_Simple_Adaptor<T, DataSource> distance_L2_Simple;
 
 		SO3_Adaptor(const DataSource &_data_source) : distance_L2_Simple(_data_source) {}
 		inline DistanceType evalMetric(const T* a, const size_t b_idx, size_t size) const
@@ -468,6 +469,7 @@ namespace nanoflann
 		{
 			return distance_L2_Simple.accum_dist(a, b, idx);
 		}
+        bool operator==(const SO3_Adaptor &adaptor) const { return distance_L2_Simple == adaptor.distance_L2_Simple; }
 	};
 
 	/** Metaprogramming helper traits class for the L1 (Manhattan) metric */
@@ -518,10 +520,9 @@ namespace nanoflann
 	/**  Parameters (see README.md) */
 	struct KDTreeSingleIndexAdaptorParams
 	{
-		KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10) :
-			leaf_max_size(_leaf_max_size)
-		{}
-		size_t leaf_max_size;
+        KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10) : leaf_max_size(_leaf_max_size) {}
+        bool operator==(const KDTreeSingleIndexAdaptorParams &param) const { return (leaf_max_size == param.leaf_max_size); }
+        size_t leaf_max_size;
 	};
 
 	/** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */

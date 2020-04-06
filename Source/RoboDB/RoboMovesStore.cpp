@@ -34,20 +34,9 @@ namespace RoboMoves {
 //------------------------------------------------------------------------------
 struct MTreeDistance
 {
-    Robo::distance_t operator()(const std::shared_ptr<Record> &aim,
-                                const std::shared_ptr<Record> &p)   const { return bg::distance(aim->hit, p->hit); }
+    Robo::distance_t operator()(const Point &aim, const Record *p) const { return bg::distance(aim, p->hit); }
     Robo::distance_t operator()(const Record *aim, const Record *p) const { return bg::distance(aim->hit, p->hit); }
-    Robo::distance_t operator()(const Record *aim, const Point  *p) const { return bg::distance(aim->hit, *p); }
-    Robo::distance_t operator()(const Point  *aim, const Record *p) const { return bg::distance(*aim, p->hit); }
-    Robo::distance_t operator()(const Point  *aim, const Point  *p) const { return bg::distance(*aim, *p); }
-    Robo::distance_t operator()(const Record &aim, const Record &p) const { return bg::distance(aim.hit, p.hit); }
-    Robo::distance_t operator()(const Record &aim, const Point  &p) const { return bg::distance(aim.hit, p); }
-    Robo::distance_t operator()(const Point  &aim, const Record &p) const { return bg::distance(aim, p.hit); }
-    Robo::distance_t operator()(const Point  &aim, const Point  &p) const { return bg::distance(aim, p); }
 };
-//------------------------------------------------------------------------------
-//using MTree = mt::mtree<Record, MTreeDistance>;
-//typedef mt::mtree<Record, MTreeDistance> MTree;
 }
 #endif //NO_MTREE
 
@@ -83,6 +72,7 @@ public:
     size_t radius_search(const Point &aim, Distance radius, SearchCallBack callback) const;
     size_t knn_search(const Point &aim, Index k, SearchCallBack callback) const;
     void build_index();  //!< build kd-tree index of all passed points
+    bool operator==(const InverseIndex &index) const { return (inverse == index.inverse); }
 private:
     //const Store &owner;                //!< owner base class 
     IndexContainer inverse{};            //!< container, keeps data for kd-tree
@@ -226,6 +216,14 @@ void RoboMoves::Store::replace(IN const Robo::Control &controls, IN const RoboMo
     // -----------------------------------------------
     auto it = _store.get<ByC>().find(controls);
     _store.get<ByC>().modify(it, mod);
+    // -----------------------------------------------
+#ifndef NO_MTREE
+    // ???
+#endif
+    // -----------------------------------------------
+#ifndef INVERSE_INDEX
+    // ???
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -297,9 +295,13 @@ RoboMoves::Record RoboMoves::Store::closestEndPoint(const Point &aim) const
     }
 #else  //MTREE
     auto query = _mtree->get_nearest(aim);
-    auto rec = query.begin()->data;
-    CDEBUG(" aim=" << aim << " PU=" << rec.hit << " d=" << bg::distance(rec.hit, aim));
-    return rec;
+    const Record *rec = query.begin()->data;
+    if (rec)
+    {
+        CDEBUG(" aim=" << aim << " PU=" << rec->hit << " d=" << bg::distance(rec->hit, aim));
+        return *rec;
+    }
+    return Record{};
 #endif //MTREE
 }
 
@@ -411,6 +413,33 @@ void RoboMoves::Store::draw(HDC hdc, double radius, const GetHPen &getPen) const
 }
 
 //------------------------------------------------------------------------------
+void RoboMoves::Store::mtree_insert(const Record &rec)
+{
+#ifndef NO_MTREE
+    // mtree: no exact_find and no replace !!!
+    auto pRecNearest = _mtree->get_nearest(rec.hit).begin()->data;
+    if (!pRecNearest || pRecNearest->hit != rec.hit)
+    {
+        _mtree->add(&rec);
+    }
+    else if (pRecNearest->eleganceMove() > rec.eleganceMove())
+    {
+        _mtree->remove(pRecNearest);
+        _mtree->add(&rec);
+    }
+#endif
+}
+
+//------------------------------------------------------------------------------
+void RoboMoves::Store::inverse_insert(const Record &rec)
+{
+#ifndef NO_INVERSE_INDEX
+    for (const auto &p : rec.trajectory)
+        _inverse->append(p.spec(), rec);
+#endif
+}
+
+//------------------------------------------------------------------------------
 void RoboMoves::Store::insert(const Record &rec)
 {
     //try {
@@ -420,19 +449,15 @@ void RoboMoves::Store::insert(const Record &rec)
         */
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
-        // ==============================
-        auto status = _store.insert(rec);
-#ifndef NO_MTREE
-        _mtree->add(rec);
-#endif
-        status.first->updateTimeTraj(_trajectories_enumerate);
-        // ==============================
-#ifndef NO_INVERSE_INDEX
+
+        std::pair<MultiIndexIterator, bool> status = _store.insert(rec);
         if (status.second)
-            for (const auto &p : rec.trajectory)
-                _inverse->append(p.spec(), *status.first);
-#endif
-        // ==============================
+        {
+            status.first->updateTimeTraj(_trajectories_enumerate);
+            // ==============================
+            mtree_insert(*status.first);
+            inverse_insert(*status.first);
+        }
         //CDEBUG(" aim=" << rec->aim);
     //} catch (const std::exception &e) { SHOW_CERROR(e.what()); }
 }
@@ -444,21 +469,22 @@ void RoboMoves::Store::dump_off(const tstring &filename, const Robo::RoboI &robo
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
 
-        // --- header ---
-        tptree root;
-        robo.save(root);
+        tptree db_header;
+        robo.save(db_header);
         // --------------
         if (format == Format::TXT)
         {
             std::ofstream ofs(filename, std::ios_base::out);
             boost::archive::text_oarchive toa(ofs);
-            toa << root << *this;
+            toa << db_header;
+            toa << *this;
         }
         else if (format == Format::BIN)
         {
             std::ofstream ofs(filename, std::ios_base::out | std::ios_base::binary);
             boost::archive::binary_oarchive boa(ofs);
-            boa << root << *this;
+            boa << db_header;
+            boa << *this;
         }
         else CERROR("Invalid store format");
 
@@ -483,43 +509,41 @@ void RoboMoves::Store::pick_up(const tstring &filename, Robo::pRoboI &pRobo, For
         boost::this_thread::disable_interruption no_interruption;
         boost::lock_guard<boost::recursive_mutex> lock(_store_mutex);
 
-        tptree root;
+        tptree db_header;
         if (format == Format::TXT)
         {
             std::ifstream ifs(filename, std::ios_base::in);
             boost::archive::text_iarchive tia(ifs);
-            tia >> root >> *this;
-            //printTree(root, tcerr);
+            tia >> db_header;
+            tia >> *this;
+            //printTree(db_header, tcerr);
         }
         else if (format == Format::BIN)
         {
             std::ifstream ifs(filename, std::ios_base::in | std::ios_base::binary);
             boost::archive::binary_iarchive bia(ifs);
-            bia >> root >> *this;
+            bia >> db_header;
+            bia >> *this;
         }
         else CERROR("Invalid store format");
 
-        size_t inverse_sz = 0;
 #if (!defined(NO_INVERSE_INDEX) || !defined(NO_MTREE))
-        for (const auto &rec : _store)
+        for (const Record &rec : _store)
         {
-#ifndef NO_MTREE
-            _mtree->add(rec);
-#endif
-#ifndef NO_INVERSE_INDEX
-            for (const auto &p : rec.trajectory)
-            {
-                _inverse->append(p.spec(), rec);
-                ++inverse_sz;
-            }
-#endif
+            mtree_insert(rec);
+            inverse_insert(rec);
         }
 #endif //INVERSE_INDEX||MTREE
+
+        size_t inverse_sz = 0;
+#ifndef NO_INVERSE_INDEX
+        inverse_sz = _inverse->size();
+#endif
         CINFO("loaded '" << filename << "' store " << size() << " inverse " << inverse_sz);
 
         // --- header ---
         Factory<Robo::RoboI> frobo;
-        auto pNewRobo = frobo.create(root);
+        auto pNewRobo = frobo.create(db_header);
         if (*pNewRobo != *pRobo)
         {
             CINFO("change robo from " << pRobo->getName() << " to " << pNewRobo->getName());

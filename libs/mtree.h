@@ -111,12 +111,12 @@ public:
         {
         public:
             /** @brief A nearest-neighbor */
-            Data data;
+            Data data{};
 
             /** @brief The distance from the nearest-neighbor to the query data
              *         object parameter.
              */
-            double distance;
+            double distance{ -1 };
 
             /** @brief Default constructor */
             result_item() = default;
@@ -416,9 +416,9 @@ public:
 
     private:
         const mtree* _mtree;
-        Aim aim;
-        double range;
-        size_t limit;
+        const Aim aim;
+        const double range;
+        const size_t limit;
     };
 
 
@@ -1154,7 +1154,7 @@ private:
             {
                 // Donate
                 // Look for the nearest grandchild
-                IndexItem* nearestGrandchild;
+                IndexItem* nearestGrandchild = nullptr;
                 double nearestGrandchildDistance = std::numeric_limits<double>::infinity();
                 for (typename Node::ChildrenMap::iterator i = nearestDonor->children.begin(); i != nearestDonor->children.end(); ++i)
                 {
@@ -1168,6 +1168,7 @@ private:
                 }
 
 #ifndef NDEBUG
+                assert(nearestGrandchild != nullptr);
                 size_t _ =
 #endif
                     nearestDonor->children.erase(nearestGrandchild->data);

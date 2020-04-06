@@ -21,7 +21,7 @@ class mtree;
 } //mt
 namespace RoboMoves {
 struct MTreeDistance;
-using MTree = mt::mtree<Record, MTreeDistance>;
+using MTree = mt::mtree<const Record*, MTreeDistance>;
 }
 #endif //NO_MTREE
 
@@ -123,32 +123,33 @@ namespace RoboMoves
     //==============================================================================
     mutable boost::recursive_mutex _store_mutex{};
     MultiIndexMoves _store{};                     //!< прямой индекс хранения записей
+    SimTime _trajectories_enumerate{ 0 };         //!< учёт времени в испробованных траекториях
     std::shared_ptr<RoboPos::Approx> _approx{};   //!< интерполяция функции(x,y) остановки по управлениям мускулов
     //==============================================================================
 #ifndef NO_MTREE
     std::shared_ptr<RoboMoves::MTree> _mtree{};   //!< mirror of the store (forward index)
 #endif
+    void mtree_insert(const Record&);
     //==============================================================================
 #ifndef NO_INVERSE_INDEX
     class InverseIndex;
     std::shared_ptr<InverseIndex> _inverse;       //!< обратный индекс, хранение базируется на прямом индексе
 #endif
-    //==============================================================================
-    SimTime _trajectories_enumerate{ 0 };         //!< учёт времени в испробованных траекториях
+    void inverse_insert(const Record&);
     //==============================================================================
     friend class boost::serialization::access;
     template <class Archive>
     void serialize(Archive &ar, unsigned version)
     {
         ar & _store;
-        //ar & *_approx; // restord on load
-//#ifndef NO_MTREE // restored on load
-//        ar & *_mtree;
-//#endif
-//#ifndef NO_INVERSE_INDEX // restored on load
-//        ar & *_inverse;
-//#endif
         ar & _trajectories_enumerate;
+        //ar & *_approx;   // restore on load
+//#ifndef NO_MTREE // restored on load
+//        ar & *_mtree;    // restore on load
+//#endif
+//#ifndef NO_INVERSE_INDEX
+//        ar & *_inverse;  // restore on load
+//#endif
     }
 
   public:
