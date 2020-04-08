@@ -64,67 +64,78 @@ void RoboPhysics::muscleDriveStop(muscle_t muscle)
 bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
 {
     const joint_t joint = jointByMuscle(muscle);
-    const auto maxFrame = env->framesMove[joint].back(); //*boost::max_element(env->framesMove[joint]);
-    double Frame = 0.;
+    distance_t Frame = 0.;
     //------------------------------------------------
     if (status->lastsMove[muscle] > 0)
     {
         auto last = status->lastsMove[muscle] - 1;
         const auto &frames = env->framesMove[joint];
-        //------------------------------------------------
-        if (containE(getEnvCond(), ENV::START_FRICTION))
-        {
-            if (last <= env->st_friction_n_frames)
-            {
-                Frame = (last == env->st_friction_n_frames) ? RoboI::minFrameMove : maxFrame / 10;
-                goto SkipFrameVal;
-            }
-            last -= env->st_friction_n_frames;
-        }
-        //------------------------------------------------
         do
         {
+            //if (last >= frames.size()) throw std::runtime_error("DriveMove: Invalid lasts " + std::to_string(joint));
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
-            //if (last > physics.framesMove[joint].size())
-            //    throw std::runtime_error("DriveMove: Invalid lasts " + std::to_string(joint));
         } while (status->prevFrame[muscle] > Frame && ++last < frames.size());
-SkipFrameVal:;
     }
     else if (status->lastsStop[muscle] > 0)
     {
         auto last = status->lastsStop[muscle] - 1;
         const auto &frames = env->framesStop[joint];
-
         do
         {
+            //if (last >= frames.size()) throw std::runtime_error("DriveStop: Invalid lasts " + std::to_string(joint));
             Frame = (last >= frames.size()) ? frames.back() : frames[last];
-            //if (last > physics.framesStop[joint].size())
-            //    throw std::runtime_error("DriveStop: Invalid lasts " + std::to_string(joint));
         } while (status->prevFrame[muscle] < Frame && ++last < frames.size());
+
     }
     else throw std::logic_error("!lastsMove & !lastsStop");
     //------------------------------------------------
     status->prevFrame[muscle] = Frame;
-
     // --- WIND ----------------------------------
-    if (containE(getEnvCond(), ENV::WINDY) && status->lastsMove[muscle] == 1)
+    auto lastsMove = status->lastsMove[muscle];
+    if (containE(getEnvCond(), ENV::WINDY) && lastsMove == 1)
     {
-        Frame = Utils::random(RoboI::minFrameMove, maxFrame);
+        Frame = Utils::random(RoboI::minFrameMove, env->max_frames[joint]);
+        CDEBUG(" wind[" << muscle << "]: " << Frame);
+    }
+    // --- Start FRICTION ------------------------
+    else if (containE(getEnvCond(), ENV::START_FRICTION) 
+        && lastsMove > 0 && lastsMove <= env->st_friction_n_frames)
+    {
+        Frame = ((lastsMove == env->st_friction_n_frames) ? env->st_friction_big_frame[joint] : 0.);
+        CDEBUG(" start_friction[" << muscle << "]" << lastsMove << ": " << Frame);
     }
     // --- MOMENTUM CHANGES ----------------------
-    if (containE(getEnvCond(), ENV::MOMENTUM_CHANGES))
+    else if (containE(getEnvCond(), ENV::MOMENTUM_CHANGES)
+        && env->momentum_happened < env->momentum_max_happens && Utils::random(100) < env->momentum_expect_happens)
     {
-        // TODO: several frames <<<
-        Frame = Utils::random(RoboI::minFrameMove, maxFrame);
-        env->momentum_happened = true; // in this move (episode) only once
+        auto oldFrame = Frame;
+        Frame = Utils::random(RoboI::minFrameMove, env->max_frames[joint]);
+        ++env->momentum_happened;
+        CDEBUG(" momentum[" << muscle << "]" << env->momentum_happened << ": " << Frame << " (" << oldFrame << ")");
+    }
+    // --- SYSTEMATIC CHANGES --------------------
+    else if (containE(getEnvCond(), ENV::SYSTEMATIC_CHANGES) && status->lasts[muscle] < env->nFramesStop(joint))
+    {
+        auto oldFrame = Frame;
+        Frame = Frame + env->systematic_factor;
+        Frame = std::min(Frame, env->max_frames[joint]);
+        Frame = std::max(Frame, 0.);
+        CDEBUG(" systematic[" << muscle << "]" << lastsMove << ": " << Frame << " (" << oldFrame << "|f=" << env->systematic_factor << ")");
+    }
+    // ---- MUTIAL_BLOCKING ----------------------
+    bool result = (fabs(Frame) >= RoboI::minFrameMove);
+    if (containE(getEnvCond(), ENV::MUTIAL_BLOCKING) && lastsMove > 0 && !result)
+    {
+        result = true; /* если блокировка противоположным мускулом, продолжаем движение */
+        CDEBUG(" mutial_block[" << muscle << "]: " << Frame);
     }
     // -------------------------------------------
     status->shifts[muscle] = Frame;
-
+    // -------------------------------------------
     if (std::isnan(status->shifts[muscle]) || std::isinf(status->shifts[muscle]))
         CERROR("shift NAN");
     // -------------------------------------------
-    return (fabs(Frame) >= RoboI::minFrameMove);
+    return result;
 }
 void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t lasts)
 {
@@ -157,9 +168,9 @@ void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last
     //-------------------------------------------------------
     if (status->lastsMove[muscle] > 0)
     {
+        bool muscleRelocation = muscleDriveFrame(muscle);
         if (status->lasts[muscle] < status->lastsMove[muscle]
-            /* продолжение движения, если остался на месте (блокировка противоположным мускулом) */
-            || !muscleDriveFrame(muscle))
+            || !muscleRelocation /* или, если пустой кадр - остался на месте */)
         {
             /* остановка основного движения по истечении заявленной длительности */
             status->lastsStop[muscle] = 1;
@@ -387,55 +398,72 @@ RoboPhysics::EnvPhyState::EnvPhyState(/*const Point &base,*/ const JointsInputsP
         
         auto nMoveFrames = laws[j].nMoveFrames;
         auto nStopFrames = static_cast<frames_t>(nMoveFrames * laws[j].dInertiaRatio) + 2;
+        auto dMoveDistance = laws[j].dMoveDistance;
+
+        assert(RoboI::minFrameMove < (dMoveDistance * laws[j].dInertiaRatio));
+        assert(RoboI::minFrameMove < (dMoveDistance));
+        assert(nMoveFrames > 1);
+        assert(nStopFrames > 1);
         
         framesMove[j].resize(nMoveFrames);
         framesStop[j].resize(nStopFrames);
 
         laws[j].moveLaw->generate(framesMove[j].begin(), nMoveFrames,
-                                  RoboI::minFrameMove, laws[j].dMoveDistance);
+                                  RoboI::minFrameMove, dMoveDistance);
 
-        double maxVelosity = *boost::max_element(framesMove[j]);
+        distance_t maxVelosity = *boost::max_element(framesMove[j]);
         laws[j].stopLaw->generate(framesStop[j].begin(), nStopFrames - 1,
-                                  RoboI::minFrameMove, laws[j].dMoveDistance * laws[j].dInertiaRatio,
+                                  RoboI::minFrameMove, (dMoveDistance * laws[j].dInertiaRatio),
                                   maxVelosity);
-        /* last frame must be 0 to deadend */
+        /* last frame must be 0 to dead-end */
         framesStop[j][nStopFrames - 1] = 0.;
-#ifdef DEBUG_PLOT_PHY_STATE
-        {
-            printEnumOneHot<Enviroment>(conditions, Robo::enviroment_outputs);
-            std::cout << std::endl;
+                
+        max_frames[j] = maxVelosity; /* max frame */
 
-            std::stringstream ss;
-            ss << "motion-law-" << Utils::ununi(Robo::MotionLaws::name(laws[j].type)) << "-" << int(j) << ".plt";
-            std::cout << ss.str() << std::endl;
-            // jointName(J(j))
-            std::ofstream fout(ss.str());
+        st_friction_big_frame[j] = (maxVelosity / 10.);
 
-            fout << "plot '-' using 1:2 with lines" << std::endl;
-            unsigned count = 0;
-            double sum = 0.;
-            auto fprinter = [&fout, &count, &sum](double item) { 
-                fout << count++ << '\t' << item << std::endl;
-                sum += item;
-            };
+        assert(st_friction_n_frames < nMoveFrames);
+        assert(st_friction_big_frame[j] < maxVelosity);
 
-            std::for_each(framesMove[j].begin(), framesMove[j].end(), fprinter);
-            std::cout << "framesMove[" << int(j) << "]=" << framesMove[j].size() << " sum=" << sum << std::endl;
+        systematic_changes = std::make_shared<SystematicChanges<>>(112, -(maxVelosity / 100.), (maxVelosity / 100.));
 
-            sum = 0.;
-            std::for_each(framesStop[j].begin(), framesStop[j].end(), fprinter);
-            std::cout << "framesStop[" << int(j) << "]=" << framesStop[j].size() << " sum=" << sum << std::endl;
-
-            //std::system("\"C:\\Program Files (x86)\\gnuplot\\bin\\gnuplot\" \"motion-law.dat\" -presist");
-        }
-#endif // DEBUG_PLOT_PHY_STATE
+        printFrames(j);
         ++j;
     }
 }
+void RoboPhysics::EnvPhyState::printFrames(joint_t j) const
+{
+#ifdef DEBUG_PLOT_PHY_STATE
+    printEnumOneHot<Enviroment>(conditions, Robo::enviroment_outputs);
+    std::cout << std::endl;
+
+    std::stringstream ss;
+    ss << "motion-law-" << Utils::ununi(Robo::MotionLaws::name(laws[j].type)) << "-" << int(j) << ".plt";
+    std::cout << ss.str() << std::endl;
+    // jointName(J(j))
+    std::ofstream fout(ss.str());
+
+    fout << "plot '-' using 1:2 with lines" << std::endl;
+    unsigned count = 0;
+    double sum = 0.;
+    auto fprinter = [&fout, &count, &sum](double item) {
+        fout << count++ << '\t' << item << std::endl;
+        sum += item;
+    };
+
+    std::for_each(framesMove[j].begin(), framesMove[j].end(), fprinter);
+    std::cout << "framesMove[" << int(j) << "]=" << framesMove[j].size() << " sum=" << sum << std::endl;
+
+    sum = 0.;
+    std::for_each(framesStop[j].begin(), framesStop[j].end(), fprinter);
+    std::cout << "framesStop[" << int(j) << "]=" << framesStop[j].size() << " sum=" << sum << std::endl;
+    //std::system("\"C:\\Program Files (x86)\\gnuplot\\bin\\gnuplot\" \"motion-law.dat\" -presist");
+#endif // DEBUG_PLOT_PHY_STATE
+}
 void RoboPhysics::EnvPhyState::reset()
 {
-    momentum_happened = false;
-    // momentum_n_frames = random(1,5);
+    momentum_happened = 0;
+    systematic_factor *= systematic_changes->get();
 }
 //--------------------------------------------------------------------------------
 Enviroment RoboPhysics::getEnvCond() const { return env->conditions; }
@@ -528,9 +556,9 @@ distance_t RoboPhysics::Imoment(joint_t j) const
     // Иначе на него действуют смещения остальных сочленений
     distance_t Imoment = 0.;
     if (containE(getEnvCond(), ENV::MUTIAL_DYNAMICS) &&
-        containE(getEnvCond(), ENV::MUTIAL_BLOCKING) && // actuators mutual blocking
+        containE(getEnvCond(), ENV::MUTIAL_BLOCKING) &&
          !(status->shifts[m_c] > RoboI::minFrameMove &&
-           fabs(status->shifts[m_c] - status->shifts[m_o]) < RoboI::minFrameMove))//)
+           fabs(status->shifts[m_c] - status->shifts[m_o]) < RoboI::minFrameMove))
     {
         for (joint_t jj = j, gain = 4; jj > 0; --jj, gain <<= 1)
         {

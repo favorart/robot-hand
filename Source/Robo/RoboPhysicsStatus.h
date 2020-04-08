@@ -3,6 +3,7 @@
 #include "RoboPhysics.h"
 
 namespace Robo {
+//--------------------------------------------------------------------------------
 struct RoboPhysics::Status
 {
     using JointPrevs = std::array<Point, jointsMaxCount>;
@@ -42,32 +43,39 @@ struct RoboPhysics::Status
 struct RoboPhysics::EnvPhyState
 {
     using MLaws = std::array<MotionLaws::JointMotionLaw, RoboPhysics::jointsMaxCount>;
+    using JMaxFrames = std::array<distance_t, RoboPhysics::jointsMaxCount>;
+    using JMass = std::array<double, RoboPhysics::jointsMaxCount + 1>;
+
+    JMass mass{}; // m_j0, m_j1, m_j2, m_j3, m_j4
+
+    // --- 0) Общие ограничения
+    distance_t c1 = 0., c2 = 0;      // accelerate_limit: c1 * t + c2
+    distance_t velosity_limit = 0.;  // velosity_limit:   c3
+
     //frames_t visitedRarity{ 10 }; ///< писать в траекторию 1 раз в данное число тактов
-    Robo::Enviroment conditions{ Robo::Enviroment::NOTHING }; ///< уловия внешней среды
-    pEnvEdges edges; ///< удары и биение на самопересечениях и границах рабочей области
-    MLaws laws; ///< закон движения каждого сочленения
 
-    bool momentum_happened{ false }; ///< ???
-    frames_t momentum_n_start{ LastsInfinity }; ///< ???
-    frames_t momentum_n_frames{ 10 }; ///< ???
-
-    frames_t st_friction_n_frames{ 10 }; ///< количество кадров задержки начала движения из-за трения в сочленениях
-    distance_t st_friction_big_frame{ RoboI::minFrameMove }; ///< ???
+    MLaws laws{};                                 ///< "закон движения" каждого сочленения
+    JMaxFrames max_frames{};                      ///< максимальная величина смещения в "законе движения" для сочленения
 
     // --- велична перемещений в каждый кадр ---
     using JointFrames = std::array<std::vector<distance_t>, RoboI::jointsMaxCount>;
     JointFrames framesMove{}; ///< кадры при движении (дельта прироста)
     JointFrames framesStop{}; ///< кадры при остановке (дельта прироста)
 
-    EnvPhyState(/*const Point &base,*/ const JointsInputsPtrs&, pEnvEdges);
-    void reset();
-    frames_t nFramesAll(joint_t j) const { return (framesMove[j].size() + framesStop[j].size()); }
-    frames_t nFramesMove(joint_t j) const { return framesMove[j].size(); }
-    frames_t nFramesStop(joint_t j) const { return framesStop[j].size(); }
+    Robo::Enviroment conditions{ Robo::Enviroment::NOTHING }; ///< включений моделирований условий внутренней и внешней среды
 
-    // systematic_change = []() { изменить несколько рандомных кадров framesMove или framesStop };
-    template <typename RandGen  = std::mt19937, 
-              typename T        = double,
+    // --- виды "граничных условий"
+    pEnvEdges   edges{};                          ///< удары и биение при самопересечениях и на границах рабочей области
+    frames_t   st_friction_n_frames{ 11 };        ///< количество кадров задержки начала движения из-за трения в сочленениях
+    JMaxFrames st_friction_big_frame{ /*???*/ };  ///< взрывное ускорение после сильной задержки трением внутри пневматики
+
+    // --- 4) Выбросы 
+    frames_t momentum_expect_happens{ 1 /*%*/ };  ///< вероятность появление мгновенного изменения в работе мускула
+    unsigned momentum_happened{ 0 };              ///< число появлений мгновенного изменения за одно движение модели
+    unsigned momentum_max_happens{ 2 };           ///< максимальное число возможных появлений мгновенных изменений модели
+    
+    template <typename RandGen  = std::mt19937, //std::default_random_engine, //
+              typename T        = distance_t,
               typename Distr    = std::uniform_real_distribution<T>>
     class SystematicChanges
     {
@@ -79,12 +87,44 @@ struct RoboPhysics::EnvPhyState
          *    Генератор псевдо-случайных чисел (Вихрь Мерсенна) принимает random_device (во всей программе делается 1 раз)
          *    Интервал, в котором набираются случайные числа: от 0.0 до 1.0 — для шумов более, чем достаточно.
          */
-        SystematicChanges(T left = 0.0f, T right = 1.0f) :
-            gen(RandGen{ std::random_device{} }),
-            dis(Distr{ left, right })
-        {}
-        T get() const { return dis(gen); }
+    public:
+        SystematicChanges(unsigned seed = std::random_device{}() /* true random value */, T left = 0., T right = 1.)
+            : gen(seed), dis(left, right) {}
+        T get() { return dis(gen); }
     };
+    std::shared_ptr<SystematicChanges<>> systematic_changes; ///< изменения в пределах 1/2 и 2 раза, масштабирующий коэффициент.
+    distance_t systematic_factor{ 1. }; ///< полученный случайным образом масштабирующий множитель кадров framesMove или framesStop
+
+    class FrequencyComponent
+    {
+        distance_t c5(frames_t t) {} // передаточный коэффициент
+        distance_t c6(frames_t t) {} // коэффициент затухания
+        distance_t c7(frames_t t) {} // коэффициент масштаба времени
+
+        distance_t f(frames_t t)
+        {
+            auto t_scale = c7(t);
+            auto damping = c6(t);
+            auto gear = c5(t);
+
+            auto w = sqrt(1. - damping * damping);
+            auto A = 1. / w;
+            auto a = damping / t_scale;
+            auto phy = atan(w / damping);
+
+            w /= t_scale;
+
+            return gear * (1. - A * exp(a * t) * sin(w * t + phy));
+        }
+    };
+
+    EnvPhyState(/*const Point &base,*/ const JointsInputsPtrs&, pEnvEdges);
+    void printFrames(joint_t) const;
+    void reset();
+
+    frames_t nFramesAll(joint_t j) const { return (framesMove[j].size() + framesStop[j].size()); }
+    frames_t nFramesMove(joint_t j) const { return framesMove[j].size(); }
+    frames_t nFramesStop(joint_t j) const { return framesStop[j].size(); }
 };
-} // end Robo
+} // end namespace Robo
 

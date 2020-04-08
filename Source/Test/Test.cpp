@@ -417,13 +417,17 @@ void test::Test::testAll()
 //------------------------------------------------------
 void test::Test::testMotionLaws(const tstring &test_name)
 {
+    auto verbose = LV_CLEVEL;
+    LV_CLEVEL = params.VERBOSE_LEVEL;
+    // ==============================
+
     Store store;
     unique_ptr<TargetI> pTarget(new RecTarget(params.TARGET_N_ROWS, params.TARGET_N_COLS,
                                               params.TARGET_LFT, params.TARGET_RGH,
                                               params.TARGET_TOP, params.TARGET_BTM));
 
     auto pRobo = makeRobot();
-    //pRobo->setEnvCond(params.ENVIROMENT);
+    pRobo->setEnvCond(params.ENVIROMENT);
 
     printConfig();
 #ifdef TEST_DEBUG
@@ -471,6 +475,8 @@ void test::Test::testMotionLaws(const tstring &test_name)
     // ==============================
     boost::this_thread::interruption_point();
     // ==============================
+    LV_CLEVEL = verbose;
+
 #ifdef TEST_DEBUG
     store.dump_off(_T("test-store-2.txt"), *pRobo, Store::Format::BIN);
 #endif
