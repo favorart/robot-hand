@@ -105,7 +105,7 @@ void getConsoleArguments(const int argc, const TCHAR **argv, Utils::CArgs &args)
             ("config_path,c", po_tvalue(&args.config), "Path to json config file")
             ("database_path,d", po_tvalue(&args.database)->default_value(_T(""), ""), "Path to trajectories database")
             ("lm_conf_path,l", po_tvalue(&args.lm_config)->default_value(_T(""), ""), "Path to LM config file")
-            ("tests_path,p", po_tvalue(&args.testsfile)->default_value(_T(""), ""), "Path to Tests file")
+            ("tests_path,s", po_tvalue(&args.testsfile)->default_value(_T(""), ""), "Path to Tests file")
             ("test_name,n", po_tvalue(&args.testname)->default_value(_T(""), ""), "Prefix of Test name")
             ("test,t", po::bool_switch(&args.testings)->default_value(false)->implicit_value(true), "Testing regime");
         

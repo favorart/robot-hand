@@ -454,7 +454,10 @@ TourTarget::TourTarget(IN RoboMoves::Store *store,
 
     if (_b_predict)
     {
-        _store->constructApprox(_max_n_controls, RoboPos::newApproxRangeFilter(_store.get(), &_target, _step_distance * 5., 5));
+        RoboMoves::pApproxFilter pFilter = (_store->size() < 1000) 
+            ? RoboPos::newApproxNoFilter(_store.get())
+            : RoboPos::newApproxRangeFilter(_store.get(), &_target, _step_distance * 5., 5);
+        _store->constructApprox(RoboPos::Approx::max_n_controls, std::move(pFilter), true/*force*/);
     }
 }
 

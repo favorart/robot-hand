@@ -121,8 +121,6 @@ public:
     struct TargetBorderLasts { Robo::frames_t min_lasts, max_lasts; };
     using  TargetBorders = std::vector<TargetBorderLasts>;
 
-    static const unsigned _max_n_controls = 8;
-
     TourTarget(IN RoboMoves::Store *store,
                IN Robo::RoboI *robo,
                IN const tptree *config,

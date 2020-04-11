@@ -72,7 +72,7 @@ class LearnMoves final
     Robo::distance_t annealing{};
     Robo::distance_t side3{};
     Robo::distance_t side_decrease_step{};
-    Robo::distance_t factor_random_spread{ 100. };
+    Robo::distance_t factor_random_spread{ 10. };
     size_t _tries = 0;
     size_t _random_try = 0;
     //=============================================

@@ -27,7 +27,7 @@ namespace RoboMoves
 {
 //------------------------------------------------------------------------------
 class Record;
-class ApproxFilter;
+class pApproxFilter;
 //------------------------------------------------------------------------------
 class StoreI
 {
@@ -89,7 +89,7 @@ public:
     virtual void near_passed_build_index() = 0;
 
     /// постоить матрицу интерполяции по заданной store для предсказания точек остановки для новых Control
-    virtual void construct_approx(size_t max_n_controls, RoboMoves::ApproxFilter&) = 0;
+    virtual void construct_approx(size_t max_n_controls, RoboMoves::pApproxFilter&, bool force = false) = 0;
     /// получить объект интерполяции
     virtual RoboPos::Approx* approx() = 0;
 

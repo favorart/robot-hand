@@ -148,7 +148,7 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         range.clear();
         next_distance = bg::distance(aim, mid_hit);
         // -----------------------------------------------
-        auto hit = predict(controls);
+        //auto hit = predict(controls);
         //auto d = bg::distance(aim, hit);
         //if (less(distance, next_distance) || less(distance, d)) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         {

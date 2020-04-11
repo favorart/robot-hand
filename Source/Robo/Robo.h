@@ -34,7 +34,7 @@ struct State final
     const Point spec() const { return positions[special_no]; }
     //------------------------------------------
     template <class Archive>
-    void serialize(Archive &ar, unsigned version)
+    void serialize(Archive &ar, unsigned /*version*/)
     { ar & special_no & positions & velosities & accelerations; }
     //------------------------------------------
     bool operator==(const State &state) const
@@ -181,8 +181,7 @@ protected:
     JointsInputsPtrs _joint_inputs{};
 
 private:
-    static std::shared_ptr<RoboI> make(const tstring &type, tptree &node)
-    { throw std::logic_error("Depricated"); };
+    static std::shared_ptr<RoboI> make(const tstring &/*type*/, tptree &/*node*/) { throw std::logic_error("Depricated"); };
     //----------------------------------------------------
     //friend class EnvEdges;
     friend void forceIncludeMethodMake<RoboI>();

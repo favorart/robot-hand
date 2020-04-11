@@ -95,8 +95,10 @@ public:
 
     /// Construct the train data from any iterable container
     template <typename Iterator>
-    void  constructXY(const Iterator begin, const Iterator end)
+    void  constructXY(const Iterator begin, const Iterator end, size_t expect_size)
     {
+        clear();
+        resize(expect_size, _max_n_controls);
         int i = 0;
         for (Iterator it = begin; it != end; ++it, ++i)
             insert(it->controls, it->hit, i);
@@ -109,6 +111,8 @@ public:
     {
         //static_assert(std::is_convertible<ApproxFilter, std::function<const Record*()>>
         //              "Incorrect type to template function.");
+        clear();
+        resize(next.expect_size(), _max_n_controls);
         for (size_t i = 0; true; ++i)
         {
             auto res = next();

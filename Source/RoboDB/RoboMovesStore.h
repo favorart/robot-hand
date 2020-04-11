@@ -314,7 +314,7 @@ namespace RoboMoves
     //------------------------------------------------------------------------------
     size_t nearPassPoints(IN const Point &aim, IN Robo::distance_t radius, OUT SearchCallBack callback) const;
     //------------------------------------------------------------------------------
-    void constructApprox(size_t max_n_controls, pApproxFilter filter=nullptr);
+    void constructApprox(size_t max_n_controls, pApproxFilter filter=nullptr, bool force = false);
     RoboPos::Approx* getApprox();
     pApproxFilter getApproxNoFilterAllRecords() const;
     //------------------------------------------------------------------------------
@@ -374,6 +374,7 @@ BOOST_CLASS_VERSION(RoboMoves::Store, 2)
 //------------------------------------------------------------------------------
 class TargetI;
 namespace RoboPos {
+RoboMoves::pApproxFilter newApproxNoFilter(const RoboMoves::Store*);
 RoboMoves::pApproxFilter newApproxRangeFilter(const RoboMoves::Store*, const TargetI*, Robo::distance_t side, size_t pick_points=3);
 }
 

@@ -242,6 +242,12 @@ RoboMoves::pApproxFilter RoboPos::newApproxRangeFilter(const Store *store, const
 }
 
 //------------------------------------------------------------------------------
+RoboMoves::pApproxFilter RoboPos::newApproxNoFilter(const Store *store)
+{
+    return store->getApproxNoFilterAllRecords();
+}
+
+//------------------------------------------------------------------------------
 /// грубое покрытие всего рабочего пространства
 void  RoboPos::LearnMoves::STAGE_1()
 {
@@ -299,7 +305,7 @@ void  RoboPos::LearnMoves::STAGE_2()
      */
     TourTarget::TargetContain target_contain = [&target=*_target](const Point &p) {
         //return target.contain(p);
-        double corr = 0.01;
+        distance_t corr = 0.01;
         return (p.x >= (target.min().x - corr) && p.x <= (target.max().x + corr) &&
                 p.y >= (target.min().y - corr) && p.y <= (target.max().y + corr));
     };
@@ -383,6 +389,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
                 const auto ry = Utils::random(-spread, spread);
 
                 aim = { it->x + rx, it->y + ry };
+                //if (!_target->contain(aim)) continue;
                 is_aim = false;
             }
 #ifdef USE_REACH_STAT

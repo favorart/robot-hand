@@ -598,7 +598,7 @@ RoboPos::Approx* RoboMoves::Store::getApprox() { return _approx.get(); }
 RoboMoves::pApproxFilter RoboMoves::Store::getApproxNoFilterAllRecords() const { return std::make_unique<ANoFilter>(*this); }
 
 //------------------------------------------------------------------------------
-void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::pApproxFilter filter)
+void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::pApproxFilter filter, bool force)
 {
     boost::lock_guard<boost::recursive_mutex> lock(_store_mutex); // !!! double lock
     //boost::this_thread::disable_interruption no_interruption;
@@ -611,7 +611,7 @@ void RoboMoves::Store::constructApprox(size_t max_n_controls, RoboMoves::pApprox
             /*sizing*/[]() { return 1.01; });
     }
 
-    if (!_approx->constructed())
+    if (force || !_approx->constructed())
     {
         CINFO("Construct Approx...");
         getApprox()->constructXY((filter) ? *filter : *getApproxNoFilterAllRecords());

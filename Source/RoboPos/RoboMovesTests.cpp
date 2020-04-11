@@ -9,7 +9,7 @@ using namespace RoboMoves;
 //------------------------------------------------------------------------------
 void init_thread_rand_seed()
 {
-    std::srand(112); /// (unsigned int)clock());
+    std::srand(112); //(unsigned int)clock()); //
 }
 
 //------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ void RoboPos::testApprox(Store &store, RoboI &robo)
             CDEBUG(sizing << _T(" approx sizing=") << sizing * 2);
 
             Approx approx(store.size(), 8, Approx::noize, [sizing]() { return sizing * 2; });
-            approx.constructXY(store.begin(), store.end());
+            approx.constructXY(store.begin(), store.end(), store.size());
             //tcout << _T("writing") << std::endl;
             {
                 //tfstream ofs("approx.txt", std::ios_base::out);
