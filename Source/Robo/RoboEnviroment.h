@@ -38,6 +38,23 @@ constexpr std::array<const TCHAR*, size_t(Robo::Enviroment::_LAST_)> enviroment_
     _T("MOMENTUM_CHANGES"), _T("SYSTEMATIC_CHANGES"), _T("START_FRICTION"), _T("EDGES"), 
     _T("WINDY"), _T("WEATHER")
 };
+//------------------------------------------------------
+inline ENV scanEnviroment(const tstring &s)
+{
+    tstring buf;
+    const tstring inv = _T("\"' \t");
+    ba::copy_if(s, std::back_inserter(buf), [&inv](TCHAR ch) { return (inv.find(ch) == std::string::npos); });
+    if (!buf.empty())
+        return scanEnumOneHot<ENV>(buf, Robo::enviroment_outputs);
+    return ENV::NOTHING;
+}
+//------------------------------------------------------
+inline tstring putEnviroment(ENV env)
+{
+    tstringstream ss;
+    putEnumOneHot<ENV>(env, Robo::enviroment_outputs, ss);
+    return ss.str();
+}
 } // Robo
 
 

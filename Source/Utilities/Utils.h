@@ -51,9 +51,11 @@ struct CArgs
 //------------------------------------------------------
 using tseparator = boost::char_separator<TCHAR>;
 using ttokenizer = boost::tokenizer<boost::char_separator<TCHAR>, tstring::const_iterator, tstring>;
-//------------------------------------------------------
 template <typename Enum, size_t N = size_t(Enum::_LAST_)>
-Enum scanEnumOneHot(const tstring &buf, const std::array<const TCHAR*, N> &outputs)
+using TEnumNames = std::array<const TCHAR*, N>;
+//------------------------------------------------------
+template <typename Enum>
+Enum scanEnumOneHot(const tstring &buf, const TEnumNames<Enum> &outputs)
 {
     if (buf == outputs[0])
         return Enum(0);
@@ -73,18 +75,36 @@ Enum scanEnumOneHot(const tstring &buf, const std::array<const TCHAR*, N> &outpu
     return Enum(e);
 }
 //------------------------------------------------------
-template <typename Enum, size_t N = size_t(Enum::_LAST_)>
-void printEnumOneHot(Enum enum_val, const std::array<const TCHAR*, N> &outputs)
+template <typename Enum>
+void putEnumOneHot(Enum enum_val, const TEnumNames<Enum> &outputs, std::basic_ostream<TCHAR> &s)
 {
     if (enum_val == Enum(0))
     {
-        tcout << outputs[0];
+        s << outputs[0];
         return;
     }
-    for (uint64_t e = 1, i = 0; i < N; ++i, e <<= 1)
+    for (uint64_t e = 1, i = 1; i < outputs.size(); ++i, e <<= 1)
         if (e & uint64_t(enum_val))
-            tcout << ((i == 1) ? _T("") : _T("|")) << outputs[i];
+            s << ((i == 1) ? _T("") : _T("|")) << outputs[i];
 }
+//------------------------------------------------------
+template <typename Enum>
+void printEnumOneHot(Enum enum_val, const TEnumNames<Enum> &outputs)
+{
+    putEnumOneHot(enum_val, outputs, tcout);
+}
+//------------------------------------------------------
+void printTree(const tptree &tree, tostream &out, const int level = 0);
+
+//------------------------------------------------------
+constexpr TCHAR* VerboseLevelOutputs[] = {
+    _T("COUTALL"), _T("CDEBUG"), _T("CINFO"), _T("CWARN"), _T("CERROR"), _T("CALERT")
+};
+int scanVerboseLevel(const tstring&);
+tstring putVerboseLevel();
+//------------------------------------------------------
+inline tstring unquote(const tstring &s)
+{ return (s.front() == _T('"')) ? s.substr(1, s.length() - 2) : s; };
 
 //-------------------------------------------------------------------------------
 tstring getLastErrorString();

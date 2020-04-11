@@ -230,8 +230,8 @@ std::shared_ptr<RoboI> Hand::make(const tstring &type, tptree &node)
     }
     robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
     auto r = std::make_shared<Hand>(robo_base, robo_joints);
-
-    auto enviroment = node.get_optional<short>(_T("enviroment")).get_value_or(0);
-    r->setEnvCond(static_cast<Enviroment>(enviroment)); // <KZLM!
+    
+    tstring s = node.get_optional<tstring>(_T("enviroment")).get_value_or(_T(""));
+    r->setEnvCond(scanEnviroment(s));
     return r;
 }

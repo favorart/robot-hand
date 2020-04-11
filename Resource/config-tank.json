@@ -2,7 +2,7 @@
   "robo": {
     "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
-    "enviroment": 32, "#enviroment": "MUTIAL_BLOCKING(1)|MUTIAL_DYNAMICS(2)|MOMENTUM_CHANGES(4)|SYSTEMATIC_CHANGES(8)|START_FRICTION(16)|EDGES(32)",
+    "enviroment": "MUTIAL_BLOCKING|MUTIAL_DYNAMICS|MOMENTUM_CHANGES|SYSTEMATIC_CHANGES|START_FRICTION|EDGES",
     "joints": [
       {
         "name": "RTrack",
@@ -17,7 +17,7 @@
           "dInertiaRatio": 0.07,
           "dStableRatio": 0.25,
           "#stFrictRatio": 0.01,
-          "param" : "0.25"
+          "param": "0.25"
         }
       },
       {
@@ -86,15 +86,7 @@
   "lm_config": ".\\Resource\\Tour-tank.txt",
   "precision": 1.5,   "#precision": "mm",
   "redirect": true,
-    
-  "saveFormat": 1, "#saveFormat": "none(0)|txt(1)|bin(2)",
+  "saveFormat": 1,    "#saveFormat": "none(0)|txt(1)|bin(2)",
   "#startUpLoad": "Tank-v2-robo-moves.bin",
-  
-  "#LV_OUTALL": 0,
-  "#LV_CDEBUG": 1,
-  "#LV_CINFO": 2,
-  "#LV_CWARN": 3,
-  "#LV_CERROR": 4,
-  "#LV_CALERT": 5,
-  "verbose": 2
+  "verbose": "CINFO"
 }

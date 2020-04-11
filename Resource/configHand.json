@@ -2,7 +2,8 @@
   "robo": {
     "type": "Hand-v4",
     "base": [ 0.75, 0.25 ],
-    "enviroment": 32, "#enviroment": "MUTIAL_BLOCKING(1)|MUTIAL_DYNAMICS(2)|MOMENTUM_CHANGES(4)|SYSTEMATIC_CHANGES(8)|START_FRICTION(16)|EDGES(32)",
+    "enviroment": "MUTIAL_DYNAMICS|EDGES", "####" : "#MUTIAL_BLOCKING|MUTIAL_DYNAMICS|MOMENTUM_CHANGES|SYSTEMATIC_CHANGES|",
+    "#enviroment": "NOTHING",
     "joints": [
       {
         "name": "Wrist",
@@ -16,7 +17,7 @@
           "param": 0,
           "nMoveFrames": 250,
           "dMoveDistance": 1.74533, "#maxAngle": "radians = 0-100 degrees",
-          "dInertiaRatio": 0.55,          
+          "dInertiaRatio": 0.55,
           "dStableRatio": 0.55
         }
       },
@@ -32,7 +33,7 @@
           "param": 0,
           "nMoveFrames": 350,
           "dMoveDistance": 2.3562, "#maxAngle": "radians = 0-135 degrees",
-          "dInertiaRatio": 0.31,          
+          "dInertiaRatio": 0.31,
           "dStableRatio": 0.55
         }
       },
@@ -48,7 +49,7 @@
           "param": 0,
           "nMoveFrames": 470,
           "dMoveDistance": 1.8326, "#maxAngle": "radians = 0-105 degrees",
-          "dInertiaRatio": 0.35,          
+          "dInertiaRatio": 0.35,
           "dStableRatio": 0.55
         }
       },
@@ -64,7 +65,7 @@
           "param": 0,
           "nMoveFrames": 400,
           "dMoveDistance": 0.1,
-          "dInertiaRatio": 0.55,          
+          "dInertiaRatio": 0.55,
           "dStableRatio": 0.55
         }
       }
@@ -136,17 +137,10 @@
     "animation": true,
     "skipShowFrames": 5
   },
-  "precision": 1.5, "#precision": "mm",
+  "precision": 1.5,  "#precision": "mm",
   "lm_config": ".\\Resource\\Tour.txt",
-  "redirect": false,
-  "saveFormat": 1, "#saveFormat": "none(0)|txt(1)|bin(2)",
+  "redirect": true,
+  "saveFormat": 1,   "#saveFormat": "none(0)|txt(1)|bin(2)",
   "#startUpLoad": "Hand-v4-robo-moves-2018.10.23-16.55.bin",
-
-  "#LV_OUTALL": 0,
-  "#LV_CDEBUG": 1,
-  "#LV_CINFO": 2,
-  "#LV_CWARN": 3,
-  "#LV_CERROR": 4,
-  "#LV_CALERT": 5,
-  "verbose": 1
+  "verbose": "CINFO"
 }

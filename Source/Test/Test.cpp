@@ -33,7 +33,7 @@ using namespace RoboMoves;
 
 
 //------------------------------------------------------------------------------
-void printTree(const tptree &tree, tostream &out, const int level = 0)
+void printTree(const tptree &tree, tostream &out, const int level)
 {
     if (tree.empty())
     {
@@ -63,26 +63,6 @@ MLaw& operator++(MLaw &mlaw) { return (mlaw = static_cast<MLaw>(static_cast<int>
 
 //------------------------------------------------------
 // Scan Functions
-//------------------------------------------------------
-inline tstring unquote(const tstring &s)
-{ return (s.front() == _T('"')) ? s.substr(1, s.length() - 2) : s; };
-
-//------------------------------------------------------
-int test::scanVerboseLevel(const tstring &str_level)
-{
-    int level = 0;
-    tstring buf{ unquote(str_level) };
-    boost::trim(buf);
-    for (auto &s : VerboseLevelOutputs)
-    {
-        if (buf == s)
-            return level;
-        ++level;
-    }
-    CERROR("Invalid Verbose Level!");
-    return 2;
-}
-
 //------------------------------------------------------
 using SetterF = std::function<void(const tstring&)>;
 static
@@ -266,7 +246,7 @@ void test::Params::scan(tptree &root)
     SCAN_PARAM(LM_CONFIG_FN,  [](auto&s){return unquote(s);});
     SCAN_PARAM(GNUPLOT_PATH,  [](auto&s){return s;});
     SCAN_PARAM(STORE_LOAD_FN, [](auto&s){return unquote(s);});
-    SCAN_PARAM(VERBOSE_LEVEL, test::scanVerboseLevel);
+    SCAN_PARAM(VERBOSE_LEVEL, scanVerboseLevel);
 
     SCAN_PARAM(N_JOINTS,      std::stoi);
     SCAN_PARAM2(ROBO_TYPE,    scanEnumOneHot<RoboType>, RoboTypeOutputs);

@@ -1,6 +1,8 @@
 ﻿#pragma once
 
+#include "Utils.h"
 #include "Robo.h"
+
 namespace RoboMoves {
 class Store;
 }
@@ -30,7 +32,7 @@ enum class RoboType : uint8_t {
     None=0, Tank=1, Hand/*2=2, Hand3=3, Hand4=4*/, 
     _LAST_=3
 };
-constexpr std::array<const TCHAR*, size_t(RoboType::_LAST_)> RoboTypeOutputs = {
+constexpr TEnumNames<RoboType> RoboTypeOutputs = {
     _T("NONE"), _T("TANK"), _T("HAND")
 };
 
@@ -39,23 +41,18 @@ enum class LMAdmix : uint8_t {
     NOADMIX=0, GRADIENT=(1<<0), WMEAN=(1<<1), RUNDOWN=(1<<2), MAINDIR=(1<<3), 
     _LAST_=5
 };
-constexpr std::array<const TCHAR*, size_t(LMAdmix::_LAST_)> LMAdmixOutputs = {
+constexpr TEnumNames<LMAdmix> LMAdmixOutputs = {
     _T("NOADMIX"), _T("GRADIENT"), _T("WMEAN"), _T("RUNDOWN"), _T("MAINDIR")
 };
 
 //------------------------------------------------------
-enum LMTours : uint8_t {
-    TOUR1_GRID, TOUR1_EVO, TOUR1_EVOSTEP, TOUR1_RL, TOUR2_TARGET
+enum class LMTour : uint8_t {
+    T1_GRID, T1_EVO, T1_EVOSTEP, T1_RL, T2_TARGET,
+    _LAST_
 };
-constexpr TCHAR* LMToursOutputs[] = {
+constexpr TEnumNames<LMTour> LMToursOutputs[] = {
     _T("TOUR1_GRID"), _T("TOUR1_EVO"), _T("TOUR1_EVOSTEP"), _T("TOUR1_RL"), _T("TOUR2_TARGET")
 };
-
-//------------------------------------------------------
-constexpr TCHAR* VerboseLevelOutputs[] = {
-    _T("COUTALL"), _T("CDEBUG"), _T("CINFO"), _T("CWARN"), _T("CERROR"), _T("CALERT")
-};
-int scanVerboseLevel(const tstring&);
 
 //------------------------------------------------------
 struct Params

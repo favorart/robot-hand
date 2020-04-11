@@ -469,6 +469,12 @@ void MyWindowData::read_config(IN const tstring &filename)
         if (!pRobo) throw std::runtime_error("read_config: incorrect class RoboI version");
         if (!pTarget) throw std::runtime_error("read_config: incorrect class TargetI version");
 
+        //{
+        //    tptree node;
+        //    pRobo->save(node);
+        //    printTree(node, tcout);
+        //}
+
         CONF_GET_OPT(root, storeSaveFormat);
         CONF_GET_OPT(root, redirect);
         if (redirect)
@@ -492,7 +498,8 @@ void MyWindowData::read_config(IN const tstring &filename)
         // -------------------------------------------------------------------------
         read_canvas(root);
         // -------------------------------------------------------------------------
-        LV_CLEVEL = root.get_optional<int>(_T("verbose")).get_value_or(1);
+        tstring str_level = root.get_optional<tstring>(_T("verbose")).get_value_or(_T(""));
+        LV_CLEVEL = scanVerboseLevel(str_level);
     }
     catch (const std::exception &e)
     {
@@ -549,7 +556,7 @@ void MyWindowData::write_config(IN const tstring &filename) const
         root.put(_T("precision"), precision_mm);
         root.put(_T("lm_config"), pCArgs->lm_config);
         
-        root.put(_T("verbose"), LV_CLEVEL);
+        root.put(_T("verbose"), putVerboseLevel());
         root.put(_T("redirect"), redirect);
         root.put(_T("saveFormat"), storeSaveFormat);
         root.put(_T("#saveFormat"), _T("none(0)|txt(1)|bin(2)"));

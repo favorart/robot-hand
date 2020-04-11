@@ -1,6 +1,24 @@
 ﻿
 
 int LV_CLEVEL = LV_CINFO;
+//------------------------------------------------------
+tstring putVerboseLevel() { return VerboseLevelOutputs[LV_CLEVEL]; }
+//------------------------------------------------------
+int scanVerboseLevel(const tstring &str_level)
+{
+    int level = 0;
+    tstring buf{ unquote(str_level) };
+    boost::trim(buf);
+    for (auto &s : VerboseLevelOutputs)
+    {
+        if (buf == s)
+            return level;
+        ++level;
+    }
+    CERROR("Invalid Verbose Level!");
+    return LV_CINFO;
+}
+
 //------------------------------------------------------------------------------
 /*  Размедение с повторениями:
  *    currents   - текущее размещение

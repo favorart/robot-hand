@@ -42,6 +42,7 @@ void RoboI::save(tptree &root) const
         joints.push_back(std::make_pair(_T(""), node));
     }
     tptree robo;
+    robo.put(_T("enviroment"), putEnviroment(getEnvCond()));
     robo.put(_T("type"), getName());
     robo.add_child(_T("base"), pbase);
     robo.add_child(_T("joints"), joints);
@@ -104,7 +105,7 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
 bool RoboPhysics::changes(muscle_t muscle, joint_t joint, distance_t &Frame)
 {
     // --- WIND ----------------------------------
-    auto lastsMove = status->lastsMove[muscle];
+    const auto lastsMove = status->lastsMove[muscle];
     if (containE(getEnvCond(), ENV::WINDY) && lastsMove == 1)
     {
         Frame = Utils::random(RoboI::minFrameMove, env->max_frames[joint]);
@@ -143,7 +144,7 @@ bool RoboPhysics::changes(muscle_t muscle, joint_t joint, distance_t &Frame)
 
     // ---- MUTIAL_BLOCKING ----------------------
     bool result = (fabs(Frame) >= RoboI::minFrameMove);
-    if (containE(getEnvCond(), ENV::MUTIAL_BLOCKING) && lastsMove > 0 && !result)
+    if (!result && (containE(getEnvCond(), ENV::MUTIAL_BLOCKING) || containE(getEnvCond(), ENV::START_FRICTION)) && lastsMove > 0)
     {
         result = true; /* если блокировка противоположным мускулом, продолжаем движение */
         CDEBUG(" mutial_block[" << muscle << "]: " << Frame);
