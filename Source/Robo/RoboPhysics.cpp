@@ -70,6 +70,7 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
     {
         auto last = status->lastsMove[muscle] - 1;
         const auto &frames = env->framesMove[joint];
+        // TODO: restore after MUTUAL_BLOCKING
         do
         {
             //if (last >= frames.size()) throw std::runtime_error("DriveMove: Invalid lasts " + std::to_string(joint));
@@ -90,6 +91,18 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
     else throw std::logic_error("!lastsMove & !lastsStop");
     //------------------------------------------------
     status->prevFrame[muscle] = Frame;
+    // -------------------------------------------
+    bool result = changes(muscle, joint, Frame);
+    // -------------------------------------------
+    status->shifts[muscle] = Frame;
+    // -------------------------------------------
+    if (std::isnan(status->shifts[muscle]) || std::isinf(status->shifts[muscle]))
+        CERROR("shift NAN");
+    // -------------------------------------------
+    return result;
+}
+bool RoboPhysics::changes(muscle_t muscle, joint_t joint, distance_t &Frame)
+{
     // --- WIND ----------------------------------
     auto lastsMove = status->lastsMove[muscle];
     if (containE(getEnvCond(), ENV::WINDY) && lastsMove == 1)
@@ -97,24 +110,29 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
         Frame = Utils::random(RoboI::minFrameMove, env->max_frames[joint]);
         CDEBUG(" wind[" << muscle << "]: " << Frame);
     }
+
     // --- Start FRICTION ------------------------
-    else if (containE(getEnvCond(), ENV::START_FRICTION) 
-        && lastsMove > 0 && lastsMove <= env->st_friction_n_frames)
+    else if (containE(getEnvCond(), ENV::START_FRICTION)
+             && lastsMove > 0 && lastsMove <= env->st_friction_n_frames)
     {
         Frame = ((lastsMove == env->st_friction_n_frames) ? env->st_friction_big_frame[joint] : 0.);
         CDEBUG(" start_friction[" << muscle << "]" << lastsMove << ": " << Frame);
     }
+
     // --- MOMENTUM CHANGES ----------------------
     else if (containE(getEnvCond(), ENV::MOMENTUM_CHANGES)
-        && env->momentum_happened < env->momentum_max_happens && Utils::random(100) < env->momentum_expect_happens)
+             && env->momentum_happened < env->momentum_max_happens 
+             && Utils::random(100) < env->momentum_expect_happens)
     {
         auto oldFrame = Frame;
         Frame = Utils::random(RoboI::minFrameMove, env->max_frames[joint]);
         ++env->momentum_happened;
         CDEBUG(" momentum[" << muscle << "]" << env->momentum_happened << ": " << Frame << " (" << oldFrame << ")");
     }
+
     // --- SYSTEMATIC CHANGES --------------------
-    else if (containE(getEnvCond(), ENV::SYSTEMATIC_CHANGES) && status->lasts[muscle] < env->nFramesStop(joint))
+    else if (containE(getEnvCond(), ENV::SYSTEMATIC_CHANGES) 
+             && status->lasts[muscle] < env->nFramesStop(joint))
     {
         auto oldFrame = Frame;
         Frame = Frame + env->systematic_factor;
@@ -122,6 +140,7 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
         Frame = std::max(Frame, 0.);
         CDEBUG(" systematic[" << muscle << "]" << lastsMove << ": " << Frame << " (" << oldFrame << "|f=" << env->systematic_factor << ")");
     }
+
     // ---- MUTIAL_BLOCKING ----------------------
     bool result = (fabs(Frame) >= RoboI::minFrameMove);
     if (containE(getEnvCond(), ENV::MUTIAL_BLOCKING) && lastsMove > 0 && !result)
@@ -129,12 +148,6 @@ bool RoboPhysics::muscleDriveFrame(muscle_t muscle)
         result = true; /* если блокировка противоположным мускулом, продолжаем движение */
         CDEBUG(" mutial_block[" << muscle << "]: " << Frame);
     }
-    // -------------------------------------------
-    status->shifts[muscle] = Frame;
-    // -------------------------------------------
-    if (std::isnan(status->shifts[muscle]) || std::isinf(status->shifts[muscle]))
-        CERROR("shift NAN");
-    // -------------------------------------------
     return result;
 }
 void RoboPhysics::muscleDriveMove(frames_t frame, muscle_t muscle, frames_t lasts)

@@ -27,6 +27,7 @@ protected:
     virtual bool muscleDriveFrame(muscle_t);
     virtual void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last);
 
+    virtual bool changes(muscle_t, joint_t, distance_t &Frame);
     virtual distance_t Imoment(joint_t j) const;
     virtual int specPoint() const = 0;
 
