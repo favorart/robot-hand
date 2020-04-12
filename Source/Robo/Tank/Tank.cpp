@@ -30,9 +30,6 @@ frames_t Tank::muscleMaxLasts(muscle_t /*muscle*/) const
     return Robo::LastsInfinity;
 }
 //--------------------------------------------------------------------------------
-const Point& Tank::position() const
-{ return status->currPos[Center]; }
-//--------------------------------------------------------------------------------
 Tank::Tank(const Point &base, const JointsInputsPtrs &joint_inputs) :
     RoboPhysics(base, joint_inputs, std::make_shared<EnvEdgesTank>(*this, 10/*%*/, 1.5)),
     params(joint_inputs, *this)
@@ -196,12 +193,9 @@ void Tank::realMove()
     // =================
     env->edges->interaction(containE(getEnvCond(), Enviroment::EDGES), center, normal, tan_angle);
     // =================
-    if (ba::all_of_equal(status->shifts, 0.))
-    {
-        for (muscle_t m = 0; m < musclesCount(); ++m)
-            muscleDriveStop(m);
-        status->moveEnd = true;
-    }
+    if (shiftL == 0. && shiftR == 0.)
+        status->musclesAllDrivesStop();
+
     for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle)
         status->shifts[muscle] = 0.;
 }
@@ -209,9 +203,9 @@ void Tank::realMove()
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 {
 #ifdef MY_WINDOW
-    const Point &L = status->currPos[LTrack];
-    const Point &R = status->currPos[RTrack];
-    const Point &centerBody = status->currPos[Center];
+    const Point &L = jointPos(LTrack);
+    const Point &R = jointPos(RTrack);
+    const Point &centerBody = jointPos(Center);
     //------------------------------------------------------------------
     double phy = L.angle(R);
     // Body
@@ -219,7 +213,7 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     drawMyFigure(hdc, centerBody, bodyWidth, params.bodyHeight, phy, MyFigure::Rectangle, hPen);
     // Tracks
     for (joint_t j = 0; j < jointsCount(); ++j)
-        drawMyFigure(hdc, status->currPos[j], params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
+        drawMyFigure(hdc, jointPos(j), params.trackWidth, params.trackHeight, phy, MyFigure::Rectangle, hPen);
     // Center
     drawCircle(hdc, centerBody, params.centerRadius);
     // Front
@@ -264,8 +258,8 @@ void Tank::getWorkSpace(OUT Trajectory &workSpace)
 //--------------------------------------------------------------------------------
 void Tank::resetJoint(IN joint_t joint)
 {
-    muscleDriveStop(muscleByJoint(joint, true));
-    muscleDriveStop(muscleByJoint(joint, false));
+    status->muscleDriveStop(muscleByJoint(joint, true));
+    status->muscleDriveStop(muscleByJoint(joint, false));
     setJoints({ { joint, 0. } });
 }
 void Tank::setJoints(IN const JointsOpenPercent &percents)

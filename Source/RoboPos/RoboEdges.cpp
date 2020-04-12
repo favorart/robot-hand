@@ -33,11 +33,8 @@ void Robo::EnvEdgesTank::interaction(bool used, const Point &center, const Point
 {
     if (!used || tank_.moveEnd())
         return;
-    
-    const bool movesL = (tank_.status->musclesMove[Tank::LTrackFrw] > 0 || tank_.status->musclesMove[Tank::LTrackBck] > 0);
-    const bool movesR = (tank_.status->musclesMove[Tank::RTrackFrw] > 0 || tank_.status->musclesMove[Tank::RTrackBck] > 0);
 
-    collision = isCollision((movesL || movesR), 0);
+    collision = isCollision(tank_.status->somethingMoving(), 0);
     if (!collision)
         return;
 
@@ -53,13 +50,8 @@ void Robo::EnvEdgesTank::interaction(bool used, const Point &center, const Point
     }
     tank_.currPos(Tank::Center) = (tank_.currPos(Tank::LTrack) + tank_.currPos(Tank::RTrack)) / 2.; // mid point
 
-    for (muscle_t m = 0 ; m < tank_.muscles; ++m)
-    {
-        auto &lasts = (tank_.status->lastsMove[m] > 0) ? tank_.status->lastsMove : tank_.status->lastsStop;
-        lasts[m] -= tank_.status->lasts[m];
-        tank_.status->lasts[m] -= tank_.status->lasts[m];
-        tank_.status->prevFrame[m] /= damping_;
-    }
+    for (muscle_t m = 0; m < tank_.muscles; ++m)
+        tank_.status->damping(m, damping_);
 }
 
 
@@ -91,14 +83,14 @@ void Robo::EnvEdgesHand::interaction(bool used, const Point&, const Point&, doub
         const double mAn = (hand_.maxJointAngle(joint));
         const muscle_t mo = hand_.muscleByJoint(joint, true);
         const muscle_t mc = hand_.muscleByJoint(joint, false);
-        const bool moves = (hand_.status->musclesMove[mo] > 0 || hand_.status->musclesMove[mc] > 0);
+        const bool moves = (hand_.status->jointMovingOn(mo, mc));
          
         if (!isCollision(joint, moves))
             continue;
         collision = true;
 
-        if (hand_.status->lastsMove[mo] > 0 || hand_.status->lastsStop[mo] > 0) hand_.muscleDriveFrame(mo);
-        if (hand_.status->lastsMove[mc] > 0 || hand_.status->lastsStop[mc] > 0) hand_.muscleDriveFrame(mc);
+        if (hand_.status->movingOn(mo) || hand_.status->movingOff(mo)) hand_.status->muscleDriveFrame(mo, hand_);
+        if (hand_.status->movingOn(mc) || hand_.status->movingOff(mc)) hand_.status->muscleDriveFrame(mc, hand_);
 
         distance_t offset;
         offset = /*-*/(hand_.status->shifts[mc] - hand_.status->shifts[mo]) * (hand_.muscleMaxLasts(mc) / backpath_ratio_);
@@ -108,11 +100,17 @@ void Robo::EnvEdgesHand::interaction(bool used, const Point&, const Point&, doub
         hand_.jointMove(joint, offset);
 
         for (muscle_t m : { mo, mc })
-        {
-            auto &lasts = (hand_.status->lastsMove[m] > 0) ? hand_.status->lastsMove : hand_.status->lastsStop;
-            lasts[m] -= hand_.status->lasts[m];
-            hand_.status->lasts[m] -= hand_.status->lasts[m];
-            hand_.status->prevFrame[m] /= damping_;
-        }        
+            hand_.status->damping(m, damping_);
     }
+}1
+
+//#include "RoboPhysics.h"
+void Robo::RoboPhysics::Status::damping(muscle_t m, distance_t damp)
+{
+    //if (!movingOn(m) && movingOff(m))
+    //    throw std::runtime_error("Damping: Invalid state");
+    frames_t& lastsDrive = (movingOn(m) ? lastsMove[m] : lastsStop[m]);
+    lastsDrive -= lasts[m];
+    lastsDrive -= lasts[m];
+    prevFrame[m] /= damp;
 }

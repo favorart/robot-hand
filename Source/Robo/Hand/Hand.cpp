@@ -72,11 +72,7 @@ void Hand::realMove()
     env->edges->interaction(containE(getEnvCond(), ENV::EDGES));
     // =================
     if (!move)
-    {
-        for (muscle_t m = 0; m < musclesCount(); ++m)
-            muscleDriveStop(m);
-        status->moveEnd = true;
-    }
+        status->musclesAllDrivesStop();
     // =================
     status->shifts.fill(0);
 }
@@ -124,8 +120,8 @@ Hand::Params::Params(const JointsInputsPtrs &joint_inputs, const Hand &hand) :
 //--------------------------------------------------------------------------------
 void Hand::resetJoint(joint_t joint)
 {
-    muscleDriveStop(muscleByJoint(joint, true));
-    muscleDriveStop(muscleByJoint(joint, false));
+    status->muscleDriveStop(muscleByJoint(joint, true));
+    status->muscleDriveStop(muscleByJoint(joint, false));
     setJoints({ {joint, params.defOpen[joint]} });
 }
 void Hand::setJoints(const JointsOpenPercent &percents)
@@ -159,8 +155,8 @@ void Hand::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
     //------------------------------------------------------------------
     for (joint_t joint = 0; joint < jointsCount(); ++joint)
     {
-        const Point &B = status->currPos[joint];
-        const Point &A = ((joint + 1) == jointsCount()) ? base : status->currPos[joint + 1];
+        const Point &B = jointPos(joint);
+        const Point &A = ((joint + 1) == jointsCount()) ? base : jointPos(joint + 1);
 
         double sw = params.sectionWidth / boost_distance(A, B);
 

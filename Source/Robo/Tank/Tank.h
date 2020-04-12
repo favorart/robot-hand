@@ -48,8 +48,6 @@ public:
     void resetJoint(IN joint_t) override;
     void setJoints(IN const Robo::JointsOpenPercent&) override;
 
-    const Point& position() const override;
-
     tstring getName() const override { return Tank::name(); }
 
     static tstring name() { return _T("Tank-v2"); }

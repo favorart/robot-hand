@@ -19,19 +19,15 @@ protected:
 
     Point _base() const override;
     
-    virtual bool somethingMoving() const;
     virtual void step(muscle_t, frames_t);
     virtual void realMove() = 0;
-
-    virtual void muscleDriveStop(muscle_t);
-    virtual bool muscleDriveFrame(muscle_t);
-    virtual void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last);
 
     virtual bool changes(muscle_t, joint_t, distance_t &Frame);
     virtual distance_t Imoment(joint_t j) const;
     virtual int specPoint() const = 0;
 
     const Point& basePos(joint_t) const;
+    //const Point& currPos(joint_t) const;
     Point& currPos(joint_t);
 
     virtual distance_t prismatic_factor(joint_t) const = 0;

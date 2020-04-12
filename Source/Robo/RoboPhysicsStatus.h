@@ -3,23 +3,27 @@
 #include "RoboPhysics.h"
 
 namespace Robo {
+class RoboPhysics;
+using JointFrames = std::vector<distance_t>;
 //--------------------------------------------------------------------------------
 struct RoboPhysics::Status
 {
     using JointPrevs = std::array<Point, jointsMaxCount>;
-    using JointPoses = std::array<Point, jointsMaxCount + 1>;
+    //using JointPoses = std::array<Point, jointsMaxCount + 1>;
+    using JointPoses = std::vector<Point>;
     using MuscleShifts = std::array<distance_t, RoboI::musclesMaxCount>;
     using MuscleFrames = std::array<frames_t, RoboI::musclesMaxCount>;
 
-    /* const */ muscle_t musclesCount{ 0 };
-    /* const */ joint_t jointsCount{ 0 };
-    /* const */ JointPoses basePos{};
+    const joint_t jointsCount{ 0 };
+    const muscle_t musclesCount{ 0 };
+    const JointPoses basePos{};
 
     // ---current position---
     JointPoses currPos{}; ///< текущая позиция сочленения
     MuscleShifts shifts{}; ///< смещения каждого сочления
 
-    bool moveEnd = false; ///< флаг окончания движения - полной остановки
+private:
+    bool _moveEnd = false; ///< флаг окончания движения - полной остановки
 
     // ---parameters of hydraulic force---
     MuscleFrames lastsMove{}; ///< текущая продолжительность основного движения данного мускула (индекс кадра в массиве moveFrames)
@@ -27,17 +31,52 @@ struct RoboPhysics::Status
     MuscleFrames lasts{};     ///< заданная длительность работы мускула (индекс кадра в массиве moveFrames)
 
     // ---frames---
-    MuscleFrames musclesMove{}; ///< задействованные в движениии двители
+    MuscleFrames musclesMove{}; ///< задействованные в движениии двители (номер посчитанного для мускула такта == _frame или _frame+1)
     MuscleShifts prevFrame{}; ///< величина смещения сочленения в предыдущий такт для данного мускула
 
     // ---previous position---
     JointPrevs prevPos{}; ///< позиция сочленений в предыдущий такт
     JointPrevs prevVel{}; ///< мгновенная скорость сочленений в предыдущий такт
 
-    Status(const Point &base, const JointsInputsPtrs &joint_inputs);
+public:
+    using PreparedBasePoints = std::vector<Point>;
+    static PreparedBasePoints prepareBasePoses(const Point &base, const JointsInputsPtrs&);
+
+    Status(PreparedBasePoints bases);
     void reset();
-    void calcCurState(State &state, int spec);
+    void updateState();
     void getCurState(State &state, int spec) const;
+    const Point& curPos(joint_t joint) const { return currPos[joint]; }
+
+    //using Cmp = std::function<bool(distance_t, distance_t)>;
+    //distance_t muscleDriveFrame(muscle_t, const JointFrames &frames, Cmp cmp);
+
+    void musclesAllDrivesStop();
+    void muscleDriveStop(muscle_t);
+    void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last, RoboPhysics &self);
+    bool muscleDriveFrame(muscle_t, RoboPhysics&);
+
+    frames_t movingOnFrame(muscle_t m) const { return lastsMove[m]; }
+    bool movingOn(muscle_t m) const { return (lastsMove[m] > 0); }
+    bool movingOff(muscle_t m) const { return (lastsStop[m] > 0); }
+    bool somethingMoving() const { return !(ba::all_of_equal(musclesMove, 0)); }
+    bool muscleMoveIsFrame(muscle_t m, frames_t _frame) const;
+
+    //bool changes(muscle_t, joint_t, distance_t &Frame, ENV env);
+    //void step(muscle_t m, IN frames_t lasts, frames_t _frame, RoboPhysics &self);
+    void step(const bitwise &muscles, RoboPhysics &self);
+
+    // edges
+    void damping(muscle_t, distance_t);
+    bool jointMovingOn(muscle_t mo, muscle_t mc) const { return (musclesMove[mo] > 0 || musclesMove[mc] > 0); }
+
+    bool moveEnd() const { return _moveEnd; }
+
+#ifdef DEBUG_RM
+    frames_t muscleStatus(muscle_t m) const;
+    frames_t lastsStatus(muscle_t m) const;
+    TCHAR lastsStatusT(muscle_t m) const;
+#endif // DEBUG_RM
 };
 //--------------------------------------------------------------------------------
 struct RoboPhysics::EnvPhyState
@@ -58,9 +97,9 @@ struct RoboPhysics::EnvPhyState
     JMaxFrames max_frames{};                      ///< максимальная величина смещения в "законе движения" для сочленения
 
     // --- велична перемещений в каждый кадр ---
-    using JointFrames = std::array<std::vector<distance_t>, RoboI::jointsMaxCount>;
-    JointFrames framesMove{}; ///< кадры при движении (дельта прироста)
-    JointFrames framesStop{}; ///< кадры при остановке (дельта прироста)
+    using AllJointsFrames = std::array<JointFrames, RoboI::jointsMaxCount>;
+    AllJointsFrames framesMove{}; ///< кадры при движении (дельта прироста)
+    AllJointsFrames framesStop{}; ///< кадры при остановке (дельта прироста)
 
     Robo::Enviroment conditions{ Robo::Enviroment::NOTHING }; ///< включений моделирований условий внутренней и внешней среды
 
