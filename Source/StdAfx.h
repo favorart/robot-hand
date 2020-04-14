@@ -168,6 +168,7 @@ using tstring =  std::wstring;
 using tistream = std::wistream;
 using tostream = std::wostream;
 using tfstream = std::wfstream;
+using tofstream = std::wofstream;
 using tstringstream = std::wstringstream;
 
 using tptree = pt::wptree;
@@ -182,6 +183,7 @@ using tstring  = std::string;
 using tistream = std::istream;
 using tostream = std::ostream;
 using tfstream = std::fstream;
+using tofstream = std::ofstream;
 using tstringstream = std::stringstream;
 
 using tptree = pt::ptree;

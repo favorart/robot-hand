@@ -33,7 +33,11 @@ constexpr int LV_CALERT = 5;
                                                  << std::endl << __last_err         \
                                                  << std::endl;                      \
                                                                                     \
+/*#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L) */ \
                                            if constexpr (LV >= LV_CERROR)           \
+/*#else                                                                             \
+                                           if /*constexpr* / (LV >= LV_CERROR)      \
+#endif*/                                                                            \
                                            {                                        \
                                               tstringstream __ss;                   \
                                               __ss << message  << std::endl         \
