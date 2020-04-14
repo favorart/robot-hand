@@ -89,12 +89,12 @@ template <typename T> void forceIncludeMethodMake() { T::name(); T::make(); }
 class RoboI
 {
 protected:
-    frames_t _frame{ 0 };
+    frames_t _frame{ 1 };
     StateTrajectory _trajectory{};
     bool _trajectory_save{ true };
     void _reset()
     {
-        _frame = 0;
+        _frame = 1;
         _trajectory.clear();
         _trajectory_save = true;
     }
@@ -139,28 +139,24 @@ public:
 
     virtual frames_t muscleMaxLasts(IN muscle_t) const = 0;
     virtual frames_t muscleMaxLasts(IN const Control&) const = 0;
-
+    //----------------------------------------------------
     virtual void draw(IN HDC, IN HPEN, IN HBRUSH) const = 0;
     virtual void getWorkSpace(OUT Trajectory&) = 0;
-    
+    //----------------------------------------------------
     virtual frames_t move(IN const Control &controls, IN frames_t max_frames = LastsInfinity) = 0;
     virtual frames_t move(IN const std::bitset<musclesMaxCount> &bits, IN frames_t lasts, IN frames_t max_frames = LastsInfinity) = 0;
 
     virtual frames_t move(IN frames_t max_frames = LastsInfinity) = 0;
     virtual frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames = LastsInfinity) = 0;
     virtual frames_t move(IN const BitsControl<musclesMaxCount + 1>&, IN frames_t max_frames = LastsInfinity) = 0;
+    //----------------------------------------------------
+    virtual void step() = 0; //обсчёт очередного такта времени
+    virtual void step(IN const Robo::Control &control) = 0; //интервальное управление
+    virtual void step(IN const Control &control, OUT size_t &control_curr) = 0; //для показа анимации
+    virtual void step(std::bitset<musclesMaxCount> muscles, frames_t lasts) = 0; //для формы и TourEvo
 
-    virtual void step() = 0;
-    virtual void step(IN const Robo::Control &control) = 0;
-    virtual void step(IN const Control &control, OUT size_t &control_curr) = 0;
-
-    virtual void step(IN const std::bitset<musclesMaxCount> &muscles, IN frames_t lasts) = 0;
     using bitwise = std::bitset<musclesMaxCount + 1>;
-    virtual void step(const bitwise &muscles) = 0;
-
-    bool operator!=(const RoboI &r) const
-    { return !(*this == r); }
-    bool operator==(const RoboI &r) const;
+    virtual void step(const bitwise &muscles) = 0; //битовая-матрица управлений
     //----------------------------------------------------
     virtual void reset() = 0;
     virtual bool moveEnd() const = 0;
@@ -171,18 +167,20 @@ public:
     virtual State currState() const = 0;
     virtual rl_problem::ObservationRobo getCurrState() const = 0;
 
+    virtual bool envi(ENV) const = 0;
+    virtual ENV  getEnvCond() const = 0;
+    virtual void setEnvCond(ENV) = 0;
     //----------------------------------------------------
     virtual void setTrajectorySave(bool save) { _trajectory_save = save; };
     virtual frames_t frame() const { return _frame; };
-
-    virtual Enviroment getEnvCond() const = 0;
-    virtual void setEnvCond(Enviroment conditions) = 0;
     //----------------------------------------------------
     static tstring name() { return _T("robo"); };
     virtual tstring getName() const = 0;
-
+    //----------------------------------------------------
+    bool operator!=(const RoboI &r) const { return !(*this == r); }
+    bool operator==(const RoboI &r) const;
     /*virtual*/ void save(tptree &root) const;
-
+    //----------------------------------------------------
 protected:
     /* save-load data */
     Point _base{};

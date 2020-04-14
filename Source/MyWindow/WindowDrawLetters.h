@@ -33,6 +33,7 @@ public:
          DeleteObject(Font_270);
      }
     void draw(HDC hdc, const Point *jointsCoords, int jointsN, bool centerCoords = false);
+    void draw(HDC hdc, const tstring &s, const Point loc);
 };
 //------------------------------------------------------------------------------
 #endif //MY_WINDOW

@@ -17,6 +17,9 @@ using namespace RoboPos;
 using namespace RoboMoves;
 //------------------------------------------------------------------------------
 #ifdef MY_WINDOW
+//HWND HLABSTAT;
+tstring MOVING;
+
 static Point windowCenter{ 0., 0. };
 static double currWheelSize = 0.;
 
@@ -221,6 +224,8 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
                            NULL);                                /* Parameters for main window */
   if ( !hLabStat ) CERROR("Could not create hLabStat");
 
+  //HLABSTAT = wd.canvas.hLabStat;
+
   // Generate the help string
   tstringstream ss;
   ss << _T ("  Клавиши управления:  \r\r") // "Enter - авто-тест  \r")
@@ -230,12 +235,14 @@ void onWindowCreate (HWND hWnd, MyWindowData &wd)
      << _T ("  останавливает соответствующее движение.  \r\r")
      << _T ("  Q - показать все конечные точки в БД  \r")
      << _T ("  W - нарисовать рабочую область руки  \r")
-     << _T ("  E - прервать работу алгоритма  \r")
+     << _T ("  E - STOP - прервать работу алгоритма  \r")
      << _T ("  R - сбросить состояние руки  \r")
      << _T ("  T - нарисовать случайную траекторию  \r")
+      << _T("  \r")
      << _T ("  Y - приблизить, показать только мишень  \r")
+      << _T("  K - включить приближение колёсиком мыши  \r")
+      << _T("  \r")
      << _T ("  U - посчитать непокрытые точки мишени  \r")
-     << _T ("  \r")
      << _T ("  H - показать  непокрытые точки мишени  \r")
      << _T ("  G - показать масштаб и размеры  \r")
      << _T ("  J - сменить градиент точек БД  \r")
@@ -447,6 +454,7 @@ void onWindowPaint (HWND hWnd, MyWindowData &wd)
   //-------------------------------------
   /* Здесь рисуем на контексте hCmpDC */
   onPainDynamicFigures (hCmpDC, wd);
+  wd.canvas.pLetters->draw(hCmpDC, MOVING, Point{ -0.95, 0.98 });
   wd.canvas.hDynamicBitmapChanged = false;
   //-------------------------------------
   /* Копируем изображение из теневого контекста на экран */
@@ -848,17 +856,17 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     }
     //========================================
     /* Wrist */ /* LTrack */
-    case 'z': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 0}, wd.pRobo->muscleMaxLasts(0)); break;
-    case 'a': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 1}, wd.pRobo->muscleMaxLasts(1)); break;
-    /* Elbow */ /* RTrack */                          
-    case 'x': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 2}, wd.pRobo->muscleMaxLasts(2)); break;
-    case 's': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 3}, wd.pRobo->muscleMaxLasts(3)); break;
+    case 'z': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 0}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(0)); break;
+    case 'a': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 1}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(1)); break;
+    /* Elbow */ /* RTrack */
+    case 'x': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 2}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(2)); break;
+    case 's': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 3}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(3)); break;
     /* Sholder */
-    case 'c': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 4}, wd.pRobo->muscleMaxLasts(4)); break;
-    case 'd': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 5}, wd.pRobo->muscleMaxLasts(5)); break;
+    case 'c': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 4}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(4)); break;
+    case 'd': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 5}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(5)); break;
     /* Clavicle */
-    case 'v': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 6}, wd.pRobo->muscleMaxLasts(6)); break; /* двинуть ключицей влево */
-    case 'f': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 7}, wd.pRobo->muscleMaxLasts(7)); break; /* двинуть ключицей вправо */
+    case 'v': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 6}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(6)); break; /* двинуть ключицей влево */
+    case 'f': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 7}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(7)); break; /* двинуть ключицей вправо */
     /* Reset */
     case 'r':
     {

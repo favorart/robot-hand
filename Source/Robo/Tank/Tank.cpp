@@ -83,7 +83,7 @@ Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
     }
 }
 //--------------------------------------------------------------------------------
-bool Tank::realMove()
+void Tank::realMove()
 {
     const distance_t shiftL = jointShift(LTrack);
     const distance_t shiftR = jointShift(RTrack);
@@ -95,10 +95,6 @@ bool Tank::realMove()
     if (betw != between)
         CDEBUG("betw1" << std::setprecision(6) << betw << " " << std::setprecision(6) << between);
 #endif // TANK_DEBUG
-
-    if (std::isnan(shiftL) || std::isinf(shiftL) ||
-        std::isnan(shiftR) || std::isinf(shiftR))
-        CERROR("shift NAN");
 
     Point center{}, normal{}; // tmp vars
     distance_t tan_angle = 0., radius = 0.;
@@ -194,7 +190,6 @@ bool Tank::realMove()
 #endif // TANK_DEBUG
 
     currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2.;
-    return (shiftL == 0. && shiftR == 0.);
 }
 //--------------------------------------------------------------------------------
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const

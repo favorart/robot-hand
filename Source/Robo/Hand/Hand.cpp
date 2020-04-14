@@ -30,7 +30,7 @@ frames_t Hand::muscleMaxLasts(muscle_t muscle) const
     return params.nMoveFrames[jointByMuscle(muscle)];
 }
 //--------------------------------------------------------------------------------
-void Hand::realMoveJoint(joint_t joint_move, double offset)
+void Hand::realMoveJoint(joint_t joint_move, distance_t offset)
 {
     if (fabs(offset) < RoboI::minFrameMove)
         return;
@@ -45,26 +45,18 @@ void Hand::realMoveJoint(joint_t joint_move, double offset)
     angles[joint_move] += offset;
 }
 //--------------------------------------------------------------------------------
-bool Hand::realMove()
+void Hand::realMove()
 {
-    bool move = false;
     for (joint_t j = 0; j < jointsCount(); ++j)
     {
+        const auto mAn = maxAngleJoint(j);
         distance_t offset = jointShift(j);
-        if (fabs(offset) < RoboI::minFrameMove)
-            continue;
-        // =================
-        const double mAn = maxAngleJoint(j);
         // =================
         offset = (0.0 > (angles[j] + offset)) ? (0.0 - angles[j]) : offset;
         offset = (mAn < (angles[j] + offset)) ? (mAn - angles[j]) : offset;
         // =================
         realMoveJoint(j, offset);
-        // =================
-        if (fabs(offset) >= RoboI::minFrameMove)
-            move = true;
     }
-    return move;
 }
 //--------------------------------------------------------------------------------
 Hand::Hand(const Point &base, const JointsInputsPtrs &joint_inputs) :

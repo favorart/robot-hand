@@ -19,7 +19,7 @@ Robo::distance_t Robo::EnvEdges::interaction(joint_t joint) const
     if (!robo_.status->somethingMoving()) // || robo_.moveEnd())
         collision = false;
 
-    if (!containE(robo_.getEnvCond(), ENV::EDGES))// || !robo_.status->jointMovingOn(joint))
+    if (!robo_.envi(ENV::EDGES))// || !robo_.status->jointMovingOn(joint))
         return 1.;
 
     if (isCollision(joint))
@@ -32,7 +32,7 @@ Robo::distance_t Robo::EnvEdges::interaction(joint_t joint) const
         robo_.status->edgesDampLasts(mo, damping_);
         robo_.status->edgesDampLasts(mc, damping_);
 
-        return -backpath_ratio_;
+        return (-backpath_ratio_);
     }
     return 1.;
 }
@@ -67,12 +67,9 @@ bool Robo::EnvEdgesTank::checkBorders(joint_t) const
 Robo::distance_t Robo::EnvEdgesTank::interaction(joint_t joint) const
 {
     return EnvEdges::interaction(joint);
-
     //for (muscle_t m = 0; m < tank_.musclesCount(); ++m)
-    //tank_.status->damping(joint, damping_);
-
+    //     tank_.status->damping(joint, damping_);
     //return -((/*rotate*/) ? backpath_angle_ : backpath_ratio_);
-    //return -backpath_ratio_;
 }
 
 //-------------------------------------------------------------------------------
@@ -134,16 +131,17 @@ bool Robo::EnvEdgesHand::checkBorders(joint_t joint) const
 //-------------------------------------------------------------------------------
 Robo::distance_t Robo::EnvEdgesHand::interaction(joint_t joint) const
 {
-    if (EnvEdges::interaction(joint) == 1.)
-        return 1.;
-    const auto mo = robo_.muscleByJoint(joint, true);
-    return -/*distance_t(robo_.muscleMaxLasts(mo)) /*/ backpath_ratio_;
+    return EnvEdges::interaction(joint);
+    //if (EnvEdges::interaction(joint) == 1.)
+    //    return 1.;
+    //const auto mo = robo_.muscleByJoint(joint, true);
+    //return (-distance_t(robo_.muscleMaxLasts(mo)) / backpath_ratio_);
 }
 
 //-------------------------------------------------------------------------------
 void Robo::RoboPhysics::Status::edgesDampLasts(muscle_t m, distance_t damp)
 {
-    if (!musclesMove[m])
+    if (!movingOnFrame(m))
         return;
     frames_t& lastsDrive = (movingOn(m) ? lastsMove[m] : lastsStop[m]);
     //auto  lastsDriveNew = std::min(lastsDrive - 1, lasts[m]);

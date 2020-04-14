@@ -23,6 +23,7 @@ struct RoboPhysics::Status
     MuscleShifts shifts{}; ///< смещения каждого сочления
 
 private:
+    void showMoveEnd() const;
     bool _moveEnd = false; ///< флаг окончания движения - полной остановки
 
     // ---parameters of hydraulic force---
@@ -31,7 +32,7 @@ private:
     MuscleFrames lasts{};     ///< заданная длительность работы мускула (индекс кадра в массиве moveFrames)
 
     // ---frames---
-    MuscleFrames musclesMove{}; ///< задействованные в движениии двители (номер посчитанного для мускула такта == _frame или _frame+1)
+    MuscleFrames musclesFrame{}; ///< задействованные в движениии двители (номер посчитанного для мускула такта == _frame или _frame+1)
     MuscleShifts prevFrame{}; ///< величина смещения сочленения в предыдущий такт для данного мускула
 
     // ---previous position---
@@ -56,14 +57,16 @@ public:
     void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last, RoboPhysics &self);
     bool muscleDriveFrame(muscle_t, RoboPhysics&);
 
-    frames_t movingOnFrame(muscle_t m) const { return musclesMove[m]; }
+    distance_t jointShift(joint_t) const;
+    bool stopAt();
+    /*virtual*/ void stopAtMutialBlocking(bool wait);
+
+    frames_t movingOnFrame(muscle_t m) const { return musclesFrame[m]; }
     bool movingOn(muscle_t m) const { return (lastsMove[m] > 0); }
     bool movingOff(muscle_t m) const { return (lastsStop[m] > 0); }
-    bool somethingMoving() const { return !(ba::all_of_equal(musclesMove, 0)); }
-    bool muscleMoveIsFrame(muscle_t m, frames_t _frame) const;
+    bool somethingMoving() const { return !(ba::all_of_equal(musclesFrame, 0)); }
 
-    //bool changes(muscle_t, joint_t, distance_t &Frame, ENV env);
-    //void step(muscle_t m, IN frames_t lasts, frames_t _frame, RoboPhysics &self);
+    bool muscleMoveIsFrame(muscle_t m, frames_t _frame) const;
     void step(const bitwise &muscles, RoboPhysics &self);
 
     void edgesDampLasts(muscle_t, distance_t);
@@ -100,11 +103,15 @@ struct RoboPhysics::EnvPhyState
     AllJointsFrames framesStop{}; ///< кадры при остановке (дельта прироста)
 
     Robo::Enviroment conditions{ Robo::Enviroment::NOTHING }; ///< включений моделирований условий внутренней и внешней среды
+    bool waitToStop{ false };
 
     // --- виды "граничных условий"
     pEnvEdges   edges{};                          ///< удары и биение при самопересечениях и на границах рабочей области
     frames_t   st_friction_n_frames{ 11 };        ///< количество кадров задержки начала движения из-за трения в сочленениях
-    JMaxFrames st_friction_big_frame{ /*???*/ };  ///< взрывное ускорение после сильной задержки трением внутри пневматики
+    JMaxFrames st_friction_big_frame{};           ///< взрывное ускорение после сильной задержки трением внутри пневматики
+
+    distance_t mutial_dynamics_gain{ 4 };
+    distance_t mutial_dynamics_gain_step{ 2 };
 
     // --- 4) Выбросы 
     frames_t momentum_expect_happens{ 1 /*%*/ };  ///< вероятность появление мгновенного изменения в работе мускула

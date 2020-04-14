@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 namespace Robo {
-enum class Enviroment : short
+enum class Enviroment : uint16_t
 {
     NOTHING = 0,
     /// internal phisical parameters
@@ -30,7 +30,7 @@ DEFINE_ENUM_FLAG_OPERATORS(ENV)
 
 namespace Robo {
 inline bool anyE(ENV e) { return (e != ENV::NOTHING); }
-inline bool containE(ENV e, ENV conds) { return ((e & conds) != ENV::NOTHING); }
+inline bool containE(ENV e, ENV conds) { return bool(e & conds); }
 //------------------------------------------------------
 constexpr std::array<const TCHAR*, size_t(Robo::Enviroment::_LAST_)> enviroment_outputs =
 {

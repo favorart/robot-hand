@@ -118,4 +118,17 @@ void CanvasScaleLetters::draw(HDC hdc, const Point *jointsPoses, int jointsN, bo
     SelectObject(hdc, oldFont);
 }
 //------------------------------------------------------------------------------
+void CanvasScaleLetters::draw(HDC hdc, const tstring &s, const Point loc)
+{
+    HFONT oldFont = (HFONT)SelectObject(hdc, Font_000);
+    //-------------------------------
+    //std::wcerr << _T("MOVING ") << s.c_str() << _T(' ') << s.length() << std::endl;
+    TextOut(hdc,
+            Tx(loc.x), Ty(loc.y),    /* Location of the text */
+            s.c_str(),                      /* Text to print */
+            (int)s.length()                /* Size of the text */
+    );
+    //-------------------------------
+    SelectObject(hdc, oldFont);
+}
 #endif //MY_WINDOW

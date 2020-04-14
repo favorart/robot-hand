@@ -20,15 +20,15 @@ private:
 
     /*virtual*/ distance_t Imoment(joint_t) const;
     /*virtual*/ bool updateEnvChanges(muscle_t, joint_t, distance_t &Frame);
-    /*virtual*/ void step(muscle_t, frames_t);
+    /*virtual*/ void updateStepSignal(muscle_t, frames_t);
+    /*virtual*/ void updateStep();
 
 protected:
     /*virtual*/ distance_t jointShift(joint_t) const;
 
-    virtual bool realMove() = 0;
+    virtual void realMove() = 0;
     virtual int specPoint() const = 0;
     virtual distance_t prismaticFactor(joint_t) const = 0;
-    virtual void updateStep();
 
     const Point& basePos(joint_t) const;
     const Point& curPos(joint_t) const;
@@ -49,11 +49,12 @@ public:
     frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames) override;
     frames_t move(IN const BitsControl<musclesMaxCount + 1> &controls, IN frames_t max_frames) override;
 
-    void step() override { updateStep(); }
+    void step() override;
     void step(IN const Control &control) override;
     void step(IN const Control &control, OUT size_t &control_curr) override;
-    void step(IN const bitset_t &muscles, IN frames_t lasts) override;
-    void step(const Robo::RoboI::bitwise &muscles) override;
+    void step(bitset_t muscles, frames_t lasts) override;
+    void step(const RoboI::bitwise &muscles) override;
+
     void reset() override;
 
 #ifdef DEBUG_RM
@@ -63,16 +64,17 @@ public:
 #endif // DEBUG_RM
 
     virtual void resetJoint(joint_t);
-    const Point& jointPos(joint_t) const;
-    StateTrajectory& traj() { return _trajectory; };
+    virtual StateTrajectory& traj() { return _trajectory; };
 
     rl_problem::ObservationRobo getCurrState() const override;
     State currState() const override;
     bool isCollision() const override;
-    Enviroment getEnvCond() const override;
-    void setEnvCond(Enviroment conditions) override;
+    ENV  getEnvCond() const override;
+    bool envi(ENV) const override;
+    void setEnvCond(ENV) override;
     bool moveEnd() const override;
     const Point& position() const override;
+    const Point& jointPos(joint_t) const override;
 
     tstring getName() const = 0; // override { return RoboPhysics::name(); };
     static tstring name() { return _T("RoboPhysics"); };

@@ -1,14 +1,15 @@
 ﻿#include "StdAfx.h"
 
-#include <string>
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <fstream>
+#include <string>
 #include <random>
 #include <gsl/gsl_vector.h>
 
-#include "rl.hpp"
+#include "rl.hpp" //https://github.com/HerveFrezza-Buet/RLlib
 //#include "rlAlgo.hpp"
 
 #include "RoboRL.h"

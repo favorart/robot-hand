@@ -86,8 +86,8 @@ protected:
     distance_t prismaticFactor(joint_t j) const override { return ((J(j) == Joint::Clvcl) ? (3 * M_PI) : 1.); }
 
     std::array<distance_t, joints> angles{}; ///< текущие смещения каждого сочления (palm, hand, arm, shoulder, clavicle)
-    bool realMove() override;
-    void realMoveJoint(joint_t, double offset);
+    void realMove() override;
+    void realMoveJoint(joint_t, distance_t);
 
     friend class Robo::EnvEdgesHand;
 };

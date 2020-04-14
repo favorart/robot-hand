@@ -77,7 +77,7 @@ protected:
     double r1_, r2_;
     double betw;
 #endif
-    bool realMove() override;
+    void realMove() override;
 
     distance_t prismaticFactor(joint_t) const override { return 1.; }
     
