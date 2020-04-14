@@ -50,6 +50,7 @@ public:
     void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const override;
     int specPoint() const override { return static_cast<int>(Joint::SpecP); }
 
+    void reset() override;
     void resetJoint(IN joint_t) override;
     void setJoints(IN const Robo::JointsOpenPercent&) override;
 
@@ -61,7 +62,6 @@ public:
 protected:
     static const size_t joints = (size_t)(Hand::Joint::JCount);
     static const size_t muscles = (size_t)(Hand::Muscle::MCount);    
-    std::array<distance_t, joints> angles{}; ///< текущие смещения каждого сочления (palm, hand, arm, shoulder, clavicle)
 
     struct Params final
     {
@@ -82,12 +82,12 @@ protected:
         Params(const JointsInputsPtrs &jointInputs, const Hand &hand);
     };
     const Params params;
-        
-    void realMove();
-    void jointMove(joint_t, double offset);
-    distance_t maxJointAngle(joint_t joint) const { return params.maxAngles[joint]; }
+    distance_t maxAngleJoint(joint_t joint) const { return params.maxAngles[joint]; }
+    distance_t prismaticFactor(joint_t j) const override { return ((J(j) == Joint::Clvcl) ? (3 * M_PI) : 1.); }
 
-    distance_t prismatic_factor(joint_t j) const { return ((J(j) == Joint::Clvcl) ? (3 * M_PI) : 1.); }
+    std::array<distance_t, joints> angles{}; ///< текущие смещения каждого сочления (palm, hand, arm, shoulder, clavicle)
+    bool realMove() override;
+    void realMoveJoint(joint_t, double offset);
 
     friend class Robo::EnvEdgesHand;
 };

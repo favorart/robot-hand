@@ -236,6 +236,7 @@ TourI::TourI(RoboMoves::Store *store, Robo::RoboI *robo, const tptree *config, c
     //                                                          _lasts_step_braking_init,
     //                                                          _lasts_step_braking_incr,
     //                                                          _lasts_step_on_target);
+    _robo->reset();
 }
 
 //------------------------------------------------------------------------------

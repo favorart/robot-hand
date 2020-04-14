@@ -10,7 +10,6 @@
 
 using namespace Robo;
 using namespace Mobile;
-double betw;
 //--------------------------------------------------------------------------------
 frames_t Tank::muscleMaxLasts(const Control &/*control*/) const
 {
@@ -39,7 +38,9 @@ Tank::Tank(const Point &base, const JointsInputsPtrs &joint_inputs) :
     if (!joint_inputs.size() || joint_inputs.size() > jointsCount())
         throw std::logic_error("Incorrect joint_inputs count");
     //reset();
+#ifdef TANK_DEBUG
     betw = boost_distance(currPos(LTrack), currPos(RTrack));
+#endif // TANK_DEBUG
 }
 //--------------------------------------------------------------------------------
 Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
@@ -82,17 +83,18 @@ Tank::Params::Params(const JointsInputsPtrs &joint_inputs, const Tank &tank) :
     }
 }
 //--------------------------------------------------------------------------------
-void Tank::realMove()
+bool Tank::realMove()
 {
+    const distance_t shiftL = jointShift(LTrack);
+    const distance_t shiftR = jointShift(RTrack);
+    const distance_t between = boost_distance(currPos(LTrack), currPos(RTrack));
+
 #ifdef TANK_DEBUG
     r1_ = r2_ = 0;
     center_ = { 0.,0. };
-#endif // TANK_DEBUG
-    const distance_t shiftL = (status->shifts[LTrackFrw] - status->shifts[LTrackBck]) - Imoment(RTrack);
-    const distance_t shiftR = (status->shifts[RTrackFrw] - status->shifts[RTrackBck]) - Imoment(LTrack);
-    const distance_t between = boost_distance(currPos(LTrack), currPos(RTrack));
     if (betw != between)
         CDEBUG("betw1" << std::setprecision(6) << betw << " " << std::setprecision(6) << between);
+#endif // TANK_DEBUG
 
     if (std::isnan(shiftL) || std::isinf(shiftL) ||
         std::isnan(shiftR) || std::isinf(shiftR))
@@ -186,18 +188,13 @@ void Tank::realMove()
         currPos(LTrack) += normal;
         currPos(RTrack) += normal;
     }
+#ifdef TANK_DEBUG
     if (betw != boost_distance(currPos(LTrack), currPos(RTrack)))
         CDEBUG("betw2" << std::setprecision(6) << betw << " " << std::setprecision(6) << boost_distance(currPos(LTrack), currPos(RTrack)));
-    // =================
-    currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2.;
-    // =================
-    env->edges->interaction(containE(getEnvCond(), Enviroment::EDGES), center, normal, tan_angle);
-    // =================
-    if (shiftL == 0. && shiftR == 0.)
-        status->musclesAllDrivesStop();
+#endif // TANK_DEBUG
 
-    for (muscle_t muscle = 0; muscle < musclesCount(); ++muscle)
-        status->shifts[muscle] = 0.;
+    currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2.;
+    return (shiftL == 0. && shiftR == 0.);
 }
 //--------------------------------------------------------------------------------
 void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
@@ -205,7 +202,7 @@ void Tank::draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const
 #ifdef MY_WINDOW
     const Point &L = jointPos(LTrack);
     const Point &R = jointPos(RTrack);
-    const Point &centerBody = jointPos(Center);
+    const Point &centerBody = curPos(Center);
     //------------------------------------------------------------------
     double phy = L.angle(R);
     // Body
@@ -256,10 +253,15 @@ void Tank::getWorkSpace(OUT Trajectory &workSpace)
     workSpace.push_back({ Point{ +0.97, +0.97 } });
 }
 //--------------------------------------------------------------------------------
+void Tank::reset()
+{
+    RoboPhysics::reset();
+    //for (joint_t joint = 0; joint <= jointsCount(); ++joint)
+    //    currPos(joint) = basePos(joint);
+}
 void Tank::resetJoint(IN joint_t joint)
 {
-    status->muscleDriveStop(muscleByJoint(joint, true));
-    status->muscleDriveStop(muscleByJoint(joint, false));
+    RoboPhysics::resetJoint(joint);
     setJoints({ { joint, 0. } });
 }
 void Tank::setJoints(IN const JointsOpenPercent &percents)
@@ -269,10 +271,11 @@ void Tank::setJoints(IN const JointsOpenPercent &percents)
         joint_t joint = jr.first;
         currPos(joint) = basePos(joint);
         /* =2.8 ~distance from up-left to down-right canvas-corner */
-        status->shifts[joint] = (2.8 * jr.second / 100./*%*/);
+        //status->shifts[joint] = (2.8 * jr.second / 100./*%*/);       //TODO: !!!
     }
+    //currPos(Center) = basePos(Center);
     currPos(Center) = (currPos(LTrack) + currPos(RTrack)) / 2;
-    //realMove();
+    //realMove(); //TODO: !!!
 }
 //--------------------------------------------------------------------------------
 std::shared_ptr<RoboI> Tank::make(const tstring &type, tptree &node)

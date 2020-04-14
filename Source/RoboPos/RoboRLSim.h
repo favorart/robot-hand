@@ -37,31 +37,33 @@ struct ObservationRobo final
     static Robo::distance_t EpsVel;
     static Robo::distance_t EpsAcc;
 
-    int special_no{ 0 };
-    std::vector<Point> positions{};
-    std::vector<Point> velosities{};
-    std::vector<Point> accelerations{};
+    Robo::State state;
 
     ObservationRobo() {}
     ObservationRobo(const Point &pos, size_t n_joints, int special_j = 0) :
-        special_no(special_j),
-        positions(n_joints, Point{}),
-        velosities(n_joints, Point{}),
-        accelerations(n_joints, Point{})
-    {
-        positions[special_no] = pos;
-    }
+        state(/*positions*/Robo::Trajectory(n_joints, Point{}),
+              /*velosities*/Robo::Trajectory(n_joints, Point{}),
+              /*accelerations*/Robo::Trajectory(n_joints, Point{}),
+              special_j)
+    { state.positions[state.special_no] = pos; }
+    ObservationRobo(ObservationRobo&&) = default;
+    ObservationRobo(const ObservationRobo&) = default;
+    ObservationRobo(Robo::State &&state) : state(state) {}
+    ObservationRobo(const Robo::State &state) : state(state) {}
 
-    Point& operator()() { return positions[special_no]; }
-    Point operator()() const { return positions[special_no]; }
+    ObservationRobo& operator=(const ObservationRobo &o) = default;
+    //{ if (this != &o) state = o.state; return *this; }
 
-    bool compare(const ObservationRobo& o) const;
-    bool operator==(const ObservationRobo& o) const
-    { return compare(o); }
+    Point& operator()() { return state.positions[state.special_no]; }
+    const Point& operator()() const { return state.spec(); }
 
     bool compare(const Point &goal) const;
-    bool operator==(const Point& goal) const
-    { return compare(goal); }
+    bool compare(const ObservationRobo &o) const;
+
+    bool operator==(const ObservationRobo &o) const { return (this == &o) || compare(o); }
+    bool operator!=(const ObservationRobo &o) const { return !(*this == o); }
+    bool operator==(const Point &goal) const { return compare(goal); }
+    bool operator!=(const Point &goal) const { return !(*this == goal); }
 };
 
 //------------------------------------------------------

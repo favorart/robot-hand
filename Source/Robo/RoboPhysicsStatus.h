@@ -56,7 +56,7 @@ public:
     void muscleDriveMove(frames_t frame, muscle_t muscle, frames_t last, RoboPhysics &self);
     bool muscleDriveFrame(muscle_t, RoboPhysics&);
 
-    frames_t movingOnFrame(muscle_t m) const { return lastsMove[m]; }
+    frames_t movingOnFrame(muscle_t m) const { return musclesMove[m]; }
     bool movingOn(muscle_t m) const { return (lastsMove[m] > 0); }
     bool movingOff(muscle_t m) const { return (lastsStop[m] > 0); }
     bool somethingMoving() const { return !(ba::all_of_equal(musclesMove, 0)); }
@@ -66,9 +66,7 @@ public:
     //void step(muscle_t m, IN frames_t lasts, frames_t _frame, RoboPhysics &self);
     void step(const bitwise &muscles, RoboPhysics &self);
 
-    // edges
-    void damping(muscle_t, distance_t);
-    bool jointMovingOn(muscle_t mo, muscle_t mc) const { return (musclesMove[mo] > 0 || musclesMove[mc] > 0); }
+    void edgesDampLasts(muscle_t, distance_t);
 
     bool moveEnd() const { return _moveEnd; }
 

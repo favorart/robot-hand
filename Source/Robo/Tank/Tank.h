@@ -7,7 +7,7 @@ class EnvEdgesTank;
 namespace Mobile {
 
 #define TANK_VER 2
-#define TANK_DEBUG
+//#define TANK_DEBUG
 
 class Tank : public RoboPhysics
 {
@@ -45,6 +45,7 @@ public:
     void draw(IN HDC hdc, IN HPEN hPen, IN HBRUSH hBrush) const override;
     int specPoint() const override { return static_cast<int>(Joint::Center); }
 
+    void reset() override;
     void resetJoint(IN joint_t) override;
     void setJoints(IN const Robo::JointsOpenPercent&) override;
 
@@ -74,10 +75,11 @@ protected:
 #ifdef TANK_DEBUG
     Point center_;
     double r1_, r2_;
+    double betw;
 #endif
-    void realMove();
+    bool realMove() override;
 
-    distance_t prismatic_factor(joint_t) const { return 1.; }
+    distance_t prismaticFactor(joint_t) const override { return 1.; }
     
     friend class Robo::EnvEdgesTank;
 };

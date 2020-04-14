@@ -4,11 +4,12 @@
 namespace Robo
 {
 class EnvEdges;
+class EnvEdgesHand;
 using pEnvEdges = std::shared_ptr<EnvEdges>;
 
 class RoboPhysics : public RoboI
 {
-protected:
+private:
     struct Status;
     struct EnvPhyState;
     using pEnvPhyState = std::shared_ptr<RoboPhysics::EnvPhyState>;
@@ -17,20 +18,22 @@ protected:
     pStatus status;
     pEnvPhyState env;
 
-    Point _base() const override;
-    
-    virtual void step(muscle_t, frames_t);
-    virtual void realMove() = 0;
+    /*virtual*/ distance_t Imoment(joint_t) const;
+    /*virtual*/ bool updateEnvChanges(muscle_t, joint_t, distance_t &Frame);
+    /*virtual*/ void step(muscle_t, frames_t);
 
-    virtual bool changes(muscle_t, joint_t, distance_t &Frame);
-    virtual distance_t Imoment(joint_t j) const;
+protected:
+    /*virtual*/ distance_t jointShift(joint_t) const;
+
+    virtual bool realMove() = 0;
     virtual int specPoint() const = 0;
+    virtual distance_t prismaticFactor(joint_t) const = 0;
+    virtual void updateStep();
 
     const Point& basePos(joint_t) const;
-    //const Point& currPos(joint_t) const;
+    const Point& curPos(joint_t) const;
     Point& currPos(joint_t);
 
-    virtual distance_t prismatic_factor(joint_t) const = 0;
 public:
     static const frames_t LastsTooLong = 10000;
     RoboPhysics(const Point &base /*Clavicle|Center*/,
@@ -46,7 +49,7 @@ public:
     frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames) override;
     frames_t move(IN const BitsControl<musclesMaxCount + 1> &controls, IN frames_t max_frames) override;
 
-    void step() override;
+    void step() override { updateStep(); }
     void step(IN const Control &control) override;
     void step(IN const Control &control, OUT size_t &control_curr) override;
     void step(IN const bitset_t &muscles, IN frames_t lasts) override;
@@ -59,12 +62,12 @@ public:
     virtual TCHAR lastsStatusT(muscle_t m) const;
 #endif // DEBUG_RM
 
-    virtual void resetJoint(joint_t) = 0;
-    const Point& jointPos(IN joint_t joint) const;
+    virtual void resetJoint(joint_t);
+    const Point& jointPos(joint_t) const;
     StateTrajectory& traj() { return _trajectory; };
 
-    void getCurrState(rl_problem::ObservationRobo &o) const override;
-    void currState(State&) const override;
+    rl_problem::ObservationRobo getCurrState() const override;
+    State currState() const override;
     bool isCollision() const override;
     Enviroment getEnvCond() const override;
     void setEnvCond(Enviroment conditions) override;
@@ -79,6 +82,8 @@ public:
 
 private:
     static pRoboI make(const tstring &/*type*/, tptree &/*node*/){ throw std::logic_error("Depricated"); };
+    friend class Robo::EnvEdges;
+    friend class Robo::EnvEdgesHand;
 };
 }
 

@@ -223,17 +223,20 @@ bool RoboPos::TourEvo::containMarker(const Control &controls, muscle_t muscles, 
 }
 
 
-RoboPos::TourEvo::TourEvo(Store *store, RoboI *robo, const tptree *config, const TargetI &target) :
-    TourI(store, robo, config), _t(target),
+RoboPos::TourEvo::TourEvo(Store *store, RoboI *robo, const tptree *config, const TargetI &target)
+    : TourI(store, robo, config),
+    _target(target),
     _reached_dist(0.000005),
     _oppo_penalty(0.5),
-    _max_ncontrols(8),
-    _step_back(55),    
+    _prev_dist_add(Robo::RoboI::minFrameMove),
+    _base_pos(_robo->currState()),
     _n_muscles(_robo->musclesCount()),
     _n_acts(static_cast<muscle_t>(std::pow(2, _n_muscles))),
     _lasts_max(std::min(musclesMaxLasts(*_robo), TourI::too_long)),
     _lasts_init(minLasts() + 5),
-    _lasts_step(10)
+    _max_ncontrols(8),
+    _lasts_step(10),
+    _step_back(55)
 {
     _reached_dist = _config.get<double>(_T("evo.reached_dist"));
     _oppo_penalty = _config.get<double>(_T("evo.oppo_penalty"));
@@ -272,9 +275,9 @@ bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscle
 bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
 {
     _robo->reset();
-    _robo->currState(_base_pos);
+    _base_pos = _robo->currState();
     
-    Goal goal(_t, _reached_dist * 2);
+    Goal goal(_target, _reached_dist * 2);
     goal.recalc(*_store);
     goal.show();
     /// ===== TEST ============================
@@ -457,7 +460,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
             CDEBUG("Evo: --best-acts=" << controls);
         }
 
-        if (_t.contain(prev_pos))
+        if (_target.contain(prev_pos))
         {
             //CDEBUG("Evo: recalc goal");
             //goal.recalc(_store); /// <---- TODO !!!!!!!!!!!!!!!!!
@@ -705,9 +708,9 @@ bool RoboPos::TourEvoSteps::runNestedForStep(IN const Robo::RoboI::bitwise &musc
 bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t /*joint !!!*/, Control &controls, Point &/*robo_hit !!!*/)
 {
     _robo->reset();
-    _robo->currState(_base_pos);
+    _base_pos = _robo->currState();
 
-    Goal goal(_t, _reached_dist);
+    Goal goal(_target, _reached_dist);
     goal.recalc(*_store);
     goal.show();
 
@@ -820,7 +823,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t /*joint !!!*/, Control &c
             tcout << "---acts=" << controls << std::endl;
         }
         
-        if (_t.contain(best_hit))
+        if (_target.contain(best_hit))
         {
             //tcout << "Evo: recalc goal" << std::endl;
             goal.recalc(*_store);

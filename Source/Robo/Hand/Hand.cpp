@@ -30,7 +30,7 @@ frames_t Hand::muscleMaxLasts(muscle_t muscle) const
     return params.nMoveFrames[jointByMuscle(muscle)];
 }
 //--------------------------------------------------------------------------------
-void Hand::jointMove(joint_t joint_move, double offset)
+void Hand::realMoveJoint(joint_t joint_move, double offset)
 {
     if (fabs(offset) < RoboI::minFrameMove)
         return;
@@ -45,40 +45,30 @@ void Hand::jointMove(joint_t joint_move, double offset)
     angles[joint_move] += offset;
 }
 //--------------------------------------------------------------------------------
-void Hand::realMove()
+bool Hand::realMove()
 {
     bool move = false;
-    // =================
     for (joint_t j = 0; j < jointsCount(); ++j)
     {
-        const auto mo = muscleByJoint(j, true);
-        const auto mc = muscleByJoint(j, false);
-        // =================
-        double offset = -(status->shifts[mc] - status->shifts[mo]) + Imoment(j);
+        distance_t offset = jointShift(j);
         if (fabs(offset) < RoboI::minFrameMove)
             continue;
         // =================
-        const double mAn = maxJointAngle(j);
+        const double mAn = maxAngleJoint(j);
         // =================
         offset = (0.0 > (angles[j] + offset)) ? (0.0 - angles[j]) : offset;
         offset = (mAn < (angles[j] + offset)) ? (mAn - angles[j]) : offset;
         // =================
-        jointMove(j, offset);
+        realMoveJoint(j, offset);
         // =================
         if (fabs(offset) >= RoboI::minFrameMove)
             move = true;
     }
-    // =================
-    env->edges->interaction(containE(getEnvCond(), ENV::EDGES));
-    // =================
-    if (!move)
-        status->musclesAllDrivesStop();
-    // =================
-    status->shifts.fill(0);
+    return move;
 }
 //--------------------------------------------------------------------------------
 Hand::Hand(const Point &base, const JointsInputsPtrs &joint_inputs) :
-    RoboPhysics(base, joint_inputs, std::make_shared<Robo::EnvEdgesHand>(*this, 20, 2)),
+    RoboPhysics(base, joint_inputs, std::make_shared<Robo::EnvEdgesHand>(*this, 10/*%*/, 2)),
     params(joint_inputs, *this)
 {
     if (!joint_inputs.size() || joint_inputs.size() > Hand::joints)
@@ -109,6 +99,10 @@ Hand::Params::Params(const JointsInputsPtrs &joint_inputs, const Hand &hand) :
         nMoveFrames[j] = j_in->frames.nMoveFrames;
         defOpen[j] = pHJIn->defaultPose;
 
+        double ratio = (defOpen[j] / 100.); //%
+        if (ratio > 1. || ratio < 0.)
+            throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100%");
+
         jointsUsed[j++] = joint;
         musclesUsed[m++] = hand.MofJ(joint, true);
         musclesUsed[m++] = hand.MofJ(joint, false);
@@ -118,10 +112,20 @@ Hand::Params::Params(const JointsInputsPtrs &joint_inputs, const Hand &hand) :
     }
 }
 //--------------------------------------------------------------------------------
+void Hand::reset()
+{
+    RoboPhysics::reset();
+    //for (joint_t joint = 0; joint < jointsCount(); ++joint)
+    //{
+    //    double angle = (params.defOpen[joint] / 100. * maxJointAngle(joint));
+    //    //realMoveJoint(joint, (angle - angles[joint]));
+    //    angles[joint_move] = angle;
+    //    currPos(joint) = basePos(joint);
+    //}
+}
 void Hand::resetJoint(joint_t joint)
 {
-    status->muscleDriveStop(muscleByJoint(joint, true));
-    status->muscleDriveStop(muscleByJoint(joint, false));
+    RoboPhysics::resetJoint(joint);
     setJoints({ {joint, params.defOpen[joint]} });
 }
 void Hand::setJoints(const JointsOpenPercent &percents)
@@ -134,8 +138,8 @@ void Hand::setJoints(const JointsOpenPercent &percents)
         if (ratio > 1. || ratio < 0.)
             throw std::logic_error("Invalid joint set: must be 0 >= percent >= 100%");
 
-        double angle = ratio * maxJointAngle(joint);
-        jointMove(joint, (angle - angles[joint]));
+        double angle = ratio * maxAngleJoint(joint);
+        realMoveJoint(joint, (angle - angles[joint]));
     }
 }
 //--------------------------------------------------------------------------------

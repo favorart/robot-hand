@@ -47,15 +47,15 @@ Robo::distance_t ObservationRobo::EpsAcc = 0.0000001;
 bool ObservationRobo::compare(const ObservationRobo& o) const
 {
     auto pred1 = [](const Point& l, const Point& r) { return l.hit(r, EpsPos); };
-    if (!boost::equal(positions, o.positions, pred1))
+    if (!boost::equal(state.positions, o.state.positions, pred1))
         return false;
 
     auto pred2 = [](const Point& l, const Point& r) { return l.hit(r, EpsVel); };
-    if (!boost::equal(velosities, o.velosities, pred2))
+    if (!boost::equal(state.velosities, o.state.velosities, pred2))
         return false;
 
     auto pred3 = [](const Point& l, const Point& r) { return l.hit(r, EpsAcc); };
-    if (!boost::equal(accelerations, o.accelerations, pred3))
+    if (!boost::equal(state.accelerations, o.state.accelerations, pred3))
         return false;
     return true;
 }
@@ -64,9 +64,9 @@ bool ObservationRobo::compare(const ObservationRobo& o) const
 bool ObservationRobo::compare(const Point &goal) const
 {
     Point null{};
-    return (goal.hit(positions[special_no], EpsPos))
-        && (boost::all(velosities, [&null](const Point &p) { return p.hit(null, EpsVel); }))
-        && (boost::all(accelerations, [&null](const Point &p) { return p.hit(null, EpsAcc); }));
+    return (goal.hit(state.positions[state.special_no], EpsPos))
+        && (boost::all(state.velosities, [&null](const Point &p) { return p.hit(null, EpsVel); }))
+        && (boost::all(state.accelerations, [&null](const Point &p) { return p.hit(null, EpsAcc); }));
 }
 
 //------------------------------------------------------
@@ -94,15 +94,11 @@ bool ObservationRobo::compare(const Point &goal) const
 //------------------------------------------------------
 void printPhi(gsl_vector *phi, const S& s, const A& a)
 {
-    std::ofstream fout("phi.txt", std::ios::app);
-    fout << "a=" << int(a) <<
-        " s={ pos=[" << s.positions[0] << ' ' << s.positions[1] <<
-        "] vel=[" << s.velosities[0] << ' ' << s.velosities[1] <<
-        "] acc=[" << s.accelerations[0] << ' ' << s.accelerations[1] <<
-        "] }" << std::endl;
+    /*std::ofstream*/ tofstream fout(_T("phi.txt"), std::ios::app);
+    fout << "a=" << int(a) << _T(' ') << s.state << std::endl;
 
     for (size_t i = 0; i < phi->size; ++i)
-        fout << gsl_vector_get(phi, i) << ' ';
+        fout << gsl_vector_get(phi, i) << _T(' ');
     fout << std::endl;
 }
 
@@ -118,22 +114,22 @@ void phi_direct(gsl_vector *phi, const S& s, const A& a)
     for (size_t i = j; i < (j + n); i += 2)
     {
         auto k = (i - j) / 2u;
-        gsl_vector_set(phi, i, s.positions[k].x);
-        gsl_vector_set(phi, i + 1, s.positions[k].y);
+        gsl_vector_set(phi, i, s.state.positions[k].x);
+        gsl_vector_set(phi, i + 1, s.state.positions[k].y);
     }
     j += n;
     for (size_t i = j; i < (j + n); i += 2)
     {
         auto k = (i - j) / 2u;
-        gsl_vector_set(phi, i, s.velosities[k].x);
-        gsl_vector_set(phi, i + 1, s.velosities[k].y);
+        gsl_vector_set(phi, i, s.state.velosities[k].x);
+        gsl_vector_set(phi, i + 1, s.state.velosities[k].y);
     }
     j += n;
     for (size_t i = j; i < (j + n); i += 2)
     {
         auto k = (i - j) / 2u;
-        gsl_vector_set(phi, i, s.accelerations[k].x);
-        gsl_vector_set(phi, i + 1, s.accelerations[k].y);
+        gsl_vector_set(phi, i, s.state.accelerations[k].x);
+        gsl_vector_set(phi, i + 1, s.state.accelerations[k].y);
     }
     //printPhi(phi, s, a);
 }
@@ -149,22 +145,22 @@ void phi_rbf(gsl_vector *phi, const S& s, const A& a)
     for (size_t i = j; i < (j + n); i += 2)
     {
         auto k = (i - j) / 2u;
-        gsl_vector_set(phi, i, s.positions[k].x);
-        gsl_vector_set(phi, i + 1, s.positions[k].y);
+        gsl_vector_set(phi, i, s.state.positions[k].x);
+        gsl_vector_set(phi, i + 1, s.state.positions[k].y);
     }
     j += n;
     for (size_t i = j; i < (j + n); i += 2)
     {
         auto k = (i - j) / 2u;
-        gsl_vector_set(phi, i, s.velosities[k].x);
-        gsl_vector_set(phi, i + 1, s.velosities[k].y);
+        gsl_vector_set(phi, i, s.state.velosities[k].x);
+        gsl_vector_set(phi, i + 1, s.state.velosities[k].y);
     }
     j += n;
     for (size_t i = j; i < (j + n); i += 2)
     {
         auto k = (i - j) / 2u;
-        gsl_vector_set(phi, i, s.accelerations[k].x);
-        gsl_vector_set(phi, i + 1, s.accelerations[k].y);
+        gsl_vector_set(phi, i, s.state.accelerations[k].x);
+        gsl_vector_set(phi, i + 1, s.state.accelerations[k].y);
     }
     //printPhi(phi, s, a);
 
@@ -249,10 +245,10 @@ SimRobo::SimRobo(Robo::RoboI &robo, const Point &goal)
   : r(0.),
     robo(robo),
     goals(size_t{ 1 }, observation_type{ goal, robo.jointsCount(), 0 }),
+    start(robo.getCurrState()),
     curr_goal(goals.front())
 {
     restart();
-    this->robo.getCurrState(start);
 }
 //------------------------------------------------------
 Robo::distance_t SimRobo::isGoal(const ObservationRobo &o) const
@@ -293,7 +289,7 @@ void SimRobo::step(const action_type &a)
         throw rl::exception::Terminal("stopped");
     }
     robo.step(Robo::RoboI::bitwise{ a }/*.actors*/);
-    robo.getCurrState(current);
+    current = robo.getCurrState();
     //r = (robo.isCollision()) ? rw.stepReward() : rw.collisionReward();
     r = rw.reward(current, curr_goal, robo.isCollision());
 }
@@ -301,12 +297,12 @@ void SimRobo::restart()
 {
     r = 0.;
     robo.reset();
-    robo.getCurrState(current);
+    current = robo.getCurrState();
 }
 void SimRobo::setPhase(const phase_type &phase)
 {
     robo.setJoints(phase);
-    robo.getCurrState(current);
+    current = robo.getCurrState();
 }
 
 //------------------------------------------------------

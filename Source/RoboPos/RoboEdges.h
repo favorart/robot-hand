@@ -3,52 +3,60 @@
 #pragma once
 
 #include "Robo.h"
-#include "Hand.h"
-#include "Tank.h"
 
 namespace Robo {
+namespace NewHand {
+class Hand;
+}
+namespace Mobile {
+class Tank;
+}
+class RoboPhysics;
+
+//-------------------------------------
 class EnvEdges
 {
 protected:
+    const RoboPhysics &robo_;
     const distance_t backpath_ratio_; ///< множитель реального изменения величины смещения для данного такта
     const distance_t damping_; ///< множитель, на который изменется prev_frame для вычисления смещения в будущий такт
     const distance_t borders_[2] = { (-1. + RoboI::minFrameMove), (+1. - RoboI::minFrameMove) }; ///< положение границ видимой области
-    virtual bool isCollision(bool, joint_t) const = 0;
+
+    virtual bool isCollision(joint_t) const = 0;
+    virtual bool checkBorders(joint_t) const = 0;
 public:
-    bool collision{ false }; ///< сохранённый флаг - была ли коллизия в текущий такт
-    EnvEdges(distance_t backpath, distance_t damping) : backpath_ratio_(backpath), damping_(damping) {}
+    mutable bool collision{ false }; ///< сохранённый флаг - была ли коллизия в текущий такт
+    EnvEdges(const RoboPhysics &robo, distance_t backpath, distance_t damping);
     virtual ~EnvEdges() {}
-    virtual void interaction(bool used, const Point &c={}, const Point &m={}, double a={}) = 0; ///< вычисление взаимодейтсвия робота в случаи коллизии
+    virtual distance_t interaction(joint_t joint) const; ///< вычисление коэффициента взаимодейтсвия на перемещение модели робота в случае коллизии
 };
 
+//-------------------------------------
 class EnvEdgesTank : public EnvEdges
 {
 protected:
-    Robo::Mobile::Tank& tank_;
-    const distance_t backpath_angle_{ 25 };
-    bool border() const;
-    bool isCollision(bool moves, joint_t) const override
-    { return (moves && border()); }
+    const Robo::Mobile::Tank& tank_;
+    //const distance_t backpath_angle_;
+
+    bool checkBorders(joint_t) const override;
+    bool isCollision(joint_t) const override { return checkBorders(0); }
 public:
-    EnvEdgesTank(Robo::Mobile::Tank &tank, distance_t backpath=20, distance_t damping=3) :
-        EnvEdges(backpath, damping), tank_(tank)
-    {}
-    void interaction(bool used, const Point&, const Point&, double) override;
+    EnvEdgesTank(const RoboPhysics &robo, distance_t backpath = 20, distance_t damping = 3);
+    distance_t interaction(joint_t joint) const override;
 };
 
+//-------------------------------------
 class EnvEdgesHand : public EnvEdges
 {
 protected:
-    Robo::NewHand::Hand& hand_;
-    bool full_opened(joint_t) const;
-    bool full_closed(joint_t) const;
-    bool border(joint_t) const;
-    bool isCollision(bool moves, joint_t joint) const override
-    { return (moves && (full_opened(joint) || full_closed(joint) || border(joint))); }
+    const Robo::NewHand::Hand& hand_;
+
+    bool checkFullOpened(joint_t) const;
+    bool checkFullClosed(joint_t) const;
+    bool checkBorders(joint_t) const override;
+    bool isCollision(joint_t) const override;
 public:
-    EnvEdgesHand(Robo::NewHand::Hand &hand, distance_t backpath=20, distance_t damping=3) :
-        EnvEdges(backpath, damping), hand_(hand)
-    {}
-    void interaction(bool used, const Point&, const Point&, double) override;
+    EnvEdgesHand(const RoboPhysics &robo, distance_t backpath = 20, distance_t damping = 3);
+    distance_t interaction(joint_t joint) const override;
 };
-}
+} // end Robo

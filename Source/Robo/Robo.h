@@ -23,7 +23,12 @@ struct State final
     Trajectory velosities{};
     Trajectory accelerations{};
     //------------------------------------------
-    State() {}
+    State() = default;
+    State(State&&) = default;
+    State(const State&) = default;
+    //------------------------------------------
+    State& operator=(const State&) = default;
+    //------------------------------------------
     template <typename Points>
     State(const Points &p, const Points &v, const Points &a, int special=0) :
         positions(p.begin(),p.end()), 
@@ -31,7 +36,7 @@ struct State final
         accelerations(a.begin(),a.end()), 
         special_no(special)
     {}
-    const Point spec() const { return positions[special_no]; }
+    const Point& spec() const { return positions[special_no]; }
     //------------------------------------------
     template <class Archive>
     void serialize(Archive &ar, unsigned /*version*/)
@@ -46,6 +51,8 @@ struct State final
              accelerations == state.accelerations);
     }
     bool operator!=(const State &state) const { return !(*this == state); }
+    //------------------------------------------
+    friend tostream& operator<<(tostream &s, const State &state);
 };
 //------------------------------------------
 using StateTrajectory = std::vector<State>;
@@ -82,7 +89,6 @@ template <typename T> void forceIncludeMethodMake() { T::name(); T::make(); }
 class RoboI
 {
 protected:
-    //static const double minFrameMove;
     frames_t _frame{ 0 };
     StateTrajectory _trajectory{};
     bool _trajectory_save{ true };
@@ -94,7 +100,7 @@ protected:
     }
 
 public:
-    static const double minFrameMove;
+    static const distance_t minFrameMove;
     static const muscle_t musclesPerJoint = 2;
 
     static const muscle_t musclesMaxCount = 8;// !!! 32;
@@ -112,7 +118,7 @@ public:
     { return (muscle / musclesPerJoint); }
 
     //----------------------------------------------------
-    RoboI(const JointsInputsPtrs &joint_inputs) : _joint_inputs(joint_inputs) {}
+    RoboI(const Point &base, const JointsInputsPtrs &joint_inputs) : _base(base), _joint_inputs(joint_inputs) {}
     RoboI(RoboI&&) = delete;
     RoboI(const RoboI&) = delete;
     virtual ~RoboI() {}
@@ -126,6 +132,7 @@ public:
     virtual frames_t lastsStatus(muscle_t m) const = 0;
     virtual TCHAR lastsStatusT(muscle_t m) const = 0;
 #endif
+//public:
     //----------------------------------------------------
     virtual joint_t  jointsCount() const = 0;
     virtual muscle_t musclesCount() const = 0;
@@ -160,8 +167,9 @@ public:
     virtual const Point& position() const = 0;
     virtual const Point& jointPos(joint_t) const = 0;
     virtual const StateTrajectory& trajectory() const { return _trajectory; };
-    virtual void currState(State&) const = 0;
-    virtual void getCurrState(rl_problem::ObservationRobo &o) const = 0;
+
+    virtual State currState() const = 0;
+    virtual rl_problem::ObservationRobo getCurrState() const = 0;
 
     //----------------------------------------------------
     virtual void setTrajectorySave(bool save) { _trajectory_save = save; };
@@ -177,7 +185,7 @@ public:
 
 protected:
     /* save-load data */
-    virtual Point _base() const = 0;
+    Point _base{};
     JointsInputsPtrs _joint_inputs{};
 
 private:

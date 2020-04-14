@@ -10,7 +10,7 @@ namespace RoboPos
 class TourEvo : public RoboPos::TourI
 {
 protected:
-    const TargetI &_t;
+    const TargetI &_target;
     /*const*/ double _reached_dist = 0.000005;
     /*const*/ double _oppo_penalty = 0.5;
     /*const*/ double _prev_dist_add = Robo::RoboI::minFrameMove;
@@ -20,8 +20,8 @@ protected:
     const Robo::muscle_t _n_acts = 0;
     const Robo::frames_t _lasts_max = 10000;
     const Robo::frames_t _lasts_init = 1;
-    /*const*/ Robo::frames_t _lasts_step = 1;
     /*const*/ Robo::frames_t _max_ncontrols = 8;
+    /*const*/ Robo::frames_t _lasts_step = 1;
     /*const*/ Robo::frames_t _step_back = 55;
 
     Robo::frames_t minLasts();
