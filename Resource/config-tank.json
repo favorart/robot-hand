@@ -2,7 +2,8 @@
   "robo": {
     "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
-    "enviroment": "MUTIAL_BLOCKING|MUTIAL_DYNAMICS|MOMENTUM_CHANGES|SYSTEMATIC_CHANGES|START_FRICTION|EDGES",
+    "enviroment": "MUTIAL_BLOCKING|MUTIAL_DYNAMICS|START_FRICTION|EDGES",
+    "#enviroment": "MOMENTUM_CHANGES|SYSTEMATIC_CHANGES",
     "joints": [
       {
         "name": "RTrack",

@@ -8,7 +8,7 @@ using JointFrames = std::vector<distance_t>;
 //--------------------------------------------------------------------------------
 struct RoboPhysics::Status
 {
-    using JointPrevs = std::array<Point, jointsMaxCount>;
+    //using JointPrevs = std::array<Point, jointsMaxCount>;
     //using JointPoses = std::array<Point, jointsMaxCount + 1>;
     using JointPoses = std::vector<Point>;
     using MuscleShifts = std::array<distance_t, RoboI::musclesMaxCount>;
@@ -22,6 +22,7 @@ struct RoboPhysics::Status
     JointPoses currPos{}; ///< текущая позиция сочленения
     MuscleShifts shifts{}; ///< смещения каждого сочления
 
+    bool moveEndPrint = false;
 private:
     void showMoveEnd() const;
     bool _moveEnd = false; ///< флаг окончания движения - полной остановки
@@ -36,8 +37,8 @@ private:
     MuscleShifts prevFrame{}; ///< величина смещения сочленения в предыдущий такт для данного мускула
 
     // ---previous position---
-    JointPrevs prevPos{}; ///< позиция сочленений в предыдущий такт
-    JointPrevs prevVel{}; ///< мгновенная скорость сочленений в предыдущий такт
+    JointPoses prevPos{}; ///< позиция сочленений в предыдущий такт
+    JointPoses prevVel{}; ///< мгновенная скорость сочленений в предыдущий такт
 
 public:
     using PreparedBasePoints = std::vector<Point>;
@@ -65,6 +66,7 @@ public:
     bool movingOn(muscle_t m) const { return (lastsMove[m] > 0); }
     bool movingOff(muscle_t m) const { return (lastsStop[m] > 0); }
     bool somethingMoving() const { return !(ba::all_of_equal(musclesFrame, 0)); }
+    frames_t breakingFrame(muscle_t m) const { return (lastsStop[m] > 0) ? lastsStop[m] : 1; }
 
     bool muscleMoveIsFrame(muscle_t m, frames_t _frame) const;
     void step(const bitwise &muscles, RoboPhysics &self);
@@ -83,7 +85,7 @@ public:
 struct RoboPhysics::EnvPhyState
 {
     using MLaws = std::array<MotionLaws::JointMotionLaw, RoboPhysics::jointsMaxCount>;
-    using JMaxFrames = std::array<distance_t, RoboPhysics::jointsMaxCount>;
+    using JDistFrames = std::array<distance_t, RoboPhysics::jointsMaxCount>;
     using JMass = std::array<double, RoboPhysics::jointsMaxCount + 1>;
 
     JMass mass{}; // m_j0, m_j1, m_j2, m_j3, m_j4
@@ -95,7 +97,7 @@ struct RoboPhysics::EnvPhyState
     //frames_t visitedRarity{ 10 }; ///< писать в траекторию 1 раз в данное число тактов
 
     MLaws laws{};                                 ///< "закон движения" каждого сочленения
-    JMaxFrames max_frames{};                      ///< максимальная величина смещения в "законе движения" для сочленения
+    JDistFrames max_frames{};                      ///< максимальная величина смещения в "законе движения" для сочленения
 
     // --- велична перемещений в каждый кадр ---
     using AllJointsFrames = std::array<JointFrames, RoboI::jointsMaxCount>;
@@ -107,14 +109,14 @@ struct RoboPhysics::EnvPhyState
 
     // --- виды "граничных условий"
     pEnvEdges   edges{};                          ///< удары и биение при самопересечениях и на границах рабочей области
-    frames_t   st_friction_n_frames{ 11 };        ///< количество кадров задержки начала движения из-за трения в сочленениях
-    JMaxFrames st_friction_big_frame{};           ///< взрывное ускорение после сильной задержки трением внутри пневматики
+    frames_t    st_friction_n_frames{ 11 };       ///< количество кадров задержки начала движения из-за трения в сочленениях
+    JDistFrames st_friction_big_frame{};          ///< взрывное ускорение после сильной задержки трением внутри пневматики
 
     distance_t mutial_dynamics_gain{ 4 };
     distance_t mutial_dynamics_gain_step{ 2 };
 
     // --- 4) Выбросы 
-    frames_t momentum_expect_happens{ 1 /*%*/ };  ///< вероятность появление мгновенного изменения в работе мускула
+    frames_t momentum_expect_happens{ 1 /*%*/ };  ///< вероятность появления мгновенного изменения в работе мускула
     unsigned momentum_happened{ 0 };              ///< число появлений мгновенного изменения за одно движение модели
     unsigned momentum_max_happens{ 2 };           ///< максимальное число возможных появлений мгновенных изменений модели
     
@@ -137,7 +139,7 @@ struct RoboPhysics::EnvPhyState
         T get() { return dis(gen); }
     };
     std::shared_ptr<SystematicChanges<>> systematic_changes; ///< изменения в пределах 1/2 и 2 раза, масштабирующий коэффициент.
-    distance_t systematic_factor{ 1. }; ///< полученный случайным образом масштабирующий множитель кадров framesMove или framesStop
+    JDistFrames systematic_factor{}; ///< (для каждого сочленения свой) полученный случайным образом масштабирующий множитель кадров framesMove или framesStop
 
     class FrequencyComponent
     {

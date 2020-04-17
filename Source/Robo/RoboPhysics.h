@@ -43,14 +43,15 @@ public:
     muscle_t musclesCount() const override;
     joint_t jointsCount() const override;
 
-    frames_t move(IN const Control &controls, IN frames_t max_frames) override;
-    frames_t move(IN const bitset_t &muscles, IN frames_t lasts, IN frames_t max_frames) override;
+    frames_t move(IN const Control&, IN frames_t max_frames) override;
+    frames_t move(IN const vBitwise&, IN frames_t max_frames) override;
+    frames_t move(IN const bitset_t&, IN frames_t lasts, IN frames_t max_frames) override;
+    //frames_t move(IN const BitsControl<musclesMaxCount + 1>&, IN frames_t max_frames) override;
+    //frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames); override;
+    frames_t move(IN muscle_t, IN frames_t, IN frames_t max_frames) override;
     frames_t move(IN frames_t max_frames) override;
-    frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames) override;
-    frames_t move(IN const BitsControl<musclesMaxCount + 1> &controls, IN frames_t max_frames) override;
 
     void step() override;
-    void step(IN const Control &control) override;
     void step(IN const Control &control, OUT size_t &control_curr) override;
     void step(bitset_t muscles, frames_t lasts) override;
     void step(const RoboI::bitwise &muscles) override;

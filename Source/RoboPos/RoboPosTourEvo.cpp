@@ -197,12 +197,12 @@ const RoboMoves::Record* RoboPos::TourEvo::appendMarker(const Control &controls,
     return _store->exactRecordByControl(new_controls);
 }
 
-bool RoboPos::TourEvo::containMarker(const Control &controls, muscle_t muscles, frames_t frame, const Point &aim)
+bool RoboPos::TourEvo::containMarker(const Control &controls, const Robo::bitset_t &muscles, frames_t frame, const Point &aim)
 {
     //if (!muscles) CERROR("Invalid muscles");
     //tcout << "-storeC=" << c << std::endl;
     // -----------------------------------
-    Robo::Control marker{ bitset_t{ muscles }, frame, _lasts_init };
+    Robo::Control marker{ muscles, frame, _lasts_init };
     auto new_controls = controls + marker;
     // -----------------------------------
     auto pReq = _store->exactRecordByControl(new_controls);
@@ -231,7 +231,7 @@ RoboPos::TourEvo::TourEvo(Store *store, RoboI *robo, const tptree *config, const
     _prev_dist_add(Robo::RoboI::minFrameMove),
     _base_pos(_robo->currState()),
     _n_muscles(_robo->musclesCount()),
-    _n_acts(static_cast<muscle_t>(std::pow(2, _n_muscles))),
+    _n_acts(1ULL << _n_muscles),
     _lasts_max(std::min(musclesMaxLasts(*_robo), TourI::too_long)),
     _lasts_init(minLasts() + 5),
     _max_ncontrols(8),
@@ -257,7 +257,7 @@ void RoboPos::TourEvo::printParameters() const
           "\nstep_back=" << _step_back << std::endl);
 }
 
-bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscles, frames_t frame, const Point &aim, Point &hit)
+bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, const Robo::bitset_t &muscles, frames_t frame, const Point &aim, Point &hit)
 {
     bool exists = containMarker(controls, muscles, frame, aim);
     //if (!muscles) CERROR("Empty muscles controls " << controls);
@@ -265,8 +265,8 @@ bool RoboPos::TourEvo::runNestedPreMove(const Control &controls, muscle_t muscle
     {
         if (controls.size())
             _robo->move(controls, frame); // ??? breakings
-        if (muscles)
-            _robo->move(Robo::bitset_t{ muscles }, _lasts_max, _lasts_init);
+        if (muscles.any())
+            _robo->move(muscles, _lasts_max, _lasts_init);
         hit = _robo->position();
     }
     return exists;
@@ -324,14 +324,14 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
     bool done = false;
     while (!done)
     {
-        joint_t best_acts = 0;
+        uint64_t best_acts = 0;
         frames_t best_lasts = 0;
 
         Point prev_pos{};
         distance_t prev_dist = best_d;
         
         bool one_watched = false;
-        for (muscle_t acts = 1; (acts < (_n_acts - 1)) && (!done); ++acts)
+        for (uint64_t acts = 1; acts < (_n_acts.to_ullong() - 1) && !done; ++acts)
         {
             Point pos{};
             // ============
@@ -357,9 +357,9 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                     if (boost_distance(pos, prev_pos) <= RoboI::minFrameMove && lasts > 50)
                     {
                         //tcout << "last=" << lasts << " stop " << d << " p=" << pos << std::endl;
-                        runNestedStop(acts, true); pos = _robo->position();
+                        runNestedStop(bitset_t{ acts }, true); pos = _robo->position();
                         //tcout << "Evo: stop " << d << " p=" << pos << std::endl;
-                        runNestedReset(controls, acts, frames, lasts, goal.biggest(), pos);
+                        runNestedReset(controls, bitset_t{ acts }, frames, lasts, goal.biggest(), pos);
                         break;
                     }
                     if (d > (prev_dist + _prev_dist_add))
@@ -430,7 +430,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
 
             if (lasts >= _lasts_max)
             {
-                Control c({ acts, frames, _lasts_max });
+                Control c(bitset_t{ acts }, frames, _lasts_max);
                 CDEBUG("Evo: (lasts == lasts_max) " << " d=" << prev_dist << ' ' << c << " pos=" << pos);
                 runNestedStop(acts, false); pos = _robo->position();
                 runNestedReset(controls, acts, frames, _lasts_max, goal.biggest(), pos);
@@ -448,7 +448,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
         if (best_acts) /* if best_acts selected */
         {
             for (muscle_t m = 0; m < _n_muscles; ++m)
-                if (best_acts & (1 << m))
+                if (best_acts & (1ULL << m))
                     controls.append({ m, frames, best_lasts });
 
             /* for exact by controls */
@@ -598,7 +598,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
     return true;
 }
 
-bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, muscle_t muscles, frames_t frame, frames_t lasts, const Point &aim, IN OUT Point &hit)
+bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, const Robo::bitset_t &muscles, frames_t frame, frames_t lasts, const Point &aim, IN OUT Point &hit)
 {
     bool exist = (_store->exactRecordByControl(controls) != NULL);
     if (!exist)
@@ -606,11 +606,11 @@ bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, muscle_t muscl
         _complexity++;
         // ----------------------------        
         //if (muscles)
-        Robo::Control marker{ bitset_t{ muscles }, frame, _lasts_init };
+        Robo::Control marker{ muscles, frame, _lasts_init };
         appendMarker(controls, controls + marker, aim);
         // ----------------------------
         //if (muscles)
-        Robo::Control act{ bitset_t{ muscles }, frame, lasts };
+        Robo::Control act{ muscles, frame, lasts };
         _store->insert(RoboMoves::Record{ hit, _base_pos.spec(), hit, controls + act, _robo->trajectory() }); // the performed move
         // ----------------------------
     }
@@ -619,7 +619,7 @@ bool RoboPos::TourEvo::runNestedReset(IN const Control &controls, muscle_t muscl
     return exist;
 }
 
-bool RoboPos::TourEvo::runNestedStop(IN const Robo::bitset_t &muscles, IN bool stop)
+bool RoboPos::TourEvo::runNestedStop(IN const bitset_t &muscles, IN bool stop)
 {
     if (stop)
         _robo->move(muscles, 1); // ??? breakings

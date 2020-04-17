@@ -143,20 +143,19 @@ public:
     virtual void draw(IN HDC, IN HPEN, IN HBRUSH) const = 0;
     virtual void getWorkSpace(OUT Trajectory&) = 0;
     //----------------------------------------------------
-    virtual frames_t move(IN const Control &controls, IN frames_t max_frames = LastsInfinity) = 0;
-    virtual frames_t move(IN const std::bitset<musclesMaxCount> &bits, IN frames_t lasts, IN frames_t max_frames = LastsInfinity) = 0;
-
-    virtual frames_t move(IN frames_t max_frames = LastsInfinity) = 0;
-    virtual frames_t move(IN const std::vector<muscle_t>&, IN frames_t max_frames = LastsInfinity) = 0;
-    virtual frames_t move(IN const BitsControl<musclesMaxCount + 1>&, IN frames_t max_frames = LastsInfinity) = 0;
-    //----------------------------------------------------
-    virtual void step() = 0; //обсчёт очередного такта времени
-    virtual void step(IN const Robo::Control &control) = 0; //интервальное управление
+    virtual void step() = 0; //обсчёт очередного такта времени (анимации и TourEvoStep)
     virtual void step(IN const Control &control, OUT size_t &control_curr) = 0; //для показа анимации
-    virtual void step(std::bitset<musclesMaxCount> muscles, frames_t lasts) = 0; //для формы и TourEvo
+    virtual void step(std::bitset<musclesMaxCount> muscles, frames_t lasts) = 0; //для формы и TourEvoStep
 
     using bitwise = std::bitset<musclesMaxCount + 1>;
     virtual void step(const bitwise &muscles) = 0; //битовая-матрица управлений
+    //----------------------------------------------------
+    using vBitwise = std::vector<bitwise>;
+    virtual frames_t move(IN const vBitwise&, IN frames_t max_frames = LastsInfinity) = 0; //битовое управление
+    virtual frames_t move(IN const Control&, IN frames_t max_frames = LastsInfinity) = 0; //интервальное управление
+    virtual frames_t move(IN const std::bitset<Robo::RoboI::musclesMaxCount>&, IN frames_t lasts, IN frames_t max_frames = LastsInfinity) = 0;
+    virtual frames_t move(IN muscle_t muscle, IN frames_t lasts, IN frames_t max_frames = LastsInfinity) = 0; //добавить в движение набор мускулов
+    virtual frames_t move(IN frames_t max_frames = LastsInfinity) = 0; //остаток движения без подачи сигналов управления
     //----------------------------------------------------
     virtual void reset() = 0;
     virtual bool moveEnd() const = 0;
@@ -172,7 +171,7 @@ public:
     virtual void setEnvCond(ENV) = 0;
     //----------------------------------------------------
     virtual void setTrajectorySave(bool save) { _trajectory_save = save; };
-    virtual frames_t frame() const { return _frame; };
+    virtual frames_t frame() const { return (_frame - 1); };
     //----------------------------------------------------
     static tstring name() { return _T("robo"); };
     virtual tstring getName() const = 0;
