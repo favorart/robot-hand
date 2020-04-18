@@ -70,6 +70,10 @@ void RoboI::save(tptree &root) const
     root.add_child(_T("robo"), robo);
 }
 //--------------------------------------------------------------------------------
+void windowLastsSignal(RoboI &robo, muscle_t m)
+{
+    robo.step(bitset_t{ 1ULL << m }, robo.envi(ENV::EDGES | ENV::START_FRICTION) ? LastsInfinity : robo.muscleMaxLasts(m));
+}
 void RoboPhysics::Status::showMoveEnd() const
 {
 #ifdef MY_WINDOW
@@ -522,6 +526,8 @@ RoboPhysics::EnvPhyState::EnvPhyState(/*const Point &base,*/ const JointsInputsP
                 
         max_frames[j] = maxVelosity; /* max frame */
         // -----------------------------------------------------
+        conditions = Robo::Enviroment::NOTHING;
+
         st_friction_n_frames = 31;
         st_friction_big_frame[j] = (maxVelosity / 3.);
 

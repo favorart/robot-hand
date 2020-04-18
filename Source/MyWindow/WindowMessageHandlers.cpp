@@ -19,6 +19,7 @@ using namespace RoboMoves;
 #ifdef MY_WINDOW
 //HWND HLABSTAT;
 tstring MOVING;
+void windowLastsSignal(RoboI&, muscle_t);
 
 static Point windowCenter{ 0., 0. };
 static double currWheelSize = 0.;
@@ -856,17 +857,17 @@ void onWindowChar(HWND hWnd, MyWindowData &wd, WPARAM wParam, LPARAM lparam)
     }
     //========================================
     /* Wrist */ /* LTrack */
-    case 'z': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 0}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(0)); break;
-    case 'a': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 1}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(1)); break;
+    case 'z': if (!wd.testing) windowLastsSignal(*wd.pRobo, 0); break;
+    case 'a': if (!wd.testing) windowLastsSignal(*wd.pRobo, 1); break;
     /* Elbow */ /* RTrack */
-    case 'x': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 2}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(2)); break;
-    case 's': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 3}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(3)); break;
+    case 'x': if (!wd.testing) windowLastsSignal(*wd.pRobo, 2); break;
+    case 's': if (!wd.testing) windowLastsSignal(*wd.pRobo, 3); break;
     /* Sholder */
-    case 'c': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 4}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(4)); break;
-    case 'd': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 5}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(5)); break;
+    case 'c': if (!wd.testing) windowLastsSignal(*wd.pRobo, 4); break;
+    case 'd': if (!wd.testing) windowLastsSignal(*wd.pRobo, 5); break;
     /* Clavicle */
-    case 'v': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 6}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(6)); break; /* двинуть ключицей влево */
-    case 'f': if (!wd.testing) wd.pRobo->step(bitset_t{1 << 7}, wd.pRobo->envi(ENV::EDGES|ENV::START_FRICTION) ? Robo::LastsInfinity : wd.pRobo->muscleMaxLasts(7)); break; /* двинуть ключицей вправо */
+    case 'v': if (!wd.testing) windowLastsSignal(*wd.pRobo, 6); break; /* двинуть ключицей влево */
+    case 'f': if (!wd.testing) windowLastsSignal(*wd.pRobo, 7); break; /* двинуть ключицей вправо */
     /* Reset */
     case 'r':
     {

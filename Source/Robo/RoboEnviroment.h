@@ -21,16 +21,15 @@ enum class Enviroment : uint16_t
     _LAST_              = 10
 };
 } // Robo
-using ENV = Robo::Enviroment;
 
 #ifdef WIN32
 #include <winnt.h>
-DEFINE_ENUM_FLAG_OPERATORS(ENV)
+DEFINE_ENUM_FLAG_OPERATORS(Robo::Enviroment)
 #endif
 
 namespace Robo {
-inline bool anyE(ENV e) { return (e != ENV::NOTHING); }
-inline bool containE(ENV e, ENV conds) { return bool(e & conds); }
+inline bool anyE(Robo::Enviroment e) { return (e != Robo::Enviroment::NOTHING); }
+inline bool containE(Robo::Enviroment e, Robo::Enviroment conds) { return bool(e & conds); }
 //------------------------------------------------------
 constexpr std::array<const TCHAR*, size_t(Robo::Enviroment::_LAST_)> enviroment_outputs =
 {
@@ -45,14 +44,14 @@ inline ENV scanEnviroment(const tstring &s)
     const tstring inv = _T("\"' \t");
     ba::copy_if(s, std::back_inserter(buf), [&inv](TCHAR ch) { return (inv.find(ch) == std::string::npos); });
     if (!buf.empty())
-        return scanEnumOneHot<ENV>(buf, Robo::enviroment_outputs);
-    return ENV::NOTHING;
+        return scanEnumOneHot<Robo::Enviroment>(buf, Robo::enviroment_outputs);
+    return Robo::Enviroment::NOTHING;
 }
 //------------------------------------------------------
-inline tstring putEnviroment(ENV env)
+inline tstring putEnviroment(Robo::Enviroment env)
 {
     tstringstream ss;
-    putEnumOneHot<ENV>(env, Robo::enviroment_outputs, ss);
+    putEnumOneHot<Robo::Enviroment>(env, Robo::enviroment_outputs, ss);
     return ss.str();
 }
 } // Robo

@@ -519,6 +519,7 @@ void RoboPos::LearnMoves::updateReachedStat(Admix admix)
 void RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
 {
     uncovered.clear();
+    uncovered.reserve(_target->n_coords());
     auto itp = _target->it_coords();
     for (auto it = itp.first; it != itp.second; ++it)
     {
@@ -526,6 +527,7 @@ void RoboPos::LearnMoves::uncover(OUT Trajectory &uncovered)
         if (p.first && boost_distance(p.second.hit, *it) > _target->precision())
             uncovered.push_back(*it);
     }
+    tcerr << _T("uncovered: ") << uncovered.size() << _T("/") << _target->coords().size() << std::endl;
     CINFO("uncovered: " << uncovered.size() << '/' << _target->coords().size());
 }
 

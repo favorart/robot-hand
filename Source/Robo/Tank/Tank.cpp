@@ -6,6 +6,7 @@
 #include "RoboInputs.h"
 #include "RoboEdges.h"
 #include "RoboPhysicsStatus.h"
+#include "RoboEnviroment.h"
 #include "Tank.h"
 
 using namespace Robo;

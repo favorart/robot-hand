@@ -3,6 +3,7 @@
 #include "Test.h"
 #include "RoboPhysics.h"
 #include "RoboMotionLaws.h"
+#include "RoboEnviroment.h"
 #include "RoboLearnMoves.h"
 #include "RoboMovesStore.h"
 #include "Hand.h"
