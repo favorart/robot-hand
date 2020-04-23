@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 namespace Robo {
-enum class Enviroment : uint16_t
+enum class Environment : uint16_t
 {
     NOTHING = 0,
     /// internal phisical parameters
@@ -24,34 +24,34 @@ enum class Enviroment : uint16_t
 
 #ifdef WIN32
 #include <winnt.h>
-DEFINE_ENUM_FLAG_OPERATORS(Robo::Enviroment)
+DEFINE_ENUM_FLAG_OPERATORS(Robo::Environment)
 #endif
 
 namespace Robo {
-inline bool anyE(Robo::Enviroment e) { return (e != Robo::Enviroment::NOTHING); }
-inline bool containE(Robo::Enviroment e, Robo::Enviroment conds) { return bool(e & conds); }
+inline bool anyE(Robo::Environment e) { return (e != Robo::Environment::NOTHING); }
+inline bool containE(Robo::Environment e, Robo::Environment conds) { return bool(e & conds); }
 //------------------------------------------------------
-constexpr std::array<const TCHAR*, size_t(Robo::Enviroment::_LAST_)> enviroment_outputs =
+constexpr std::array<const TCHAR*, size_t(Robo::Environment::_LAST_)> environment_outputs =
 {
     _T("NOTHING"), _T("MUTIAL_BLOCKING"), _T("MUTIAL_DYNAMICS"), _T("OPPOSITE_HANDLE"),
     _T("MOMENTUM_CHANGES"), _T("SYSTEMATIC_CHANGES"), _T("START_FRICTION"), _T("EDGES"), 
     _T("WINDY"), _T("WEATHER")
 };
 //------------------------------------------------------
-inline ENV scanEnviroment(const tstring &s)
+inline ENV scanEnvironment(const tstring &s)
 {
     tstring buf;
     const tstring inv = _T("\"' \t");
     ba::copy_if(s, std::back_inserter(buf), [&inv](TCHAR ch) { return (inv.find(ch) == std::string::npos); });
     if (!buf.empty())
-        return scanEnumOneHot<Robo::Enviroment>(buf, Robo::enviroment_outputs);
-    return Robo::Enviroment::NOTHING;
+        return scanEnumOneHot<Robo::Environment>(buf, Robo::environment_outputs);
+    return Robo::Environment::NOTHING;
 }
 //------------------------------------------------------
-inline tstring putEnviroment(Robo::Enviroment env)
+inline tstring putEnvironment(Robo::Environment env)
 {
     tstringstream ss;
-    putEnumOneHot<Robo::Enviroment>(env, Robo::enviroment_outputs, ss);
+    putEnumOneHot<Robo::Environment>(env, Robo::environment_outputs, ss);
     return ss.str();
 }
 } // Robo

@@ -12,7 +12,6 @@ class Store;
 
 
 // TODO:
-//  + kd-tree
 // ++ kd-tree
 //  + tables of different configurations
 //  + switch robo-motion-laws
@@ -62,8 +61,7 @@ struct Params
     Point             ROBO_BASE{};
     Robo::joint_t     N_JOINTS{ 0 };
     Robo::muscle_t    N_MUSCLES() const { return 2*N_JOINTS; }
-    Robo::Enviroment  ENVIROMENT{ Robo::Enviroment::NOTHING };
-    Robo::Enviroment  ENVIROMENT{ /*Robo::Enviroment::NOTHING*/ };
+    Robo::Environment  ENVIRONMENT{ /*Robo::Environment::NOTHING*/ };
 
     Robo::JointsInputsPtrs JINPUTS{}; //size()==N_JOINTS
     

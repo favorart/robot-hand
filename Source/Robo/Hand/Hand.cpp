@@ -6,7 +6,7 @@
 #include "RoboInputs.h"
 #include "RoboEdges.h"
 #include "RoboPhysicsStatus.h"
-#include "RoboEnviroment.h"
+#include "RoboEnvironment.h"
 #include "Hand.h"
 
 using namespace Robo;
@@ -224,7 +224,7 @@ std::shared_ptr<RoboI> Hand::make(const tstring &type, tptree &node)
     robo_joints.sort([](const auto &a, const auto &b) { return (*a < *b); });
     auto r = std::make_shared<Hand>(robo_base, robo_joints);
     
-    tstring s = node.get_optional<tstring>(_T("enviroment")).get_value_or(_T(""));
-    r->setEnvCond(scanEnviroment(s));
+    tstring s = node.get_optional<tstring>(_T("environment")).get_value_or(_T(""));
+    r->setEnvCond(scanEnvironment(s));
     return r;
 }

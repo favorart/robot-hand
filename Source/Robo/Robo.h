@@ -15,8 +15,8 @@ using Trajectories = std::list<Trajectory>;
 using joint_t = uint8_t;
 const joint_t JInvalid = 0xFF;
 //-------------------------------------------------------------------------------
-enum class Enviroment : uint16_t;
-using ENV = Robo::Enviroment;
+enum class Environment : uint16_t;
+using ENV = Robo::Environment;
 //-------------------------------------------------------------------------------
 struct State final
 {

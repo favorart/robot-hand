@@ -3,7 +3,7 @@
 #include "Test.h"
 #include "RoboPhysics.h"
 #include "RoboMotionLaws.h"
-#include "RoboEnviroment.h"
+#include "RoboEnvironment.h"
 #include "RoboLearnMoves.h"
 #include "RoboMovesStore.h"
 #include "Hand.h"
@@ -251,7 +251,7 @@ void test::Params::scan(tptree &root)
 
     SCAN_PARAM(N_JOINTS,      std::stoi);
     SCAN_PARAM2(ROBO_TYPE,    scanEnumOneHot<RoboType>, RoboTypeOutputs);
-    SCAN_PARAM2(ENVIROMENT,   scanEnumOneHot<Robo::Enviroment>, Robo::enviroment_outputs);
+    SCAN_PARAM2(ENVIRONMENT,   scanEnumOneHot<Robo::Environment>, Robo::environment_outputs);
     
     int res = SCAN_ARR_PARAM(_T("ROBO_BASE"), ROBO_BASE, std::stod);
     if (res != Point::ndimensions && res != 0)
@@ -265,7 +265,7 @@ void test::Params::clear()
     ROBO_TYPE = RoboType::None;
     ROBO_BASE = {};
     N_JOINTS= 0;
-    ENVIROMENT = Robo::Enviroment::NOTHING;
+    ENVIRONMENT = Robo::Environment::NOTHING;
     JINPUTS.clear();
     
     //TARGET_N_ROWS = { 20/*200*/ };
@@ -364,7 +364,7 @@ void test::Test::testAll()
 {
     params.ROBO_TYPE = RoboType::Tank;
     params.N_JOINTS = 2;
-    params.ENVIROMENT = ENV::MUTIAL_BLOCKING|ENV::MUTIAL_DYNAMICS|ENV::EDGES; // ENV::WINDY|ENV::START_FRICTION
+    params.ENVIRONMENT = ENV::MUTIAL_BLOCKING|ENV::MUTIAL_DYNAMICS|ENV::EDGES; // ENV::WINDY|ENV::START_FRICTION
 
     //params.FRAMES.resize(params.N_JOINTS);
     tstring test_name;
@@ -408,7 +408,7 @@ void test::Test::testMotionLaws(const tstring &test_name)
                                               params.TARGET_TOP, params.TARGET_BTM));
 
     auto pRobo = makeRobot();
-    pRobo->setEnvCond(params.ENVIROMENT);
+    pRobo->setEnvCond(params.ENVIRONMENT);
 
     printConfig();
 #ifdef TEST_DEBUG
@@ -595,8 +595,8 @@ void test::Test::printConfig() const
     cout << setw(w) << "ROBO_TYPE" << " = " << ((params.ROBO_TYPE == RoboType::Hand) ? "Hand" : "Tank") << endl;
     cout << setw(w) << "N_JOINTS"  << " = " << int(params.N_JOINTS) << endl;
     cout << setw(w) << "N_MUSCLES" << " = " << int(params.N_MUSCLES()) << endl;    
-    cout << setw(w) << "ENVIROMENT" << " = ";
-    printEnumOneHot<Enviroment>(params.ENVIROMENT, Robo::enviroment_outputs);
+    cout << setw(w) << "Environment" << " = ";
+    printEnumOneHot<Environment>(params.ENVIRONMENT, Robo::environment_outputs);
     cout << endl;
 
     auto jit = params.JINPUTS.cbegin();

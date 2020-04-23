@@ -104,7 +104,7 @@ struct RoboPhysics::EnvPhyState
     AllJointsFrames framesMove{}; ///< кадры при движении (дельта прироста)
     AllJointsFrames framesStop{}; ///< кадры при остановке (дельта прироста)
 
-    Robo::Enviroment conditions{}; ///< включений моделирований условий внутренней и внешней среды
+    Robo::Environment conditions{}; ///< включений моделирований условий внутренней и внешней среды
     bool waitToStop{ false };
 
     // --- виды "граничных условий"

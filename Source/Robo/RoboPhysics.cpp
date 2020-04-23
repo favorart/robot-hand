@@ -1,7 +1,7 @@
 #include "RoboPhysics.h"
 #include "RoboEdges.h"
 #include "RoboPhysicsStatus.h"
-#include "RoboEnviroment.h"
+#include "RoboEnvironment.h"
 #include "RoboMuscles.h"
 
 #ifdef MY_WINDOW
@@ -63,7 +63,7 @@ void RoboI::save(tptree &root) const
         joints.push_back(std::make_pair(_T(""), node));
     }
     tptree robo;
-    robo.put(_T("enviroment"), putEnviroment(getEnvCond()));
+    robo.put(_T("environment"), putEnvironment(getEnvCond()));
     robo.put(_T("type"), getName());
     robo.add_child(_T("base"), pbase);
     robo.add_child(_T("joints"), joints);
@@ -526,7 +526,7 @@ RoboPhysics::EnvPhyState::EnvPhyState(/*const Point &base,*/ const JointsInputsP
                 
         max_frames[j] = maxVelosity; /* max frame */
         // -----------------------------------------------------
-        conditions = Robo::Enviroment::NOTHING;
+        conditions = Robo::Environment::NOTHING;
 
         st_friction_n_frames = 31;
         st_friction_big_frame[j] = (maxVelosity / 3.);
@@ -547,7 +547,7 @@ RoboPhysics::EnvPhyState::EnvPhyState(/*const Point &base,*/ const JointsInputsP
 void RoboPhysics::EnvPhyState::printFrames(joint_t j) const
 {
 #ifdef DEBUG_PLOT_PHY_STATE
-    printEnumOneHot<Enviroment>(conditions, Robo::enviroment_outputs);
+    printEnumOneHot<Environment>(conditions, Robo::environment_outputs);
     std::cout << std::endl;
 
     std::stringstream ss;

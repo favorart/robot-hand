@@ -98,7 +98,7 @@
     <ClInclude Include="Source\RoboPos\RoboPosApprox.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourEvo.h" />
     <ClInclude Include="Source\RoboPos\RoboPosTourNoRec.h" />
-    <ClInclude Include="Source\Robo\RoboEnviroment.h" />
+    <ClInclude Include="Source\Robo\RoboEnvironment.h" />
     <ClInclude Include="Source\Robo\RoboInputs.h" />
     <ClInclude Include="Source\Robo\RoboMotionLawsTypes.h" />
     <ClInclude Include="Source\Robo\RoboMuscles.h" />

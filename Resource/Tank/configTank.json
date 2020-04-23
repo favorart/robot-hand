@@ -2,7 +2,7 @@
   "robo": {
     "type": "Tank-v2",
     "base": [ 0.10, 0.10 ],
-    "enviroment": "NOTHING",
+    "environment": "NOTHING",
     "joints": [
       {
         "name": "LTrack",

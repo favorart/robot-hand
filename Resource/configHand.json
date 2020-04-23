@@ -2,8 +2,8 @@
   "robo": {
     "type": "Hand-v4",
     "base": [ 0.75, 0.25 ],
-    "enviroment": "MUTIAL_DYNAMICS|EDGES", "####" : "#MUTIAL_BLOCKING|START_FRICTION|MOMENTUM_CHANGES|SYSTEMATIC_CHANGES|OPPOSITE_HANDLE",
-    "#enviroment": "NOTHING",
+    "environment": "START_FRICTION|MUTIAL_BLOCKING|MUTIAL_DYNAMICS|EDGES", "####" : "#MOMENTUM_CHANGES|SYSTEMATIC_CHANGES|OPPOSITE_HANDLE",
+    "#environment": "NOTHING",
     "joints": [
       {
         "name": "Wrist",

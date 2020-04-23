@@ -3,7 +3,7 @@
 #include "Robo.h"
 #include "RoboEdges.h"
 #include "RoboPhysicsStatus.h"
-#include "RoboEnviroment.h"
+#include "RoboEnvironment.h"
 #include "Hand.h"
 #include "Tank.h"
 
