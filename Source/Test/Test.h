@@ -61,7 +61,7 @@ struct Params
     Point             ROBO_BASE{};
     Robo::joint_t     N_JOINTS{ 0 };
     Robo::muscle_t    N_MUSCLES() const { return 2*N_JOINTS; }
-    Robo::Environment  ENVIRONMENT{ /*Robo::Environment::NOTHING*/ };
+    Robo::Environment ENVIRONMENT{ /*Robo::Environment::NOTHING*/ };
 
     Robo::JointsInputsPtrs JINPUTS{}; //size()==N_JOINTS
     

@@ -28,7 +28,7 @@ public:
     mutable bool collision{ false }; ///< сохранённый флаг - была ли коллизия в текущий такт
     EnvEdges(const RoboPhysics &robo, distance_t backpath, distance_t damping);
     virtual ~EnvEdges() {}
-    virtual distance_t interaction(joint_t joint) const; ///< вычисление коэффициента взаимодейтсвия на перемещение модели робота в случае коллизии
+    virtual distance_t interaction(joint_t joint) const; ///< вычисление коэффициента взаимодейcтвия на перемещение модели робота в случае коллизии
 };
 
 //-------------------------------------
