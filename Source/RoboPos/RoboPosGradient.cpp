@@ -290,7 +290,10 @@ void layout_controls(OUT std::vector<Actuator> &v, IN const Control &c, IN const
     {
         muscle_t m = a.muscle;
         while (v[m].muscle != MInvalid)
+        {
             m += n_muscles;
+            boost::this_thread::interruption_point();
+        }
         v[m] = a;
     }
 }
@@ -357,7 +360,8 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &/*aim !!!*/, IN  do
         // last_mo_g - дельта длительности работы открывающего мускула относительно данного управления - координаты hit > aim
         // last_mc_l - дельта длительности работы ЗАКРЫВАЮЩЕГО мускула относительно данного управления - координаты hit < aim
         // last_mc_g - дельта длительности работы ЗАКРЫВАЮЩЕГО мускула относительно данного управления - координаты hit > aim
-        
+        // -----------------------------------------------
+        boost::this_thread::interruption_point();
         // -----------------------------------------------
         int direction_o = 0;
         int direction_c = 0;

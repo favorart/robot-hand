@@ -140,7 +140,7 @@ public:
     Robo::distance_t ratioUsedMusclesCount() const;
     Robo::distance_t ratioTrajectoryBrakes() const;
     Robo::distance_t ratioSumOfWorkingTime() const;
-    Robo::distance_t eleganceMove() const; ///< less value is better
+    Robo::distance_t optimalMove() const; ///< less value is better
     // ----------------------------------------
     Robo::frames_t controlsDense() const { return _lasts_step; }
     Robo::frames_t longestMusclesControl() const;

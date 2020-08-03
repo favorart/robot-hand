@@ -375,7 +375,7 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
         {
             Point aim;
             // -------------------------------------------------
-            if (!(tries % _random_try))
+            if (tries && !(tries % _random_try))
             {
                 ++count_regular;
                 aim = *it;
@@ -392,9 +392,19 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
                 //if (!_target->contain(aim)) continue;
                 is_aim = false;
             }
+            if (is_aim)
+            {
+                auto p = _store->getClosestPoint(aim, side3);
+                if (p.first)
+                {
+                    distance = bg::distance(aim, p.second.hit);
+                    if (check_precision(distance))
+                        break;
+                }
 #ifdef USE_REACH_STAT
-            _reach_current = (is_aim) ? current : -1;
+                _reach_current = (is_aim) ? current : -1;
 #endif
+            }
             // -------------------------------------------------
             distance_t d = testStage3(aim);
             if (is_aim)

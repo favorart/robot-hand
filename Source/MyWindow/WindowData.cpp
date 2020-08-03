@@ -180,6 +180,8 @@ bool  WorkerThreadTryJoin(MyWindowData &wd)
         wd.canvas.hDynamicBitmapChanged = true;
         /* Set text of label 'Stat'  */
         SendMessage(wd.canvas.hLabTest, WM_SETTEXT, NULL, reinterpret_cast<LPARAM>(_T(" Done  ")));
+        if (wd.canvas.pls_repeat)
+            repeatRoboMove(wd);
 #endif //MY_WINDOW
         return true;
     }
@@ -406,9 +408,9 @@ bool  makeRoboMove(MyWindowData &wd)
     // -------------------------------------------------
     if (!repeatRoboMove(wd))
     {
-        const Point &aim = wd.mouse.aim;
-        //wd.pStore->approx()->predict(wd.mouse.aim); // !!!
-        wd.pLM->testStage3(aim);
+        //if (wd.pStore->approx()) { Point endPoint = wd.pStore->approx()->predict(control); }
+        WorkerThreadRunTask(wd, _T("** repeat move **"), [](MyWindowData &wd) { wd.pLM->testStage3(wd.mouse.aim); wd.pRobo->reset(); wd.canvas.pls_repeat = true; }, std::ref(wd));
+        return false;
         // -------------------------------------------------
         if (0 /* Around Trajectories !!! */)
         {

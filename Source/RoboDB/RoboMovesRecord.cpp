@@ -34,7 +34,7 @@ RoboMoves::Record::Record(IN const Point   &aim,
                           IN Robo::frames_t lasts_step) :
     aim_(aim), move_begin_(move_begin), move_final_(move_final),
     control_(controls), visited_(visited), _lasts_step(0),
-    _strategy(Strategy::get(controls)),
+    //_strategy(Strategy::get(controls)),
     _update_time(std::time(NULL)), _update_traj(0)
 {
     if (!visited_.size())
@@ -62,7 +62,7 @@ void RoboMoves::Record::clear()
     _update_traj = 0;
 }
 //---------------------------------------------------------
-distance_t RoboMoves::Record::eleganceMove() const
+distance_t RoboMoves::Record::optimalMove() const
 {
     distance_t res = 0;
     /* Количество движений */
@@ -77,7 +77,7 @@ distance_t RoboMoves::Record::eleganceMove() const
     res += ratioDistanceByTrajectory();
     /* Переломы в движении */
     res += ratioTrajectoryBrakes();
-    return res;
+    return (distance_t(1) / res); // TODO: нормировка
 }
 //---------------------------------------------------------
 distance_t RoboMoves::Record::ratioDistanceByTrajectory() const

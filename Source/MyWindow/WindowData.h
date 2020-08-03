@@ -74,6 +74,7 @@ struct MyWindowData final
         // --------------------------------
         CGradient cGradient{ CGradient::Longz };
         // --------------------------------
+        bool pls_repeat{ false };
     } canvas{};
     // ---------------------------------
     class TrajectoryFrames
