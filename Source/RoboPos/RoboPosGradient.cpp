@@ -260,6 +260,7 @@ using namespace RoboMoves;
 /*!  схлопнуть управления в вектор, упорядоченный по номеру мускула,
 *    сливая управления для одного мускула(в разное время запуска), удлинняя длительности
 */
+static
 void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, IN const muscle_t n_muscles)
 {
     v.resize(n_muscles);
@@ -283,35 +284,46 @@ void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, 
 
 //------------------------------------------------------------------------------
 /// расположить управления в вектор, упорядоченный по номеру мускула (НЕ сливая управления для одного мускула по длительности)
-void layout_controls(OUT std::vector<Actuator> &v, IN const Control &c, IN const muscle_t n_muscles)
+static
+void layout_controls(std::vector<Actuator> &v, frames_t &last_start, const Control &c, const muscle_t n_muscles)
 {
     v.resize(n_muscles);
     for (auto &a : c)
     {
-        muscle_t m = a.muscle;
-        while (v[m].muscle != MInvalid)
+        //tcout << "a=" << int(a.muscle) << std::endl;
+        for (muscle_t no_m = 0; no_m < n_muscles; ++no_m)
         {
-            m += n_muscles;
-            boost::this_thread::interruption_point();
+            if (!((1 << no_m) & a.muscle))
+                continue;
+            muscle_t m = no_m;
+            while (v[m].muscle != MInvalid)
+            {
+                m += n_muscles;
+                if (m >= v.size())
+                    v.resize(v.size() + n_muscles);
+                boost::this_thread::interruption_point();
+            }
+            //tcout << "m=" << int(m) << " " << int(no_m) << std::endl;
+            v[m] = Actuator(no_m, a.start, a.lasts, n_muscles);
         }
-        v[m] = a;
+        last_start = std::max(last_start, a.start + a.lasts);
     }
 }
 /// дополнить векторы управлений до одинаковой максимальной длины
-void layout_controls_continue(std::vector<Actuator> &v, const size_t max_sz, const muscle_t n_muscles)
+static
+void layout_controls_continue(std::vector<Actuator> &v, const frames_t last_start, const size_t max_sz, const muscle_t n_muscles)
 {
     v.resize(max_sz);
     muscle_t m = 0;
-    frames_t last_start = 0;
     for (auto &a : v)
     {
+        boost::this_thread::interruption_point();
         if (a.muscle == MInvalid)
         {
             a.muscle = m % n_muscles;
             a.start = last_start;
             a.lasts = 0;
         }
-        last_start = std::max(last_start, a.start + a.lasts);
         ++m;
     }
 }
@@ -323,38 +335,39 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &/*aim !!!*/, IN  do
                                            IN const Control &upper_controls,
                                            OUT      Control &controls)
 {
+    frames_t last_starts[3]{};
     std::vector<Actuator> inits, lower, upper;
-    layout_controls(inits, inits_controls, robo_nmuscles);
-    layout_controls(lower, lower_controls, robo_nmuscles);
-    layout_controls(upper, upper_controls, robo_nmuscles);
+    layout_controls(inits, last_starts[0], inits_controls, robo_nmuscles);
+    layout_controls(lower, last_starts[1], lower_controls, robo_nmuscles);
+    layout_controls(upper, last_starts[2], upper_controls, robo_nmuscles);
 
-    auto max_sz = std::max({ inits.size(), lower.size(), lower.size() });
-    layout_controls_continue(inits, max_sz, robo_nmuscles);
-    layout_controls_continue(lower, max_sz, robo_nmuscles);
-    layout_controls_continue(upper, max_sz, robo_nmuscles);
+    size_t max_sz = std::max({ inits.size(), lower.size(), lower.size() });
+    layout_controls_continue(inits, last_starts[0], max_sz, robo_nmuscles);
+    layout_controls_continue(lower, last_starts[1], max_sz, robo_nmuscles);
+    layout_controls_continue(upper, last_starts[2], max_sz, robo_nmuscles);
 
-    tcout << " inits: "; for (auto &i : inits) tcout << i << " "; tcout << std::endl;
-    tcout << " lower: "; for (auto &i : lower) tcout << i << " "; tcout << std::endl;
-    tcout << " upper: "; for (auto &i : upper) tcout << i << " "; tcout << std::endl;
+    tcout << " inits: "; tcout << inits.size() << std::endl; //for (const Actuator &a : inits) tcout << a << " "; tcout << std::endl;
+    tcout << " lower: "; tcout << lower.size() << std::endl; //for (const Actuator &a : lower) tcout << a << " "; tcout << std::endl;
+    tcout << " upper: "; tcout << upper.size() << std::endl; //for (const Actuator &a : upper) tcout << a << " "; tcout << std::endl;
 
     const int int_normalizer = int(delta / _target->precision()); /* velosity */
 
-    for (muscle_t mo = 0; mo < max_sz; mo += RoboI::musclesPerJoint)
+    for (size_t i_mo = 0; i_mo < max_sz; i_mo += RoboI::musclesPerJoint)
     {
-        muscle_t mc = mo + 1;
+        size_t i_mc = i_mo + 1;
         //auto mo = RoboI::muscleByJoint(joint, true);
         //auto mc = RoboI::muscleByJoint(joint, false);
 
-        auto start_mo_i = (MInvalid != inits[mo].muscle) ? (inits[mo].start) : 0;
-        auto start_mc_i = (MInvalid != inits[mc].muscle) ? (inits[mc].start) : 0;
+        auto start_mo_i = (MInvalid != inits[i_mo].muscle) ? (inits[i_mo].start) : 0;
+        auto start_mc_i = (MInvalid != inits[i_mc].muscle) ? (inits[i_mc].start) : 0;
 
-        auto last_mo_i = (MInvalid != inits[mo].muscle) ? (inits[mo].lasts) : 0;
-        auto last_mo_l = (MInvalid != lower[mo].muscle) ? (lower[mo].lasts - last_mo_i) : 0;
-        auto last_mo_g = (MInvalid != upper[mo].muscle) ? (upper[mo].lasts - last_mo_i) : 0;
+        auto last_mo_i = (MInvalid != inits[i_mo].muscle) ? (inits[i_mo].lasts) : 0;
+        auto last_mo_l = (MInvalid != lower[i_mo].muscle) ? (lower[i_mo].lasts - last_mo_i) : 0;
+        auto last_mo_g = (MInvalid != upper[i_mo].muscle) ? (upper[i_mo].lasts - last_mo_i) : 0;
     
-        auto last_mc_i = (MInvalid != inits[mc].muscle) ? (inits[mc].lasts) : 0;
-        auto last_mc_l = (MInvalid != lower[mc].muscle) ? (lower[mc].lasts - last_mc_i) : 0;
-        auto last_mc_g = (MInvalid != upper[mc].muscle) ? (upper[mc].lasts - last_mc_i) : 0;
+        auto last_mc_i = (MInvalid != inits[i_mc].muscle) ? (inits[i_mc].lasts) : 0;
+        auto last_mc_l = (MInvalid != lower[i_mc].muscle) ? (lower[i_mc].lasts - last_mc_i) : 0;
+        auto last_mc_g = (MInvalid != upper[i_mc].muscle) ? (upper[i_mc].lasts - last_mc_i) : 0;
 
         // last_mo_l - дельта длительности работы открывающего мускула относительно данного управления - координаты hit < aim
         // last_mo_g - дельта длительности работы открывающего мускула относительно данного управления - координаты hit > aim
@@ -425,16 +438,25 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &/*aim !!!*/, IN  do
         f_dir(direction_o, start_mo_i, start_o, start_c);
         f_dir(direction_c, start_mc_i, start_c, start_o);
 
-        tcout << " mo=" << mo << " direction_o=" << direction_o << " last_o=" << last_o << " start_o=" << start_o << std::endl;
-        tcout << " mc=" << mc << " direction_c=" << direction_c << " last_c=" << last_c << " start_c=" << start_c << std::endl;
+        muscle_t mo = (i_mo % robo_nmuscles);
+        muscle_t mc = (i_mc % robo_nmuscles);
+
+        //tcout << " mo=" << int(mo) << " direction_o=" << direction_o << " last_o=" << last_o << " start_o=" << start_o << std::endl;
+        //tcout << " mc=" << int(mc) << " direction_c=" << direction_c << " last_c=" << last_c << " start_c=" << start_c << std::endl;
         
         //if (last_o != last_c)
         {
-            if (last_o) controls.append({ mo, start_o, last_o });
-            if (last_c) controls.append({ mc, start_c, last_c });
+            Actuator ao(mo, start_o, last_o, robo_nmuscles);
+            Actuator ac(mc, start_c, last_c, robo_nmuscles);
+            if (last_o && !controls.find(ao))
+                controls.append(ao);
+            if (last_c && !controls.find(ac))
+                controls.append(ac);
         }
     }
+    //CINFO("c=" << controls);
     controls.order(robo_nmuscles);
+    //CINFO("gradientControls: c=" << controls);
 }
 
 //------------------------------------------------------------------------------
@@ -444,15 +466,16 @@ void RoboPos::LearnMoves::gradientControlsNew(IN const Point &/*aim !!!*/, IN  d
                                               IN const Control &upper_controls,
                                               OUT      Control &controls)
 {
+    frames_t last_starts[3]{};
     std::vector<Actuator> inits, lower, upper;
-    layout_controls(inits, inits_controls, robo_nmuscles);
-    layout_controls(lower, lower_controls, robo_nmuscles);
-    layout_controls(upper, upper_controls, robo_nmuscles);
+    layout_controls(inits, last_starts[0], inits_controls, robo_nmuscles);
+    layout_controls(lower, last_starts[1], lower_controls, robo_nmuscles);
+    layout_controls(upper, last_starts[2], upper_controls, robo_nmuscles);
 
     auto max_sz = std::max({ inits.size(), lower.size(), lower.size() });
-    layout_controls_continue(inits, max_sz, robo_nmuscles);
-    layout_controls_continue(lower, max_sz, robo_nmuscles);
-    layout_controls_continue(upper, max_sz, robo_nmuscles);
+    layout_controls_continue(inits, last_starts[0], max_sz, robo_nmuscles);
+    layout_controls_continue(lower, last_starts[1], max_sz, robo_nmuscles);
+    layout_controls_continue(upper, last_starts[2], max_sz, robo_nmuscles);
 
     auto lows = Strategy::get(lower_controls);
     auto inis = Strategy::get(inits_controls);

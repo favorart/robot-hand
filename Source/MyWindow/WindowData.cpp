@@ -60,7 +60,7 @@ void MyWindowData::TrajectoryFrames::step(Store &store, RoboI &robo)
             // ============
             robo.step(controls_, controls_curr_);
             // ============
-            if (robo.moveEnd())
+            if (robo.moveEnd() && controls_curr_ == controls_.size())
             {
                 // ------------
                 auto *pRec = store.exactRecordByControl(controls_);

@@ -17,7 +17,9 @@ bool Robo::Actuator::intersect(const Robo::Actuator &a) const
 //---------------------------------------------------------
 bool Robo::Actuator::operator<(const Actuator &a) const
 {
-    return (muscle < a.muscle) && (start < a.start); //(muscle != MInvalid)
+    bool res = (muscle != MInvalid && (start < a.start || (start == a.start && muscle < a.muscle)));
+    //tcout << *this << " < " << a << " =" << res << std::endl;
+    return res;
 }
 
 //---------------------------------------------------------
@@ -32,15 +34,28 @@ Robo::Control::Control(const Robo::Actuator *a, size_t sz)
 }
 
 //---------------------------------------------------------
+bool Robo::Control::find(const Robo::Actuator &a) const
+{
+    return (br::find(actuators, a) != std::end(actuators));
+}
+
+//---------------------------------------------------------
 void Robo::Control::append(const Robo::Actuator &a)
 {
-    auto f = br::find(actuators, a);
-    if (f != std::end(actuators))
-        throw std::logic_error("append: duplicate");
+    auto f_it = br::find(actuators, a);
+    if (f_it != std::end(actuators))
+    {
+        if (f_it->lasts < a.lasts)
+            f_it->lasts = a.lasts;
+        //throw std::logic_error("append: duplicate");
+        return;
+    }
 
     if (actuals >= MAX_ACTUATORS)
         throw std::logic_error("append: Too much actuators for Control!");
+
     // actuals is INDEX TO INSERT and LENGTH
+    _validated = false;
     if (actuals == 0 || actuators[actuals - 1].start <= a.start)
     {
         actuators[actuals++] = a;
@@ -55,7 +70,6 @@ void Robo::Control::append(const Robo::Actuator &a)
             ++actuals;
             return;
         }
-    _validated = false;
 }
 
 //---------------------------------------------------------
@@ -147,7 +161,7 @@ void Robo::Control::fillRandom(Robo::muscle_t n_muscles, const MaxMuscleCount &m
     Robo::Actuator a{};
     for (unsigned mv = 0; mv < moves_count; ++mv)
     {
-        a.muscle = Utils::random(n_muscles);
+        a.muscle = Utils::random(1 << n_muscles);
         while (!a.lasts)
             a.lasts = Utils::random(lasts_min, muscleMaxLasts(a.muscle));
         actuators[actuals++] = a; // append to end NOT SORTED
@@ -224,14 +238,18 @@ void Robo::Control::validated(Robo::muscle_t n_muscles) const
 //---------------------------------------------------------
 bool Robo::Control::validate(Robo::muscle_t n_muscles) const
 {
-    if (_validated) return true;
-    frames_t start = 0; // actuators[0].start == 0
-    auto is_invalid = [n_muscles, &start](const Actuator &a) {
-        bool res = (start > a.start);
-        start = a.start;
-        return res || (!a.lasts) || (a.muscle >= n_muscles);
-    };
-    return _validated = (actuals > 0 && ba::none_of(*this, is_invalid));
+    if (_validated || actuals == 0)
+        return true;
+    frames_t curr_start = 0; // actuators[0].start mist be =0
+    for (const auto &a : *this)
+    {
+        //tcout << "validate: " << a << " " << int((start > a.start)) << " " << int((!a.lasts) || (a.muscle >= n_muscles)) << std::endl;
+        _validated = (curr_start <= a.start && a.lasts && a.muscle < n_muscles);
+        if (!_validated)
+            break;
+        curr_start = a.start;
+    }
+    return _validated;
 }
 
 //---------------------------------------------------------
@@ -239,12 +257,19 @@ void Robo::Control::order(Robo::muscle_t n_muscles, bool keep_actors)
 {
     if (!validate(n_muscles))
     {
-        br::for_each(actuators, [keep_actors](auto &a) { if (!a.lasts) a.lasts = 1;
-        //if (!keep_actors) remove(a - actuators.data());
-        });
-        br::sort(actuators);
+        for (int i = 0; i < actuals; ++i)
+            if (actuators[i].lasts == 0)
+            {
+                if (keep_actors == false)
+                    remove(i--);
+                else
+                    actuators[i].lasts = 1;
+            }
+        br::sort(*this);
+        removeStartPause();
+        tcout << "order: " << *this << std::endl;
+        validated(n_muscles);
     }
-    removeStartPause();
 }
 
 //---------------------------------------------------------

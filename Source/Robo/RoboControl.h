@@ -19,6 +19,9 @@ struct Actuator final
     Actuator() = default;
     Actuator(muscle_t muscle, frames_t start, frames_t lasts) :
         muscle(muscle), start(start), lasts(lasts) {}
+    Actuator(muscle_t muscle, frames_t start, frames_t lasts, int nmuscles) :
+        muscle(muscle), start(start), lasts(lasts)
+    { if (nmuscles <= muscle) throw std::runtime_error("Actuator: muscle > nmuscles"); }
     Actuator(Actuator&&) = default;
     Actuator(const Actuator&) = default;
     Actuator& operator=(const Actuator&) = default;
@@ -32,7 +35,7 @@ struct Actuator final
     { return !(*this < a); }
 
     bool operator== (const Actuator &a) const
-    { return (this == &a) || (muscle == a.muscle && start == a.start && lasts == a.lasts); }
+    { return (this == &a) || (muscle == a.muscle && start == a.start && (lasts <= a.lasts || a.lasts <= lasts)); }
     bool operator!= (const Actuator &a) const
     { return !(*this == a); }
     bool operator== (const muscle_t  m) const
@@ -116,7 +119,7 @@ public:
     //----------------------------------------------------
     size_t size() const { return (actuals); }
     void append(const Actuator& a); // sorted
-    void push_back(const Actuator& a) { append(a); }
+    void push_back(const Actuator& a) { append(a); } // sorted
 
     void shorter (size_t index, frames_t velosity, bool infl_oppo_start = false, bool infl_oppo_lasts = false);
     void longer  (size_t index, frames_t velosity, bool infl_oppo_start = false);
@@ -124,8 +127,9 @@ public:
     void pop_back();
     void pop(size_t i) { remove(i); }
     void remove(size_t i);
-    void remove(const Robo::Actuator*);
+    void remove(const Actuator*);
 
+    bool find(const Actuator&) const;
     void clear()
     { actuals = 0; actuators.fill({MInvalid,0,0}); _validated = false; }
     //----------------------------------------------------
