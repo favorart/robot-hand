@@ -336,8 +336,8 @@ Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
     if (!p.first)
         CERROR(_T("rundownAllDirs: Empty adjacency"));
     // -----------------------------------------------
-    distance_t distance, next_distance;
-    next_distance = distance = bg::distance(aim, p.second.hit);
+    distance_t distance, new_distance;
+    new_distance = distance = bg::distance(aim, p.second.hit);
     // -----------------------------------------------
     Control controls{ p.second.controls };
     rundownControls(controls);
@@ -367,7 +367,7 @@ Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
             auto velosity = rundownVelosity(distance);
             repeat = rundownNextControl(tmp, lasts_changes, velosity, muscles_repeats);
             // -----------------------------------------------
-#ifdef USE_REACH_STAT
+#if 0 //def USE_REACH_STAT
             CINFO(_T("rundownNextControl: ") << tmp << " v=" << velosity);
             tcout << " muscles_repeats={ ";
             for (auto &r : muscles_repeats) tcout << r << " , ";
@@ -378,14 +378,14 @@ Robo::distance_t LearnMoves::rundownAllDirs(IN const Point &aim)
             //auto d = bg::distance(aim, hit);
             //if (less(distance, d))
             {
-                next_distance = actionRobo(aim, tmp);
+                new_distance = actionRobo(aim, tmp);
                 //++_rundown_alldirs_complexity;
                 updateReachedStat(Admix::AllRundown);
             }
             // -----------------------------------------------
-            if (less(distance, next_distance))
+            if (less(distance, new_distance))
             {
-                distance = next_distance;
+                distance = new_distance;
                 //if (check_precision(distance, aim))
                 {
                     finish = true;

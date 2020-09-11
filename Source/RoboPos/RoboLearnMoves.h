@@ -100,7 +100,7 @@ class LearnMoves final
                               OUT Robo::Control &controls, // возвращает массив размера <= musclesCount, уберает все повторения мускулов -- неприменим для танка.
                               OUT Point &mid_hit);         // среднее расстояние диапазона до цели
     void weightedMeanControlsOrdered(IN const Point &aim, IN const RoboMoves::adjacency_ptrs_t &range,
-                                     OUT std::vector<Robo::Actuator> &controls, OUT Point &mid_hit);
+                                     OUT Robo::Control/*std::vector<Robo::Actuator>*/ &controls, OUT Point &mid_hit);
 
     bool  weightedMeanULAdjs(IN  const Point   &aim,
                              OUT RoboMoves::Record *pRec,

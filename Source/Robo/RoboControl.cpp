@@ -255,7 +255,7 @@ bool Robo::Control::validate(Robo::muscle_t n_muscles) const
 //---------------------------------------------------------
 void Robo::Control::order(Robo::muscle_t n_muscles, bool keep_actors)
 {
-    if (!validate(n_muscles))
+    //if (!validate(n_muscles)) // TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     {
         for (int i = 0; i < actuals; ++i)
             if (actuators[i].lasts == 0)
@@ -420,7 +420,7 @@ tostream& Robo::operator<<(tostream &s, const Robo::Control &controls)
     s << _T("c[");
     for (const Robo::Actuator &a : controls)
         s << a << ((size_t(&a - &controls.actuators[0]) == (controls.actuals - 1)) ? _T("") : _T(","));
-    s << _T("]");
+    s << _T("]v=") << (controls._validated ? _T("1") : _T("0"));
     return s;
 }
 

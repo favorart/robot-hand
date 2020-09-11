@@ -27,8 +27,8 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
     mid_hit /= static_cast<distance_t>(range.size());
     // -----------------------------------------------
     //CDEBUG("weightedMeanControls start");
-    std::vector<double> lasts(robo_nmuscles, 0.);
-    std::vector<double> starts(robo_nmuscles, 0.);
+    std::vector<distance_t> lasts(robo_nmuscles, 0.);
+    std::vector<distance_t> starts(robo_nmuscles, 0.);
     muscle_t m_max = 0, m_min = robo_nmuscles;
     // -----------------------------------------------
     for (auto &pRec : range)
@@ -63,48 +63,59 @@ void RoboPos::LearnMoves::weightedMeanControls(IN  const Point &aim,
 }
 
 //------------------------------------------------------------------------------
-void layout_controls(OUT std::vector<Actuator> &v, IN const Control &c, IN const muscle_t n_muscles);
-void layout_controls_continue(std::vector<Actuator> &v, const size_t max_sz, const muscle_t n_muscles);
+void layout_controls(std::vector<Actuator> &v, frames_t &last_start, const Control &c, const muscle_t n_muscles);
+void layout_controls_continue(std::vector<Actuator> &v, const frames_t last_start, const size_t max_sz, const muscle_t n_muscles);
 
 /// не сливаем, упорядоченный по мускулам
 void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN const adjacency_ptrs_t &range,
-                                                      OUT std::vector<Actuator> &controls, OUT Point &mid_hit)
+                                                      OUT Control &controls, OUT Point &mid_hit)
 {
-
-    //distance_t sum_range_distances = 0.;
-    //for (auto &pRec : range)
-    //{
-    //    sum_range_distances += bg::distance(aim, pRec->hit);
-    //    mid_hit += pRec->hit;
-    //}
-    //mid_hit /= static_cast<distance_t>(range.size());
-    //// -----------------------------------------------
-    ////CDEBUG("weightedMeanControls start");
-    //std::vector<double> lasts(robo_nmuscles, 0.);
-    //std::vector<double> starts(robo_nmuscles, 0.);
-    //muscle_t m_max = 0, m_min = robo_nmuscles;
-    //// -----------------------------------------------
-    //for (auto &pRec : range)
-    //    for (auto &c : pRec->controls)
-    //    {
-    //        /* взвешенное НЕСМЕЩЁННОЕ cреднее арифметическое */
-    //        distance_t weight = bg::distance(aim, pRec->hit) / sum_range_distances;
-    //        lasts[c.muscle] += c.lasts * weight;
-    //        starts[c.muscle] += c.start * weight;
-    //        if (m_max < c.muscle) m_max = c.muscle;
-    //        if (m_min > c.muscle) m_min = c.muscle;
-    //        //CDEBUG(c << ' ' << weight);
-    //    }
-    //// ----------------------------------------------
-    //++m_max;
-    //auto starts_it = std::min_element(std::begin(starts) + m_min, std::begin(starts) + m_max);
-    //for (muscle_t m = m_min; m < m_max; ++m)
-    //    controls.append({ m, frames_t(starts[m] - *starts_it), std::max(lasts_min, frames_t(lasts[m])) });
-    ////CDEBUG(controls);
-    //// ----------------------------------------------
-    ///* controls check for correctness: opposite muscles work time */
-    //controls.validated(robo_nmuscles);
-    ////CDEBUG("weightedMeanControls end");
+    distance_t sum_range_distances = 0.;
+    for (auto &pRec : range)
+    {
+        sum_range_distances += bg::distance(aim, pRec->hit);
+        mid_hit += pRec->hit;
+    }
+    mid_hit /= static_cast<distance_t>(range.size());
+    // -----------------------------------------------
+    frames_t lasts_start = 0;
+    std::vector<std::vector<Robo::Actuator>> range_ordered(range.size());
+    // -----------------------------------------------
+    int i = 0;
+    for (auto &pRec : range)
+        layout_controls(range_ordered[i++], lasts_start, pRec->controls, robo_nmuscles);
+    size_t max_sz = br::max_element(range_ordered, [](auto &l, auto &r) { return l.size() < r.size(); })->size();
+    i = 0;
+    for (auto &pRec : range)
+        layout_controls_continue(range_ordered[i++], lasts_start, max_sz, robo_nmuscles);
+    // -----------------------------------------------
+    //CDEBUG("weightedMeanControls Ordered start");
+    std::vector<distance_t> lasts(max_sz, 0.);
+    std::vector<distance_t> starts(max_sz, 0.);
+    // -----------------------------------------------
+    auto it = range.begin();
+    i = 0;
+    for (auto &v : range_ordered)
+    {
+        for (auto &c : v)
+        {
+            /* взвешенное НЕСМЕЩЁННОЕ cреднее арифметическое */
+            distance_t weight = bg::distance(aim, (*it)->hit) / sum_range_distances;
+            lasts[i] += c.lasts * weight;
+            starts[i] += c.start * weight;
+            //CDEBUG(c << ' ' << weight);
+        }
+        ++it;
+    }
+    // ----------------------------------------------
+    frames_t min_start = frames_t(*br::min_element(starts));
+    for (i = 0; i < max_sz; ++i)
+        if (lasts[i] > 0)
+            controls.append({ range_ordered[0][i].muscle, std::max(0ULL, frames_t(starts[i]) - min_start), std::max(0ULL, frames_t(lasts[i])) });
+    // ----------------------------------------------
+    /* controls check for correctness: opposite muscles work time */
+    controls.order(robo_nmuscles);
+    //CDEBUG("weightedMeanControls Ordered end");
 }
 
 //------------------------------------------------------------------------------
@@ -138,7 +149,8 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         Point mid_hit;
 #if 1
         Control controls;
-        weightedMeanControls(aim, range, controls, mid_hit);
+        //weightedMeanControls(aim, range, controls, mid_hit);
+        weightedMeanControlsOrdered(aim, range, controls, mid_hit);
 #else
         Control controls;
         std::vector<Actuator> v;
@@ -148,15 +160,18 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         range.clear();
         next_distance = bg::distance(aim, mid_hit);
         // -----------------------------------------------
-        //auto hit = predict(controls);
-        //auto d = bg::distance(aim, hit);
+        auto hit = predict(controls);
+        auto d = bg::distance(aim, hit);
         //if (less(distance, next_distance) || less(distance, d)) // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         {
             //============================
-            next_distance = actionRobo(aim, controls);
+            distance_t nd = actionRobo(aim, controls);
             //++_wmean_complexity;
             updateReachedStat(Admix::WeightMean);
             //============================
+            if ((!less(distance, next_distance) && !less(distance, d)) && less(d, nd))
+                tcout << "weightedMean predict false";
+            next_distance = nd;
         }
         // -----------------------------------------------
         if (check_precision(distance, aim))

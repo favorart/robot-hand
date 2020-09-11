@@ -284,7 +284,7 @@ void create_actuators_vector(OUT std::vector<Actuator> &v, IN const Control &c, 
 
 //------------------------------------------------------------------------------
 /// расположить управления в вектор, упорядоченный по номеру мускула (НЕ сливая управления для одного мускула по длительности)
-static
+//static
 void layout_controls(std::vector<Actuator> &v, frames_t &last_start, const Control &c, const muscle_t n_muscles)
 {
     v.resize(n_muscles);
@@ -310,7 +310,7 @@ void layout_controls(std::vector<Actuator> &v, frames_t &last_start, const Contr
     }
 }
 /// дополнить векторы управлений до одинаковой максимальной длины
-static
+//static
 void layout_controls_continue(std::vector<Actuator> &v, const frames_t last_start, const size_t max_sz, const muscle_t n_muscles)
 {
     v.resize(max_sz);
@@ -567,10 +567,15 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
 {
     annealing = bg::distance(_target->min(), _target->max()) / 10.;
     annealing = 0.11;// new_distance / 5;
-    CINFO("NEW aim=" << aim << " annealing=" << annealing);
-
+    CINFO("testStage3: NEW aim=" << aim << " annealing=" << annealing);
+    // -----------------------------------------------
+    auto p = _store->getClosestPoint(aim, annealing);
+    if (!p.first)
+        CERROR(_T("testStage3: Empty adjacency"));
+    // -----------------------------------------------
     distance_t distance, new_distance;
-    new_distance = distance = bg::distance(_base_pos, aim);
+    new_distance = distance = bg::distance(aim, p.second.hit);
+    //new_distance = distance = bg::distance(_base_pos, aim);
     // -----------------------------------------------
     int i_admix = 0, all_admixes_tried = 0;
     do
@@ -580,7 +585,7 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
         distance_t delta; // distance between points in function space
         if (!weightedMeanULAdjs(aim, &rec, lower_controls, upper_controls, delta))
         {
-            CINFO("weightedMeanULAdjs FAIL");
+            CINFO("testStage3: weightedMeanULAdjs FAIL");
             break;
         }
         // -----------------------------------------------
@@ -601,7 +606,7 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
             if (ann1 < annealing)
             {
                 annealing = ann1;
-                CINFO(" annealing=" << annealing << " d2=" << distance * 2 << " d=" << (distance));
+                CINFO("testStage3:  annealing=" << annealing << " d2=" << distance * 2 << " d=" << (distance));
             }
             distance = new_distance;
             all_admixes_tried = 0;
@@ -610,7 +615,7 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
         }
         else if (all_admixes_tried == 3)
         {
-            CINFO(aim << " testStage3 FAIL");
+            CINFO(aim << "testStage3: FAIL");
             break;
         }
         // -----------------------------------------------
@@ -618,7 +623,7 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
         {
             const int n_admixes = sizeof(admixes) / sizeof(*admixes);
             new_distance = (this->*(admixes[i_admix]))(aim); // используем алгоритмы-примеси
-            i_admix = ++i_admix % n_admixes;
+            i_admix = (i_admix + 1) % n_admixes;
             all_admixes_tried++;
 
             if (less(distance, new_distance))
@@ -629,14 +634,14 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
             }
             if (new_distance > (distance + side3))
             {
-                CINFO("FAIL Admix=" << i_admix << " d=" << new_distance << " > side=" << distance);
+                CINFO("testStage3: FAIL Admix=" << i_admix << " d=" << new_distance << " > side=" << distance);
                 //break;
             }
         }
-        CDEBUG(_T("prec: ") << new_distance);
+        CDEBUG(_T("testStage3: prec: ") << new_distance);
     } while (true);
     // -----------------------------------------------
-    CINFO(_T(" precision: ") << distance << std::endl);
+    CINFO(_T("testStage3: precision: ") << distance << std::endl);
     return distance;
 }
 
@@ -647,16 +652,16 @@ const Record* RoboPos::LearnMoves::gradientClothestRecord(IN const adjacency_ptr
                                                           IN OUT   visited_t        *pVisited)
 {
     const Record *pRecMin = nullptr;
-    distance_t d_min = DBL_MAX;
+    distance_t d_min = bg::distance(_base_pos, aim);
     //CINFO("aim " << aim);
     for (const auto &pRec : range)
     {
         bool visited = false;
-        if (pVisited)
+        if (pVisited && pVisited->size())
         {
             const RecordHasher rh;
             size_t h = rh(*pRec);
-            visited = (pVisited->find(h) == pVisited->end());
+            visited = pVisited->count(h);
         }
         bool endPointCondition = (pHitPosPred) ? (*pHitPosPred)(*pRec) : true;
 
@@ -683,8 +688,8 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
                                                       OUT Record *pRecUpper,
                                                       IN OUT visited_t *pVisited)
 {
-    const Point min(aim.x - annealing, aim.y - annealing),
-                max(aim.x + annealing, aim.y + annealing);
+    const Point min(aim.x - side3/*annealing*/, aim.y - side3/*annealing*/),
+                max(aim.x + side3/*annealing*/, aim.y + side3/*annealing*/);
     // ------------------------------------------------
     adjacency_ptrs_t range;
     _store->adjacencyRectPoints<adjacency_ptrs_t, ByP>(range, min, max);
@@ -729,9 +734,13 @@ bool RoboPos::LearnMoves::gradientSomeClothestRecords(IN  const Point &aim,
 //------------------------------------------------------------------------------
 distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
 {
+    auto p = _store->getClosestPoint(aim, annealing);
+    if (!p.first)
+        CERROR(_T("gradientMethod: Empty adjacency"));
+    // -----------------------------------------------
     LearnMoves::visited_t visited;
     distance_t distance, new_distance;
-    new_distance = distance = bg::distance(_base_pos, aim);
+    new_distance = distance = bg::distance(aim, p.second.hit);
     // -----------------------------------------------
     do
     {
@@ -754,9 +763,11 @@ distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
                          rec_upper.controls,
                          controls);
         // -----------------------------------------------
-        //auto hit = predict(controls);
-        //auto d = bg::distance(aim, hit);
-        //if (less(distance, d))
+#if 0
+        auto hit = predict(controls);
+        auto d = bg::distance(aim, hit);
+        if (less(distance, d))
+#endif
         {
             new_distance = actionRobo(aim, controls);
             //++_gradient_points_complexity;

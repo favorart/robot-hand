@@ -86,6 +86,7 @@ struct MyWindowData final
         Robo::Control controls_{};
         Point base_pos_{};
     public:
+        Robo::Control controls() const { return controls_; }
         Robo::frames_t skipShowFrames() const { return skip_show_frames_; }
         bool show() const { return show_; }
         bool animation() const { return animation_; }

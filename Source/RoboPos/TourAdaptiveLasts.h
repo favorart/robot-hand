@@ -75,7 +75,9 @@ public:
     }
 };
 
-inline void TourI::adaptiveAvgLasts(IN const Point &prev_pos, IN const Point &curr_pos,
+//------------------------------------------------------------------------------
+inline
+void TourI::adaptiveAvgLasts(IN const Point &prev_pos, IN const Point &curr_pos,
                              IN const Robo::Actuator &control_i, IN OUT Robo::frames_t &lasts_step,
                              IN bool /*target_contain !!!*/, IN bool was_on_target, IN bool init)
 {

@@ -116,7 +116,7 @@ public:
                 for (auto it = its_pair.first; it != its_pair.second; ++it)
                     if (!covered(*it, store))
                     {
-                        size_t i = belongs(*it, n_angles);
+                        size_t i = belongs(*it, n_angles - 1);
                         _goals[i].avg_goals += *it;
                         _goals[i].n_goals++;
                     }
@@ -398,6 +398,8 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
 
                     //tcout << "goals=" << goal.size() << std::endl;
                     done = !goal.next_stage(*_store);
+                    if (done)
+                        break;
 
                     //controls.clear(); // !!!
                     //std::stack<distance_t>().swap(distances); // clear
@@ -528,7 +530,8 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                 size_t i = (step_back_count * _step_back);
                 //if ((step_back_count * _step_back) % _robo->getVisitedRarity() || !i)
                 //    i++;
-                i = (best_prev.trajectory.size() - std::min(best_prev.trajectory.size(), i));
+                i = (best_prev.trajectory.size() - 1) - std::min((best_prev.trajectory.size() - 1), i);
+                //CDEBUG("Evo: goal.stage=" << goal.stage() << " goal.size=" << goal.size() << " traj.size=" << best_prev.trajectory.size() << " i=" << i);
                 d = boost_distance(goal.biggest(), best_prev.trajectory[i].spec());
             }
             best_d = d;
@@ -569,7 +572,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
             frames = controls.size() ? (c.start + c.lasts + 1) : 0;
             ////tcout << "      become " << controls << std::endl;
             //tcout << "Evo: maxsize " << controls << std::endl;
-            CDEBUG("Evo: maxsize " << controls)
+            CDEBUG("Evo: maxsize " << controls);
             one_watched = true;
         }
         if (controls.size() == 0)
