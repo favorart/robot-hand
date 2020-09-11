@@ -1,12 +1,11 @@
 ﻿
 [LearnMoves]
-tries = 4
+tries = 64
 ; tries = 32
-tries_break = 3
-; tries_break = 100
-; random_try = 3
+: tries_break = 100
+random_try = 2
 ; половина ребра квадрата, из которого берутся все точки
-side = 0.1
+side = 0.2
 ; шаг уменьшения области поиска для взвешанной суммы
 side_decrease_step = 0.01
 ; используется взвешенная арифметическое среднее (иначе обычное)
@@ -73,7 +72,7 @@ oppo_penalty = 0.5
 prev_dist_add = 0.0001
 max_ncontrols = 8
 step_back = 150
-lasts_step = 80
+lasts_step = 40
 
 [evostep]
 reached_dist = 0.007

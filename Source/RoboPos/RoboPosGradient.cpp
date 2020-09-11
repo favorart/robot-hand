@@ -455,7 +455,8 @@ void RoboPos::LearnMoves::gradientControls(IN const Point   &/*aim !!!*/, IN  do
         }
     }
     //CINFO("c=" << controls);
-    controls.order(robo_nmuscles);
+    if (controls.size())
+        controls.order(robo_nmuscles);
     //CINFO("gradientControls: c=" << controls);
 }
 
@@ -595,6 +596,11 @@ Robo::distance_t RoboPos::LearnMoves::testStage3(IN const Point &aim)
                          lower_controls,
                          upper_controls,
                          controls);
+        if (!controls.size())
+        {
+            CINFO("testStage3: gradientControls FAIL");
+            break;
+        }
         // -----------------------------------------------
         new_distance = actionRobo(aim, controls);
         //++_gradient_wmeans_complexity;
@@ -762,6 +768,11 @@ distance_t RoboPos::LearnMoves::gradientMethod(IN const Point &aim)
                          rec_lower.controls,
                          rec_upper.controls,
                          controls);
+        if (!controls.size())
+        {
+            CINFO("gradientMethod: gradientControls FAIL");
+            break; /* FAIL */
+        }
         // -----------------------------------------------
 #if 0
         auto hit = predict(controls);

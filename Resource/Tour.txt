@@ -1,11 +1,11 @@
 ﻿
 [LearnMoves]
-tries = 8
+tries = 64
 ; tries = 32
-tries_break = 100
-random_try = 3
+; tries_break = 100
+random_try = 2
 ; половина ребра квадрата, из которого берутся все точки
-side = 0.2
+side = 0.15
 ; шаг уменьшения области поиска для взвешанной суммы
 side_decrease_step = 0.005
 

@@ -114,7 +114,8 @@ void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN co
             controls.append({ range_ordered[0][i].muscle, std::max(0ULL, frames_t(starts[i]) - min_start), std::max(0ULL, frames_t(lasts[i])) });
     // ----------------------------------------------
     /* controls check for correctness: opposite muscles work time */
-    controls.order(robo_nmuscles);
+    if (controls.size())
+        controls.order(robo_nmuscles);
     //CDEBUG("weightedMeanControls Ordered end");
 }
 
@@ -151,6 +152,8 @@ distance_t RoboPos::LearnMoves::weightedMean(IN const Point &aim)
         Control controls;
         //weightedMeanControls(aim, range, controls, mid_hit);
         weightedMeanControlsOrdered(aim, range, controls, mid_hit);
+        if (!controls.size())
+            return distance;
 #else
         Control controls;
         std::vector<Actuator> v;

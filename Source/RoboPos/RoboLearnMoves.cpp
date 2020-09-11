@@ -384,7 +384,8 @@ void  RoboPos::LearnMoves::STAGE_3(OUT Trajectory &uncovered)
             else
             {
                 ++count_random;
-                const distance_t spread = _target->precision() * factor_random_spread;
+                //const distance_t spread = _target->precision() * factor_random_spread;
+                const distance_t spread = distance;
                 const auto rx = Utils::random(-spread, spread);
                 const auto ry = Utils::random(-spread, spread);
 
