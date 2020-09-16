@@ -23,6 +23,93 @@ using namespace RoboMoves;
 
 namespace rl_problem {
 //------------------------------------------------------
+template <typename P, typename D>
+class GaussFunc final
+{
+protected:
+    P center{};
+    D width{};
+public:
+    GaussFunc() {}
+    template <typename P, typename D>
+    GaussFunc(const P &c, D w) : center(c), width(w) {}
+    GaussFunc(const GaussFunc<P, D> &gf) {}
+    GaussFunc<P, D>& operator=(const GaussFunc<P, D> &gf)
+    {
+        if (*this != gf)
+        {
+            center = gf.center;
+            width = gf.width;
+        }
+        return *this;
+    }
+};
+//------------------------------------------------------
+template <typename ...> class RGD;
+
+/// For Q-function
+template <typename S, typename A>
+class RGD<S, A> : public rl::gsl::TD<S, A>
+{
+    template <typename fctQ, typename fctGRAD_Q>
+    RGD(gsl_vector* theta,
+        double gamma_coef,
+        double alpha_coef,
+        const fctQ &fct_q,
+        const fctGRAD_Q &fct_grad_q) :
+        TD<S, A>(theta, gamma_coef, alpha_coef, fct_q, fct_grad_q)
+    {}
+    RGD(const RGD<S, A> &cp) : TD<S, A>(cp) {}
+    ~RGD() /*override */ {}
+
+    //RGD<S,A>& operator=(const RGD<S,A> &cp) override;
+
+    //double td_error(const S &s, const A &a, double r, const S &s_, const A &a_) override
+    //{ return r + gamma * q(theta, s_, a_) - q(theta, s, a); }
+    //double td_error(const S &s, const A &a, double r) override
+    //{ return r - q(theta, s, a); }
+    //
+    //void learn(const S &s, const A &a, double r, const S &s_, const A &a_) override
+    //{ this->td_update(s, a, this->td_error(s, a, r, s_, a_)); }
+    //void learn(const S &s, const A &a, double r) override
+    //{ this->td_update(s, a, this->td_error(s, a, r)); }
+};
+
+/// For Value Function
+template <typename S>
+class RGD<S> : public rl::gsl::TD<S>
+{
+    template <typename fctV, typename fctGRAD_V>
+    RGD(gsl_vector* theta,
+        double gamma_coef,
+        double alpha_coef,
+        const fctV &fct_v,
+        const fctGRAD_V &fct_grad_v) :
+        TD<S>(theta, gamma_coef, alpha_coef, fct_v, fct_grad_v)
+    {}
+    RGD(const RGD<S> &cp) : TD<S>(cp) {}
+    virtual ~RGD() /*override */ {}
+
+    //TD<STATE>& operator=(const TD<STATE>& cp);
+    //double td_error(const STATE& s, double r, const STATE& s_) override
+    //{
+    //    return r + gamma * v(theta, s_) - v(theta, s);
+    //}
+    //double td_error(const STATE& s, double r) override
+    //{
+    //    return r - v(theta, s);
+    //}
+    //
+    //void learn(const STATE& s, double r, const STATE& s_) override
+    //{
+    //    this->td_update(s, this->td_error(s, r, s_));
+    //}
+    //void learn(const STATE& s, double r) override
+    //{
+    //    this->td_update(s, this->td_error(s, r));
+    //}
+};
+//------------------------------------------------------
 class Qfunction final
 {
 public:

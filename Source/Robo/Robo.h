@@ -6,6 +6,7 @@
 //-------------------------------------------------------------------------------
 namespace rl_problem {
 struct ObservationRobo;
+class SimRobo;
 }
 namespace Robo {
 //-------------------------------------------------------------------------------
@@ -90,6 +91,7 @@ template <typename T> void forceIncludeMethodMake() { T::name(); T::make(); }
 /// Robotic Interface Interaction
 class RoboI
 {
+    //friend class SimRobo;
 protected:
     frames_t _frame{ 1 };
     StateTrajectory _trajectory{};
