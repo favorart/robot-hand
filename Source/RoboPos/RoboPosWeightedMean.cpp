@@ -112,6 +112,8 @@ void RoboPos::LearnMoves::weightedMeanControlsOrdered(IN const Point &aim, IN co
     for (i = 0; i < max_sz; ++i)
         if (lasts[i] > 0)
             controls.append({ range_ordered[0][i].muscle, std::max(0ULL, frames_t(starts[i]) - min_start), std::max(0ULL, frames_t(lasts[i])) });
+    //tcerr << _T("weightedMeanControls Ordered c=") << controls << std::endl;
+    //CDEBUG(controls);
     // ----------------------------------------------
     /* controls check for correctness: opposite muscles work time */
     if (controls.size())

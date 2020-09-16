@@ -152,6 +152,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam)
   catch (const std::exception &e)
   {
     SHOW_CERROR(e.what());
+    //tcout << "c=" << wd->trajFrames.controls() << std::endl;
+    //wd->trajFrames.clear();
     wd->pRobo->reset();
     InvalidateRect(hWnd, &wd->canvas.myRect, FALSE);
   }

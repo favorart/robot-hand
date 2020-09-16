@@ -363,12 +363,12 @@ void  onWindowTimer(MyWindowData &wd)
 //-------------------------------------------------------------------------------
 bool  repeatRoboMove(MyWindowData &wd)
 {
-    if (wd.pStore->empty())
-    {
-        Control c;
-        c.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return (robo.muscleMaxLasts(m)/*/2*/); });
-        wd.pRobo->move(c);
-    }
+    //if (wd.pStore->empty())
+    //{
+    //    Control c;
+    //    c.fillRandom(wd.pRobo->musclesCount(), [&robo=*wd.pRobo](muscle_t m) { return (robo.muscleMaxLasts(m)/*/2*/); });
+    //    wd.pRobo->move(c);
+    //}
     //auto &rec = wd.pStore->closestEndPoint(wd.mouse.aim);
 
     auto p = wd.pStore->getClosestPoint(wd.mouse.aim, wd.search.side);

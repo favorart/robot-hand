@@ -589,6 +589,20 @@ void test::Test::plotRobotMotionLaw(const Robo::RoboI &robo, const tstring &test
 #endif //!GNUPLOT_SILENCE
 }
 //------------------------------------------------------
+void test::Test::plotAnimation(const tstring &plt_prefix)
+{
+    "set terminal gif animate delay 100 \
+     set output 'foobar.gif' \
+     stats 'datafile' nooutput \
+     set xrange[-0.5:1.5] \
+     set yrange[-0.5:5.5]"
+
+        "do for[i = 1:int(STATS_blocks)]{            "
+        "plot 'datafile' index(i - 1) with circles   "
+        "}                                           ";
+
+}
+//------------------------------------------------------
 void test::Test::printConfig() const
 {
     const std::streamsize w = 20;

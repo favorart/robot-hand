@@ -532,6 +532,7 @@ bool RoboPos::TourEvo::runNestedForMuscle(joint_t, Control&, Point&)
                 //    i++;
                 i = (best_prev.trajectory.size() - 1) - std::min((best_prev.trajectory.size() - 1), i);
                 //CDEBUG("Evo: goal.stage=" << goal.stage() << " goal.size=" << goal.size() << " traj.size=" << best_prev.trajectory.size() << " i=" << i);
+                //tcout << "Evo: goal.stage=" << goal.stage() << " goal.size=" << goal.size() << " traj.size=" << best_prev.trajectory.size() << " i=" << i << std::endl;
                 d = boost_distance(goal.biggest(), best_prev.trajectory[i].spec());
             }
             best_d = d;
@@ -823,7 +824,7 @@ bool RoboPos::TourEvoSteps::runNestedForMuscle(joint_t /*joint !!!*/, Control &c
                     if (best_acts & (1 << m))
                         controls.append({ m, lasts, 1 });
             }
-            tcout << "---acts=" << controls << std::endl;
+            //tcout << "---acts=" << controls << std::endl;
         }
         
         if (_target.contain(best_hit))

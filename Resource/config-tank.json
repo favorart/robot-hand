@@ -67,8 +67,8 @@
       [ -0.41, -0.03 ],
       [ -0.41, -0.85 ]
     ],    "#rectangle": "full round of points!",
-    "hn_aims": 20, "#hn_aims": 30,
-    "vn_aims": 20, "#vn_aims": 30,
+    "hn_aims": 15, "#hn_aims": 30,
+    "vn_aims": 15, "#vn_aims": 30,
     "drawLines": true,
     "drawPoints": true,
     "drawRadius": 0.007,

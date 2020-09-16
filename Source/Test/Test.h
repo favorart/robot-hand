@@ -101,7 +101,7 @@ public:
     void printConfig() const;
     void plotStoreState(const RoboMoves::Store&, const tstring &test_name);
     void plotRobotMotionLaw(const Robo::RoboI&, const tstring &test_name);
-    void plotAnimation(const tstring &plt_prefix) {}
+    void plotAnimation(const tstring &plt_prefix);
 
     void printStat2(const RoboMoves::Store&, const Robo::RoboI&) const;
     void printStat1(const RoboMoves::Store&, const Robo::RoboI&) const;
