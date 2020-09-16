@@ -308,7 +308,7 @@ namespace NewHand
   //------------------------------------------------------------------------------
   const tstring  HAND_NAME = _T ("NewHand");
 #define SET_DEFAULT  set(   NewHand::Hand::JointsSet    \
-                         { {NewHand::Hand::Clvcl,  0.}, \
+                         { {NewHand::Hand::Clvcl, 50.}, \
                            {NewHand::Hand::Shldr,  0.}, \
                            {NewHand::Hand::Elbow, 70.}, \
                            {NewHand::Hand::Wrist, 50.}  \

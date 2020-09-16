@@ -11,7 +11,7 @@ namespace Positions
     //---basics-----------------------------------------------
     HandMoves::Store &store; Hand &hand; RecTarget &target;
     //--------------------------------------------------------
-    int  max_nested;
+    size_t  max_nested;
     Point   hand_pos_base;        
     //---iterating--------------------------------------------
     HandMoves::controling_t     controls;
@@ -122,7 +122,8 @@ namespace Positions
         control_i.muscle = muscle_i;
         //------------------------------------------
         auto &board = borders_[muscle_i];
-        if (  board.first > 0
+        //tcout << board.first << ' ' << board.second << std::endl;
+        if (  board.first >/*=*/ 0
            && board.first < board.second )
         {
           lasts_step = lasts_step_increment;
@@ -588,7 +589,7 @@ namespace Positions
               /* target   */ false,
               /* braking  */  true,
               /* checking */ false,
-              0.07, 5U,
+              0.095, 10U,
               verbose);
 
     // borders_t  borders;
@@ -618,7 +619,7 @@ namespace Positions
               /* target   */ true,
               /* braking  */ true,
               /* checking */ false,
-              0.02, 3U,
+              0.07, 5U,
               verbose);
   }
   /* Попадание в оставшиеся непокрытыми точки мишени */
